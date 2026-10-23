@@ -5,6 +5,8 @@
 #
 #   distro/build-repo.sh && sudo distro/build-iso.sh
 #
+# Outils de l'hôte (mklive.sh ne les vérifie pas): kmod lzo liblz4 dosfstools e2fsprogs squashfs-tools xorriso
+#
 # SERIAL=1: console et connexion sur le port série en plus (test de démarrage dans QEMU, CI).
 set -euo pipefail
 

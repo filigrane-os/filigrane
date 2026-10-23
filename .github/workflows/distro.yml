@@ -21,7 +21,7 @@ jobs:
           docker run --rm --privileged -v "$PWD":/src -w /src ghcr.io/void-linux/void-glibc-full:latest sh -exc '
             xbps-install -Syu xbps || true
             xbps-install -Syu
-            xbps-install -y bash git cargo
+            xbps-install -y bash git cargo kmod lzo liblz4 dosfstools e2fsprogs squashfs-tools xorriso
             git config --global --add safe.directory /src
             bash distro/build-repo.sh
             SERIAL=1 bash distro/build-iso.sh'
