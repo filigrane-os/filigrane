@@ -1,0 +1,13 @@
+# Plafonds de budget (outil apps/budget): l'OS doit se faire oublier.
+# Le système = mémoire utilisée (comme free) moins le travail de l'utilisateur.
+#   system  <Mo>          plafond du système entier (noyau, démons, session niri, barre...)
+#   process <Mo>          plafond par défaut d'un programme du système (tous ses processus cumulés)
+#   limit   <nom> <Mo>    plafond propre à un programme (nom tel que dans `budget`, 15 caractères max)
+#   apps    <préfixes>    travail de l'utilisateur, hors budget, avec tout ce qu'il lance (les conteneurs aussi)
+#   terminals <noms>      ce qui est lancé depuis le shell d'un de ces terminaux compte comme travail
+# Une couche (users/<login>/dotfiles/config/budget/limits) remplace ce fichier.
+system 1024
+process 150
+limit niri 250
+apps chrome chromium firefox claude node podman conmon qemu
+terminals foot alacritty

@@ -1,5 +1,6 @@
 #!/bin/sh
-# Application web dans sa propre fenêtre (Google Chrome --app: sans barre d'onglets ni d'adresse).
+# Application web dans sa propre fenêtre (Chrome ou Chromium --app: sans barre d'onglets ni d'adresse).
+# Navigateur: $WEBAPP_BROWSER, sinon Google Chrome s'il est installé, sinon Chromium (paquet de la distribution).
 # Même profil que le navigateur: pas de second navigateur résident, session conservée.
 # Si une fenêtre de cette appli existe déjà (app-id "chrome-<hôte>__-<profil>"), elle prend le focus au lieu d'être rouverte.
 #   webapp https://web.whatsapp.com
@@ -11,4 +12,5 @@ if [ -n "$win" ]; then
     exec niri msg action focus-window --id "$win"
 fi
 # Détaché: sinon Chrome reste fils du lanceur (clic Waybar) et bloque le rafraîchissement du module
-setsid -f google-chrome-stable --app="$1" >/dev/null 2>&1
+browser="${WEBAPP_BROWSER:-$(command -v google-chrome-stable || echo chromium)}"
+setsid -f "$browser" --app="$1" >/dev/null 2>&1

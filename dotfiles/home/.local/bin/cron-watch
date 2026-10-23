@@ -7,21 +7,18 @@ mkdir -p "$STATE"
 exec 9>"$STATE/lock"
 flock -n 9 || exit 0
 
-# nom:intervalle en minutes:script:argument
-JOBS=(
-    "void:360:watch-void:"
-    "backup:1440:watch-backup:"
-    "icloud:1440:watch-icloud:"
-    "omarchy:10080:watch-claude:omarchy"
-    "t2:10080:watch-claude:t2"
-)
+# Tâches: une par ligne "nom:intervalle en minutes:script:argument" dans ~/.config/cron-watch/jobs.d/*
+# (un fichier par couche: 00-core pour la distribution, puis matériel et personnel). Relu à chaque tour.
+JOBS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cron-watch/jobs.d"
 
 while :; do
+    mapfile -t JOBS < <(cat "$JOBS_DIR"/* 2>/dev/null | sed -e 's/#.*//' -e '/^[[:space:]]*$/d')
     for job in "${JOBS[@]}"; do
         IFS=: read -r name every script arg <<<"$job"
         stamp="$STATE/$name.stamp"
         if [ ! -e "$stamp" ] || [ -n "$(find "$stamp" -mmin "+$every")" ]; then
-            "$HOME/.local/bin/$script" $arg && touch "$stamp"
+            # ~/.local/bin d'abord (dotfiles, outils compilés), puis le PATH (paquet vide-apps dans /usr/bin)
+            PATH="$HOME/.local/bin:$PATH" "$script" $arg && touch "$stamp"
         fi
     done
     sleep 1800

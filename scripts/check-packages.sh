@@ -1,5 +1,5 @@
 #!/bin/bash
-# Vérifie que chaque paquet des listes packages/*.txt existe dans le dépôt Void d'une architecture.
+# Vérifie que chaque paquet des listes packages/*.txt (et users/*/packages/*.txt) existe dans le dépôt Void d'une architecture.
 #
 #   scripts/check-packages.sh [x86_64|aarch64|riscv64] [--warn-only]     (défaut: architecture courante)
 #
@@ -20,7 +20,7 @@ cp /var/db/xbps/keys/* "$TMP/var/db/xbps/keys/"  # clés du système courant (co
 xbps-install -r "$TMP" "${REPOS[@]}" -Sy >/dev/null
 
 missing=0
-for list in "$ROOT"/packages/*.txt; do
+for list in "$ROOT"/packages/*.txt "$ROOT"/users/*/packages/*.txt; do
     [ "${list##*/}" = restricted.txt ] && continue  # construits avec xbps-src, absents des dépôts
     for pkg in $(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$' || true); do
         if ! xbps-query -r "$TMP" "${REPOS[@]}" -R "$pkg" >/dev/null 2>&1; then

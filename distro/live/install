@@ -1,0 +1,31 @@
+#!/bin/bash
+# Installateur de l'ISO live (installé en /usr/bin/<distro>-install): demande le disque, l'utilisateur et le nom
+# de la machine, puis lance install-void.sh du dépôt embarqué, distribution seule (sans couche personnelle).
+# Options supplémentaires transmises à install-void.sh (--profile, --machine, --cpu, --gpu).
+set -euo pipefail
+SRC="${SRC:-/usr/share/vide/void-setup}"
+[ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+# shellcheck source=distro/distro.env
+source "$SRC/distro/distro.env"
+
+echo "Installation de $DISTRO_TITLE"
+if ! curl -fsI --max-time 10 "$VOID_REPO/$(uname -m)-repodata" >/dev/null; then
+    echo "Réseau requis (paquets téléchargés depuis $VOID_REPO)."
+    echo "Câble: automatique (dhcpcd). Wi-Fi: wpa_passphrase <SSID> <clé> >> /etc/wpa_supplicant/wpa_supplicant.conf,"
+    echo "puis sv restart wpa_supplicant. Relancer ensuite: $DISTRO-install"
+    exit 1
+fi
+
+echo
+lsblk -dpno NAME,SIZE,MODEL -e 7,11  # sans boucles (7) ni lecteurs optiques (11)
+echo
+read -r -p "Disque cible (il sera ENTIÈREMENT effacé): " disk
+read -r -p "Nom d'utilisateur: " user
+read -r -p "Nom de la machine [$DISTRO]: " host
+
+# Copie modifiable (le live est en lecture seule): .user-layer=none fixe la distribution seule, même si le nom
+# d'utilisateur correspond à une couche users/<nom> du dépôt
+work="$(mktemp -d)"
+cp -a "$SRC" "$work/void-setup"
+echo none > "$work/void-setup/.user-layer"
+exec "$work/void-setup/install-void.sh" --disk "$disk" --user "$user" --hostname "${host:-$DISTRO}" "$@"

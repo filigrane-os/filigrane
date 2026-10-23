@@ -3,7 +3,14 @@
 #
 #   ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
 #                  [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
-#                  [--arch auto|x86_64|aarch64|riscv64] [--system-only | --dotfiles-only | --plan]
+#                  [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<nom>]
+#                  [--system-only | --dotfiles-only | --plan]
+#
+# Trois couches, appliquées dans l'ordre (une couche suivante remplace un fichier de même chemin):
+#   1. la distribution (racine du dépôt: packages/, services/, system/, dotfiles/, apps/), générique;
+#   2. le matériel (hardware/<machine>/);
+#   3. la couche personnelle (users/<nom>/: config.env, packages/*.txt, services/*.txt, dotfiles/, layer.sh).
+# --user-layer: auto = users/<utilisateur cible> s'il existe, none = distribution seule (comme une installation neuve).
 #
 # --plan: affiche les listes retenues pour la configuration et quitte, sans rien modifier (CI).
 # --profile: environnement (VM ou machine physique). --machine: matériel, pour tout ce qui est
@@ -17,9 +24,10 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=config.env
-source "$ROOT/config.env"
+# shellcheck source=distro/distro.env
+source "$ROOT/distro/distro.env"  # DISTRO: préfixe des paquets du dépôt de la distribution
 
+USER_LAYER="${USER_LAYER:-auto}"
 PROFILE="${PROFILE:-auto}"
 MACHINE="${MACHINE:-auto}"
 CPU_VENDOR="${CPU_VENDOR:-auto}"
@@ -39,7 +47,8 @@ while [ $# -gt 0 ]; do
         --plan) PLAN=1; shift ;;
         --system-only) DO_DOTFILES=0; shift ;;
         --dotfiles-only) DO_SYSTEM=0; shift ;;
-        -h|--help) sed -n '2,18p' "$0"; exit 0 ;;
+        --user-layer) USER_LAYER="${2:?couche manquante}"; shift 2 ;;
+        -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
         *) echo "Option inconnue: $1" >&2; exit 1 ;;
     esac
 done
@@ -53,6 +62,30 @@ else
 fi
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [ -n "$TARGET_HOME" ] || { echo "Utilisateur introuvable: $TARGET_USER" >&2; exit 1; }
+
+# Couche personnelle: users/<nom>/. Le choix est mémorisé dans .user-layer (hors git, écrit par --user-layer ou par
+# l'installateur). auto sans .user-layer: users/<utilisateur cible> s'il existe, avec un avertissement.
+if [ "$USER_LAYER" = auto ]; then
+    if [ -f "$ROOT/.user-layer" ]; then USER_LAYER="$(cat "$ROOT/.user-layer")"
+    elif [ -d "$ROOT/users/$TARGET_USER" ]; then
+        USER_LAYER="$TARGET_USER"
+        echo "Couche users/$TARGET_USER choisie d'après le nom (la fixer: --user-layer $TARGET_USER, ou none)" >&2
+    else USER_LAYER=none; fi
+elif [ "$PLAN" -eq 0 ]; then
+    { echo "$USER_LAYER" > "$ROOT/.user-layer"; } 2>/dev/null || echo "AVERTISSEMENT: .user-layer non mémorisé (dépôt en lecture seule)" >&2
+fi
+LAYER_DIR=""
+if [ "$USER_LAYER" != none ]; then
+    LAYER_DIR="$ROOT/users/$USER_LAYER"
+    [ -d "$LAYER_DIR" ] || { echo "Couche introuvable: users/$USER_LAYER" >&2; exit 1; }
+fi
+# Réglages: la couche personnelle d'abord (ses valeurs passent avant les défauts de la distribution)
+if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/config.env" ]; then
+    # shellcheck source=users/thomas/config.env
+    source "$LAYER_DIR/config.env"
+fi
+# shellcheck source=config.env
+source "$ROOT/config.env"
 
 log() { printf '\n==> %s\n' "$*"; }
 warn() { printf 'AVERTISSEMENT: %s\n' "$*" >&2; }
@@ -106,7 +139,7 @@ case "$TARGET_ARCH" in x86_64|aarch64|riscv64) ;; *) warn "architecture non pré
 for g in $GPU_VENDORS; do
     [ -f "$ROOT/packages/gpu-$g.txt" ] || { echo "GPU invalide: $g (intel|amd|nvidia|none)" >&2; exit 1; }
 done
-log "Profil: $PROFILE, machine: $MACHINE, arch: $TARGET_ARCH, cpu: $CPU_VENDOR, gpu: ${GPU_VENDORS:-aucun}, utilisateur: $TARGET_USER"
+log "Profil: $PROFILE, machine: $MACHINE, arch: $TARGET_ARCH, cpu: $CPU_VENDOR, gpu: ${GPU_VENDORS:-aucun}, utilisateur: $TARGET_USER, couche: $USER_LAYER"
 
 # Liste sans commentaires ni lignes vides
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
@@ -120,7 +153,20 @@ hardware_package_lists() { # dépôt nonfree requis (microcode), machine physiqu
     echo "$ROOT/packages/cpu-$CPU_VENDOR.txt"
     for g in $GPU_VENDORS; do echo "$ROOT/packages/gpu-$g.txt"; done
 }
-service_lists() { echo "$ROOT/services/common.txt" "$ROOT/services/$PROFILE.txt"; }
+service_lists() {
+    echo "$ROOT/services/common.txt" "$ROOT/services/$PROFILE.txt"
+    [ -z "$LAYER_DIR" ] || find "$LAYER_DIR/services" -name '*.txt' 2>/dev/null | sort
+}
+# Paquets de la couche personnelle (restricted.txt à part: construit avec xbps-src)
+layer_package_lists() {
+    [ -z "$LAYER_DIR" ] || find "$LAYER_DIR/packages" -name '*.txt' ! -name restricted.txt 2>/dev/null | sort
+}
+restricted_lists() {
+    local f
+    for f in "$ROOT/packages/restricted.txt" "${LAYER_DIR:+$LAYER_DIR/packages/restricted.txt}"; do
+        if [ -n "$f" ] && [ -f "$f" ]; then echo "$f"; fi
+    done
+}
 
 # --plan: affiche la configuration résolue et vérifie que les listes existent, sans rien modifier
 print_plan() {
@@ -128,12 +174,14 @@ print_plan() {
     pkgs="$(package_lists)"
     [ "$PROFILE" = baremetal ] && pkgs="$pkgs $(hardware_package_lists)"
     [ "$MACHINE" = mac-t2 ] && pkgs="$pkgs $ROOT/packages/mac-t2.txt"
+    pkgs="$pkgs $(layer_package_lists) $(restricted_lists)"
     for f in $pkgs $(service_lists); do
         if [ -f "$f" ]; then echo "${f#"$ROOT/"}"; elif [[ "$f" == */cpu-other.txt ]]; then echo "${f#"$ROOT/"} (aucune liste)"; else
             echo "MANQUANT: ${f#"$ROOT/"}" >&2; rc=1
         fi
     done
     [ -d "$ROOT/hardware/$MACHINE" ] && echo "hardware/$MACHINE"
+    [ -z "$LAYER_DIR" ] || echo "users/$USER_LAYER"
     return $rc
 }
 
@@ -172,6 +220,14 @@ setup_system() {
         else $SUDO xbps-install -y void-repo-nonfree; fi
         $SUDO xbps-install -S
         for list in $(hardware_package_lists); do install_list "$list"; done
+    fi
+    for list in $(layer_package_lists); do install_list "$list"; done
+
+    # Dépôt de la distribution embarqué (ISO: distro/out/repo, construit par distro/build-repo.sh): outils natifs
+    # déjà compilés, sans passer par cargo
+    if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ] && ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
+        log "Outils natifs ($DISTRO-apps, dépôt embarqué)"
+        $SUDO xbps-install -Sy --repository="$ROOT/distro/out/repo" "$DISTRO-apps" || warn "$DISTRO-apps non installé: apps/ seront compilées"
     fi
 
     log "Nettoyage du cache xbps (disque réduit)"
@@ -212,9 +268,6 @@ setup_system() {
         $SUDO install -m 644 "$ROOT/system/udev/90-power-profile.rules" /etc/udev/rules.d/
         $SUDO udevadm control --reload
         $SUDO udevadm trigger --subsystem-match=power_supply --action=change
-
-        log "Pilote de l'imprimante Dell 1350cnw (HBPL v1, compilé dans /usr/local)"
-        [ -x /usr/local/bin/foo2hbpl1 ] || "$ROOT/drivers/dell-1350cnw/install.sh" || warn "pilote Dell non installé"
     fi
 
     log "Réglages noyau (sysctl), earlyoom et zram"
@@ -285,9 +338,13 @@ setup_system() {
     $SUDO chmod 440 /etc/sudoers.d/zz-power
     $SUDO visudo -cf /etc/sudoers.d/zz-power >/dev/null
     # Claude Code (agent OS): sv et xbps sans mot de passe; la confirmation reste côté Claude Code (permissions "ask")
-    echo "$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/sv, /usr/bin/xbps-install, /usr/bin/xbps-remove, /usr/bin/xbps-query, /usr/bin/xbps-reconfigure" | $SUDO tee /etc/sudoers.d/zz-claude >/dev/null
-    $SUDO chmod 440 /etc/sudoers.d/zz-claude
-    $SUDO visudo -cf /etc/sudoers.d/zz-claude >/dev/null
+    if [ "$CLAUDE_CODE" = 1 ]; then
+        echo "$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/sv, /usr/bin/xbps-install, /usr/bin/xbps-remove, /usr/bin/xbps-query, /usr/bin/xbps-reconfigure" | $SUDO tee /etc/sudoers.d/zz-claude >/dev/null
+        $SUDO chmod 440 /etc/sudoers.d/zz-claude
+        $SUDO visudo -cf /etc/sudoers.d/zz-claude >/dev/null
+    else
+        $SUDO rm -f /etc/sudoers.d/zz-claude
+    fi
 
     # Matériel spécifique: hardware/<machine>/ (generic n'a rien)
     if [ "$MACHINE" = mac-t2 ]; then
@@ -309,59 +366,13 @@ run_as_user() {
     fi
 }
 
-# CLI officielle Proton Drive (pas dans les dépôts Void): binaire épinglé, vérifié par SHA-512
-PROTON_DRIVE_VER="0.9.0"
-PROTON_DRIVE_SHA512="3533025ba69ae112b64e3e01fbcc1ad0688136a4043f6cf6a72886967d85fdcd9ec235479c2e113171614be5225bfba93427509a05ca5aa6071d924fa7e91ca8"
-
-setup_proton_drive() {
-    log "Proton Drive CLI $PROTON_DRIVE_VER"
-    [ "$TARGET_ARCH" = x86_64 ] || { warn "Proton Drive CLI: binaire x86_64 seulement, ignoré sur $TARGET_ARCH"; return 0; }
-    local dir="$TARGET_HOME/.local/opt/proton-drive-$PROTON_DRIVE_VER"
-    if [ ! -x "$dir/proton-drive" ]; then
-        run_as_user mkdir -p "$dir"
-        run_as_user curl -fsSL "https://proton.me/download/drive/cli/$PROTON_DRIVE_VER/linux-x64/proton-drive" -o "$dir/proton-drive.tmp" \
-            || { warn "téléchargement de Proton Drive CLI échoué"; return 0; }
-        if ! echo "$PROTON_DRIVE_SHA512  $dir/proton-drive.tmp" | sha512sum -c --quiet; then
-            rm -f "$dir/proton-drive.tmp"; warn "somme SHA-512 de Proton Drive CLI incorrecte"; return 0
-        fi
-        run_as_user chmod 755 "$dir/proton-drive.tmp"
-        run_as_user mv "$dir/proton-drive.tmp" "$dir/proton-drive"
-    fi
-    run_as_user mkdir -p "$TARGET_HOME/.local/bin"
-    run_as_user ln -sfn "$dir/proton-drive" "$TARGET_HOME/.local/bin/proton-drive"
-    echo "connexion: proton-drive auth login (trousseau requis, voir README)"
-}
-
-# whatsapp-unreadd (démon Go, ~23 Mo: compteur de non-lus WhatsApp + notifications, pas dans les dépôts Void):
-# compilé depuis un commit épinglé (le hash fixe le contenu, go.sum celui des dépendances)
-WA_UNREADD_COMMIT="44a1688cb55d93236e886d242cc008ff8c3cbfa9"
-
-setup_whatsapp_unreadd() {
-    log "whatsapp-unreadd ${WA_UNREADD_COMMIT:0:7}"
-    local dir="$TARGET_HOME/.local/opt/whatsapp-unreadd-${WA_UNREADD_COMMIT:0:7}"
-    if [ ! -x "$dir/whatsapp-unreadd" ]; then
-        command -v go >/dev/null || { warn "go absent (packages/dev.txt): whatsapp-unreadd non compilé"; return 0; }
-        local src; src="$(run_as_user mktemp -d)"
-        if run_as_user git clone -q https://github.com/m-brl/whatsapp-unreadd "$src" \
-            && run_as_user git -C "$src" checkout -q "$WA_UNREADD_COMMIT" \
-            && run_as_user mkdir -p "$dir" \
-            && (cd "$src" && run_as_user env CGO_ENABLED=0 GOFLAGS=-mod=readonly go build -trimpath -ldflags='-s -w' -o "$dir/whatsapp-unreadd" .); then
-            :
-        else
-            warn "compilation de whatsapp-unreadd échouée"; run_as_user rm -rf "$src" "$dir"; return 0
-        fi
-        run_as_user rm -rf "$src"
-    fi
-    run_as_user mkdir -p "$TARGET_HOME/.local/bin"
-    run_as_user ln -sfn "$dir/whatsapp-unreadd" "$TARGET_HOME/.local/bin/whatsapp-unreadd"
-    [ -e "$TARGET_HOME/.config/whatsapp-unread/paired" ] || echo "appairage: wa-pair (QR code à scanner depuis WhatsApp > Appareils liés)"
-}
-
 # Outils maison (apps/<nom>, Rust): binaires natifs plutôt que scripts Python/GTK, pour que l'OS reste léger.
 # Compilés en release dans ~/.local/opt/<nom>-<empreinte des sources>, liés dans ~/.local/bin; recompilés
 # seulement quand les sources changent. Le dossier de compilation (target/) reste hors du dépôt, dans ~/.cache.
+# Avec le paquet <distro>-apps (dépôt xbps de la distribution, voir distro/), les binaires sont déjà dans /usr/bin.
 setup_apps() {
     local manifest app name sum dir
+    if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then echo "SKIP: apps/ fournies par le paquet $DISTRO-apps"; return 0; fi
     for manifest in "$ROOT"/apps/*/Cargo.toml; do
         [ -e "$manifest" ] || return 0
         command -v cargo >/dev/null || { warn "cargo absent (packages/dev.txt): apps/ non compilées"; return 0; }
@@ -385,14 +396,15 @@ setup_apps() {
     done
 }
 
-# Paquets restricted (packages/restricted.txt): construits avec xbps-src dans un clone de void-packages.
+# Paquets restricted (packages/restricted.txt de la distribution ou de la couche personnelle): construits avec
+# xbps-src dans un clone de void-packages.
 # Mise à jour: git pull dans le clone, ./xbps-src pkg <paquet>, puis xbps-install -u -R <dépôt local> <paquet>
 VOID_PACKAGES="${VOID_PACKAGES:-$TARGET_HOME/Projects/void-packages}"
 
 setup_restricted() {
-    local pkg
+    local pkg list
     local -a todo=() repos=()
-    for pkg in $(read_list "$ROOT/packages/restricted.txt"); do
+    for pkg in $(for list in $(restricted_lists); do read_list "$list"; done); do
         if xbps-query "$pkg" >/dev/null 2>&1; then echo "SKIP: $pkg déjà installé"; else todo+=("$pkg"); fi
     done
     [ ${#todo[@]} -gt 0 ] || return 0
@@ -416,6 +428,7 @@ setup_restricted() {
 }
 
 setup_claude() {
+    [ "$CLAUDE_CODE" = 1 ] || return 0
     log "Claude Code"
     if [ -x "$TARGET_HOME/.local/bin/claude" ]; then
         echo "déjà installé"
@@ -442,6 +455,15 @@ link_one() { # link_one SOURCE DESTINATION
     fi
 }
 
+# Liens vers ce dépôt devenus orphelins (fichier déplacé, supprimé ou passé dans une autre couche): retirés
+prune_links() {
+    local l
+    while IFS= read -r -d '' l; do
+        case "$(readlink "$l")" in "$ROOT"/*) rm -f "$l"; echo "lien orphelin retiré: ~/${l#"$TARGET_HOME/"}" ;; esac
+    done < <(find "$TARGET_HOME" -maxdepth 1 -xtype l -print0
+             find "$TARGET_HOME/.config" "$TARGET_HOME/.local" "$TARGET_HOME/.claude" -xtype l -print0 2>/dev/null)
+}
+
 link_tree() { # link_tree DOSSIER : DOSSIER/home -> ~, DOSSIER/config -> ~/.config
     local f
     if [ -d "$1/home" ]; then
@@ -464,6 +486,18 @@ setup_dotfiles() {
         log "Dotfiles de la machine $MACHINE"
         link_tree "$ROOT/hardware/$MACHINE/dotfiles"
     fi
+    # Couche personnelle en dernier: un fichier de même chemin remplace celui de la distribution
+    if [ -n "$LAYER_DIR" ] && [ -d "$LAYER_DIR/dotfiles" ]; then
+        log "Dotfiles de la couche users/$USER_LAYER"
+        link_tree "$LAYER_DIR/dotfiles"
+    fi
+    prune_links
+    # Disposition clavier de niri (incluse par config.kdl), depuis config.env
+    run_as_user mkdir -p "$TARGET_HOME/.config/niri"
+    run_as_user sh -c 'printf "%s\n" "$1" "input {" "    keyboard {" "        xkb {" \
+        "            layout \"$2\"" "            variant \"$3\"" "            options \"$4\"" "        }" "    }" "}" > "$5"' _ \
+        "// Généré par bootstrap.sh depuis config.env (XKB_LAYOUT, XKB_VARIANT, XKB_OPTIONS), ne pas modifier ici" \
+        "$XKB_LAYOUT" "$XKB_VARIANT" "$XKB_OPTIONS" "$TARGET_HOME/.config/niri/keyboard.kdl"
     # .desktop des applications web (liste ~/.config/webapps/list)
     HOME="$TARGET_HOME" sh "$ROOT/dotfiles/home/.local/bin/webapp-sync"
     # Thème sombre par défaut (portail xdg: Chromium, GTK4, libadwaita); sans effet hors session D-Bus
@@ -479,18 +513,6 @@ setup_dotfiles() {
         run_as_user mkdir -p "${acc%/*}"
         run_as_user sh -c 'printf "%s\n" "$1" >> "$2"' _ "$ql" "$acc"
     fi
-    # Documents et Images dans iCloud Drive (~/iCloud, monté par icloud-mount): liens symboliques.
-    # Un dossier local non vide n'est pas touché: déplacer son contenu dans ~/iCloud puis relancer.
-    local d
-    for d in Documents Pictures; do
-        [ -L "$TARGET_HOME/$d" ] && continue
-        if [ -d "$TARGET_HOME/$d" ] && ! rmdir "$TARGET_HOME/$d" 2>/dev/null; then
-            warn "~/$d non vide: déplacer son contenu dans ~/iCloud/$d puis relancer bootstrap.sh"
-            continue
-        fi
-        log "~/$d -> ~/iCloud/$d"
-        run_as_user ln -s "iCloud/$d" "$TARGET_HOME/$d"
-    done
     # Mac T2 (MacBookPro16,2): la route ALSA "Speaker" est cachée par le DSP (hide-parent), donc plus
     # réglable, et un volume bas sur elle atténue tout le DSP. WirePlumber n'a pas de règle de volume
     # par route: on la fixe à 1.0 dans son état, le volume se règle sur le DSP.
@@ -505,14 +527,21 @@ setup_dotfiles() {
             printf '%s\n' "$line" >> "$st"
         fi
     fi
+    if declare -F layer_dotfiles >/dev/null; then layer_dotfiles; fi
 }
+
+# Fonctions optionnelles de la couche personnelle: layer_system (droits root, après la distribution)
+# et layer_dotfiles (après les liens). Elles disposent de log, warn, read_list, install_list, run_as_user, $SUDO...
+if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/layer.sh" ]; then
+    # shellcheck source=users/thomas/layer.sh
+    source "$LAYER_DIR/layer.sh"
+fi
 
 if [ "$PLAN" -eq 1 ]; then print_plan; exit; fi
 [ "$DO_SYSTEM" -eq 1 ] && setup_system
 [ "$DO_DOTFILES" -eq 1 ] && setup_dotfiles
 [ "$DO_DOTFILES" -eq 1 ] && setup_apps
 [ "$DO_SYSTEM" -eq 1 ] && setup_claude
-[ "$DO_SYSTEM" -eq 1 ] && setup_proton_drive
-[ "$DO_SYSTEM" -eq 1 ] && setup_whatsapp_unreadd
 [ "$DO_SYSTEM" -eq 1 ] && setup_restricted
+if [ "$DO_SYSTEM" -eq 1 ] && declare -F layer_system >/dev/null; then layer_system; fi
 log "Terminé"

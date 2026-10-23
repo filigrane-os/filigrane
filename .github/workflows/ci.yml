@@ -1,13 +1,13 @@
 name: CI
 
-# Sur les pull requests vers main et sur les push vers main (pas sur develop).
+# Sur les pull requests vers main et sur les push vers main et distro (pas sur develop).
 # Rien n'installe de système: on vérifie la logique de sélection
 # (profil, machine, CPU, GPU, architecture), l'existence des paquets et la pose des dotfiles.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, distro]
 
 permissions:
   contents: read
@@ -19,11 +19,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntaxe bash
         run: |
-          for f in bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/*.sh; do
+          for f in bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/*.sh distro/*.sh distro/live/install users/*/layer.sh; do
             bash -n "$f"
           done
       - name: shellcheck (erreurs seulement)
-        run: shellcheck -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh
+        run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install users/*/layer.sh
 
   # Une ligne par configuration à valider: bootstrap.sh --plan doit résoudre toutes les listes
   plan:
@@ -51,9 +51,15 @@ jobs:
           if grep -qE '^hardware/mac-t2|mac-t2\.txt' <<<"$out"; then
             echo "mac-t2 ne doit pas apparaître hors de la machine mac-t2"; exit 1
           fi
+      - name: Couche personnelle (users/thomas) résolue en plus de la distribution
+        run: |
+          out="$(./bootstrap.sh --plan ${{ matrix.args }} --user-layer thomas)"
+          grep -qx 'users/thomas/packages/personal.txt' <<<"$out"
+          grep -qx 'users/thomas' <<<"$out"
+          if ./bootstrap.sh --plan ${{ matrix.args }} | grep -q '^users/'; then echo "couche personnelle hors --user-layer"; exit 1; fi
       - name: Options invalides refusées
         run: |
-          for bad in "--machine inconnue" "--cpu arm" "--gpu inconnu"; do
+          for bad in "--machine inconnue" "--cpu arm" "--gpu inconnu" "--user-layer inconnue"; do
             # shellcheck disable=SC2086
             if ./bootstrap.sh --plan $bad >/dev/null 2>&1; then echo "accepté à tort: $bad"; exit 1; fi
           done

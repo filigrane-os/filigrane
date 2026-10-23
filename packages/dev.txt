@@ -15,7 +15,6 @@ lazygit
 github-cli
 nerd-fonts-symbols-ttf
 wl-clipboard
-cmus
 # Conteneurs sans démon (remplace docker du Mac)
 podman
 lazydocker  # TUI conteneurs (binaire Go de 13 Mo, rien de résident); a besoin du socket podman (DOCKER_HOST)
@@ -24,7 +23,3 @@ gcc
 make
 unzip
 tree-sitter-cli
-# Compilation de whatsapp-unreadd (bootstrap.sh, setup_whatsapp_unreadd): outil de build seulement, 217 Mo sur disque, rien de résident
-go
-# Diagnostic Android en USB (adb); binaires seuls, le serveur adb ne tourne que sur demande
-android-tools

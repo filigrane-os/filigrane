@@ -1,9 +1,9 @@
 [Default Applications]
 inode/directory=yazi-foot.desktop
 application/pdf=ai.storyteller.pdfcraft.desktop
-text/html=google-chrome.desktop
-x-scheme-handler/http=google-chrome.desktop
-x-scheme-handler/https=google-chrome.desktop
+text/html=chromium.desktop
+x-scheme-handler/http=chromium.desktop
+x-scheme-handler/https=chromium.desktop
 image/png=imv.desktop
 image/jpeg=imv.desktop
 image/gif=imv.desktop
@@ -25,8 +25,8 @@ text/markdown=nvim-foot.desktop
 application/json=nvim-foot.desktop
 text/x-shellscript=nvim-foot.desktop
 text/csv=ai.storyteller.gridcraft.desktop
-x-scheme-handler/about=google-chrome.desktop
-x-scheme-handler/unknown=google-chrome.desktop
+x-scheme-handler/about=chromium.desktop
+x-scheme-handler/unknown=chromium.desktop
 
 [Added Associations]
 application/pdf=ai.storyteller.pdfcraft.desktop;

@@ -18,7 +18,7 @@ ignore-timeout=1
 layer=overlay
 anchor=top-right
 # Clic gauche: action par défaut puis focus sur la fenêtre de l'appli (notif-focus)
-on-button-left=exec /home/thomas/.local/bin/notif-focus "$id"
+on-button-left=exec "$HOME/.local/bin/notif-focus" "$id"
 on-button-right=dismiss
 
 # Captures niri: l'icône est l'image plein écran (~16 Mo décodée), gardée tant que la notification est dans l'historique.

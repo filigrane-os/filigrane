@@ -9,14 +9,25 @@ Objectif: un système léger qui s'efface, pour laisser la RAM et le CPU au navi
 |---|---|
 | `install-void.sh` | Depuis l'ISO live : partitionne le disque, installe la base, appelle `bootstrap.sh`, installe GRUB |
 | `bootstrap.sh` | Sur un Void existant : paquets, services runit, clavier/fuseau, groupes, sudo, dotfiles, Claude Code. Idempotent |
-| `config.env` | Clavier (`fr-bepo`), fuseau, locale, groupes, autologin |
+| `config.env` | Réglages par défaut de la distribution : clavier (`us`), fuseau, locale, disposition niri (`XKB_*`), groupes, autologin, Claude Code |
 | `packages/*.txt` | Listes xbps : `base`, `desktop`, `dev`, `vm`, `baremetal`, `cpu-{intel,amd}`, `gpu-{intel,amd,nvidia}`, `mac-t2` |
+| `users/<login>/` | Couche personnelle (voir plus bas) : `config.env`, `packages/*.txt`, `services/*.txt`, `dotfiles/`, `layer.sh` |
+| `apps/` | Outils natifs en Rust : `bar-stats` (modules Waybar), `menu-backdrop` (flou du menu), `budget` (budget ressources) |
+| `distro/` | Dépôt xbps de la distribution et ISO live (voir `distro/README.md`) |
 | `services/*.txt` | Services runit : `common`, `vm` |
 | `dotfiles/home`, `dotfiles/config` | Fichiers liés par symlink dans `~` et `~/.config` |
 | `hardware/<machine>/` | Tout ce qui est propre à un matériel : `mac-t2/` (Mac Intel à puce T2, voir son README). `dotfiles/{home,config}` y est lié en plus des dotfiles communs |
 | `scripts/` | `pull-from-vm.sh`, `gen-wallpaper.py`, `gen-emoji.py` |
 
-Deux axes indépendants, détectés puis forçables (utile pour tester) :
+Trois couches, appliquées dans l'ordre ; un fichier de même chemin dans une couche suivante remplace le précédent :
+
+1. **la distribution** (racine du dépôt), générique : ce qu'aurait n'importe quel utilisateur ;
+2. **le matériel** (`hardware/<machine>/`) ;
+3. **la couche personnelle** (`users/<login>/`) : comptes, services tiers, goûts. Ici `users/thomas` : bépo, Proton (Mail, Calendar, Drive), WhatsApp, iCloud, Google Chrome, imprimante Dell, veille Omarchy/t2linux. Niri l'inclut par `~/.config/niri/local.kdl`, cron-watch par `~/.config/cron-watch/jobs.d/`.
+
+`--user-layer <login>|none` choisit la couche et la mémorise dans `.user-layer` (hors git). Sans ce fichier : `users/<utilisateur>` s'il existe, avec un avertissement. `none` = distribution seule, comme une installation neuve depuis l'ISO.
+
+Axes matériels, détectés puis forçables (utile pour tester) :
 
 - **profil** (`vm` ou `baremetal`) : flag `hypervisor` de `/proc/cpuinfo`, ou `--profile` / `PROFILE=`.
 - **machine** (`generic` ou `mac-t2`) : puce T2 Apple trouvée dans `/sys/bus/pci`, ou `--machine` / `MACHINE=`. `generic` n'exécute rien de `hardware/`. Pour une nouvelle machine : créer `hardware/<nom>/` (avec `setup.sh` et éventuellement `dotfiles/`) et l'ajouter au `case` de `bootstrap.sh`.
@@ -87,7 +98,7 @@ git clone https://github.com/thooams/void-setup ~/void-setup && cd ~/void-setup
 ./bootstrap.sh --dotfiles-only # liens seulement
 ```
 
-Les dotfiles existants sont déplacés en `*.bak.<date>`. Le dépôt doit rester à son emplacement (les liens pointent dedans).
+Les dotfiles existants sont déplacés en `*.bak.<date>`. Le dépôt doit rester à son emplacement (les liens pointent dedans). Les liens vers le dépôt devenus orphelins (fichier déplacé ou supprimé) sont retirés.
 
 Sans accès à GitHub, copier le dépôt depuis un autre poste (pas de `rsync` sur Void de base) :
 `tar --exclude=.git -C ~/Projects/void-setup -cf - . | ssh void 'mkdir -p ~/void-setup && tar -xf - -C ~/void-setup'`, puis `ssh -t void 'cd ~/void-setup && ./bootstrap.sh'` (`-t` pour le mot de passe sudo).
@@ -95,7 +106,7 @@ Sans accès à GitHub, copier le dépôt depuis un autre poste (pas de `rsync` s
 ## Workflow
 
 La VM sert de terrain d'essai : on règle niri, waybar, le menu... dessus (les fichiers sont des liens vers `~/void-setup` sur la VM), puis `scripts/pull-from-vm.sh` rapatrie le tout, on relit le diff et on commite.
-Nouveau paquet : l'ajouter dans le bon fichier `packages/*.txt`.
+Nouveau paquet : l'ajouter dans le bon fichier `packages/*.txt` (distribution) ou `users/<login>/packages/*.txt` (personnel).
 
 ## Limites connues
 

@@ -4,9 +4,9 @@ Goal: the base system idles as low as possible so the browser, agents, container
 
 ## Measure
 
-- RAM: `free -h`. Top consumers: `ps -eo pid,rss,pcpu,comm --sort=-rss | head -15`.
+- `budget` (apps/budget, Rust, ~0,15 s, 2 Mo): OS memory vs user work (browser, agents, containers, anything run from a terminal shell), biggest system residents (PSS), CPU over 2 s, kernel/unattributed split. Limits in `~/.config/budget/limits` (distribution: `dotfiles/config/budget/limits`, overridden by the user layer).
+- Before a durable install: `budget save avant`; after: `budget diff avant`, and report the system delta and new residents. `budget check` exits 1 over limits (cron-watch runs `budget check --notify` twice a day).
 - Services: `sudo sv status /var/service/*`. Disk (small): `df -h /`, check before big installs.
-- Baseline: record `free -h` after a clean boot into niri, compare after each addition, report the delta.
 
 ## Light choices
 
@@ -31,6 +31,7 @@ Prefer a light, fast native binary even if it has to be compiled, over a script 
 
 - Sources in `apps/<name>/` (Cargo project, `Cargo.lock` committed, `--locked`). Keep dependencies minimal: raw `wayland-client` + `wayland-protocols*` rather than a toolkit for a small Wayland client.
 - Release profile: `opt-level = "s"`, `lto`, `codegen-units = 1`, `panic = "abort"`, `strip`.
+- Packaged for the distribution as `vide-apps` by `distro/build-repo.sh` (then `setup_apps` skips compiling).
 - `bootstrap.sh` (`setup_apps`, dotfiles step) builds into `~/.local/opt/<name>-<source hash>`, links `~/.local/bin/<name>`, rebuilds only when sources change; `target/` stays in `~/.cache/void-setup-apps` (and `apps/*/target/` is git-ignored).
 - Measure startup time and RSS against what it replaces, and report both.
 - Shell scripts stay fine for glue (they spawn existing binaries); the rule targets programs that would load an interpreter or toolkit.

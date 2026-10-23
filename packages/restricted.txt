@@ -1,3 +1,0 @@
-# Paquets « restricted » de void-packages (licence sans redistribution binaire: absents des dépôts).
-# Construits localement par bootstrap.sh avec xbps-src, pas mis à jour par xbps-install -Su.
-google-chrome  # synchronisation du compte Google (historique, onglets), impossible avec chromium

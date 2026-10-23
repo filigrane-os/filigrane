@@ -1,5 +1,7 @@
 # Bureau niri (tous profils)
 niri
+# Navigateur: l'application principale, natif Wayland (CHROME_FLAGS posé par niri), sert aussi aux webapps (webapp)
+chromium
 Waybar
 foot
 fuzzel
@@ -20,7 +22,7 @@ liberation-fonts-ttf  # mêmes dimensions qu'Arial, Times et Courier (documents 
 font-awesome6
 # Menu tout-en-un (dotfiles/home/.local/bin/menu)
 cliphist
-libsecret  # trousseau (Secret Service) pour la CLI Proton Drive et les applis
+libsecret  # trousseau (Secret Service) pour les applis et CLI qui gardent une session
 gnome-keyring  # démon lancé à la demande par D-Bus
 vips  # miniatures des fonds d'écran dans le menu (vipsthumbnail)
 libnotify
@@ -47,13 +49,6 @@ wf-recorder
 # Verrouillage auto et écran éteint au repos (38 Ko, bascule dans la barre)
 swayidle
 
-# Notifications Proton Mail: pont IMAP local (démon Go, ~100-200 Mo, lancé par niri) + écoute IMAP IDLE (10 Mo)
-protonmail-bridge
-goimapnotify
-
-# Notifications Proton Calendar: lecture du lien ICS (cal-notify), sans daemon propre
-python3-icalendar
-
 # Gestionnaire de fichiers, visionneuse, USB sans daemon (udisks2 à la demande), santé du disque
 yazi
 imv
@@ -74,9 +69,3 @@ papirus-folders  # couleur des dossiers: sudo papirus-folders -C violet -t Papir
 
 # VPN Proton via WireGuard (wg-quick, sans daemon; script dotfiles/home/.local/bin/vpn)
 wireguard-tools
-
-# Relais de la socket du compteur WhatsApp (wa-daemon), remplace un script Python (~1 Mo)
-socat
-
-# iCloud Drive monté dans ~/iCloud (rclone mount, cache 5 Go), voir ~/.local/bin/icloud-mount (~106 Mo disque)
-rclone

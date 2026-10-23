@@ -9,7 +9,7 @@ HOST="${1:-void}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-ssh "$HOST" 'cd ~/void-setup && tar -cf - dotfiles packages services hardware config.env' | tar -xf - -C .
+ssh "$HOST" 'cd ~/void-setup && tar -cf - dotfiles packages services hardware users config.env' | tar -xf - -C .
 
 echo "Paquets installés manuellement sur $HOST mais absents des listes:"
 ssh "$HOST" 'xbps-query -m' | sed -E 's/-[^-]+$//' | sort > "$TMP/vm.txt"

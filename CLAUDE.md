@@ -12,13 +12,16 @@ La skill `void-linux` contient le détail (références xbps, runit, niri, resso
 
 ## Déclaratif
 
-Tout changement durable va dans ce dépôt, pas seulement sur le système live:
-- paquets: `packages/`, services: `services/`, clavier/locale/groupes: `config.env`, configs: `dotfiles/`.
-- Puis `./bootstrap.sh` (idempotent) et montrer `git diff`.
+Tout changement durable va dans ce dépôt, pas seulement sur le système live, dans la bonne couche:
+- **distribution** (générique, utile à tout utilisateur): paquets `packages/`, services `services/`, réglages par défaut `config.env`, configs `dotfiles/`, outils `apps/`.
+- **matériel**: `hardware/<machine>/`.
+- **personnel** (comptes, services tiers, goûts de thomas): `users/thomas/` (`config.env`, `packages/`, `dotfiles/`, `layer.sh`). Même chemin qu'un fichier de la distribution = il le remplace. Niri: `users/thomas/dotfiles/config/niri/local.kdl`.
+- Dans le doute, personnel. Rien de personnel (compte, URL de service, chemin `/home/thomas`) dans la couche distribution.
+- Puis `./bootstrap.sh` (idempotent) et montrer `git diff`. Dépôt xbps et ISO: `distro/` (voir son README).
 
 ## Ressources
 
-L'OS doit se faire oublier: le navigateur, les agents et les conteneurs passent avant. Choisir la solution la plus légère (paquet Void natif, pas de daemon inutile, pas d'Electron/JVM/Node résident, pas d'effets niri hors du flou derrière le menu). Si un paquet ou service est lourd, **avertir avant d'installer** (format dans la skill). Mesurer après toute installation durable. Pour un outil maison, préférer un binaire natif léger et rapide (Rust, dans `apps/`, compilé par `bootstrap.sh`) à un script qui charge un runtime lourd (Python/GTK, Node), quitte à compiler.
+L'OS doit se faire oublier: le navigateur, les agents et les conteneurs passent avant. Choisir la solution la plus légère (paquet Void natif, pas de daemon inutile, pas d'Electron/JVM/Node résident, pas d'effets niri hors du flou derrière le menu). Si un paquet ou service est lourd, **avertir avant d'installer** (format dans la skill). Mesurer après toute installation durable (`budget save avant` puis `budget diff avant`). Pour un outil maison, préférer un binaire natif léger et rapide (Rust, dans `apps/`, compilé par `bootstrap.sh`) à un script qui charge un runtime lourd (Python/GTK, Node), quitte à compiler.
 
 ## Git
 

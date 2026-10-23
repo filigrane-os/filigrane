@@ -20,10 +20,7 @@ input {
             // If this section is empty, niri will fetch xkb settings
             // from org.freedesktop.locale1. You can control these using
             // localectl set-x11-keymap.
-	    // Groupe 1: bépo, groupe 2: qwerty australien (bascule: icône clavier de Waybar)
-	    layout "fr,au"
-	    variant "bepo_afnor,"
-	    options "compose:caps"
+            // Disposition: ~/.config/niri/keyboard.kdl, écrit par bootstrap.sh depuis config.env (XKB_*)
         }
         // Comme Omarchy: répétition 40/s après 600 ms
         repeat-delay 600
@@ -300,24 +297,13 @@ spawn-at-startup "sh" "-c" "$HOME/.local/bin/sound-tune --apply"
 spawn-sh-at-startup "while :; do waybar; sleep 1; done"
 spawn-at-startup "mako"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
-// Proton Mail: pont IMAP local sans GUI, puis écoute des nouveaux mails (relancée si le pont n'est pas prêt)
-spawn-at-startup "protonmail-bridge" "--noninteractive"
-spawn-sh-at-startup "while :; do goimapnotify; sleep 30; done"
 // Profils d'écrans automatiques (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
-// WhatsApp sans navigateur: whatsapp-unreadd + compteur de non-lus (appairage: wa-pair), voir ~/.local/bin/wa-daemon
-spawn-at-startup "wa-daemon"
-// Fenêtre « Appel WhatsApp » en flottant (titre connu après l'ouverture), voir ~/.local/bin/wa-call-float
-spawn-sh-at-startup "$HOME/.local/bin/wa-call-float"
 // Notifications des webapps listées dans ~/.config/webapps/notify (WhatsApp...): indicateur Waybar, voir ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
-// Notifications Proton Calendar (lien ICS dans ~/.config/proton-calendar.url), voir ~/.local/bin/cal-notify
-spawn-sh-at-startup "$HOME/.local/bin/cal-notify"
-// Mini-cron: MAJ Void (6 h), veille Omarchy et T2 via Claude (7 j), voir ~/.local/bin/cron-watch
+// Mini-cron: tâches de ~/.config/cron-watch/jobs.d/ (MAJ Void toutes les 6 h...), voir ~/.local/bin/cron-watch
 spawn-sh-at-startup "$HOME/.local/bin/cron-watch"
-// iCloud Drive dans ~/iCloud (rclone mount, fichiers téléchargés à l'ouverture), voir ~/.local/bin/icloud-mount
-spawn-sh-at-startup "$HOME/.local/bin/icloud-mount"
 // Verrouillage auto (swayidle): 5 min verrou, 10 min écran éteint, pas de veille auto (comme Omarchy: la veille S3 longue sur batterie perd la session, voir hardware/mac-t2/README.md); bascule dans la barre
 spawn-sh-at-startup "$HOME/.local/bin/bar-toggle idle start"
 // Capot: verrou et écran éteint, veille après 5 min capot fermé (elogind ignore le capot), voir ~/.local/bin/lid
@@ -467,7 +453,6 @@ binds {
     // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
     Ctrl+Space hotkey-overlay-title=null { spawn-sh "pkill -x fuzzel || exec $HOME/.local/bin/menu"; }
     Mod+L hotkey-overlay-title="Verrouiller l'écran" { spawn-sh "$HOME/.local/bin/lock"; }
-    Mod+Shift+C hotkey-overlay-title="iCloud Drive (Thunar)" { spawn-sh "thunar \"$HOME/iCloud\""; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -785,3 +770,8 @@ window-rule {
     match app-id="^foot$"
     scroll-factor 5.0
 }
+
+// Couches: disposition clavier générée par bootstrap.sh, puis réglages personnels (users/<login>/dotfiles/config/niri/local.kdl).
+// Absents = ignorés. Les réglages inclus après remplacent ceux d'avant.
+include optional=true "keyboard.kdl"
+include optional=true "local.kdl"

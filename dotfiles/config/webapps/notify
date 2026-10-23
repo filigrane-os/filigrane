@@ -1,4 +1,3 @@
 # Webapps dont les notifications alimentent la barre (webapp-notify): "Nom | émetteur natif".
 # Nom = entrée de config/webapps/list. Émetteur = nom d'application de la notification d'un client natif (sans navigateur);
-# vide = webapp Chrome ouverte. WhatsApp: whatsapp-unreadd tourne en démon (voir wa-daemon).
-WhatsApp | whatsapp-unreadd
+# vide = webapp ouverte dans le navigateur.

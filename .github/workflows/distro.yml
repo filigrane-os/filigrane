@@ -1,0 +1,57 @@
+name: Distribution
+
+# Dépôt xbps de la distribution et ISO live (distro/), puis démarrage de l'ISO dans QEMU.
+# Sur la branche distro et à la demande; l'ISO est gardée 7 jours en artefact.
+on:
+  push:
+    branches: [distro]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iso:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dépôt xbps et ISO (conteneur Void privilégié, comme la CI de void-mklive)
+        run: |
+          docker run --rm --privileged -v "$PWD":/src -w /src ghcr.io/void-linux/void-glibc-full:latest sh -exc '
+            xbps-install -Syu xbps || true
+            xbps-install -Syu
+            xbps-install -y bash git cargo
+            git config --global --add safe.directory /src
+            bash distro/build-repo.sh
+            SERIAL=1 bash distro/build-iso.sh'
+          sudo chown -R "$(id -u):$(id -g)" distro/out
+          ls -la distro/out distro/out/repo
+      - name: Démarrage dans QEMU (BIOS, port série) jusqu'à l'invite de connexion
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq qemu-system-x86 >/dev/null
+          accel="-accel tcg"
+          if [ -e /dev/kvm ]; then
+            echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666"' | sudo tee /etc/udev/rules.d/99-kvm.rules >/dev/null
+            sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+            accel="-accel kvm"
+          fi
+          iso="$(ls distro/out/*.iso)"
+          qemu-system-x86_64 $accel -m 2048 -smp 2 -cdrom "$iso" -boot d -display none -serial file:boot.log -no-reboot &
+          pid=$!
+          for i in $(seq 1 120); do
+            grep -q 'login:' boot.log 2>/dev/null && break
+            sleep 5
+          done
+          kill "$pid" 2>/dev/null || true
+          tail -40 boot.log
+          grep -q 'login:' boot.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vide-live-iso
+          path: |
+            distro/out/*.iso
+            boot.log
+          retention-days: 7
+          if-no-files-found: warn

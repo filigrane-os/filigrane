@@ -7,6 +7,8 @@ if [ "$1" = run ]; then
     setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &
     exit 0
 fi
+# Sauvegarde non configurée (distribution sans NAS): indicateur masqué
+[ -r "$HOME/.config/restic/env" ] || { printf '{"text":""}\n'; exit 0; }
 if ! flock -n "$STATE/backup.lock" true 2>/dev/null; then
     printf '{"text":"\\uf0ee","class":"active","tooltip":"Sauvegarde NAS en cours..."}\n'
     exit 0
