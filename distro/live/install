@@ -3,7 +3,7 @@
 # de la machine, puis lance install-void.sh du dépôt embarqué, distribution seule (sans couche personnelle).
 # Options supplémentaires transmises à install-void.sh (--profile, --machine, --cpu, --gpu).
 set -euo pipefail
-SRC="${SRC:-/usr/share/vide/void-setup}"
+SRC="${SRC:-/usr/share/fili/void-setup}"
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 # shellcheck source=distro/distro.env
 source "$SRC/distro/distro.env"

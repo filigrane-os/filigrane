@@ -17,7 +17,7 @@ while :; do
         IFS=: read -r name every script arg <<<"$job"
         stamp="$STATE/$name.stamp"
         if [ ! -e "$stamp" ] || [ -n "$(find "$stamp" -mmin "+$every")" ]; then
-            # ~/.local/bin d'abord (dotfiles, outils compilés), puis le PATH (paquet vide-apps dans /usr/bin)
+            # ~/.local/bin d'abord (dotfiles, outils compilés), puis le PATH (paquet fili-apps dans /usr/bin)
             PATH="$HOME/.local/bin:$PATH" "$script" $arg && touch "$stamp"
         fi
     done

@@ -31,7 +31,7 @@ Prefer a light, fast native binary even if it has to be compiled, over a script 
 
 - Sources in `apps/<name>/` (Cargo project, `Cargo.lock` committed, `--locked`). Keep dependencies minimal: raw `wayland-client` + `wayland-protocols*` rather than a toolkit for a small Wayland client.
 - Release profile: `opt-level = "s"`, `lto`, `codegen-units = 1`, `panic = "abort"`, `strip`.
-- Packaged for the distribution as `vide-apps` by `distro/build-repo.sh` (then `setup_apps` skips compiling).
+- Packaged for the distribution as `fili-apps` by `distro/build-repo.sh` (then `setup_apps` skips compiling).
 - `bootstrap.sh` (`setup_apps`, dotfiles step) builds into `~/.local/opt/<name>-<source hash>`, links `~/.local/bin/<name>`, rebuilds only when sources change; `target/` stays in `~/.cache/void-setup-apps` (and `apps/*/target/` is git-ignored).
 - Measure startup time and RSS against what it replaces, and report both.
 - Shell scripts stay fine for glue (they spawn existing binaries); the rule targets programs that would load an interpreter or toolkit.
