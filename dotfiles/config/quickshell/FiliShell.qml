@@ -3,7 +3,7 @@ pragma Singleton
 // écrite par le client ~/.local/bin/fili-shell, bar-stats watch ou les scripts:
 //   bar refresh N...                      rafraîchit les modules de la fili-bar abonnés à N
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
-//   menu open OPTIONS.json RÉPONSE | menu close RÉPONSE      (fili-menu)
+//   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   reload
 // Lu par un `cat` ouvert en lecture-écriture (jamais de fin de fichier). Les réponses partent vers le tuyau RÉPONSE.
 import QtQuick

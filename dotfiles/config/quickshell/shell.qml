@@ -1,5 +1,5 @@
 // fili-shell (Quickshell): un seul processus pour la fili-bar (FiliBar.qml), ses fili-tooltip et fili-calendar,
-// les fili-notification et le fili-notification-center (FiliNotification.qml) et le fili-menu (FiliMenu.qml),
+// les fili-notification et le fili-notification-center (FiliNotification.qml) et le fili-launcher (FiliLauncher.qml),
 // à la place de Waybar, mako et fuzzel. Rendu logiciel (QT_QUICK_BACKEND=software, posé par niri): sans contexte OpenGL, environ
 // moitié moins de mémoire; aucune animation hors du clignotement de la sauvegarde (brand.md, budget ressources).
 // Commandes externes: client ~/.local/bin/fili-shell (FiliShell.qml). Recharger: menu › Style › Reload shell.
@@ -17,7 +17,7 @@ ShellRoot {
     // Instanciés au démarrage (singletons sinon chargés au premier usage)
     Component.onCompleted: {
         FiliNotification.dnd;
-        FiliMenu.open;
+        FiliLauncher.open;
         FiliShell.fifo;
     }
 

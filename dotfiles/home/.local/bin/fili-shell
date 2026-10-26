@@ -1,5 +1,5 @@
 #!/bin/sh
-# Client du fili-shell (Quickshell: fili-bar, fili-notification, fili-notification-center, fili-menu, fili-tooltip,
+# Client du fili-shell (Quickshell: fili-bar, fili-notification, fili-notification-center, fili-launcher, fili-tooltip,
 # fili-calendar). Écrit une ligne dans le tuyau nommé lu par ~/.config/quickshell (FiliShell.qml), sans lancer le
 # client Qt `qs ipc` (plus lourd). Les réponses reviennent par un tuyau propre à la requête. Sans shell en marche,
 # les commandes sans réponse sont ignorées.
@@ -8,11 +8,11 @@
 #   fili-shell notification dnd on|off|toggle         ne pas déranger
 #   fili-shell notification dismiss-all | dismiss RÉSUMÉ | center (ouvre/ferme le fili-notification-center)
 #   fili-shell notification history                   historique en JSON (champs de makoctl history -j)
-#   fili-shell menu [options fuzzel]                  fili-menu façon `fuzzel --dmenu`: entrées sur stdin, choix sur
+#   fili-shell launcher [options fuzzel]                  fili-launcher façon `fuzzel --dmenu`: entrées sur stdin, choix sur
 #       stdout, code 1 si annulé, 10 pour Maj+Retour arrière. Options: --prompt P, --prompt-only P, --lines N,
 #       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N (colonnes séparées par tabulation);
 #       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
-#   fili-shell menu close                             ferme le fili-menu s'il est ouvert (code 0), sinon code 1
+#   fili-shell launcher close                             ferme le fili-launcher s'il est ouvert (code 0), sinon code 1
 #   fili-shell reload                                 recharge la config
 D="${XDG_RUNTIME_DIR:-/tmp}"
 F="$D/fili-shell"
@@ -38,13 +38,13 @@ case "$1 $2" in
     "notification dismiss-all"|"notification center") send "$1 $2"; exit 0 ;;
     "notification dismiss") send "notification dismiss $(printf '%s' "$3" | tr '\n' ' ')"; exit 0 ;;
     "notification history") request "notification history"; exit ;;
-    "menu close") [ "$(request "menu close")" = 1 ]; exit ;;
+    "launcher close") [ "$(request "launcher close")" = 1 ]; exit ;;
     "reload "*) send reload; exit 0 ;;
-    "menu "*) shift ;;
+    "launcher "*) shift ;;
     *) usage ;;
 esac
 
-# fili-menu: options en JSON et entrées dans des fichiers lus par le shell
+# fili-launcher: options en JSON et entrées dans des fichiers lus par le shell
 prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -62,14 +62,14 @@ while [ $# -gt 0 ]; do
     esac
     shift
 done
-in="$(mktemp "$D/fili-menu.XXXXXX")"
+in="$(mktemp "$D/fili-launcher.XXXXXX")"
 trap 'rm -f "$in" "$in.json"' EXIT
 [ "$only" = 1 ] || cat > "$in"
 jq -nc --arg p "$prompt" --argjson o "$only" --arg l "$lines" --arg w "$width" --arg f "$font" --argjson s "$nosort" \
     --arg wn "$with" --arg an "$accept" --arg in "$in" \
     '{prompt: $p, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
       noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), input: $in}' > "$in.json"
-out="$(request "menu open $in.json")" || exit 1
+out="$(request "launcher open $in.json")" || exit 1
 # Réponse: code de sortie sur la première ligne, sélection ensuite
 rc="${out%%
 *}"

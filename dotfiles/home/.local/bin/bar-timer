@@ -22,7 +22,7 @@ case "$1" in
             S) notify-send "Chronomètre" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; refresh; exit 0 ;;
             T|done) rm -f "$f"; refresh; exit 0 ;;
         esac
-        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" menu --prompt 'Minuteur: ' --lines 8)" || exit 0
+        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" launcher --prompt 'Minuteur: ' --lines 8)" || exit 0
         if [ "$out" = Chronomètre ]; then
             echo "S $EPOCHSECONDS" >"$f"
         else

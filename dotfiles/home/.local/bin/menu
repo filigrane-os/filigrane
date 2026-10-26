@@ -1,5 +1,5 @@
 #!/bin/sh
-# Menu tout-en-un (sélecteur du shell Quickshell via `fili-shell menu`), équivalent léger du menu Walker d'Omarchy.
+# Menu tout-en-un (sélecteur du shell Quickshell via `fili-shell launcher`), équivalent léger du menu Walker d'Omarchy.
 # Catégories d'abord; dès qu'on tape, recherche floue globale (applications, actions, entrées perso).
 # Le script n'existe que le temps du menu; l'affichage (et le flou du fond) est fait par le shell déjà résident.
 #
@@ -49,12 +49,12 @@ I_CAM="$(printf '\357\200\260')"  # U+F030 camera
 I_WIN="$(printf '\357\213\220')"  # U+F2D0 window-maximize
 I_AI="$(printf '\357\203\253')"  # U+F0EB lightbulb-o
 
-# Maj+Retour arrière = code de sortie 10 du fili-menu: remonte d'un niveau.
+# Maj+Retour arrière = code de sortie 10 du fili-launcher: remonte d'un niveau.
 # Échap = sortie vide, code 1: quitte tout le menu.
 STATE="${XDG_RUNTIME_DIR:-/tmp}/menu-back.$$"
 BINDS="${XDG_RUNTIME_DIR:-/tmp}/menu-binds.$$"
 trap 'rm -f "$STATE" "$BINDS"' EXIT
-DMENU="$HOME/.local/bin/fili-shell menu"
+DMENU="$HOME/.local/bin/fili-shell launcher"
 
 pick() { # pick INVITE [LIGNES] [LARGEUR] [POLICE]  (entrées sur stdin, sélection sur stdout; vide si annulé)
     out="$($DMENU ${NOSORT:+--no-sort} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
@@ -62,7 +62,7 @@ pick() { # pick INVITE [LIGNES] [LARGEUR] [POLICE]  (entrées sur stdin, sélect
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
 }
-# Fonds d'écran pour le fili-menu: une ligne par image, miniature en icône (protocole dmenu étendu
+# Fonds d'écran pour le fili-launcher: une ligne par image, miniature en icône (protocole dmenu étendu
 # de Rofi). Miniatures en cache (vipsthumbnail), régénérées si l'image est plus récente.
 wallpaper_entries() {
     thumbs="${XDG_CACHE_HOME:-$HOME/.cache}/wallpaper-thumbs"
@@ -387,7 +387,7 @@ menu_capture() {
     arg="$1"
     act="${arg:-$(printf 'Region\nScreen\nWindow\nColor (picker)\nScreen recording\n' | pick "Capture › " 5)}"
     [ -n "$act" ] || { cancel; return $BACK; }
-    sleep 0.4 # laisse le fili-menu et son voile flouté (250 ms) disparaître avant de capturer
+    sleep 0.4 # laisse le fili-launcher et son voile flouté (250 ms) disparaître avant de capturer
     case "$act" in
         Region) niri msg action screenshot ;;
         Screen) niri msg action screenshot-screen ;;
@@ -672,7 +672,7 @@ action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
 }
 
 # Mise en page du menu principal (police à chasse fixe): glyphe + 2 espaces, touche alignée à droite.
-# Largeur en caractères = largeur du fili-menu (36) moins les marges.
+# Largeur en caractères = largeur du fili-launcher (36) moins les marges.
 MENU_FONT="JetBrains Mono:size=12,Symbols Nerd Font Mono:size=12"
 MENU_COLS=33
 align_hints() {

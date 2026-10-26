@@ -297,7 +297,7 @@ spawn-at-startup "dbus-update-activation-environment" "WAYLAND_DISPLAY" "XDG_CUR
 spawn-at-startup "pipewire"
 // Réglages du DSP haut-parleurs (sound-tune), réappliqués quand le filtre apparaît
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/sound-tune --apply"
-// fili-shell (Quickshell, ~/.config/quickshell): fili-bar, fili-notification et fili-menu en un processus.
+// fili-shell (Quickshell, ~/.config/quickshell): fili-bar, fili-notification et fili-launcher en un processus.
 // Relancé s'il s'arrête (écran débranché, plantage)
 spawn-sh-at-startup "while :; do quickshell; sleep 1; done"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
@@ -359,9 +359,9 @@ animations {
 
 // Work around WezTerm's initial configure bug
 // by setting an empty default-column-width.
-// Flou du fond derrière le fili-menu: sa fenêtre plein écran (calque fili-menu), présente seulement menu ouvert
+// Flou du fond derrière le fili-launcher: sa fenêtre plein écran (calque fili-launcher), présente seulement menu ouvert
 layer-rule {
-    match namespace="^fili-menu$"
+    match namespace="^fili-launcher$"
     background-effect {
         blur true
         xray false
@@ -461,9 +461,9 @@ binds {
     Mod+Ctrl+B hotkey-overlay-title="Bluetooth (bluetui)" { spawn-sh "$HOME/.local/bin/bar-tui bluetui"; }
     Mod+Ctrl+D hotkey-overlay-title="Écrans (wdisplays)" { spawn-sh "GDK_GL=disable wdisplays"; }
     Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "$HOME/.local/bin/menu apps"; }
-    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "$HOME/.local/bin/fili-shell menu close || exec $HOME/.local/bin/menu"; }
+    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
     // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
-    Ctrl+Space hotkey-overlay-title=null { spawn-sh "$HOME/.local/bin/fili-shell menu close || exec $HOME/.local/bin/menu"; }
+    Ctrl+Space hotkey-overlay-title=null { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
     Mod+L hotkey-overlay-title="Verrouiller l'écran" { spawn-sh "$HOME/.local/bin/lock"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
