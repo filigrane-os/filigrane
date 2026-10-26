@@ -1,7 +1,7 @@
 #!/bin/sh
 # Contenu des fiches fili-tooltip de la fili-bar (survol de réseau, alimentation, écran), inspiré des panneaux
 # d'Omarchy. Lancé seulement au survol: rien n'est sondé en continu.
-# Usage: fili-info network|power|display  ->  JSON {title, rows: [[libellé, valeur]...], hint}
+# Usage: fili-info network|power|display|monitor  ->  JSON {title, rows: [[libellé, valeur]...], hint}
 # Lignes vides ignorées par fili-tooltip.
 
 human() { # octets -> unités lisibles
@@ -17,7 +17,7 @@ case "$1" in
 network)
     iface="$(awk 'NR > 1 && $2 == "00000000" { print $1; exit }' /proc/net/route)"
     if [ -z "$iface" ]; then
-        card "Hors ligne" "clic: Wi-Fi (impala) · clic droit: menu réseau" "Interfaces" "$(ls /sys/class/net | grep -v '^lo$' | tr '\n' ' ')"
+        card "Hors ligne" "clic: panneau réseau · clic droit: menu réseau" "Interfaces" "$(ls /sys/class/net | grep -v '^lo$' | tr '\n' ' ')"
         exit 0
     fi
     gw="$(ip -4 route show default dev "$iface" 2>/dev/null | awk '$2 == "via" { print $3; exit }')"
@@ -35,13 +35,13 @@ network)
         band="$(awk -v f="$freq" 'BEGIN { if (f == "") exit; b = f >= 5925 ? "6 GHz" : f >= 4900 ? "5 GHz" : "2,4 GHz";
             c = f >= 5925 ? (f - 5950) / 5 : f >= 4900 ? (f - 5000) / 5 : (f == 2484 ? 14 : (f - 2407) / 5); printf "%s, canal %d", b, c }')"
         rate="$(val 'rx bitrate:' | awk '{ print $1 " " $2 }') ↓  $(val 'tx bitrate:' | awk '{ print $1 " " $2 }') ↑"
-        card "$ssid" "clic: Wi-Fi (impala) · clic droit: menu réseau" \
+        card "$ssid" "clic: panneau réseau · clic droit: menu réseau" \
             "Signal" "$q" "Bande" "$band" "Débit du lien" "$rate" "Interface" "$iface" \
             "Adresse IP" "$ip4" "IPv6" "$ip6" "Passerelle" "$gw" "Ping passerelle" "$ping" "DNS" "$dns" \
             "Reçu" "$rx" "Envoyé" "$tx"
     else
         speed="$(cat "/sys/class/net/$iface/speed" 2>/dev/null)"
-        card "Ethernet $iface" "clic: Wi-Fi (impala) · clic droit: menu réseau" \
+        card "Ethernet $iface" "clic: panneau réseau · clic droit: menu réseau" \
             "Vitesse" "${speed:+$speed Mbit/s}" "Adresse IP" "$ip4" "IPv6" "$ip6" "Passerelle" "$gw" \
             "Ping passerelle" "$ping" "DNS" "$dns" "Reçu" "$rx" "Envoyé" "$tx"
     fi ;;
@@ -68,7 +68,7 @@ power)
         *) state="${ac:+Branchée, charge en pause}" ;;
     esac
     [ "$ac" = 1 ] && src="Secteur" || src="Batterie"
-    card "Batterie $(r capacity) %" "clic: menu système (verrouiller, veille, éteindre)" \
+    card "Batterie $(r capacity) %" "clic: panneau alimentation · clic droit: menu système" \
         "État" "${state:-$st}" "${tl:-Temps}" "$hours" "Consommation" "$watts" "Alimentation" "$src" \
         "Santé" "$health" "Cycles" "$(r cycle_count)" "Modèle" "$(r manufacturer) $(r model_name)"
     ;;
@@ -86,5 +86,16 @@ $rows
 EOF
     card "Écrans" "clic: wdisplays · molette: luminosité" "$@" "Luminosité" "$bl"
     ;;
-*) echo "usage: fili-info network|power|display" >&2; exit 2 ;;
+monitor)
+    read -r l1 l5 l15 _ < /proc/loadavg
+    mem="$(awk '/^MemTotal/ { t = $2 } /^MemAvailable/ { a = $2 } /^SwapTotal/ { st = $2 } /^SwapFree/ { sf = $2 }
+        END { printf "%.1f / %.1f Gio", (t - a) / 1048576, t / 1048576; if (st > 0) printf "|%.1f / %.1f Gio", (st - sf) / 1048576, st / 1048576 }' /proc/meminfo)"
+    disk="$(df -h --output=used,size,pcent / | awk 'NR == 2 { printf "%s / %s (%s)", $1, $2, $3 }')"
+    temp="$(for z in /sys/class/thermal/thermal_zone*/temp; do cat "$z"; done 2>/dev/null | sort -n | tail -1 | awk '{ if ($1 > 0) printf "%d °C", $1 / 1000 }')"
+    up="$(awk '{ d = int($1 / 86400); h = int($1 % 86400 / 3600); m = int($1 % 3600 / 60); printf "%s%d h %02d", (d ? d " j " : ""), h, m }' /proc/uptime)"
+    top="$(ps -eo comm=,pcpu= --sort=-pcpu 2>/dev/null | head -5 | awk '{ printf "%s%s %s %%", sep, $1, $2; sep = ", " }')"
+    card "Système" "" "Charge" "$l1  $l5  $l15" "Mémoire" "${mem%%|*}" "Swap" "$(case "$mem" in *'|'*) echo "${mem#*|}" ;; esac)" \
+        "Disque /" "$disk" "Température" "$temp" "Allumé depuis" "$up" "Processus" "$top"
+    ;;
+*) echo "usage: fili-info network|power|display|monitor" >&2; exit 2 ;;
 esac

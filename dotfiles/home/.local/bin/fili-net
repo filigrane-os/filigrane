@@ -1,0 +1,32 @@
+#!/bin/sh
+# Actions Wi-Fi du panneau réseau de la fili-shell (iwd, via iwctl). Sorties en JSON sur stdout.
+# Usage: fili-net list | scan | connect SSID [MOT_DE_PASSE] | forget SSID | power on|off | disconnect
+# Mot de passe lu aussi sur FILI_NET_PASS (évite la ligne de commande visible dans ps).
+dev="$(iwctl device list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/station/ { print $1; exit }')"
+[ -n "$dev" ] || { echo '{"device":"","powered":false,"networks":[]}'; exit 0; }
+strip() { sed 's/\x1b\[[0-9;]*m//g'; }
+
+case "$1" in
+list)
+    powered="$(iwctl device list | strip | awk -v d="$dev" '$1 == d { print ($3 == "on") }')"
+    known="$(iwctl known-networks list | strip | awk 'NR > 4 && NF { sub(/^ +/, ""); sub(/ +(psk|open|8021x|wep)( .*)?$/, ""); print }')"
+    # Colonnes: [> ] nom, sécurité, signal (étoiles claires = niveau; les ternes sont retirées avant); noms avec espaces
+    iwctl station "$dev" get-networks 2>/dev/null | sed "s/\x1b\[1;90m\*\+//g" | strip | awk 'NR > 4 && NF' |
+    jq -Rsc --arg dev "$dev" --argjson powered "${powered:-0}" --arg known "$known" '
+        ($known | split("\n")) as $k
+        | { device: $dev, powered: ($powered == 1),
+            networks: [ split("\n")[] | select(length > 0)
+                | (test("^ *> ")) as $cur
+                | sub("^ *(> )? *"; "")
+                | capture("^(?<ssid>.*?) +(?<sec>psk|open|8021x|wep) +(?<stars>\\**) *$")
+                | { ssid, security: .sec, signal: ((.stars | length) * 25), connected: $cur, known: (.ssid as $s | $k | index($s) != null) } ] }'
+    ;;
+scan) iwctl station "$dev" scan ;;
+connect)
+    shift; ssid="$1"; pass="${2:-$FILI_NET_PASS}"
+    if [ -n "$pass" ]; then iwctl --passphrase "$pass" station "$dev" connect "$ssid"; else iwctl station "$dev" connect "$ssid"; fi ;;
+disconnect) iwctl station "$dev" disconnect ;;
+forget) iwctl known-networks "$2" forget ;;
+power) iwctl device "$dev" set-property Powered "$2" ;;
+*) echo "usage: fili-net list|scan|connect|disconnect|forget|power" >&2; exit 2 ;;
+esac

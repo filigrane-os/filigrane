@@ -7,6 +7,7 @@
 #   fili-shell bar refresh N...                       rafraîchit les modules de la fili-bar (ex-`pkill -RTMIN+N waybar`)
 #   fili-shell notification dnd on|off|toggle         ne pas déranger
 #   fili-shell notification dismiss-all | dismiss RÉSUMÉ | center (ouvre/ferme le fili-notification-center)
+#   fili-shell panel network|audio|bluetooth|power|monitor|close   ouvre/ferme un fili-panel (coin droit de l'écran)
 #   fili-shell notification history                   historique en JSON (champs de makoctl history -j)
 #   fili-shell launcher [options fuzzel]                  fili-launcher façon `fuzzel --dmenu`: entrées sur stdin, choix sur
 #       stdout, code 1 si annulé, 10 pour Maj+Retour arrière. Options: --prompt P, --prompt-only P, --lines N,
@@ -30,13 +31,14 @@ request() {
     cat "$r"
     rm -f "$r"
 }
-usage() { sed -n '6,17p' "$0" >&2; exit 2; }
+usage() { sed -n '6,18p' "$0" >&2; exit 2; }
 
 case "$1 $2" in
     "bar refresh") shift 2; send "bar refresh $*"; exit 0 ;;
     "notification dnd") send "notification dnd ${3:-toggle}"; exit 0 ;;
     "notification dismiss-all"|"notification center") send "$1 $2"; exit 0 ;;
     "notification dismiss") send "notification dismiss $(printf '%s' "$3" | tr '\n' ' ')"; exit 0 ;;
+    "panel "*) send "panel $2"; exit 0 ;;
     "notification history") request "notification history"; exit ;;
     "launcher close") [ "$(request "launcher close")" = 1 ]; exit ;;
     "reload "*) send reload; exit 0 ;;

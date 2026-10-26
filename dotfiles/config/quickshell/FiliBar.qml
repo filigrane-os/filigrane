@@ -267,13 +267,13 @@ PanelWindow {
 
         // Ressources: CPU (top 5 en infobulle), température, mémoire, disque; clic = htop
         Row {
-            BarScript { objectName: "cpu"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
-            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
-            BarScript { objectName: "mem"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { objectName: "cpu"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "mem"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript {
                 objectName: "disk"
-                cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: espace occupé par dossier"
-                click: bar.b + "/bar-tui sh -c 'df -h; echo; du -xh --max-depth=1 ~ 2>/dev/null | sort -h | tail -15; read _'"
+                cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: moniteur"
+                hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar)
             }
         }
 
@@ -288,12 +288,12 @@ PanelWindow {
                 tip: !audio ? "" : {
                     title: audio.muted ? "Micro coupé" : "Micro",
                     rows: [["Entrée", bar.source.description || bar.source.nickname || bar.source.name], ["Volume", Math.round(audio.volume * 100) + " %"]],
-                    hint: "clic: couper / activer · molette: volume · clic droit: mixeur"
+                    hint: "clic: couper / activer · molette: volume · clic droit: panneau son"
                 }
                 hover.onLeftClicked: audio.muted = !audio.muted
                 hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
                 hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
-                hover.rclick: bar.b + "/bar-tui wiremix --tab input"
+                hover.onRightClicked: FiliPanel.toggle(hover, "audio", bar)
                 hover.mclick: bar.b + "/bar-tui wiremix --tab input"
             }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
@@ -307,13 +307,13 @@ PanelWindow {
                     title: audio.muted ? "Son coupé" : "Son",
                     rows: [["Sortie", bar.sink.description || bar.sink.nickname || bar.sink.name], ["Volume", vol + " %"],
                            ["Entrée", bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
-                    hint: "clic: muet · molette: volume · clic droit: mixeur · clic milieu: égaliseur"
+                    hint: "clic: panneau son · clic milieu: muet · molette: volume · clic droit: mixeur"
                 }
-                hover.onLeftClicked: audio.muted = !audio.muted
+                hover.onLeftClicked: FiliPanel.toggle(hover, "audio", bar)
+                hover.onMiddleClicked: audio.muted = !audio.muted
                 hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
                 hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
                 hover.rclick: bar.b + "/bar-tui wiremix --tab output"
-                hover.mclick: bar.b + "/bar-tui sound-tune"
             }
             // Disposition clavier (bépo / qwerty australien): clic = bascule
             BarItem {
@@ -362,16 +362,16 @@ PanelWindow {
                     rows: [[adapter.name, adapter.enabled ? "activé" : "désactivé"]].concat(
                         adapter.devices.values.filter(d => d.paired || d.connected).map(d => [d.name,
                             (d.connected ? "connecté" : "appairé") + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
-                    hint: "clic: bluetui (appairer, connecter, oublier)"
+                    hint: "clic: panneau Bluetooth (appairer, connecter, oublier)"
                 }
-                hover.click: bar.b + "/bar-tui bluetui"
+                hover.onLeftClicked: FiliPanel.toggle(hover, "bluetooth", bar)
             }
             // Wi-Fi: clic = impala (SSID, connexion), clic droit = menu réseau (IP, ping, débit)
             BarScript {
                 objectName: "network"
                 cmd: "exec " + bar.b + "/bar-stats net"; interval: -1; hideEmpty: false
                 colors: ({ disconnected: FiliTheme.cendre })
-                click: bar.b + "/bar-tui impala"
+                hover.onLeftClicked: FiliPanel.toggle(hover, "network", bar)
                 rclick: "setsid -f " + bar.b + "/menu network"
                 tipCmd: bar.b + "/fili-info network"
             }
@@ -394,7 +394,8 @@ PanelWindow {
         BarPower {
             objectName: "power"
             tipCmd: bar.b + "/fili-info power"
-            hover.click: "setsid -f " + bar.b + "/menu system"
+            hover.onLeftClicked: FiliPanel.toggle(hover, "power", bar)
+            hover.rclick: "setsid -f " + bar.b + "/menu system"
         }
 
         // Invisible: surveille SSH entrant, mode avion, VPN, veilleuse, sauvegarde, agenda et batterie faible

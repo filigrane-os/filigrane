@@ -155,21 +155,25 @@ ShellRoot {
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
                 expectClick("clock", L, "calendar.proton.me");
-                expectClick("cpu", L, "bar-tui htop");
-                expectClick("temp", L, "bar-tui htop");
-                expectClick("mem", L, "bar-tui htop");
-                expectClick("disk", L, "bar-tui sh -c");
-                expectClick("mic", R, "wiremix --tab input");
+                // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
+                for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
+                                            ["volume", "audio"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                    act(name, L);
+                    ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
+                    FiliPanel.close();
+                }
+                act("mic", R);
+                ok(FiliPanel.view === "audio", "fili-bar mic, clic droit -> fili-panel audio", FiliPanel.view);
+                act("mic", R);
+                ok(FiliPanel.view === "", "fili-panel: même élément recliqué = fermé", FiliPanel.view);
+                expectClick("mic", M, "wiremix --tab input");
                 expectClick("volume", R, "wiremix --tab output");
-                expectClick("volume", M, "sound-tune");
                 expectClick("keyboard", L, "switch-layout next");
                 expectClick("display", L, "wdisplays");
                 expectClick("display", "up", "brightnessctl -q set 5%+");
                 expectClick("display", "down", "brightnessctl -q set 5%-");
-                expectClick("bluetooth", L, "bar-tui bluetui");
-                expectClick("network", L, "bar-tui impala");
                 expectClick("network", R, "menu network");
-                expectClick("power", L, "menu system");
+                expectClick("power", R, "menu system");
                 // Cloche: clic = fili-notification-center, clic droit = ne pas déranger (remis en l'état)
                 const was = FiliNotification.dnd;
                 act("notifications", L);
@@ -276,6 +280,27 @@ ShellRoot {
                     } catch (e) {}
                     ok(c && c.title && Array.isArray(c.rows) && c.hint, "fili-info " + topic + ": titre, lignes, aide", lines[i]);
                 }
+            },
+
+            // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net et fili-info monitor ─────
+            () => {
+                for (const v of ["network", "audio", "bluetooth", "power", "monitor"]) {
+                    FiliPanel.view = v;
+                    ok(FiliPanel.loaded !== null, "fili-panel " + v + ": vue chargée");
+                    FiliPanel.close();
+                    ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
+                }
+            },
+            wait(() => t.shell(t.bin + "/fili-net list; " + t.bin + "/fili-info monitor"), () => t.shellOut !== null, 15000),
+            () => {
+                const lines = t.shellOut.out.trim().split("\n");
+                let n = null, m = null;
+                try {
+                    n = JSON.parse(lines[0]);
+                    m = JSON.parse(lines[1]);
+                } catch (e) {}
+                ok(n && typeof n.device === "string" && Array.isArray(n.networks), "fili-net list: JSON { device, networks }", lines[0]);
+                ok(m && m.title && m.rows.length > 4, "fili-info monitor: fiche", lines[1]);
             },
         ];
         tick.start();

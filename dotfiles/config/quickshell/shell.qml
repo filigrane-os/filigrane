@@ -24,7 +24,9 @@ ShellRoot {
     Connections {
         target: FiliShell
         function onCommand(target, action, args) {
-            if (target === "reload")
+            if (target === "panel")
+                FiliPanel.summon(action);
+            else if (target === "reload")
                 Quickshell.reload(false);
         }
     }

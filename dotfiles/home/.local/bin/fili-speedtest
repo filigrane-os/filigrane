@@ -1,0 +1,21 @@
+#!/bin/sh
+# Mesures du panneau moniteur de la fili-shell. Sortie JSON sur stdout.
+# Usage: fili-speedtest net   -> {ping_ms, down_mbps, up_mbps}  (Cloudflare speed.cloudflare.com, ~35 Mo au total)
+#        fili-speedtest disk  -> {write_mbps, read_mbps}        (fichier de 512 Mo dans ~/.cache, en E/S directes)
+case "$1" in
+net)
+    u=https://speed.cloudflare.com
+    ping="$(curl -s -o /dev/null -w '%{time_connect}' --max-time 5 "$u/cdn-cgi/trace" | awk '{ printf "%.0f", $1 * 1000 }')"
+    down="$(curl -s -o /dev/null -w '%{speed_download}' --max-time 15 "$u/__down?bytes=25000000" | awk '{ printf "%.1f", $1 * 8 / 1e6 }')"
+    up="$(head -c 10000000 /dev/zero | curl -s -o /dev/null -w '%{speed_upload}' --max-time 15 --data-binary @- "$u/__up" | awk '{ printf "%.1f", $1 * 8 / 1e6 }')"
+    jq -nc --arg p "$ping" --arg d "$down" --arg u "$up" '{ping_ms: ($p | tonumber), down_mbps: ($d | tonumber), up_mbps: ($u | tonumber)}' ;;
+disk)
+    f="${XDG_CACHE_HOME:-$HOME/.cache}/fili-speedtest.tmp"
+    trap 'rm -f "$f"' EXIT INT TERM
+    rate() { awk '/copied|octets/ { for (i = 1; i < NF; i++) if ($(i + 1) ~ /^[MGk]?B\/s$|^[MGk]?o\/s$/) { v = $i; u = $(i + 1) } }
+        END { sub(/,/, ".", v); m = (u ~ /^G/) ? 1000 : (u ~ /^k/) ? 0.001 : 1; printf "%.0f", v * m }'; }
+    w="$(dd if=/dev/zero of="$f" bs=1M count=512 oflag=direct 2>&1 | rate)"
+    r="$(dd if="$f" of=/dev/null bs=1M iflag=direct 2>&1 | rate)"
+    jq -nc --arg w "$w" --arg r "$r" '{write_mbps: ($w | tonumber), read_mbps: ($r | tonumber)}' ;;
+*) echo "usage: fili-speedtest net|disk" >&2; exit 2 ;;
+esac

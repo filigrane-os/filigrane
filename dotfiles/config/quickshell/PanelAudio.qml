@@ -1,0 +1,92 @@
+// fili-panel audio: volume de la sortie et de l'entrée (PipeWire natif), choix des périphériques, mixeur par application
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Services.Pipewire
+
+ColumnLayout {
+    id: view
+    spacing: 4
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var source: Pipewire.defaultAudioSource
+    readonly property var nodes: Pipewire.nodes.values
+    readonly property var sinks: nodes.filter(n => n.audio && n.isSink && !n.isStream)
+    readonly property var sources: nodes.filter(n => n.audio && !n.isSink && !n.isStream)
+    readonly property var streams: nodes.filter(n => n.audio && n.isStream && n.isSink)
+    PwObjectTracker { objects: view.nodes }
+
+    function name(n) {
+        return n.description || n.nickname || n.name;
+    }
+    function app(n) {
+        return n.properties["application.name"] || n.properties["node.name"] || n.name;
+    }
+
+    Text {
+        text: "Son"
+        color: FiliTheme.voile
+        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+    }
+    PanelSlider {
+        objectName: "volume"
+        glyph: view.sink?.audio?.muted ? "" : ""
+        muted: view.sink?.audio?.muted ?? false
+        value: view.sink?.audio?.volume ?? 0
+        onMoved: v => { if (view.sink?.audio) view.sink.audio.volume = v; }
+        onGlyphClicked: view.sink.audio.muted = !view.sink.audio.muted
+    }
+    PanelSection { text: "SORTIE" }
+    Repeater {
+        model: view.sinks
+        PanelButton {
+            required property var modelData
+            objectName: "sink"
+            label: view.name(modelData)
+            sel: modelData.id === view.sink?.id
+            onClicked: Pipewire.preferredDefaultAudioSink = modelData
+        }
+    }
+    PanelSection { text: "ENTRÉE" }
+    PanelSlider {
+        objectName: "micro"
+        glyph: view.source?.audio?.muted ? "" : ""
+        muted: view.source?.audio?.muted ?? false
+        value: view.source?.audio?.volume ?? 0
+        onMoved: v => { if (view.source?.audio) view.source.audio.volume = v; }
+        onGlyphClicked: view.source.audio.muted = !view.source.audio.muted
+    }
+    Repeater {
+        model: view.sources
+        PanelButton {
+            required property var modelData
+            objectName: "source"
+            label: view.name(modelData)
+            sel: modelData.id === view.source?.id
+            onClicked: Pipewire.preferredDefaultAudioSource = modelData
+        }
+    }
+    PanelSection { visible: view.streams.length > 0; text: "APPLICATIONS" }
+    Repeater {
+        model: view.streams
+        PanelSlider {
+            required property var modelData
+            glyph: ""
+            value: modelData.audio.volume
+            muted: modelData.audio.muted
+            onMoved: v => modelData.audio.volume = v
+            onGlyphClicked: modelData.audio.muted = !modelData.audio.muted
+        }
+    }
+    PanelButton {
+        Layout.topMargin: 4
+        glyph: ""
+        label: "Mixeur complet"
+        dim: true
+        onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui wiremix"); }
+    }
+    PanelButton {
+        glyph: ""
+        label: "Égaliseur des haut-parleurs"
+        dim: true
+        onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui sound-tune"); }
+    }
+}

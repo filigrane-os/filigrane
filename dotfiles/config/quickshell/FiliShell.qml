@@ -4,6 +4,7 @@ pragma Singleton
 //   bar refresh N...                      rafraîchit les modules de la fili-bar abonnés à N
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
+//   panel NOM | close                    ouvre/ferme un fili-panel
 //   reload
 // Lu par un `cat` ouvert en lecture-écriture (jamais de fin de fichier). Les réponses partent vers le tuyau RÉPONSE.
 import QtQuick
