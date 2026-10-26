@@ -37,6 +37,14 @@ PanelWindow {
         verticalAlignment: Text.AlignVCenter
     }
 
+    // Clic sur le fond de la barre (hors modules): ferme fili-panel, calendrier épinglé et centre de notifications
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        acceptedButtons: Qt.AllButtons
+        onPressed: FiliShell.popupOpened("")
+    }
+
     // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
     RowLayout {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
@@ -232,6 +240,35 @@ PanelWindow {
                 id: closeCal
                 interval: 250
                 onTriggered: if (!cal.pinned && !cal.hovered) cal.visible = false
+            }
+            // Calendrier épinglé: un clic ailleurs sur l'écran le ferme. Fenêtre transparente sous la barre, percée à
+            // l'emplacement du calendrier (centré sous l'horloge, 4 px sous la barre) pour que ses boutons restent cliquables.
+            PanelWindow {
+                id: dismiss
+                visible: cal.pinned && cal.visible && !FiliTheme.testing
+                screen: bar.screen
+                anchors { top: true; bottom: true; left: true; right: true }
+                margins.top: FiliTheme.barHeight
+                exclusionMode: ExclusionMode.Ignore
+                WlrLayershell.layer: WlrLayer.Top
+                WlrLayershell.namespace: "fili-calendar-dismiss"
+                color: "transparent"
+                mask: Region {
+                    width: dismiss.width
+                    height: dismiss.height
+                    Region {
+                        x: Math.max(0, clockItem.mapToItem(null, clockItem.width / 2, 0).x - cal.implicitWidth / 2)
+                        y: 4
+                        width: cal.implicitWidth
+                        height: cal.implicitHeight
+                        intersection: Intersection.Subtract
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.AllButtons
+                    onPressed: FiliShell.popupOpened("")
+                }
             }
             FiliCalendar {
                 id: cal
