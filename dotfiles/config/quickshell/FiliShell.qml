@@ -15,6 +15,10 @@ Singleton {
     id: shell
     readonly property string fifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-shell"
 
+    // Un seul panneau de la fili-bar ouvert à la fois (fili-panel, fili-calendar, fili-notification-center): celui qui
+    // s'ouvre l'annonce ("panel", "calendar", "center"), les autres se ferment
+    signal popupOpened(string who)
+
     // bar refresh N
     signal refresh(int n)
     // notification ..., menu ..., reload: élément visé, action et arguments

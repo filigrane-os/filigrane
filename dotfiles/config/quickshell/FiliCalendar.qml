@@ -12,6 +12,20 @@ PopupWindow {
     readonly property date shown: new Date(today.getFullYear(), today.getMonth() + shift, 1)
 
     visible: false
+
+    function show() {
+        FiliShell.popupOpened("calendar");
+        visible = true;
+    }
+    Connections {
+        target: FiliShell
+        function onPopupOpened(who) {
+            if (who !== "calendar") {
+                cal.pinned = false;
+                cal.visible = false;
+            }
+        }
+    }
     anchor.edges: Edges.Bottom
     anchor.gravity: Edges.Bottom
     anchor.margins.top: 4

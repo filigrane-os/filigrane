@@ -27,6 +27,7 @@ Singleton {
             close();
             return;
         }
+        FiliShell.popupOpened("panel");
         anchorX = item.mapToItem(null, item.width / 2, 0).x;
         screen = win?.screen ?? null;
         view = name;
@@ -38,12 +39,21 @@ Singleton {
             return;
         }
         FiliTooltip.hide();
+        FiliShell.popupOpened("panel");
         anchorX = 100000;
         screen = Quickshell.screens[0] ?? null;
         view = name in views ? name : "";
     }
     function close() {
         view = "";
+    }
+
+    Connections {
+        target: FiliShell
+        function onPopupOpened(who) {
+            if (who !== "panel")
+                panel.close();
+        }
     }
 
     PanelWindow {

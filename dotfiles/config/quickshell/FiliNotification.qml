@@ -47,6 +47,8 @@ Singleton {
     }
     function toggleCenter() {
         centerOpen = !centerOpen;
+        if (centerOpen)
+            FiliShell.popupOpened("center");
     }
     function activate(n) {
         const def = n.actions.find(a => a.identifier === "default");
@@ -75,6 +77,13 @@ Singleton {
         }
     }
 
+    Connections {
+        target: FiliShell
+        function onPopupOpened(who) {
+            if (who !== "center")
+                notifs.centerOpen = false;
+        }
+    }
     Connections {
         target: FiliShell
         function onCommand(target, name, args) {

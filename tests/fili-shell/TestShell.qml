@@ -291,6 +291,19 @@ ShellRoot {
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
             },
+            // Un seul panneau ouvert: panneau, calendrier épinglé et centre de notifications se ferment l'un l'autre
+            () => {
+                const cal = t.find(t.bar.contentItem, "clock");
+                FiliPanel.summon("audio");
+                FiliNotification.toggleCenter();
+                ok(FiliNotification.centerOpen && FiliPanel.view === "", "un seul panneau: le centre de notifications ferme le fili-panel", FiliPanel.view);
+                FiliPanel.summon("audio");
+                ok(FiliPanel.view === "audio" && !FiliNotification.centerOpen, "un seul panneau: le fili-panel ferme le centre de notifications");
+                cal.press(Qt.RightButton);
+                ok(FiliPanel.view === "", "un seul panneau: le calendrier épinglé ferme le fili-panel", FiliPanel.view);
+                cal.press(Qt.RightButton);
+                FiliPanel.close();
+            },
             wait(() => t.shell(t.bin + "/fili-net list; " + t.bin + "/fili-info monitor"), () => t.shellOut !== null, 15000),
             () => {
                 const lines = t.shellOut.out.trim().split("\n");

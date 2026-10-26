@@ -209,7 +209,7 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                onContainsMouseChanged: if (containsMouse) { cal.shift = 0; cal.visible = true; } else if (!cal.pinned) cal.visible = false
+                onContainsMouseChanged: if (containsMouse) { cal.shift = 0; cal.show(); } else if (!cal.pinned) cal.visible = false
                 onClicked: m => press(m.button)
                 // Clic (appelé aussi par les tests)
                 function press(button) {
@@ -219,7 +219,10 @@ PanelWindow {
                         cal.shift = 0;
                     } else {
                         cal.pinned = !cal.pinned;
-                        cal.visible = cal.pinned;
+                        if (cal.pinned)
+                            cal.show();
+                        else
+                            cal.visible = false;
                     }
                 }
                 onWheel: w => cal.shift += w.angleDelta.y > 0 ? -1 : 1
