@@ -86,6 +86,7 @@ ColumnLayout {
         model: view.wifi.powered ? view.wifi.networks : []
         ColumnLayout {
             required property var modelData
+            required property int index
             spacing: 2
             Layout.fillWidth: true
             PanelButton {
@@ -129,6 +130,14 @@ ColumnLayout {
                     }
                 }
             }
+            Rectangle {
+                visible: modelData.connected && index < view.wifi.networks.length - 1
+                Layout.fillWidth: true
+                Layout.topMargin: 4
+                Layout.bottomMargin: 2
+                implicitHeight: 1
+                color: FiliTheme.nuit3
+            }
         }
     }
     Text {
@@ -139,6 +148,13 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.maximumWidth: 300
         font { family: FiliTheme.font; pixelSize: 12 }
+    }
+    Rectangle {
+        visible: view.wifi.powered && view.wifi.networks.length > 0
+        Layout.fillWidth: true
+        Layout.topMargin: 4
+        implicitHeight: 1
+        color: FiliTheme.nuit3
     }
     PanelSection { text: "LIAISON" }
     PanelInfo { id: info; cmd: FiliTheme.bin + "/fili-info network" }
