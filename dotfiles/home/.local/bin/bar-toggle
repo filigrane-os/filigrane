@@ -5,6 +5,7 @@ case "$1" in
         # wlsunset (ne se réveille que pendant l'aube et le crépuscule, gammastep renvoyait la table gamma toutes les 5 s).
         # "start" (login): automatique selon le soleil, 4500 K la nuit. Clic: coupe, ou force 4500 K en continu
         # (-T 4501: wlsunset veut T > t). Position (hors dépôt): ~/.local/state/night-location, "LAT:LON".
+        # "on" force 4500 K, "off" coupe (interrupteur du fili-panel luminosité).
         # Sa sortie (températures appliquées) sert à l'indicateur (bar-status night).
         loc=$(cat "$HOME/.local/state/night-location" 2>/dev/null || echo 48.9:2.3)
         run() { setsid wlsunset -l "${loc%:*}" -L "${loc#*:}" -t 4500 -T "$1" >"${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>&1 & }
@@ -15,6 +16,8 @@ case "$1" in
             stop; run 6500
         elif [ "$2" = start ]; then
             pgrep -x wlsunset >/dev/null || run 6500
+        elif [ "$2" = on ]; then stop; run 4501
+        elif [ "$2" = off ]; then stop
         elif pgrep -x wlsunset >/dev/null; then stop
         else run 4501; fi
         sleep 0.3; "$HOME/.local/bin/fili-shell" bar refresh 10 ;;
