@@ -1,5 +1,5 @@
 #!/bin/bash
-# Notifie (mako) quand des mises à jour xbps sont disponibles. Ne notifie qu'à chaque changement du nombre.
+# Notifie quand des mises à jour xbps sont disponibles. Ne notifie qu'à chaque changement du nombre.
 STATE="$HOME/.local/state/watch"
 mkdir -p "$STATE"
 sudo -n xbps-install -S >/dev/null 2>&1 || true   # rafraîchit l'index (autorisé sans mot de passe)
@@ -7,7 +7,7 @@ list="$(xbps-install -un 2>/dev/null)" || exit 1
 n="$(printf '%s\n' "$list" | grep -c .)"
 last="$(cat "$STATE/void.count" 2>/dev/null || echo 0)"
 printf '%s\n' "$n" >"$STATE/void.count"
-pkill -RTMIN+16 waybar   # rafraîchit l'icône (bar-update)
+"$HOME/.local/bin/fili-shell" signal 16   # rafraîchit l'icône (bar-update)
 if [ "$n" -gt 0 ] && [ "$n" != "$last" ]; then
     pkgs="$(printf '%s\n' "$list" | awk '{print $1}' | head -5 | tr '\n' ' ')"
     notify-send -a void-update "Void: $n mises à jour" "$pkgs... Clic sur l'icône de la barre pour mettre à jour."

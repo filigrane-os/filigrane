@@ -1,6 +1,6 @@
 # Identité Filigrane
 
-Référence de marque, à appliquer pour tout travail visuel (fond d'écran, waybar, menu, plymouth, ISO, README, site, icônes). Fichiers maîtres : `brand/` à la racine du dépôt. Brandbook illustré (scènes sur toutes les plateformes, couleur et gris) : https://claude.ai/artifact/K448pohHCitnyA8rn4dyR4
+Référence de marque, à appliquer pour tout travail visuel (fond d'écran, barre, menu, plymouth, ISO, README, site, icônes). Fichiers maîtres : `brand/` à la racine du dépôt. Brandbook illustré (scènes sur toutes les plateformes, couleur et gris) : https://claude.ai/artifact/K448pohHCitnyA8rn4dyR4
 
 ## Idée
 
@@ -26,14 +26,14 @@ Des voiles translucides qui se superposent : l'OS est le voile, tout reste visib
 | ardoise / blanc | 4,6:1 | liens, petits titres |
 | ardoise / papier | 4,0:1 | titres ≥ 18 px seulement |
 
-Interface sombre (niri, waybar, fuzzel, mako, foot) : fond `nuit`, texte `brume`, accent `voile`. Pas d'autre couleur vive ; les couleurs d'état (erreur, alerte) restent désaturées.
+Interface sombre (niri, shell Quickshell, foot) : fond `nuit`, texte `brume`, accent `voile`. Pas d'autre couleur vive ; les couleurs d'état (erreur, alerte) restent désaturées.
 
 ## Dans l'OS
 
 Teintes dérivées (entre nuit et voile) et états désaturés, communs à toutes les configs : nuit profond `#181d25`, nuit-2 `#232b36` (champs, cartes), nuit-3 `#2d3744` (sélection), nuit-4 `#3c4858` (liserés), brume-2 `#a9b8c8` (texte secondaire), sable `#d2bf92` (alerte), cendre `#c98f93` (erreur), sauge `#a3bfa8` (succès). Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par alacritty, nvim via catppuccin `color_overrides`, zellij).
 
 - Polices : `dotfiles/home/.local/share/fonts/` (Jost, JetBrains Mono, variables, OFL). Interface en Jost, terminaux et menu principal (alignement) en JetBrains Mono.
-- Logo : `brand/` lié dans `~/.local/share/filigrane` (bouton menu de waybar : `filigrane-sombre.svg`).
+- Logo : `brand/` lié dans `~/.local/share/filigrane` (bouton menu de la barre : `filigrane-sombre.svg`).
 - Fond d'écran `filigrane.png` et images Plymouth : générés par `scripts/brand-assets.sh` (relancer si `brand/` change).
 - Démarrage : thème Plymouth `system/plymouth/filigrane/` (logo empilé, étiquette « PHRASE DE PASSE », points), installé par `sudo system/plymouth/install.sh` (régénère l'initramfs).
 

@@ -2,10 +2,9 @@
 niri
 # Navigateur: l'application principale, natif Wayland (CHROME_FLAGS posé par niri), sert aussi aux webapps (webapp)
 chromium
-Waybar
+# Shell Quickshell (dotfiles/config/quickshell): barre, notifications et sélecteur du menu (remplace Waybar, mako, fuzzel)
+quickshell
 foot
-fuzzel
-mako
 swaybg
 swaylock
 brightnessctl
@@ -32,7 +31,7 @@ noto-fonts-emoji
 wdisplays
 kanshi
 python3
-# Clics de la barre Waybar: moniteur système et mixeur audio en TUI (pas de daemon)
+# Clics de la barre: moniteur système et mixeur audio en TUI (pas de daemon)
 btop
 wiremix
 # Wi-Fi et Bluetooth (pile d'Omarchy): iwd + impala, bluez + bluetui. Démons au repos si aucun adaptateur.

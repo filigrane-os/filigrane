@@ -1,7 +1,7 @@
 #!/bin/sh
-# Menu tout-en-un (fuzzel --dmenu), équivalent léger du menu Walker d'Omarchy.
+# Menu tout-en-un (sélecteur du shell Quickshell via `fili-shell dmenu`), équivalent léger du menu Walker d'Omarchy.
 # Catégories d'abord; dès qu'on tape, recherche floue globale (applications, actions, entrées perso).
-# Aucun démon: il n'existe que le temps du menu (0 Mo au repos).
+# Le script n'existe que le temps du menu; l'affichage (et le flou du fond) est fait par le shell déjà résident.
 #
 #   menu                  catégories à vide; en tapant, recherche floue sur tout
 #   menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system|audio|network|style|packages|capture|custom
@@ -49,26 +49,20 @@ I_CAM="$(printf '\357\200\260')"  # U+F030 camera
 I_WIN="$(printf '\357\213\220')"  # U+F2D0 window-maximize
 I_AI="$(printf '\357\203\253')"  # U+F0EB lightbulb-o
 
-# Maj+Retour arrière = custom-1 de fuzzel (code de sortie 10): remonte d'un niveau.
-# Échap = sortie vide, code 1: quitte tout le menu. Option passée ici seulement: dans le lanceur
-# d'applications (fuzzel seul), custom-1 lancerait l'application sélectionnée.
+# Maj+Retour arrière = code de sortie 10 du sélecteur: remonte d'un niveau.
+# Échap = sortie vide, code 1: quitte tout le menu.
 STATE="${XDG_RUNTIME_DIR:-/tmp}/menu-back.$$"
-KEYS="--override=key-bindings.custom-1=Shift+BackSpace"
 BINDS="${XDG_RUNTIME_DIR:-/tmp}/menu-binds.$$"
-BDREADY="${XDG_RUNTIME_DIR:-/tmp}/menu-backdrop.$$"
-"$HOME/.local/bin/menu-backdrop" "$BDREADY" >/dev/null 2>&1 &
-BACKDROP=$!
-trap 'rm -f "$STATE" "$BINDS" "$BDREADY"; kill "$BACKDROP" 2>/dev/null' EXIT
+trap 'rm -f "$STATE" "$BINDS"' EXIT
+DMENU="$HOME/.local/bin/fili-shell dmenu"
 
 pick() { # pick INVITE [LIGNES] [LARGEUR] [POLICE]  (entrées sur stdin, sélection sur stdout; vide si annulé)
-    # Le voile flouté doit être affiché avant fuzzel (1 s au plus)
-    n=0; while [ ! -e "$BDREADY" ] && [ "$n" -lt 50 ] && kill -0 "$BACKDROP" 2>/dev/null; do sleep 0.02; n=$((n + 1)); done
-    out="$(fuzzel --dmenu $KEYS ${NOSORT:+--no-sort} --minimal-lines --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
+    out="$($DMENU ${NOSORT:+--no-sort} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
     if [ "$rc" -eq 10 ]; then : > "$STATE"; return 0; fi
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
 }
-# Fonds d'écran pour fuzzel: une ligne par image, miniature en icône (protocole dmenu étendu
+# Fonds d'écran pour le sélecteur: une ligne par image, miniature en icône (protocole dmenu étendu
 # de Rofi). Miniatures en cache (vipsthumbnail), régénérées si l'image est plus récente.
 wallpaper_entries() {
     thumbs="${XDG_CACHE_HOME:-$HOME/.cache}/wallpaper-thumbs"
@@ -84,7 +78,7 @@ wallpaper_entries() {
     done
 }
 ask() { # saisie libre
-    out="$(fuzzel --dmenu $KEYS --prompt-only "$1")"; rc=$?
+    out="$($DMENU --prompt-only "$1")"; rc=$?
     if [ "$rc" -eq 10 ]; then : > "$STATE"; return 0; fi
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
@@ -146,9 +140,9 @@ list_apps() {
     ' | sort -t "$TAB" -k1,1 -u
 }
 
-# Classement des applications (fuzzel trie par longueur de correspondance, donc « Thunar Préférences »
+# Classement des applications (un tri par qualité de correspondance mettrait, donc « Thunar Préférences »
 # passait avant « Thunar »): les plus lancées d'abord, puis les applis principales avant les
-# réglages/préférences, puis l'ordre alphabétique. Utilisé avec fuzzel --no-sort.
+# réglages/préférences, puis l'ordre alphabétique. Utilisé avec --no-sort.
 APPCOUNT="${XDG_STATE_HOME:-$HOME/.local/state}/menu-apps-count"
 ranked_apps() {
     awk -F'\t' -v OFS='\t' -v cf="$APPCOUNT" '
@@ -372,7 +366,7 @@ menu_network() {
 menu_style() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Wallpaper\nReload Waybar\nReload mako\n' | pick "Style › " 3)}"
+        act="${arg:-$(printf 'Wallpaper\nReload shell\n' | pick "Style › " 2)}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Wallpaper")
@@ -383,8 +377,7 @@ menu_style() {
                 fi
                 cancel
                 ;;
-            "Reload Waybar") pkill -USR2 waybar; return 0 ;;
-            "Reload mako") makoctl reload; return 0 ;;
+            "Reload shell") "$HOME/.local/bin/fili-shell" reload; return 0 ;;
         esac
         [ -n "$arg" ] && return $BACK
     done
@@ -394,9 +387,7 @@ menu_capture() {
     arg="$1"
     act="${arg:-$(printf 'Region\nScreen\nWindow\nColor (picker)\nScreen recording\n' | pick "Capture › " 5)}"
     [ -n "$act" ] || { cancel; return $BACK; }
-    # Le voile ne se ferme seul que 1,2 s après fuzzel: niri figerait l'écran flouté pour la capture
-    kill "$BACKDROP" 2>/dev/null
-    sleep 0.4 # laisse fuzzel et le voile disparaître avant de capturer
+    sleep 0.4 # laisse le sélecteur et son voile flouté (250 ms) disparaître avant de capturer
     case "$act" in
         Region) niri msg action screenshot ;;
         Screen) niri msg action screenshot-screen ;;
@@ -483,14 +474,14 @@ menu_toggles() {
             "Airplane mode") "$HOME/.local/bin/bar-toggle" air; return 0 ;;
             "Presentation mode") "$HOME/.local/bin/bar-toggle" present; return 0 ;;
             "Night light") "$HOME/.local/bin/bar-toggle" night; return 0 ;;
-            "Do not disturb") makoctl mode -t do-not-disturb; pkill -RTMIN+9 waybar; return 0 ;;
+            "Do not disturb") "$HOME/.local/bin/fili-shell" dnd toggle; return 0 ;;
             "Mute 1 hour")
-                makoctl mode -a do-not-disturb; pkill -RTMIN+9 waybar
-                setsid -f sh -c 'sleep 3600; makoctl mode -r do-not-disturb; pkill -RTMIN+9 waybar' >/dev/null 2>&1
+                "$HOME/.local/bin/fili-shell" dnd on
+                setsid -f sh -c 'sleep 3600; "$HOME/.local/bin/fili-shell" dnd off' >/dev/null 2>&1
                 notify "Notifications" "Coupées pendant 1 h"
                 return 0 ;;
             "Notification history")
-                hist="$(makoctl history -j)"
+                hist="$("$HOME/.local/bin/fili-shell" history-json)"
                 fmt='def line: "\(.app_name) · \(.summary)\(if .body then " — " + (.body | gsub("\\s+"; " ") | .[0:120]) else "" end)";'
                 sel="$(printf '%s' "$hist" | jq -j "$fmt"'.[] | line, "\u0000icon\u001f", ((.app_icon // (.app_name | ascii_downcase | gsub(" "; "-"))) | sub("^file://"; "") | gsub("%20"; " ")), "\n"' | NOSORT=1 pick "History › " 10 100)"
                 if [ -n "$sel" ]; then
@@ -582,8 +573,7 @@ $I_PHONES Audio: Choose output
 $I_GLOBE Network: IP addresses
 $I_NET Network: Test connection
 $I_IMAGE Style: Wallpaper
-$I_RELOAD Style: Reload Waybar
-$I_RELOAD Style: Reload mako
+$I_RELOAD Style: Reload shell
 $I_CAM Capture: Region
 $I_CAM Capture: Screen
 $I_CAM Capture: Window
@@ -664,7 +654,7 @@ fmt_hint() { h="$(hint "$1")"; [ -n "$h" ] && printf '  ‹%s›' "$(pretty_key 
 action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
     NEEDLE=""
     case "$1" in
-        "Applications ›") NEEDLE="~fuzzel" ;;
+        "Applications ›") NEEDLE="~menu apps" ;;
         "Windows ›"|"Windows: "*) NEEDLE="~menu windows" ;;
         "Shortcuts ›"|"Shortcuts: "*) NEEDLE="~menu keys" ;;
         "System: Lock") NEEDLE="~swaylock" ;;
@@ -682,7 +672,7 @@ action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
 }
 
 # Mise en page du menu principal (police à chasse fixe): glyphe + 2 espaces, touche alignée à droite.
-# Largeur en caractères = largeur fuzzel (36) moins les marges.
+# Largeur en caractères = largeur du sélecteur (36) moins les marges.
 MENU_FONT="JetBrains Mono:size=12,Symbols Nerd Font Mono:size=12"
 MENU_COLS=33
 align_hints() {

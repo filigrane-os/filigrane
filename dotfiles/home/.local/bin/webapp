@@ -11,6 +11,6 @@ win="$(niri msg -j windows 2>/dev/null | jq -r --arg p "chrome-$host" '
 if [ -n "$win" ]; then
     exec niri msg action focus-window --id "$win"
 fi
-# Détaché: sinon Chrome reste fils du lanceur (clic Waybar) et bloque le rafraîchissement du module
+# Détaché: sinon Chrome reste fils du lanceur (clic dans la barre) et bloque le rafraîchissement du module
 browser="${WEBAPP_BROWSER:-$(command -v google-chrome-stable || echo chromium)}"
 setsid -f "$browser" --app="$1" >/dev/null 2>&1

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Indicateur Waybar: rapports de veille non lus (Omarchy, T2) écrits par watch-claude (vide si aucun, donc module masqué).
+# Indicateur de la barre: rapports de veille non lus (Omarchy, T2) écrits par watch-claude (vide si aucun, donc module masqué).
 # `bar-news open` les affiche dans un terminal flottant puis les archive.
 R="$HOME/.local/state/watch/reports"
 shopt -s nullglob
@@ -15,7 +15,7 @@ if [ "$1" = open ]; then
         tmp=$1; shift
         bat --paging=always -l md --style=plain "$tmp" 2>/dev/null || less "$tmp"
         mkdir -p "$(dirname "$1")/archive" && mv "$@" "$(dirname "$1")/archive/"
-        rm -f "$tmp"; pkill -RTMIN+15 waybar' _ "$tmp" "${files[@]}"
+        rm -f "$tmp"; "$HOME/.local/bin/fili-shell" signal 15' _ "$tmp" "${files[@]}"
 fi
 
 if [ ${#files[@]} -eq 0 ]; then

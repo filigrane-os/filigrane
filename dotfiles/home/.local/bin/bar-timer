@@ -1,15 +1,15 @@
 #!/bin/bash
-# Minuteur / chronomètre Waybar, sans daemon: l'état est un petit fichier dans $XDG_RUNTIME_DIR/bar-timer
+# Minuteur / chronomètre de la barre, sans daemon: l'état est un petit fichier dans $XDG_RUNTIME_DIR/bar-timer
 # ("T <fin>" minuteur, "S <début>" chronomètre, "done" minuteur terminé). Bash pour EPOCHSECONDS (aucun fork par rafraîchissement).
-# Usage: bar-timer (JSON pour Waybar) | click (choisir / arrêter / acquitter) | add (+5 min au minuteur) | tick (interne)
+# Usage: bar-timer (JSON pour la barre) | click (choisir / arrêter / acquitter) | add (+5 min au minuteur) | tick (interne)
 # Durées du minuteur: 5 (minutes), 90s, 10m, 1h.
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-timer"
 icon='\\uf2f2'
 kind=''; val=''
 [ -r "$f" ] && read -r kind val <"$f"
 
-refresh() { pkill -RTMIN+12 waybar; }
-# Waybar n'interroge pas ce module (interval once): un ticker d'une seconde n'existe que tant qu'un minuteur ou chronomètre tourne
+refresh() { "$HOME/.local/bin/fili-shell" signal 12; }
+# La barre n'interroge pas ce module (interval once): un ticker d'une seconde n'existe que tant qu'un minuteur ou chronomètre tourne
 start_tick() { pgrep -f 'bar-timer tick' >/dev/null || setsid -f "$0" tick >/dev/null 2>&1; }
 fmt() { # secondes -> [H:]MM:SS
     if [ "$1" -ge 3600 ]; then printf '%d:%02d:%02d' $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
@@ -22,7 +22,7 @@ case "$1" in
             S) notify-send "Chronomètre" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; refresh; exit 0 ;;
             T|done) rm -f "$f"; refresh; exit 0 ;;
         esac
-        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | fuzzel --dmenu --prompt 'Minuteur: ' --lines 8)" || exit 0
+        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" dmenu --prompt 'Minuteur: ' --lines 8)" || exit 0
         if [ "$out" = Chronomètre ]; then
             echo "S $EPOCHSECONDS" >"$f"
         else

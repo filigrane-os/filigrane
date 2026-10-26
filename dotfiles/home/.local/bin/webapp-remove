@@ -1,5 +1,5 @@
 #!/bin/sh
-# Retire une appli web du menu et de fuzzel (inverse de webapp-add).
+# Retire une appli web du menu (inverse de webapp-add).
 #   webapp-remove "WhatsApp"
 # Supprime la ligne de ~/.config/webapps/list, son icône si plus personne ne l'utilise, puis webapp-sync.
 [ -n "$1" ] || { echo 'usage: webapp-remove "Nom"' >&2; exit 1; }

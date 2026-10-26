@@ -1,0 +1,76 @@
+#!/bin/sh
+# Client du shell Quickshell (barre, notifications, sélecteur): une ligne de commande dans le tuyau nommé que lit
+# ~/.config/quickshell (Control.qml), sans lancer le client Qt `qs ipc` (plus lourd). Les réponses reviennent par un
+# tuyau propre à la requête. Sans shell en marche, les commandes sans réponse sont ignorées.
+# Usage:
+#   fili-shell signal N...          rafraîchit les modules de la barre (ex-`pkill -RTMIN+N waybar`)
+#   fili-shell dnd on|off|toggle    ne pas déranger
+#   fili-shell dismiss-all | dismiss-summary TEXTE | history (panneau) | history-json (sortie: JSON façon makoctl)
+#   fili-shell picker-close         ferme le sélecteur s'il est ouvert (code 0), sinon code 1
+#   fili-shell reload               recharge la config
+#   fili-shell dmenu [options fuzzel]   sélecteur façon `fuzzel --dmenu`: entrées sur stdin, choix sur stdout,
+#       code 1 si annulé, 10 pour Maj+Retour arrière (custom-1). Options: --prompt P, --prompt-only P, --lines N,
+#       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N (colonnes séparées par tabulation);
+#       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
+D="${XDG_RUNTIME_DIR:-/tmp}"
+F="$D/filigrane-shell"
+
+send() { # ligne sans bloquer: ouverture en lecture-écriture (jamais bloquante sur un tuyau)
+    [ -p "$F" ] || return 1
+    { printf '%s\n' "$1" >&3; } 3<>"$F"
+}
+# request COMMANDE: envoie "COMMANDE <tuyau de réponse>" et attend la réponse
+request() {
+    [ -p "$F" ] && pgrep -x quickshell >/dev/null || return 1
+    r="$(mktemp -u "$D/filigrane-shell.XXXXXX")"
+    mkfifo -m 600 "$r" || return 1
+    send "$1 $r"
+    cat "$r"
+    rm -f "$r"
+}
+
+case "$1" in
+    signal) shift; for n in "$@"; do send "signal $n"; done; exit 0 ;;
+    dnd) send "dnd ${2:-toggle}"; exit 0 ;;
+    dismiss-all|history|reload) send "$1"; exit 0 ;;
+    dismiss-summary) send "dismiss-summary $(printf '%s' "$2" | tr '\n' ' ')"; exit 0 ;;
+    history-json) request history-json; exit ;;
+    picker-close) [ "$(request picker-close)" = 1 ] ; exit ;;
+    dmenu) shift ;;
+    *) sed -n '5,14p' "$0" >&2; exit 2 ;;
+esac
+
+# Sélecteur: options passées en JSON, entrées dans un fichier lu par le shell
+prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dmenu|--minimal-lines) ;;
+        --prompt) prompt="$2"; shift ;;
+        --prompt=*) prompt="${1#*=}" ;;
+        --prompt-only) only=1; prompt="$2"; shift ;;
+        --lines) lines="$2"; shift ;;
+        --width) width="$2"; shift ;;
+        --font) font="$2"; shift ;;
+        --no-sort) nosort=1 ;;
+        --with-nth) with="$2"; shift ;;
+        --accept-nth) accept="$2"; shift ;;
+        --placeholder|--nth-delimiter) shift ;;
+    esac
+    shift
+done
+in="$(mktemp "$D/filigrane-dmenu.XXXXXX")"
+trap 'rm -f "$in" "$in.json"' EXIT
+[ "$only" = 1 ] || cat > "$in"
+jq -nc --arg p "$prompt" --argjson o "$only" --arg l "$lines" --arg w "$width" --arg f "$font" --argjson s "$nosort" \
+    --arg wn "$with" --arg an "$accept" --arg in "$in" \
+    '{prompt: $p, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
+      noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), input: $in}' > "$in.json"
+out="$(request "dmenu $in.json")" || exit 1
+# Réponse: code de sortie sur la première ligne, sélection ensuite
+rc="${out%%
+*}"
+case "$out" in *'
+'*) sel="${out#*
+}" ;; *) sel='' ;; esac
+[ -n "$sel" ] && printf '%s\n' "$sel"
+exit "${rc:-1}"

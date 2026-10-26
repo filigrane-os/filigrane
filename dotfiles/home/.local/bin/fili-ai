@@ -3,7 +3,7 @@
 #
 #   fili-ai [invite]          lance l'agent (Mod+Y), dans ~/work par défaut
 #   fili-ai use [agent]       choisit l'agent (liste si absent) et l'installe au besoin
-#   fili-ai pick              même choix dans un menu fuzzel (menu › AI)
+#   fili-ai pick              même choix dans le sélecteur du menu (menu › AI)
 #   fili-ai install <agent>   installe ou met à jour un agent
 #   fili-ai update            met à jour les agents installés
 #   fili-ai status            agent, modèle, dossier de travail, dépôt, agents installés
@@ -226,7 +226,7 @@ case "${1:-}" in
         set_agent "$a" ;;
     pick)
         a="$(for x in $AGENTS; do printf '%s\t%s\n' "$x" "$(describe "$x")"; done |
-            fuzzel --dmenu --prompt "Agent IA › " --lines 5 --width 50 --with-nth 2 --accept-nth 1)" || exit 0
+            "$HOME/.local/bin/fili-shell" dmenu --prompt "Agent IA › " --lines 5 --width 50 --with-nth 2 --accept-nth 1)" || exit 0
         [ -n "$a" ] || exit 0
         # shellcheck disable=SC2016
         exec foot -e bash -c '"$0" use "$1" && { [ "$1" = none ] || exec "$0"; }; read -r -p "Entrée pour fermer " _' "$0" "$a" ;;

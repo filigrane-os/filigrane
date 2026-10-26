@@ -1,5 +1,5 @@
 #!/bin/sh
-# Ajoute une appli web au menu et à fuzzel.
+# Ajoute une appli web au menu.
 #   webapp-add "WhatsApp" https://web.whatsapp.com [icône]
 # icône: nom du thème d'icônes ou fichier PNG/SVG (copié dans le dépôt). Sans icône: web-browser.
 [ -n "$1" ] && [ -n "$2" ] || { echo 'usage: webapp-add "Nom" URL [icône]' >&2; exit 1; }

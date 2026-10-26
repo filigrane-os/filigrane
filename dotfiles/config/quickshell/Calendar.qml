@@ -1,0 +1,94 @@
+// Calendrier sous l'horloge (semaines ISO à gauche): survol = affiché, clic droit = épinglé, molette = mois ±1
+import QtQuick
+import QtQuick.Layouts
+import QtQuick.Controls
+import Quickshell
+
+PopupWindow {
+    id: cal
+    property date today
+    property int shift: 0
+    property bool pinned: false
+    readonly property date shown: new Date(today.getFullYear(), today.getMonth() + shift, 1)
+
+    visible: false
+    anchor.edges: Edges.Bottom
+    anchor.gravity: Edges.Bottom
+    anchor.margins.top: 4
+    implicitWidth: 260
+    implicitHeight: 230
+    color: "transparent"
+
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.nuit
+        border.color: Theme.nuit4
+        border.width: 1
+        radius: 10
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 4
+            Text {
+                Layout.alignment: Qt.AlignHCenter
+                text: Qt.locale("fr_FR").toString(cal.shown, "MMMM yyyy")
+                color: Theme.voile
+                font { family: Theme.font; pixelSize: 14; weight: Font.Medium }
+            }
+            GridLayout {
+                columns: 2
+                columnSpacing: 6
+                rowSpacing: 2
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Item { implicitWidth: 1; implicitHeight: 1 }
+                DayOfWeekRow {
+                    Layout.fillWidth: true
+                    locale: Qt.locale("fr_FR")
+                    delegate: Text {
+                        required property string shortName
+                        text: shortName.slice(0, 2)
+                        color: Theme.ardoise
+                        horizontalAlignment: Text.AlignHCenter
+                        font { family: Theme.font; pixelSize: 12 }
+                    }
+                }
+                WeekNumberColumn {
+                    Layout.fillHeight: true
+                    month: grid.month
+                    year: grid.year
+                    locale: Qt.locale("fr_FR")
+                    delegate: Text {
+                        required property int weekNumber
+                        text: weekNumber
+                        color: Theme.ardoise
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font { family: Theme.mono; pixelSize: 11 }
+                    }
+                }
+                MonthGrid {
+                    id: grid
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    locale: Qt.locale("fr_FR")
+                    month: cal.shown.getMonth()
+                    year: cal.shown.getFullYear()
+                    delegate: Rectangle {
+                        required property var model
+                        readonly property bool isToday: model.today
+                        color: isToday ? Theme.nuit3 : "transparent"
+                        radius: 6
+                        Text {
+                            anchors.centerIn: parent
+                            text: parent.model.day
+                            color: parent.isToday ? Theme.voile : parent.model.month === grid.month ? Theme.brume : Theme.nuit4
+                            font { family: Theme.font; pixelSize: 13; weight: parent.isToday ? Font.Medium : Font.Normal }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

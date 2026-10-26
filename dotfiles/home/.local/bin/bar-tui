@@ -8,5 +8,5 @@ while read -r id pid; do
     [ "$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null)" = "$want" ] && { niri msg action focus-window --id "$id"; exit 7; }
 done
 [ $? -eq 7 ] && exit 0
-# Détaché (setsid -f): sinon le terminal reste fils de Waybar (clic) et bloque le rafraîchissement de ses modules
+# Détaché (setsid -f): sinon le terminal reste fils de la barre (clic) et bloque le rafraîchissement de ses modules
 setsid -f foot --app-id bar-tui -T "$1" -e "$@"
