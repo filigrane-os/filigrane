@@ -1,0 +1,47 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "autoupdate": false,
+  "share": "disabled",
+  "permission": {
+    "edit": "allow",
+    "bash": {
+      "*": "ask",
+      "ls *": "allow",
+      "cat *": "allow",
+      "grep *": "allow",
+      "rg *": "allow",
+      "fd *": "allow",
+      "head *": "allow",
+      "tail *": "allow",
+      "xbps-query *": "allow",
+      "sv status *": "allow",
+      "df *": "allow",
+      "free *": "allow",
+      "ps *": "allow",
+      "ip *": "allow",
+      "uname *": "allow",
+      "lsblk *": "allow",
+      "niri validate*": "allow",
+      "niri msg *": "allow",
+      "budget*": "allow",
+      "fili-ai status": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "*install-void.sh*": "deny",
+      "*mkfs*": "deny",
+      "*wipefs*": "deny",
+      "*parted *": "deny",
+      "dd *": "deny",
+      "sudo dd *": "deny",
+      "*visudo*": "deny"
+    },
+    "read": {
+      "*": "allow",
+      "*/.ssh/id_*": "deny",
+      "*/.claude/.credentials.json": "deny",
+      "*/.codex/auth.json": "deny",
+      "*/opencode/auth.json": "deny"
+    }
+  }
+}

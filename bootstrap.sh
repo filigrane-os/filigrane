@@ -84,6 +84,11 @@ if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/config.env" ]; then
     # shellcheck source=users/thomas/config.env
     source "$LAYER_DIR/config.env"
 fi
+# Agent IA choisi à l'installation ou avec `fili-ai use`, si ni l'environnement ni la couche ne le fixent
+AI_ENV="$TARGET_HOME/.config/filigrane/ai.env"
+if [ -z "${FILI_AI:-}" ] && [ -f "$AI_ENV" ]; then
+    FILI_AI="$(sed -n 's/^FILI_AI=//p' "$AI_ENV" | tail -n1)"
+fi
 # shellcheck source=config.env
 source "$ROOT/config.env"
 
@@ -196,6 +201,13 @@ install_list() {
     done
     [ ${#ok[@]} -gt 0 ] && $SUDO xbps-install -y "${ok[@]}"
     return 0
+}
+
+install_pkgs() { # install_pkgs PAQUET... : installe ceux qui manquent
+    local pkg
+    local -a todo=()
+    for pkg in "$@"; do xbps-query "$pkg" >/dev/null 2>&1 || todo+=("$pkg"); done
+    [ ${#todo[@]} -eq 0 ] || $SUDO xbps-install -y "${todo[@]}"
 }
 
 set_rc() { # set_rc CLE VALEUR dans /etc/rc.conf
@@ -343,19 +355,27 @@ setup_system() {
     $SUDO visudo -cf /etc/sudoers.d/wheel >/dev/null
     # Les fichiers NOPASSWD portent le préfixe zz- : sudoers applique la dernière règle qui correspond,
     # et wheel (mot de passe) doit donc être lu avant eux. Anciens noms nettoyés au passage.
-    $SUDO rm -f /etc/sudoers.d/power /etc/sudoers.d/claude
+    $SUDO rm -f /etc/sudoers.d/power /etc/sudoers.d/claude /etc/sudoers.d/zz-claude
     # Menu Système: éteindre, redémarrer, veille sans mot de passe (pas de polkit sur cette machine)
     echo '%wheel ALL=(root) NOPASSWD: /usr/bin/zzz, /usr/bin/reboot, /usr/bin/poweroff' | $SUDO tee /etc/sudoers.d/zz-power >/dev/null
     $SUDO chmod 440 /etc/sudoers.d/zz-power
     $SUDO visudo -cf /etc/sudoers.d/zz-power >/dev/null
-    # Claude Code (agent OS): sv et xbps sans mot de passe; la confirmation reste côté Claude Code (permissions "ask")
-    if [ "$CLAUDE_CODE" = 1 ]; then
-        echo "$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/sv, /usr/bin/xbps-install, /usr/bin/xbps-remove, /usr/bin/xbps-query, /usr/bin/xbps-reconfigure" | $SUDO tee /etc/sudoers.d/zz-claude >/dev/null
-        $SUDO chmod 440 /etc/sudoers.d/zz-claude
-        $SUDO visudo -cf /etc/sudoers.d/zz-claude >/dev/null
-    else
-        $SUDO rm -f /etc/sudoers.d/zz-claude
-    fi
+    # Agent IA (fili-ai): sv et xbps sans mot de passe pour les agents dont Filigrane règle les garde-fous, la
+    # confirmation venant de l'agent (Claude Code: permissions et hook; Codex: bac à sable, sudo et réseau
+    # seulement après accord). opencode n'a pas de bac à sable: sudo garde son mot de passe.
+    case "$FILI_AI" in
+        claude|codex|ollama)
+            echo "$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/sv, /usr/bin/xbps-install, /usr/bin/xbps-remove, /usr/bin/xbps-query, /usr/bin/xbps-reconfigure" | $SUDO tee /etc/sudoers.d/zz-agent >/dev/null
+            $SUDO chmod 440 /etc/sudoers.d/zz-agent
+            $SUDO visudo -cf /etc/sudoers.d/zz-agent >/dev/null
+            ;;
+        *) $SUDO rm -f /etc/sudoers.d/zz-agent ;;
+    esac
+    # Bac à sable de Codex (bubblewrap) et archive d'Ollama (zstd)
+    case "$FILI_AI" in
+        codex) install_pkgs bubblewrap ;;
+        ollama) install_pkgs bubblewrap zstd ;;
+    esac
 
     # Matériel spécifique: hardware/<machine>/ (generic n'a rien)
     if [ "$MACHINE" = mac-t2 ]; then
@@ -438,15 +458,33 @@ setup_restricted() {
     $SUDO xbps-install -y "${repos[@]/#/--repository=}" "${todo[@]}" || warn "installation de ${todo[*]} échouée"
 }
 
-setup_claude() {
-    [ "$CLAUDE_CODE" = 1 ] || return 0
-    log "Claude Code"
-    if [ -x "$TARGET_HOME/.local/bin/claude" ]; then
-        echo "déjà installé"
-        return 0
-    fi
-    run_as_user bash -c 'curl -fsSL https://claude.ai/install.sh | bash' \
-        || warn "installation de Claude Code échouée (réseau ?), relancer bootstrap.sh"
+# Agent IA choisi (FILI_AI): installé par fili-ai (dotfiles/home/.local/bin), qui sait aussi le mettre à jour
+setup_ai() {
+    [ "$FILI_AI" != none ] || return 0
+    log "Agent IA: $FILI_AI"
+    run_as_user "$ROOT/dotfiles/home/.local/bin/fili-ai" install "$FILI_AI" \
+        || warn "installation de l'agent $FILI_AI échouée (réseau ?), relancer bootstrap.sh ou fili-ai install $FILI_AI"
+}
+
+# Réglages de fili-ai (~/.config/filigrane/ai.env), skills des agents (agents/skills: ~/.claude/skills pour
+# Claude Code, ~/.agents/skills pour Codex et opencode) et consignes du dossier de travail (agents/work)
+setup_ai_dotfiles() {
+    local workdir="$FILI_AI_WORKDIR" skill f
+    case "$workdir" in /*) ;; *) workdir="$TARGET_HOME/$workdir" ;; esac
+    log "Agent IA: réglages, skills, dossier de travail ${workdir/#"$TARGET_HOME"/\~}"
+    run_as_user mkdir -p "${AI_ENV%/*}" "$workdir"
+    { echo "# Généré par bootstrap.sh depuis config.env; fili-ai use <agent> change FILI_AI"
+      printf '%s=%q\n' FILI_AI "$FILI_AI" FILI_AI_MODEL "$FILI_AI_MODEL" FILI_AI_WORKDIR "$workdir" FILI_AI_ARGS "$FILI_AI_ARGS" FILIGRANE_DIR "$ROOT"
+    } | run_as_user tee "$AI_ENV" >/dev/null
+    for skill in "$ROOT"/agents/skills/*/; do
+        skill="${skill%/}"
+        link_one "$skill" "$TARGET_HOME/.claude/skills/${skill##*/}"
+        link_one "$skill" "$TARGET_HOME/.agents/skills/${skill##*/}"
+    done
+    # Pas sur un AGENTS.md ou CLAUDE.md existant (dossier de travail placé dans un projet, ou dans ce dépôt)
+    for f in AGENTS.md CLAUDE.md; do
+        if [ -L "$workdir/$f" ] || [ ! -e "$workdir/$f" ]; then link_one "$ROOT/agents/work/$f" "$workdir/$f"; fi
+    done
 }
 
 link_one() { # link_one SOURCE DESTINATION
@@ -472,7 +510,8 @@ prune_links() {
     while IFS= read -r -d '' l; do
         case "$(readlink "$l")" in "$ROOT"/*) rm -f "$l"; echo "lien orphelin retiré: ~/${l#"$TARGET_HOME/"}" ;; esac
     done < <(find "$TARGET_HOME" -maxdepth 1 -xtype l -print0
-             find "$TARGET_HOME/.config" "$TARGET_HOME/.local" "$TARGET_HOME/.claude" -xtype l -print0 2>/dev/null)
+             find "$TARGET_HOME/.config" "$TARGET_HOME/.local" "$TARGET_HOME/.claude" "$TARGET_HOME/.agents" \
+                 "$TARGET_HOME/.codex" -xtype l -print0 2>/dev/null)
 }
 
 link_tree() { # link_tree DOSSIER : DOSSIER/home -> ~, DOSSIER/config -> ~/.config
@@ -503,6 +542,7 @@ setup_dotfiles() {
         link_tree "$LAYER_DIR/dotfiles"
     fi
     prune_links
+    setup_ai_dotfiles
     # Disposition clavier de niri (incluse par config.kdl), depuis config.env
     run_as_user mkdir -p "$TARGET_HOME/.config/niri"
     run_as_user sh -c 'printf "%s\n" "$1" "input {" "    keyboard {" "        xkb {" \
@@ -561,7 +601,7 @@ if [ "$PLAN" -eq 1 ]; then print_plan; exit; fi
 [ "$DO_SYSTEM" -eq 1 ] && setup_system
 [ "$DO_DOTFILES" -eq 1 ] && setup_dotfiles
 [ "$DO_DOTFILES" -eq 1 ] && setup_apps
-[ "$DO_SYSTEM" -eq 1 ] && setup_claude
+[ "$DO_SYSTEM" -eq 1 ] && setup_ai
 [ "$DO_SYSTEM" -eq 1 ] && setup_restricted
 if [ "$DO_SYSTEM" -eq 1 ] && declare -F layer_system >/dev/null; then layer_system; fi
 log "Terminé"

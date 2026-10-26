@@ -3,7 +3,7 @@
 # Approche inspirée d'Omarchy (install/hardware/apple/fix-t2.sh), adaptée à Void:
 # xbps + DKMS (pas de noyau linux-t2), dracut, GRUB ou Limine (/etc/kernel/cmdline), runit.
 #
-#   ./setup.sh [--check] [--only dkms|touchbar|smc|trackpad|keys|boot|audio|fan|sleeplog|net|tools]
+#   ./setup.sh [--check] [--only dkms|touchbar|smc|trackpad|keys|boot|audio|fan|sleeplog|net|tools|clock]
 #
 # --check: affiche si une puce T2 est détectée (code 0 = oui) puis quitte.
 # Appelé automatiquement par bootstrap.sh quand la machine est mac-t2 (détectée, ou forcée avec --machine).
@@ -442,6 +442,14 @@ if ! is_t2 && [ -z "${T2_FORCE:-}" ]; then
 fi
 
 [ -z "$ONLY" ] && setup_packages  # avec --only: dkms et linux-headers doivent déjà être installés
+# L'horloge matérielle (RTC) de la T2 repart parfois du 1er janvier 1970 au démarrage: le système vit en 1970
+# jusqu'à la synchro NTP (certificats TLS « pas encore valides »). chronyd -s remet alors l'heure à celle de
+# son dernier arrêt (date du fichier drift) dès le démarrage, avant le réseau.
+setup_clock() {
+    log "Heure au démarrage: chronyd -s (RTC T2 parfois remise à 1970)"
+    printf '%s\n' '# filigrane (hardware/mac-t2): RTC T2 peu fiable, restaurer l'"'"'heure du dernier arrêt' 'OPTS="-s"' > /etc/sv/chronyd/conf
+}
+
 want dkms && setup_dkms
 want touchbar && setup_touchbar
 want smc && setup_smc
@@ -453,4 +461,5 @@ want fan && setup_fan
 want sleeplog && setup_sleeplog
 want net && setup_net
 want tools && setup_tools
+want clock && setup_clock
 log "Terminé. Redémarrer, puis lancer t2-wifi-firmware pour le Wi-Fi/Bluetooth."

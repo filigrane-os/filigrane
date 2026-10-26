@@ -2,3 +2,4 @@ apps/*/target/
 __pycache__/
 distro/out/
 .user-layer
+dotfiles/config/htop/htop_history

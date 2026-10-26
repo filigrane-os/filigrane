@@ -1,7 +1,4 @@
 {
-  "env": {
-    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
-  },
   "permissions": {
     "allow": [
       "Bash(xbps-query *)",
@@ -20,23 +17,10 @@
       "Bash(wpctl status *)",
       "Bash(niri validate *)",
       "Bash(niri msg *)",
-      "Bash(git -C ~/filigrane status *)",
-      "Bash(git -C ~/filigrane diff *)",
-      "Bash(git -C ~/filigrane log *)",
-      "Read(~/Projects/filigrane/**)",
-      "Edit(~/Projects/filigrane/**)",
-      "Read(~/work/**)",
-      "Edit(~/work/**)",
       "Bash(sudo xbps-remove *)",
-      "Bash(rm /tmp/claude-1000/*)",
-      "Bash(rm -f /tmp/claude-1000/*)",
-      "Bash(rm -rf /tmp/claude-1000/*)",
-      "Bash(rm /home/thomas/Projects/filigrane/*)",
-      "Bash(rm -f /home/thomas/Projects/filigrane/*)",
-      "Bash(rm -rf /home/thomas/Projects/filigrane/*)",
-      "Bash(git push origin develop)",
-      "Bash(git push origin develop *)",
-      "Bash(git -C /home/thomas/Projects/filigrane push origin develop)"
+      "Bash(rm /tmp/claude-*/*)",
+      "Bash(rm -f /tmp/claude-*/*)",
+      "Bash(rm -rf /tmp/claude-*/*)"
     ],
     "deny": [
       "Bash(*install-void.sh*)",
@@ -61,7 +45,11 @@
       "Read(~/.ssh/id_*)",
       "Bash(sudo xbps-remove *-R*)",
       "Bash(sudo xbps-remove *-f*)",
-      "Bash(sudo xbps-remove *base-system*)"
+      "Bash(sudo xbps-remove *base-system*)",
+      "Read(~/.codex/auth.json)",
+      "Edit(~/.codex/auth.json)",
+      "Read(~/.local/share/opencode/auth.json)",
+      "Edit(~/.local/share/opencode/auth.json)"
     ],
     "ask": [
       "Bash(sudo xbps-install -u*)",
@@ -84,15 +72,6 @@
       "Bash(git push* -f*)"
     ]
   },
-  "model": "opus",
-  "skillOverrides": {
-    "anthropic-skills:computer-use": "off",
-    "anthropic-skills:built-in-browser": "off",
-    "anthropic-skills:google-workspace": "off",
-    "anthropic-skills:morning": "off",
-    "anthropic-skills:import-memory": "off",
-    "anthropic-skills:docs": "off"
-  },
   "hooks": {
     "PreToolUse": [
       {
@@ -100,7 +79,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/thomas/.claude/hooks/guard-destructive.sh"
+            "command": "\"$HOME/.claude/hooks/guard-destructive.sh\""
           }
         ]
       }
@@ -108,29 +87,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/bin/bash /home/thomas/.claude/statusline-command.sh"
+    "command": "/bin/bash \"$HOME/.claude/statusline-command.sh\""
   },
-  "extraKnownMarketplaces": {
-    "logo-design-skill": {
-      "source": {
-        "source": "github",
-        "repo": "kaankiziltug/logo-design-skill"
-      }
-    }
-  },
-  "modelSettings": {
-    "claude-opus-5-5": {
-      "effortLevel": "high"
-    },
-    "claude-sonnet-5-5": {
-      "effortLevel": "medium"
-    }
-  },
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "agentPushNotifEnabled": true,
-  "enabledPlugins": {
-    "logo-design@logo-design-skill": true
-  }
+  "skipDangerousModePermissionPrompt": true
 }

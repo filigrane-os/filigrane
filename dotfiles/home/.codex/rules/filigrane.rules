@@ -1,0 +1,15 @@
+# Règles de Filigrane pour Codex (lancé par fili-ai): mêmes interdits que pour Claude Code (AGENTS.md).
+# Le bac à sable impose déjà un accord pour sudo et le réseau; ces règles refusent ce qui efface un disque
+# et demandent confirmation pour ce qui est irréversible, même si une commande a été autorisée « toujours ».
+
+prefix_rule(pattern = ["install-void.sh"], decision = "forbidden", justification = "efface un disque entier")
+prefix_rule(pattern = ["./install-void.sh"], decision = "forbidden", justification = "efface un disque entier")
+prefix_rule(pattern = [["mkfs", "mkfs.ext4", "mkfs.btrfs", "mkfs.vfat", "mkfs.fat", "wipefs", "parted", "fdisk", "sfdisk", "dd"]], decision = "forbidden", justification = "écriture directe sur un disque")
+prefix_rule(pattern = ["sudo", ["mkfs", "mkfs.ext4", "mkfs.btrfs", "mkfs.vfat", "mkfs.fat", "wipefs", "parted", "fdisk", "sfdisk", "dd", "visudo"]], decision = "forbidden", justification = "écriture directe sur un disque ou sudoers")
+
+prefix_rule(pattern = ["sudo", "xbps-install", ["-u", "-Su", "-Syu", "-uy", "-Suy", "-Syuv"]], decision = "prompt", justification = "mise à jour du système")
+prefix_rule(pattern = ["sudo", "xbps-remove"], decision = "prompt", justification = "suppression de paquet")
+prefix_rule(pattern = ["sudo", "sv", ["restart", "stop", "down", "start", "up", "once"]], decision = "prompt", justification = "service système")
+prefix_rule(pattern = ["sudo", ["rm", "ln", "reboot", "poweroff", "xbps-reconfigure"]], decision = "prompt", justification = "action système")
+prefix_rule(pattern = ["git", "push"], decision = "prompt", justification = "publication")
+prefix_rule(pattern = ["git", ["reset", "clean", "filter-branch"]], decision = "prompt", justification = "perte de modifications")

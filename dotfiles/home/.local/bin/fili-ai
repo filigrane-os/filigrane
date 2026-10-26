@@ -1,0 +1,243 @@
+#!/bin/bash
+# Agent IA de Filigrane: lance l'agent choisi dans son dossier de travail, l'installe, le met à jour.
+#
+#   fili-ai [invite]          lance l'agent (Mod+Y), dans ~/work par défaut
+#   fili-ai use [agent]       choisit l'agent (liste si absent) et l'installe au besoin
+#   fili-ai pick              même choix dans un menu fuzzel (menu › AI)
+#   fili-ai install <agent>   installe ou met à jour un agent
+#   fili-ai update            met à jour les agents installés
+#   fili-ai status            agent, modèle, dossier de travail, dépôt, agents installés
+#
+# Agents: claude (Claude Code, Anthropic), codex (Codex CLI, OpenAI), ollama (Codex CLI sur des modèles locaux
+# Ollama), opencode (Mistral, Gemini, OpenRouter, DeepSeek...), none.
+# Réglages dans ~/.config/filigrane/ai.env, écrit par bootstrap.sh depuis config.env (FILI_AI, FILI_AI_MODEL,
+# FILI_AI_WORKDIR, FILI_AI_ARGS, FILIGRANE_DIR); `use` n'y change que FILI_AI. FILI_AI_ARGS remplace les options par défaut
+# de l'agent (permissions, bac à sable). Binaires dans ~/.local/opt/<nom>-<version>, liés dans ~/.local/bin.
+set -euo pipefail
+
+CONF="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/ai.env"
+OPT="$HOME/.local/opt"
+BIN="$HOME/.local/bin"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane"
+AGENTS="claude codex ollama opencode none"
+export PATH="$BIN:$PATH"
+
+FILI_AI="" FILI_AI_MODEL="" FILI_AI_ARGS="" FILI_AI_WORKDIR="$HOME/work" FILIGRANE_DIR=""
+# shellcheck source=/dev/null
+[ -f "$CONF" ] && . "$CONF"
+# Dépôt: ce script est un lien vers <dépôt>/dotfiles/home/.local/bin/fili-ai
+[ -n "$FILIGRANE_DIR" ] || FILIGRANE_DIR="$(cd "$(dirname "$(readlink -f "$0")")/../../../.." && pwd)"
+export FILIGRANE_DIR
+
+die() { printf 'fili-ai: %s\n' "$*" >&2; exit 1; }
+
+describe() {
+    case "$1" in
+        claude) echo "Claude Code (Anthropic)" ;;
+        codex) echo "Codex CLI (OpenAI)" ;;
+        ollama) echo "Modèles locaux (Codex CLI + Ollama, lourd)" ;;
+        opencode) echo "opencode (Mistral, Gemini, OpenRouter, DeepSeek...)" ;;
+        none) echo "Aucun agent" ;;
+    esac
+}
+valid() { case " $AGENTS " in *" $1 "*) return 0 ;; esac; return 1; }
+# Commande lancée pour chaque agent (ollama passe par Codex)
+bin_of() { case "$1" in ollama) echo codex ;; *) echo "$1" ;; esac; }
+
+# Dernière version publiée sur GitHub (redirection de releases/latest, sans l'API ni sa limite de débit)
+latest_tag() {
+    local url
+    url="$(curl -fsSIL -o /dev/null -w '%{url_effective}' "https://github.com/$1/releases/latest")" || return 1
+    echo "${url##*/}"
+}
+
+# install_release NOM VERSION URL CHEMIN_DU_BINAIRE [options de tar]: archive extraite dans ~/.local/opt/NOM-VERSION
+install_release() {
+    local name="$1" tag="$2" url="$3" member="$4" dir
+    shift 4
+    dir="$OPT/$name-$tag"
+    if [ -x "$dir/$member" ]; then
+        echo "$name $tag déjà installé"
+    else
+        echo "Téléchargement de $name $tag"
+        rm -rf "$dir.tmp"; mkdir -p "$dir.tmp"
+        curl -fSL --progress-bar "$url" | tar -x -C "$dir.tmp" "$@" || { rm -rf "$dir.tmp"; die "téléchargement de $name échoué"; }
+        [ -x "$dir.tmp/$member" ] || { rm -rf "$dir.tmp"; die "$member absent de l'archive de $name"; }
+        mv "$dir.tmp" "$dir"
+        find "$OPT" -maxdepth 1 -name "$name-*" ! -name "$name-$tag" -exec rm -rf {} +  # anciennes versions
+    fi
+    mkdir -p "$BIN"
+    ln -sfn "$dir/$member" "$BIN/$name"
+}
+
+install_codex() {
+    local arch tag
+    case "$(uname -m)" in x86_64|aarch64) arch="$(uname -m)" ;; *) die "Codex: architecture $(uname -m) non prise en charge" ;; esac
+    tag="$(latest_tag openai/codex)" || die "version de Codex introuvable (réseau ?)"
+    install_release codex "$tag" \
+        "https://github.com/openai/codex/releases/download/$tag/codex-$arch-unknown-linux-musl.tar.gz" \
+        "codex-$arch-unknown-linux-musl" -z
+    # Bac à sable de Codex (bubblewrap): sans lui, chaque commande demanderait à sortir du bac à sable
+    command -v bwrap >/dev/null || echo "AVERTISSEMENT: bubblewrap absent: sudo xbps-install bubblewrap" >&2
+}
+
+install_opencode() {
+    local arch tag
+    case "$(uname -m)" in x86_64) arch=x64 ;; aarch64) arch=arm64 ;; *) die "opencode: architecture $(uname -m) non prise en charge" ;; esac
+    tag="$(latest_tag anomalyco/opencode)" || die "version d'opencode introuvable (réseau ?)"
+    install_release opencode "$tag" \
+        "https://github.com/anomalyco/opencode/releases/download/$tag/opencode-linux-$arch.tar.gz" opencode -z
+}
+
+install_ollama() {
+    local arch tag
+    case "$(uname -m)" in x86_64) arch=amd64 ;; aarch64) arch=arm64 ;; *) die "Ollama: architecture $(uname -m) non prise en charge" ;; esac
+    tag="$(latest_tag ollama/ollama)" || die "version d'Ollama introuvable (réseau ?)"
+    if [ ! -x "$OPT/ollama-$tag/bin/ollama" ]; then
+        echo "Avertissement ressources: Ollama télécharge ~1,5 Go (~300 Mo gardés), puis chaque modèle pèse"
+        echo "plusieurs Go en disque et en RAM (gpt-oss:20b ~16 Go). Il ne tourne que pendant fili-ai."
+    fi
+    # Bibliothèques CUDA et ROCm écartées (~2 Go): Filigrane utilise les pilotes libres (nouveau, amdgpu)
+    install_release ollama "$tag" "https://github.com/ollama/ollama/releases/download/$tag/ollama-linux-$arch.tar.zst" \
+        bin/ollama --zstd --exclude='lib/ollama/cuda_*' --exclude='lib/ollama/rocm*'
+}
+
+install_agent() {
+    case "$1" in
+        claude)
+            # Installateur officiel (~/.local/bin/claude); Claude Code se met ensuite à jour seul
+            if ! command -v claude >/dev/null; then
+                curl -fsSL https://claude.ai/install.sh | bash || die "installation de Claude Code échouée (réseau ?)"
+            elif [ "${2:-}" = update ]; then claude update
+            else echo "Claude Code déjà installé"; fi ;;
+        codex) install_codex ;;
+        opencode) install_opencode ;;
+        ollama) install_codex; install_ollama ;;
+        none) ;;
+        *) die "agent inconnu: $1 ($AGENTS)" ;;
+    esac
+}
+
+set_agent() {
+    mkdir -p "${CONF%/*}"
+    if [ -f "$CONF" ] && grep -q '^FILI_AI=' "$CONF"; then sed -i "s|^FILI_AI=.*|FILI_AI=$1|" "$CONF"
+    else echo "FILI_AI=$1" >> "$CONF"; fi
+    FILI_AI="$1"
+    echo "Agent: $1 ($(describe "$1"))"
+    # Une valeur de la couche personnelle gagnera au prochain bootstrap.sh
+    local layer
+    layer="$(cat "$FILIGRANE_DIR/.user-layer" 2>/dev/null || true)"
+    if [ -n "$layer" ] && [ "$layer" != none ] && grep -q '^FILI_AI=' "$FILIGRANE_DIR/users/$layer/config.env" 2>/dev/null; then
+        echo "Note: users/$layer/config.env fixe FILI_AI; le modifier aussi pour que ./bootstrap.sh garde ce choix."
+    fi
+    case "$1" in
+        claude|codex|ollama) [ -f /etc/sudoers.d/zz-agent ] || echo "sudo sans mot de passe pour sv et xbps: lancer ./bootstrap.sh --system-only dans $FILIGRANE_DIR" ;;
+        *) [ -f /etc/sudoers.d/zz-agent ] && echo "sudo sans mot de passe encore actif pour sv et xbps: ./bootstrap.sh --system-only le retire" ;;
+    esac
+    return 0
+}
+
+choose() { # choix dans le terminal (liste sur stderr, agent sur stdout)
+    local i=1 a n
+    echo "Agent IA:" >&2
+    for a in $AGENTS; do printf '  %d) %-9s %s\n' "$i" "$a" "$(describe "$a")" >&2; i=$((i + 1)); done
+    read -r -p "Numéro [1]: " n
+    # shellcheck disable=SC2086
+    set -- $AGENTS
+    [ -n "$n" ] || n=1
+    [ "$n" -ge 1 ] 2>/dev/null && [ "$n" -le $# ] || die "choix invalide"
+    eval "echo \${$n}"
+}
+
+ollama_up() { # démarre ollama le temps de la session (OLLAMA_PID: à arrêter à la fin)
+    OLLAMA_PID=""
+    curl -fs --max-time 1 http://127.0.0.1:11434/api/version >/dev/null 2>&1 && return 0
+    mkdir -p "$STATE"
+    ollama serve >"$STATE/ollama.log" 2>&1 &
+    OLLAMA_PID=$!
+    local n=0
+    until curl -fs --max-time 1 http://127.0.0.1:11434/api/version >/dev/null 2>&1; do
+        n=$((n + 1)); [ "$n" -lt 50 ] || die "Ollama ne démarre pas (voir $STATE/ollama.log)"
+        sleep 0.2
+    done
+}
+
+launch() {
+    local agent="$FILI_AI" rc=0
+    local -a cmd=() defaults=() extra=()
+    if [ -z "$agent" ]; then agent="$(choose)"; set_agent "$agent"; fi
+    [ "$agent" != none ] || die "aucun agent IA choisi: fili-ai use <agent> ($AGENTS)"
+    valid "$agent" || die "agent inconnu: $agent ($AGENTS)"
+    command -v "$(bin_of "$agent")" >/dev/null || install_agent "$agent"
+    [ "$agent" != ollama ] || command -v ollama >/dev/null || install_ollama
+    mkdir -p "$FILI_AI_WORKDIR"
+    cd "$FILI_AI_WORKDIR"
+    case "$agent" in
+        claude)
+            cmd=(claude --add-dir "$FILIGRANE_DIR" ${FILI_AI_MODEL:+--model "$FILI_AI_MODEL"})
+            defaults=(--permission-mode acceptEdits) ;;
+        codex|ollama)
+            # Bac à sable: écriture dans le dossier de travail et le dépôt, réseau et sudo seulement après accord
+            cmd=(codex --no-daemon -c check_for_update_on_startup=false -C "$FILI_AI_WORKDIR" --add-dir "$FILIGRANE_DIR"
+                 ${FILI_AI_MODEL:+--model "$FILI_AI_MODEL"})
+            [ "$agent" = codex ] || cmd+=(--oss --local-provider ollama)
+            defaults=(--sandbox workspace-write --ask-for-approval on-request) ;;
+        opencode)
+            # Le dépôt est hors du dossier de travail: accès autorisé (les commandes restent soumises à accord)
+            export OPENCODE_CONFIG_CONTENT="{\"permission\":{\"external_directory\":{\"$FILIGRANE_DIR/**\":\"allow\"}}}"
+            cmd=(opencode ${FILI_AI_MODEL:+--model "$FILI_AI_MODEL"}) ;;
+    esac
+    [ -z "$FILI_AI_ARGS" ] || eval "extra=($FILI_AI_ARGS)"
+    [ ${#extra[@]} -eq 0 ] || defaults=("${extra[@]}")
+    cmd+=(${defaults[@]+"${defaults[@]}"})
+    if [ $# -gt 0 ]; then
+        case "$agent" in opencode) cmd+=(--prompt "$*") ;; *) cmd+=("$*") ;; esac
+    fi
+    if [ "$agent" = ollama ]; then
+        ollama_up
+        [ -z "$OLLAMA_PID" ] || trap 'kill "$OLLAMA_PID" 2>/dev/null' EXIT
+    fi
+    "${cmd[@]}" || rc=$?
+    # Lancé par Mod+Y, le terminal se fermerait sur l'erreur sans qu'on la voie
+    if [ "$rc" -ne 0 ] && [ -t 0 ]; then read -r -p "$agent s'est arrêté (code $rc). Entrée pour fermer " _ || true; fi
+    return "$rc"
+}
+
+status() {
+    local a v
+    echo "Agent: ${FILI_AI:-aucun} ($(describe "${FILI_AI:-none}"))"
+    echo "Modèle: ${FILI_AI_MODEL:-défaut}"
+    echo "Dossier de travail: $FILI_AI_WORKDIR"
+    echo "Dépôt Filigrane: $FILIGRANE_DIR"
+    [ -z "$FILI_AI_ARGS" ] || echo "Options: $FILI_AI_ARGS"
+    echo "Installés:"
+    for a in claude codex opencode ollama; do
+        command -v "$a" >/dev/null || continue
+        v="$("$a" --version 2>/dev/null | grep -v '^WARNING' | head -1)" || true
+        echo "  $a ${v:-?}"
+    done
+}
+
+case "${1:-}" in
+    use)
+        a="${2:-$(choose)}"
+        valid "$a" || die "agent inconnu: $a ($AGENTS)"
+        install_agent "$a"
+        set_agent "$a" ;;
+    pick)
+        a="$(for x in $AGENTS; do printf '%s\t%s\n' "$x" "$(describe "$x")"; done |
+            fuzzel --dmenu --prompt "Agent IA › " --lines 5 --width 50 --with-nth 2 --accept-nth 1)" || exit 0
+        [ -n "$a" ] || exit 0
+        # shellcheck disable=SC2016
+        exec foot -e bash -c '"$0" use "$1" && { [ "$1" = none ] || exec "$0"; }; read -r -p "Entrée pour fermer " _' "$0" "$a" ;;
+    install) [ -n "${2:-}" ] || die "usage: fili-ai install <agent>"; install_agent "$2" update ;;
+    update)
+        command -v claude >/dev/null && install_agent claude update
+        command -v codex >/dev/null && install_codex
+        command -v opencode >/dev/null && install_opencode
+        command -v ollama >/dev/null && install_ollama
+        exit 0 ;;
+    status) status ;;
+    -h|--help|help) sed -n '2,16p' "$0" ;;
+    *) launch "$@" ;;
+esac

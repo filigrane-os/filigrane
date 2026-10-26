@@ -47,6 +47,7 @@ I_CHART="$(printf '\357\202\200')"  # U+F080 bar-chart
 I_COLS="$(printf '\357\203\233')"  # U+F0DB columns
 I_CAM="$(printf '\357\200\260')"  # U+F030 camera
 I_WIN="$(printf '\357\213\220')"  # U+F2D0 window-maximize
+I_AI="$(printf '\357\203\253')"  # U+F0EB lightbulb-o
 
 # Maj+Retour arrière = custom-1 de fuzzel (code de sortie 10): remonte d'un niveau.
 # Échap = sortie vide, code 1: quitte tout le menu. Option passée ici seulement: dans le lanceur
@@ -552,6 +553,17 @@ menu_packages() {
     done
 }
 
+# Agent IA (fili-ai): lancer, choisir (claude, codex, ollama, opencode), mettre à jour
+menu_ai() {
+    act="${1:-$(printf 'Open agent\nChoose agent\nUpdate agents\n' | pick "AI › " 3)}"
+    [ -n "$act" ] || { cancel; return $BACK; }
+    case "$act" in
+        "Open agent") exec foot -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
+        "Choose agent") exec "$HOME/.local/bin/fili-ai" pick ;;
+        "Update agents") term "$HOME/.local/bin/fili-ai update; $HOME/.local/bin/fili-ai status" ;;
+    esac
+}
+
 # ---------------------------------------------------------------- liste unique
 
 # Actions directes, libellé "Catégorie: Action" (la catégorie sert aussi à la recherche)
@@ -588,6 +600,9 @@ $I_MUTE Toggles: Mute 1 hour
 $I_MUTE Toggles: Notification history
 $I_IMAGE Toggles: Next wallpaper
 $I_CAM Capture: Color (picker)
+$I_AI AI: Open agent
+$I_AI AI: Choose agent
+$I_AI AI: Update agents
 $I_SEARCH Packages: Search and install
 $I_TRASH Packages: Uninstall an app
 $I_TRASH Packages: Remove
@@ -614,6 +629,7 @@ $I_AUDIO Audio ›
 $I_NET Network ›
 $I_STYLE Style ›
 $I_PKG Packages ›
+$I_AI AI ›
 $I_CUSTOM Custom entries ›
 EOF
 }
@@ -661,6 +677,7 @@ action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
         "Capture: Region") NEEDLE="screenshot" ;;
         "Capture: Screen") NEEDLE="screenshot-screen" ;;
         "Capture: Window") NEEDLE="screenshot-window" ;;
+        "AI ›"|"AI: Open agent") NEEDLE="~fili-ai" ;;
     esac
 }
 
@@ -758,6 +775,7 @@ menu_main() {
             "Network ›") menu_network; rc=$? ;;
             "Style ›") menu_style; rc=$? ;;
             "Packages ›") menu_packages; rc=$? ;;
+            "AI ›") menu_ai; rc=$? ;;
             "Custom entries ›") menu_custom; rc=$? ;;
             *)
                 custom_run "$sel" # exec/exit si trouvé
@@ -774,6 +792,7 @@ menu_main() {
                     "Style: "*) menu_style "${sel#Style: }"; rc=$? ;;
                     "Packages: "*) menu_packages "${sel#Packages: }"; rc=$? ;;
                     "Capture: "*) menu_capture "${sel#Capture: }"; rc=$? ;;
+                    "AI: "*) menu_ai "${sel#AI: }"; rc=$? ;;
                 esac
                 ;;
         esac
@@ -798,9 +817,10 @@ case "${1:-}" in
     style) menu_style ;;
     packages) menu_packages ;;
     capture) menu_capture ;;
+    ai) menu_ai ;;
     custom) menu_custom ;;
     "") menu_main ;;
-    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system|audio|network|style|packages|capture|custom]" >&2; exit 1 ;;
+    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system|audio|network|style|packages|capture|ai|custom]" >&2; exit 1 ;;
 esac
 rc=$?
 [ "$rc" -eq "$BACK" ] && exit 0 # section lancée directement et annulée: sortie propre
