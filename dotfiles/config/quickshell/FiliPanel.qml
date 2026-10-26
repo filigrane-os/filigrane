@@ -2,7 +2,7 @@ pragma Singleton
 // fili-panel: fenêtre d'actions unique sous l'élément cliqué de la fili-bar (réseau, son, Bluetooth, alimentation,
 // moniteur), inspirée des panneaux d'Omarchy. Une vue à la fois, chargée à l'ouverture et libérée à la fermeture
 // (rien ne tourne panneau fermé). Fermeture: Échap, clic hors du panneau ou même élément recliqué.
-// Utilisation: FiliPanel.toggle(item, "network"|"audio"|"bluetooth"|"power"|"monitor", fenêtreDeLaBarre)
+// Utilisation: FiliPanel.toggle(item, "network"|"audio"|"bluetooth"|"power"|"monitor"|"brightness", fenêtreDeLaBarre)
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -19,7 +19,7 @@ Singleton {
     property alias loaded: loader.item
     readonly property var views: ({
         network: "PanelNetwork.qml", audio: "PanelAudio.qml", bluetooth: "PanelBluetooth.qml",
-        power: "PanelPower.qml", monitor: "PanelMonitor.qml"
+        power: "PanelPower.qml", monitor: "PanelMonitor.qml", brightness: "PanelBrightness.qml"
     })
 
     function toggle(item, name, win) {

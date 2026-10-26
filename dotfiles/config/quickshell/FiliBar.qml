@@ -319,6 +319,15 @@ PanelWindow {
                 })
                 hover.onLeftClicked: Niri.action("switch-layout", "next")
             }
+            // Luminosité: clic = panneau (écran et clavier), molette = luminosité de l'écran
+            BarItem {
+                objectName: "brightness"
+                text: ""
+                tip: ({ title: "Luminosité", rows: [], hint: "clic: écran et clavier · molette: écran" })
+                hover.onLeftClicked: FiliPanel.toggle(hover, "brightness", bar)
+                hover.scrollUp: "brightnessctl -q set 5%+"
+                hover.scrollDown: "brightnessctl -q set 5%-"
+            }
             // Écrans: clic = wdisplays, molette = luminosité (fiche: écrans, définition, échelle, luminosité)
             BarItem {
                 objectName: "display"
