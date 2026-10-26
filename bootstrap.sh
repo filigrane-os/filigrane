@@ -4,7 +4,7 @@
 #   ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
 #                  [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
 #                  [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<nom>]
-#                  [--system-only | --dotfiles-only | --plan]
+#                  [--system-only | --dotfiles-only | --fili-shell | --plan]
 #
 # Trois couches, appliquées dans l'ordre (une couche suivante remplace un fichier de même chemin):
 #   1. la distribution (racine du dépôt: packages/, services/, system/, dotfiles/, apps/), générique;
@@ -12,6 +12,8 @@
 #   3. la couche personnelle (users/<nom>/: config.env, packages/*.txt, services/*.txt, dotfiles/, layer.sh).
 # --user-layer: auto = users/<utilisateur cible> s'il existe, none = distribution seule (comme une installation neuve).
 #
+# --fili-shell: ne relie que le fili-shell (config/quickshell, scripts bar-* et fili-*, de chaque couche) et le recharge;
+# sans sudo, pour un nouveau fichier QML ou script.
 # --plan: affiche les listes retenues pour la configuration et quitte, sans rien modifier (CI).
 # --profile: environnement (VM ou machine physique). --machine: matériel, pour tout ce qui est
 # spécifique à un modèle (hardware/<machine>/). --cpu/--gpu: firmware et pilotes (packages/cpu-*.txt,
@@ -47,6 +49,7 @@ TARGET_ARCH="${TARGET_ARCH:-auto}"
 DO_SYSTEM=1
 DO_DOTFILES=1
 PLAN=0
+SHELL_ONLY=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --profile) PROFILE="${2:?profil manquant}"; shift 2 ;;
@@ -57,6 +60,7 @@ while [ $# -gt 0 ]; do
         --plan) PLAN=1; shift ;;
         --system-only) DO_DOTFILES=0; shift ;;
         --dotfiles-only) DO_SYSTEM=0; shift ;;
+        --fili-shell) DO_SYSTEM=0; DO_DOTFILES=0; SHELL_ONLY=1; shift ;;
         --user-layer) USER_LAYER="${2:?couche manquante}"; shift 2 ;;
         -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
         *) die 'Unknown option: %s' "$1" ;;
@@ -536,6 +540,23 @@ link_tree() { # link_tree DOSSIER : DOSSIER/home -> ~, DOSSIER/config -> ~/.conf
     fi
 }
 
+# Seulement le fili-shell: fichiers QML et scripts bar-*/fili-* de chaque couche (la dernière remplace), puis rechargement
+setup_fili_shell() {
+    local dir f
+    log 'fili-shell (symlinks to %s)' "$ROOT"
+    for dir in "$ROOT" "$ROOT/hardware/$MACHINE" "$LAYER_DIR"; do
+        [ -d "$dir/dotfiles" ] || continue
+        while IFS= read -r -d '' f; do
+            link_one "$f" "$TARGET_HOME/.config/${f#"$dir/dotfiles/config/"}"
+        done < <(find "$dir/dotfiles/config/quickshell" -type f -print0 2>/dev/null)
+        while IFS= read -r -d '' f; do
+            link_one "$f" "$TARGET_HOME/.local/bin/${f##*/}"
+        done < <(find "$dir/dotfiles/home/.local/bin" -type f \( -name 'bar-*' -o -name 'fili-*' \) -print0 2>/dev/null)
+    done
+    prune_links
+    [ "$(id -u)" -eq 0 ] || "$TARGET_HOME/.local/bin/fili-shell" reload || true
+}
+
 setup_dotfiles() {
     log 'Dotfiles (symlinks to %s/dotfiles)' "$ROOT"
     link_tree "$ROOT/dotfiles"
@@ -607,6 +628,7 @@ fi
 
 if [ "$PLAN" -eq 1 ]; then print_plan; exit; fi
 [ "$DO_SYSTEM" -eq 1 ] && setup_system
+[ "$SHELL_ONLY" -eq 1 ] && setup_fili_shell
 [ "$DO_DOTFILES" -eq 1 ] && setup_dotfiles
 [ "$DO_DOTFILES" -eq 1 ] && setup_apps
 [ "$DO_SYSTEM" -eq 1 ] && setup_ai
