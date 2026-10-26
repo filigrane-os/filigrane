@@ -344,23 +344,18 @@ PanelWindow {
                 hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
                 hover.rclick: bar.b + "/bar-tui wiremix --tab output"
             }
-            // Disposition clavier (bépo / qwerty australien): clic = bascule
+            // Disposition clavier (bépo / qwerty australien): clic = panneau, clic milieu = disposition suivante
             BarItem {
                 objectName: "keyboard"
                 readonly property string name: Niri.layouts[Niri.layout] ?? ""
-                readonly property string short: {
-                    const m = name.match(/\((Australian|US|UK)/);
-                    if (m)
-                        return { Australian: "au", US: "us", UK: "gb" }[m[1]];
-                    return name.slice(0, 2).toLowerCase();
-                }
-                text: name ? " " + short : ""
+                text: name ? " " + Niri.shortName(name) : ""
                 tip: ({
                     title: "Clavier",
                     rows: Niri.layouts.map((l, i) => [i === Niri.layout ? "●" : "", l]),
-                    hint: "clic: disposition suivante"
+                    hint: "clic: panneau clavier · clic milieu: disposition suivante"
                 })
-                hover.onLeftClicked: Niri.action("switch-layout", "next")
+                hover.onLeftClicked: FiliPanel.toggle(hover, "keyboard", bar)
+                hover.onMiddleClicked: Niri.action("switch-layout", "next")
             }
             // Luminosité: clic = panneau (écran et clavier), molette = luminosité de l'écran
             BarItem {

@@ -12,6 +12,8 @@ Singleton {
     property var focusedId: null
     property var layouts: []
     property int layout: 0
+    // Disposition utilisée avant l'actuelle (bascule « précédente », comme Ctrl+Espace du sélecteur d'Omarchy)
+    property int previousLayout: -1
 
     readonly property var focused: focusedId !== null ? windows[focusedId] ?? null : null
 
@@ -20,6 +22,23 @@ Singleton {
             FiliTheme.ran = FiliTheme.ran.concat(["niri msg action " + args.join(" ")]);
         else
             Quickshell.execDetached(["niri", "msg", "action", ...args]);
+    }
+
+    // Code court d'une disposition pour la barre: « French (BEPO, AFNOR) » -> fr, « English (Australia) » -> au
+    function shortName(name) {
+        const m = name.match(/\((Australian|Australia|US|UK)/);
+        if (m)
+            return { Australian: "au", Australia: "au", US: "us", UK: "gb" }[m[1]];
+        return name.slice(0, 2).toLowerCase();
+    }
+    function setLayout(i) {
+        if (i !== layout) {
+            previousLayout = layout;
+            layout = i;
+        }
+    }
+    function selectLayout(i) {
+        action("switch-layout", String(i));
     }
 
     function setWindows(m) {
@@ -68,8 +87,9 @@ Singleton {
                 } else if (ev.KeyboardLayoutsChanged) {
                     niri.layouts = ev.KeyboardLayoutsChanged.keyboard_layouts.names;
                     niri.layout = ev.KeyboardLayoutsChanged.keyboard_layouts.current_idx;
+                    niri.previousLayout = -1;
                 } else if (ev.KeyboardLayoutSwitched) {
-                    niri.layout = ev.KeyboardLayoutSwitched.idx;
+                    niri.setLayout(ev.KeyboardLayoutSwitched.idx);
                 }
             }
         }

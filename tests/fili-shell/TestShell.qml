@@ -153,13 +153,13 @@ ShellRoot {
                 expectClick("clock", L, "calendar.proton.me");
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["brightness", "brightness"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                                            ["volume", "audio"], ["keyboard", "keyboard"], ["brightness", "brightness"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
                 }
                 expectClick("volume", R, "wiremix --tab output");
-                expectClick("keyboard", L, "switch-layout next");
+                expectClick("keyboard", M, "switch-layout next");
                 expectClick("brightness", "up", "brightnessctl -q set 5%+");
                 expectClick("display", L, "wdisplays");
                 expectClick("display", "up", "brightnessctl -q set 5%+");
@@ -276,7 +276,7 @@ ShellRoot {
 
             // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net et fili-info monitor ─────
             () => {
-                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "brightness"]) {
+                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "brightness", "keyboard"]) {
                     FiliPanel.view = v;
                     ok(FiliPanel.loaded !== null, "fili-panel " + v + ": vue chargée");
                     FiliPanel.close();
