@@ -1,14 +1,21 @@
-// fili-calendar: calendrier sous l'horloge de la fili-bar (semaines ISO à gauche): survol = affiché, clic droit = épinglé, molette = mois ±1
+// fili-calendar: minuteur / chronomètre puis calendrier sous l'horloge de la fili-bar (semaines ISO à gauche): survol = affiché
+// (reste ouvert tant que la souris est dessus), clic droit = épinglé, molette = mois ±1
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
+import Quickshell.Io
 
 PopupWindow {
     id: cal
     property date today
     property int shift: 0
     property bool pinned: false
+    // Souris sur le calendrier (garde le survol ouvert, voir la fili-bar)
+    readonly property bool hovered: hover.hovered
+    // Minuteur / chronomètre (bar-timer): classe (idle, stopwatch, active, done) et texte du temps
+    property string timerClass: "idle"
+    property string timerText: ""
     readonly property date shown: new Date(today.getFullYear(), today.getMonth() + shift, 1)
 
     visible: false
@@ -16,6 +23,26 @@ PopupWindow {
     function show() {
         FiliShell.popupOpened("calendar");
         visible = true;
+    }
+    function readTimer() {
+        if (!timerRead.running)
+            timerRead.running = true;
+    }
+    // Le minuteur ne se relit que tant que le calendrier est affiché
+    onVisibleChanged: if (visible) readTimer()
+    Timer { interval: 1000; repeat: true; running: cal.visible; onTriggered: cal.readTimer() }
+    Process {
+        id: timerRead
+        command: [FiliTheme.bin + "/bar-timer"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const j = JSON.parse(text);
+                    cal.timerClass = j.class ?? "idle";
+                    cal.timerText = (j.text ?? "").replace(/^\uf2f2\s*/, "");
+                } catch (e) {}
+            }
+        }
     }
     Connections {
         target: FiliShell
@@ -30,7 +57,7 @@ PopupWindow {
     anchor.gravity: Edges.Bottom
     anchor.margins.top: 4
     implicitWidth: 260
-    implicitHeight: 230
+    implicitHeight: 276
     color: "transparent"
 
     Rectangle {
@@ -39,11 +66,37 @@ PopupWindow {
         border.color: FiliTheme.nuit4
         border.width: 1
         radius: 10
+        HoverHandler { id: hover }
 
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: 12
             spacing: 4
+            // Minuteur / chronomètre: clic = choisir, arrêter ou acquitter, clic droit = +5 min au minuteur
+            PanelButton {
+                objectName: "timer"
+                glyph: ""
+                label: cal.timerText !== "" ? cal.timerText : "Minuteur / chronomètre"
+                detail: ({ idle: "choisir", stopwatch: "arrêter", active: "annuler · clic droit +5 min", done: "acquitter" })[cal.timerClass] ?? ""
+                sel: cal.timerClass !== "idle"
+                onClicked: b => {
+                    if (b === Qt.RightButton) {
+                        FiliTheme.run(FiliTheme.bin + "/bar-timer add");
+                    } else {
+                        // Le choix de durée s'ouvre dans le fili-launcher: refermer le calendrier d'abord
+                        cal.pinned = false;
+                        cal.visible = false;
+                        FiliTheme.run(FiliTheme.bin + "/bar-timer click");
+                    }
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.topMargin: 2
+                Layout.bottomMargin: 2
+                implicitHeight: 1
+                color: FiliTheme.nuit3
+            }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.locale("fr_FR").toString(cal.shown, "MMMM yyyy")

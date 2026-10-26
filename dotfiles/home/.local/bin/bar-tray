@@ -1,8 +1,8 @@
 #!/bin/sh
-# Tiroir de la barre à gauche de l'horloge: minuteur, caféine, veilleuse, sauvegarde (+ tray système).
+# Tiroir de la barre à gauche de l'horloge: sauvegarde (+ tray système).
 # Replié, un indicateur au repos (classe idle) est masqué et seuls ceux en cours d'usage restent visibles;
 # un indicateur qui vient de passer au repos reste visible 10 s avant de se masquer; le chevron (clic) révèle tout. État: présence de $XDG_RUNTIME_DIR/bar-tray-open, sans daemon.
-# Usage: bar-tray handle | toggle | timer | idle | night | backup (JSON pour la barre)
+# Usage: bar-tray handle | toggle | backup (JSON pour la barre)
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-open"
 B="$HOME/.local/bin"
 case "$1" in
@@ -10,20 +10,18 @@ case "$1" in
         if [ -e "$f" ]; then
             printf '{"text":"\\uf054","class":"open","tooltip":"Replier"}\n'
         else
-            printf '{"text":"\\uf053","tooltip":"Afficher minuteur, caféine, veilleuse, sauvegarde"}\n'
+            printf '{"text":"\\uf053","tooltip":"Afficher la sauvegarde"}\n'
         fi
         exit 0 ;;
     toggle)
         if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi
-        "$HOME/.local/bin/fili-shell" bar refresh 20 12 13 10 18
+        "$HOME/.local/bin/fili-shell" bar refresh 20 18
         exit 0 ;;
-    timer) out="$("$B/bar-timer")" ;;
-    idle|night) out="$("$B/bar-status" "$1")" ;;
     backup) out="$("$B/bar-backup")" ;;
     *) exit 1 ;;
 esac
 # Un indicateur qui repasse au repos reste visible 10 s (pour pouvoir le réactiver après un clic par erreur), puis se masque.
-case "$1" in timer) sig=12 ;; idle) sig=13 ;; night) sig=10 ;; backup) sig=18 ;; esac
+case "$1" in backup) sig=18 ;; esac
 stamp="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-last-$1"
 case "$out" in
     *'"class":"idle"'*)

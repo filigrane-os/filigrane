@@ -175,12 +175,6 @@ PanelWindow {
                     }
                 }
             }
-            // Minuteur / chronomètre: clic = choisir (ou arrêter), clic droit = +5 min; notification à la fin
-            BarScript { objectName: "timer"; cmd: bar.b + "/bar-tray timer"; signal: 12; click: bar.b + "/bar-timer click"; rclick: bar.b + "/bar-timer add" }
-            // Caféine: tasse jaune = verrouillage auto coupé, grise = actif; clic = bascule
-            BarScript { objectName: "idle"; cmd: bar.b + "/bar-tray idle"; signal: 13; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle idle" }
-            // Veilleuse (wlsunset, 4500 K la nuit), clic = coupe/force
-            BarScript { objectName: "night"; cmd: bar.b + "/bar-tray night"; signal: 10; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle night" }
             // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
             BarScript {
                 objectName: "backup"
@@ -209,7 +203,7 @@ PanelWindow {
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                onContainsMouseChanged: if (containsMouse) { cal.shift = 0; cal.show(); } else if (!cal.pinned) cal.visible = false
+                onContainsMouseChanged: if (containsMouse) { closeCal.stop(); cal.shift = 0; cal.show(); } else if (!cal.pinned) closeCal.restart()
                 onClicked: m => press(m.button)
                 // Clic (appelé aussi par les tests)
                 function press(button) {
@@ -226,6 +220,12 @@ PanelWindow {
                     }
                 }
                 onWheel: w => cal.shift += w.angleDelta.y > 0 ? -1 : 1
+            }
+            // Laisse le temps d'aller de l'horloge au calendrier (minuteur cliquable)
+            Timer {
+                id: closeCal
+                interval: 250
+                onTriggered: if (!cal.pinned && !cal.hovered) cal.visible = false
             }
             FiliCalendar {
                 id: cal

@@ -148,10 +148,6 @@ ShellRoot {
                 expectClick("air", L, "bar-toggle air");
                 expectClick("news", L, "bar-news open");
                 expectClick("update", L, "bar-update run");
-                expectClick("timer", L, "bar-timer click");
-                expectClick("timer", R, "bar-timer add");
-                expectClick("idle", L, "bar-toggle idle");
-                expectClick("night", L, "bar-toggle night");
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
                 expectClick("clock", L, "calendar.proton.me");
