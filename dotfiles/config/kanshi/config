@@ -4,7 +4,7 @@
 include ~/.config/kanshi/profiles.d/*.conf
 
 # Repli: n'importe quel écran inconnu est activé à sa résolution préférée,
-# niri le place à droite des autres. Réglage visuel: Mod+P (wdisplays), puis Mod+Ctrl+P (display-save).
+# niri le place à droite des autres. Réglage visuel: Mod+P (panneau écrans), puis Mod+Ctrl+P (display-save).
 profile fallback {
     output * enable
 }

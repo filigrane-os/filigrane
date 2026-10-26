@@ -4,7 +4,7 @@
 Usage: display-save
 Lit `niri msg --json outputs` et écrit ~/.config/kanshi/profiles.d/<écrans>.conf.
 Réenregistrer le même jeu d'écrans remplace le profil. Workflow: régler avec
-wdisplays (Mod+P), puis display-save (Mod+Ctrl+P).
+le panneau écrans (Mod+P), puis display-save (Mod+Ctrl+P).
 """
 import json
 import os

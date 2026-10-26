@@ -84,7 +84,7 @@ display)
     while IFS= read -r name && IFS= read -r desc; do set -- "$@" "$name" "$desc"; done <<EOF
 $rows
 EOF
-    card "Écrans" "clic: wdisplays · molette: luminosité" "$@" "Luminosité" "$bl"
+    card "Écrans" "clic: panneau écrans · clic droit: wdisplays · molette: luminosité" "$@" "Luminosité" "$bl"
     ;;
 monitor)
     read -r l1 l5 l15 _ < /proc/loadavg

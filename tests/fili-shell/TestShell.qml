@@ -153,7 +153,7 @@ ShellRoot {
                 expectClick("clock", L, "calendar.proton.me");
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["keyboard", "keyboard"], ["brightness", "brightness"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                                            ["volume", "audio"], ["keyboard", "keyboard"], ["brightness", "brightness"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
@@ -161,7 +161,7 @@ ShellRoot {
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
                 expectClick("brightness", "up", "brightnessctl -q set 5%+");
-                expectClick("display", L, "wdisplays");
+                expectClick("display", R, "wdisplays");
                 expectClick("display", "up", "brightnessctl -q set 5%+");
                 expectClick("display", "down", "brightnessctl -q set 5%-");
                 expectClick("network", R, "menu network");
@@ -276,12 +276,42 @@ ShellRoot {
 
             // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net et fili-info monitor ─────
             () => {
-                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "brightness", "keyboard"]) {
+                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "brightness", "keyboard", "display"]) {
                     FiliPanel.view = v;
                     ok(FiliPanel.loaded !== null, "fili-panel " + v + ": vue chargée");
                     FiliPanel.close();
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
+            },
+            // fili-panel écrans: fixture de deux sorties, aimantation, commandes niri, confirmation et retour en arrière
+            () => {
+                FiliPanel.view = "display";
+                const d = FiliPanel.loaded;
+                const mode = (w, h, r) => ({ width: w, height: h, refresh_rate: r, is_preferred: false });
+                const out = (name, x, scale, modes) => ({ name, make: "T", model: name, logical: { x, y: 0, width: Math.round(modes[0].width / scale), height: Math.round(modes[0].height / scale), scale, transform: "Normal" }, modes, current_mode: 0, vrr_supported: true, vrr_enabled: false });
+                d.outputs = [out("A-1", 0, 2, [mode(2560, 1600, 60001), mode(1920, 1200, 60000), mode(1920, 1200, 120000)]), out("B-1", 1280, 1, [mode(1920, 1080, 60000)])];
+                d.sel = "A-1";
+                ok(d.active.length === 2 && d.resolutions.length === 2, "fili-panel écrans: sorties et définitions", d.resolutions.length);
+                ok(d.refreshes.length === 1, "fili-panel écrans: une seule fréquence, pas de choix", d.refreshes.length);
+                const b = d.outputs[1];
+                const p = d.snapPos(b, 1300, 30);
+                ok(p.x === 1280 && p.y === 0, "fili-panel écrans: aimantation au bord voisin", JSON.stringify(p));
+                FiliTheme.ran = [];
+                d.setResolution(d.outputs[0], d.resolutions[1]);
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' mode 1920x1200@120.000", "fili-panel écrans: définition -> plus haute fréquence", JSON.stringify(FiliTheme.ran));
+                ok(d.snap !== null && d.secs === 15, "fili-panel écrans: changement à confirmer", d.secs);
+                d.setTransform(d.outputs[0], "90");
+                ok(d.snap.name === "A-1" && d.snap.current_mode === 0, "fili-panel écrans: l'état d'avant reste le premier", d.snap.current_mode);
+                FiliTheme.ran = [];
+                d.revert();
+                ok(d.snap === null && FiliTheme.ran[0].indexOf("mode 2560x1600@60.001") > 0 && FiliTheme.ran[0].indexOf("position set 0 0") > 0 && FiliTheme.ran[0].indexOf("scale 2") > 0, "fili-panel écrans: annuler -> état d'avant", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.move(b, 1290, 5);
+                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-panel écrans: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
+                d.setScale(d.outputs[0], 1.5);
+                d.keep();
+                ok(d.snap === null, "fili-panel écrans: garder");
+                FiliPanel.close();
             },
             // fili-panel clavier: visualiseur (touches de fili-keymap, frappe wtype) et emoji (copie + frappe)
             () => {

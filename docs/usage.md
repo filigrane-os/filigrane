@@ -21,7 +21,7 @@
 | `Mod+Q` | Close the window |
 | `Mod+Arrows` | Move the focus; with `Ctrl`, move the window; with `Shift`, change monitor |
 | `Mod+B`, `Mod+Shift+B` | Do-not-disturb on/off, dismiss all notifications |
-| `Mod+Ctrl+A`, `W`, `B`, `D` | Audio (wiremix), Wi-Fi (impala), Bluetooth (bluetui), displays (wdisplays) |
+| `Mod+Ctrl+A`, `W`, `B`, `D` | Audio (wiremix), Wi-Fi (impala), Bluetooth (bluetui), displays (wdisplays); `Mod+P` opens the displays panel |
 | `Mod+Ctrl+P` | Save the current display layout as a profile |
 | `Super+Alt+S` | Screen reader (orca) on/off |
 

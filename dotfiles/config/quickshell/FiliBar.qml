@@ -366,12 +366,13 @@ PanelWindow {
                 hover.scrollUp: "brightnessctl -q set 5%+"
                 hover.scrollDown: "brightnessctl -q set 5%-"
             }
-            // Écrans: clic = wdisplays, molette = luminosité (fiche: écrans, définition, échelle, luminosité)
+            // Écrans: clic = panneau (disposition, définition, échelle, rotation), clic droit = wdisplays, molette = luminosité
             BarItem {
                 objectName: "display"
                 text: ""
                 tipCmd: bar.b + "/fili-info display"
-                hover.click: bar.b + "/focus-or-run wdisplays wdisplays"
+                hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
+                hover.rclick: bar.b + "/focus-or-run wdisplays wdisplays"
                 hover.scrollUp: "brightnessctl -q set 5%+"
                 hover.scrollDown: "brightnessctl -q set 5%-"
             }

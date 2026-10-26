@@ -453,7 +453,7 @@ binds {
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
     Mod+Y hotkey-overlay-title="Agent IA (fili-ai)" { spawn "foot" "-e" "bash" "-lc" "exec ~/.local/bin/fili-ai"; }
-    Mod+P hotkey-overlay-title="Écrans: réglage visuel (wdisplays)" { spawn-sh "GDK_GL=disable wdisplays"; }
+    Mod+P hotkey-overlay-title="Écrans: panneau" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     Mod+Ctrl+P hotkey-overlay-title="Écrans: enregistrer le profil" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
     Mod+Ctrl+E hotkey-overlay-title="Son: égaliseur haut-parleurs" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }
