@@ -291,6 +291,15 @@ ShellRoot {
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
             },
+            // Interrupteurs à droite du titre (Wi-Fi, Bluetooth): présents, Bluetooth grisé sans adaptateur
+            () => {
+                for (const [v, name] of [["network", "wifi-power"], ["bluetooth", "power"]]) {
+                    FiliPanel.view = v;
+                    const sw = t.find(FiliPanel.loaded, name);
+                    ok(sw && sw.hasOwnProperty("checked"), "fili-panel " + v + ": interrupteur à droite du titre", sw ? "" : "introuvable");
+                }
+                FiliPanel.close();
+            },
             // Un seul panneau ouvert: panneau, calendrier épinglé et centre de notifications se ferment l'un l'autre
             () => {
                 const cal = t.find(t.bar.contentItem, "clock");

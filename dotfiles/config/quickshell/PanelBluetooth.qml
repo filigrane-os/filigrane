@@ -9,10 +9,20 @@ ColumnLayout {
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var devices: adapter ? adapter.devices.values.filter(d => d.name && (d.paired || d.connected || adapter.discovering)) : []
 
-    Text {
-        text: "Bluetooth"
-        color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+    RowLayout {
+        Layout.fillWidth: true
+        Text {
+            text: "Bluetooth"
+            color: FiliTheme.voile
+            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        }
+        Item { Layout.fillWidth: true }
+        PanelSwitch {
+            objectName: "power"
+            checked: view.adapter?.enabled ?? false
+            switchable: !!view.adapter
+            onToggled: view.adapter.enabled = !view.adapter.enabled
+        }
     }
     Text {
         visible: !view.adapter
@@ -22,15 +32,6 @@ ColumnLayout {
         Layout.maximumWidth: 300
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
-    }
-    PanelButton {
-        objectName: "power"
-        toggle: true
-        switchable: !!view.adapter
-        glyph: ""
-        label: "Activé"
-        sel: view.adapter?.enabled ?? false
-        onClicked: { if (view.adapter) view.adapter.enabled = !view.adapter.enabled; }
     }
     PanelButton {
         objectName: "scan"

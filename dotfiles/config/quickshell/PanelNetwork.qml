@@ -66,19 +66,20 @@ ColumnLayout {
     }
     Timer { id: relist; interval: 3000; repeat: true; running: false; onTriggered: view.refresh() }
 
-    Text {
-        text: "Wi-Fi"
-        color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
-    }
-    PanelButton {
-        objectName: "wifi-power"
-        toggle: true
-        visible: view.wifi.device !== ""
-        glyph: ""
-        label: "Activé"
-        sel: view.wifi.powered
-        onClicked: view.act(["power", view.wifi.powered ? "off" : "on"])
+    RowLayout {
+        Layout.fillWidth: true
+        Text {
+            text: "Wi-Fi"
+            color: FiliTheme.voile
+            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        }
+        Item { Layout.fillWidth: true }
+        PanelSwitch {
+            objectName: "wifi-power"
+            visible: view.wifi.device !== ""
+            checked: view.wifi.powered
+            onToggled: view.act(["power", view.wifi.powered ? "off" : "on"])
+        }
     }
     PanelSection { visible: view.wifi.networks.length > 0; text: "RÉSEAUX" }
     Repeater {
