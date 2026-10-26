@@ -1,4 +1,4 @@
-// Curseur 0..1 des fili-panel (volume, luminosité): clic ou glisser; valeur affichée à droite
+// Curseur 0..1 des fili-panel (volume, luminosité): clic ou glisser; valeur puis icône (muet) à droite
 import QtQuick
 import QtQuick.Layouts
 
@@ -12,14 +12,6 @@ RowLayout {
 
     Layout.fillWidth: true
     spacing: 8
-    Text {
-        text: s.glyph
-        color: s.muted ? FiliTheme.ardoise : FiliTheme.brume
-        Layout.preferredWidth: 22
-        horizontalAlignment: Text.AlignHCenter
-        font { family: FiliTheme.font; pixelSize: 15 }
-        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: s.glyphClicked() }
-    }
     Item {
         Layout.fillWidth: true
         implicitHeight: 22
@@ -57,5 +49,13 @@ RowLayout {
         Layout.preferredWidth: 36
         horizontalAlignment: Text.AlignRight
         font { family: FiliTheme.mono; pixelSize: 12 }
+    }
+    Text {
+        text: s.glyph
+        color: s.muted ? FiliTheme.ardoise : FiliTheme.brume
+        Layout.preferredWidth: 22
+        horizontalAlignment: Text.AlignHCenter
+        font { family: FiliTheme.font; pixelSize: 15 }
+        MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: s.glyphClicked() }
     }
 }

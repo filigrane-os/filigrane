@@ -280,25 +280,8 @@ PanelWindow {
             }
         }
 
-        // Système: micro, sortie audio, clavier, écrans, Bluetooth, réseau, notifications
+        // Système: sortie audio, clavier, écrans, Bluetooth, réseau, notifications
         Row {
-            // Micro: clic = couper/activer, molette = volume, clic droit ou milieu = mixeur (onglet entrées)
-            BarItem {
-                objectName: "mic"
-                readonly property var audio: bar.source?.audio ?? null
-                text: audio ? (audio.muted ? "" : "") : ""
-                color: audio?.muted ? FiliTheme.cendre : FiliTheme.brume
-                tip: !audio ? "" : {
-                    title: audio.muted ? "Micro coupé" : "Micro",
-                    rows: [["Entrée", bar.source.description || bar.source.nickname || bar.source.name], ["Volume", Math.round(audio.volume * 100) + " %"]],
-                    hint: "clic: couper / activer · molette: volume · clic droit: panneau son"
-                }
-                hover.onLeftClicked: audio.muted = !audio.muted
-                hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
-                hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
-                hover.onRightClicked: FiliPanel.toggle(hover, "audio", bar)
-                hover.mclick: bar.b + "/bar-tui wiremix --tab input"
-            }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
             BarItem {
                 objectName: "volume"

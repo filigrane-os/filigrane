@@ -162,11 +162,6 @@ ShellRoot {
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
                 }
-                act("mic", R);
-                ok(FiliPanel.view === "audio", "fili-bar mic, clic droit -> fili-panel audio", FiliPanel.view);
-                act("mic", R);
-                ok(FiliPanel.view === "", "fili-panel: même élément recliqué = fermé", FiliPanel.view);
-                expectClick("mic", M, "wiremix --tab input");
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", L, "switch-layout next");
                 expectClick("display", L, "wdisplays");
