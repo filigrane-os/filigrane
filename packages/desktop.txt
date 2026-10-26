@@ -27,6 +27,9 @@ vips  # miniatures des fonds d'écran dans le menu (vipsthumbnail)
 libnotify
 qalculate
 noto-fonts-emoji
+# Panneau clavier: visualiseur (fili-keymap lit le keymap avec xkbcli) et emoji, frappe dans la fenêtre active (wtype)
+wtype
+libxkbcommon-tools
 # Écrans: réglage visuel (wdisplays) et profils automatiques (kanshi)
 wdisplays
 kanshi

@@ -283,6 +283,33 @@ ShellRoot {
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
             },
+            // fili-panel clavier: visualiseur (touches de fili-keymap, frappe wtype) et emoji (copie + frappe)
+            () => {
+                FiliPanel.view = "keyboard";
+                ok(FiliPanel.loaded && !FiliPanel.loaded.passive, "fili-panel clavier: page des dispositions avec focus");
+                FiliPanel.loaded.page = "viewer";
+                ok(FiliPanel.loaded.passive, "fili-panel clavier: le visualiseur ne prend pas le focus");
+            },
+            wait(() => {}, () => FiliPanel.loaded.rows.length === 4),
+            () => {
+                const kb = FiliPanel.loaded;
+                ok(kb.rows.length === 4 && kb.rows[0].length >= 12, "fili-panel clavier: fili-keymap, 4 rangées", JSON.stringify(kb.rows).slice(0, 80));
+                FiliTheme.ran = [];
+                kb.typeKey("eacute");
+                ok(FiliTheme.ran.indexOf("wtype -k eacute") >= 0, "fili-panel clavier: clic touche -> wtype -k", JSON.stringify(FiliTheme.ran));
+                kb.page = "emoji";
+            },
+            wait(() => {}, () => FiliPanel.loaded.emojis.length > 100),
+            () => {
+                const kb = FiliPanel.loaded;
+                ok(kb.emojis.length > 100, "fili-panel clavier: liste des emoji chargée", kb.emojis.length);
+                kb.query = "grinning face";
+                ok(kb.found.length > 0 && kb.found.length <= 48, "fili-panel clavier: recherche d'emoji", kb.found.length);
+                FiliTheme.ran = [];
+                kb.pickEmoji(kb.found[0].c);
+                ok(FiliTheme.ran.some(c => c.indexOf("wl-copy") >= 0 && c.indexOf("wtype") >= 0), "fili-panel clavier: emoji copié et tapé", JSON.stringify(FiliTheme.ran));
+                ok(FiliPanel.view === "", "fili-panel clavier: choisir un emoji ferme le panneau");
+            },
             // Aucune fili-tooltip tant qu'un fili-panel est ouvert
             () => {
                 const it = t.find(t.bar.contentItem, "volume");

@@ -65,7 +65,8 @@ Singleton {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-panel"
-        WlrLayershell.keyboardFocus: panel.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        // Vue « passive » (visualiseur de clavier): pas de focus, la frappe de wtype arrive dans la fenêtre d'avant
+        WlrLayershell.keyboardFocus: panel.open && !(loader.item?.passive ?? false) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
         MouseArea {
