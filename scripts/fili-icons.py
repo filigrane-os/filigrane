@@ -33,7 +33,7 @@ MAP = {
     0xF028: "volume-2", 0xF6A9: "volume-x", 0xF04B: "play", 0xF04C: "pause", 0xF053: "chevron-left",
     0xF054: "chevron-right", 0xF071: "triangle-alert", 0xF072: "plane", 0xF073: "calendar", 0xF0A0: "hard-drive",
     0xF0E0: "mail", 0xF0E7: "zap", 0xF0EE: "cloud-upload", 0xF0F3: "bell", 0xF1F6: "bell-off", 0xF0F4: "coffee",
-    0xF108: "monitor", 0xF111: "circle-dot", 0xF11C: "keyboard", 0xF130: "mic", 0xF131: "mic-off", 0xF186: "moon", 0xF185: "sun-dim",
+    0xF108: "monitor", 0xF111: "circle-dot", 0xF11C: "keyboard", 0xF130: "mic", 0xF131: "mic-off", 0xF186: "moon", 0xF185: "contrast",
     0xF1EA: "newspaper", 0xF1EB: "wifi", 0xF233: "server", 0xF240: "battery-full", 0xF241: "battery-full",
     0xF242: "battery-medium", 0xF243: "battery-low", 0xF244: "battery", 0xF293: "bluetooth", 0xF2C9: "thermometer",
     0xF2DB: "cpu", 0xF2F2: "timer", 0xF538: "memory-stick", 0xF796: "ethernet-port", 0xF05A3: "message-circle",
