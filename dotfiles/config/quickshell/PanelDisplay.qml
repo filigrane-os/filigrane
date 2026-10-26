@@ -45,6 +45,7 @@ ColumnLayout {
     Component.onCompleted: {
         read();
         readScreen.running = true;
+        readNight.running = true;
     }
     Process {
         id: reader
@@ -64,6 +65,13 @@ ColumnLayout {
         id: reread
         interval: 500
         onTriggered: view.read()
+    }
+    // Veilleuse (wlsunset): allumée quand l'écran est réellement réchauffé (même critère que bar-status)
+    property bool night: false
+    Process {
+        id: readNight
+        command: ["sh", "-c", 'exec "$0" night | grep -q \'"class":"active"\'', FiliTheme.bin + "/bar-status"]
+        onExited: code => view.night = code === 0
     }
     Process {
         id: readScreen
@@ -406,6 +414,25 @@ ColumnLayout {
         onMoved: v => {
             view.screen = Math.max(0.01, v);
             FiliTheme.run("brightnessctl -q set " + Math.max(1, Math.round(v * 100)) + "%");
+        }
+    }
+
+    PanelSection { text: "VEILLEUSE" }
+    RowLayout {
+        Layout.fillWidth: true
+        Text {
+            text: "Teinte chaude (4500 K)"
+            color: FiliTheme.brume
+            Layout.fillWidth: true
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        }
+        PanelSwitch {
+            objectName: "night"
+            checked: view.night
+            onToggled: {
+                view.night = !view.night;
+                FiliTheme.run(FiliTheme.bin + "/bar-toggle night " + (view.night ? "on" : "off"));
+            }
         }
     }
 

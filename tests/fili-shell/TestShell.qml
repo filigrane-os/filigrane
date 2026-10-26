@@ -153,14 +153,13 @@ ShellRoot {
                 expectClick("clock", L, "calendar.proton.me");
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["keyboard", "keyboard"], ["brightness", "brightness"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
                 }
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
-                expectClick("brightness", "up", "brightnessctl -q set 5%+");
                 expectClick("display", R, "wdisplays");
                 expectClick("display", "up", "brightnessctl -q set 5%+");
                 expectClick("display", "down", "brightnessctl -q set 5%-");
@@ -276,7 +275,7 @@ ShellRoot {
 
             // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net et fili-info monitor ─────
             () => {
-                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "brightness", "keyboard", "display"]) {
+                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "keyboard", "display"]) {
                     FiliPanel.view = v;
                     ok(FiliPanel.loaded !== null, "fili-panel " + v + ": vue chargée");
                     FiliPanel.close();
@@ -317,6 +316,12 @@ ShellRoot {
             () => {
                 FiliPanel.view = "keyboard";
                 ok(FiliPanel.loaded && !FiliPanel.loaded.passive, "fili-panel clavier: page des dispositions avec focus");
+                const kbd = FiliPanel.loaded;
+                if (kbd.keys >= 0) {
+                    FiliTheme.ran = [];
+                    t.find(kbd, "keys").moved(0.5);
+                    ok(FiliTheme.ran.some(c => c.indexOf("kbd_backlight' set 50%") > 0), "fili-panel clavier: curseur du rétroéclairage", JSON.stringify(FiliTheme.ran));
+                }
                 FiliPanel.loaded.page = "viewer";
                 ok(FiliPanel.loaded.passive, "fili-panel clavier: le visualiseur ne prend pas le focus");
             },
@@ -353,7 +358,7 @@ ShellRoot {
             },
             // Interrupteurs à droite du titre (Wi-Fi, Bluetooth): présents, Bluetooth grisé sans adaptateur
             () => {
-                for (const [v, name] of [["network", "wifi-power"], ["bluetooth", "power"], ["brightness", "night"], ["power", "caffeine"]]) {
+                for (const [v, name] of [["network", "wifi-power"], ["bluetooth", "power"], ["display", "night"], ["power", "caffeine"]]) {
                     FiliPanel.view = v;
                     const sw = t.find(FiliPanel.loaded, name);
                     ok(sw && sw.hasOwnProperty("checked"), "fili-panel " + v + ": interrupteur à droite du titre", sw ? "" : "introuvable");

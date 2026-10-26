@@ -119,6 +119,19 @@ ColumnLayout {
     }
 
     // ───── dispositions ─────
+    // Rétroéclairage du clavier (brightnessctl), -1: absent
+    property real keys: -1
+    Process {
+        id: readKeys
+        command: ["sh", "-c", "brightnessctl -m -d '*kbd_backlight' info 2>/dev/null | head -1 | cut -d, -f4 | tr -d %"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = parseInt(text);
+                view.keys = isNaN(v) ? -1 : v / 100;
+            }
+        }
+    }
+    Component.onCompleted: readKeys.running = true
     PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: "DISPOSITIONS" }
     Repeater {
         model: view.page === "layouts" ? Niri.layouts : []
@@ -146,6 +159,17 @@ ColumnLayout {
         text: "Aucune disposition détectée"
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+    }
+    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: "RÉTROÉCLAIRAGE" }
+    PanelSlider {
+        objectName: "keys"
+        visible: view.page === "layouts" && view.keys >= 0
+        glyph: "\uf11c"
+        value: Math.max(0, view.keys)
+        onMoved: v => {
+            view.keys = v;
+            FiliTheme.run("brightnessctl -q -d '*kbd_backlight' set " + Math.round(v * 100) + "%");
+        }
     }
     PanelSection { visible: view.page === "layouts"; text: "OUTILS" }
     PanelButton {
