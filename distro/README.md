@@ -1,37 +1,37 @@
-# distro/: dépôt xbps et ISO
+# distro/: xbps repository and ISO
 
-Prototype d'une distribution tirée de ce dépôt : **Filigrane**, l'OS présent en filigrane, qui laisse la RAM et le CPU aux applications. Commandes et paquets sous le nom court `fili` (`distro.env`).
-Ce n'est pas un fork de Void : la distribution reste en aval de Void (mêmes miroirs, mêmes mises à jour de sécurité), et ne maintient que sa couche.
+Prototype of a distribution built from this repository: **Filigrane**, the OS present like a watermark, leaving RAM and CPU to applications. Commands and packages use the short name `fili` (`distro.env`).
+It is not a Void fork: the distribution stays downstream of Void (same mirrors, same security updates) and only maintains its own layer.
 
-## Principe
+## How it fits together
 
-| Brique | Rôle |
+| Piece | Role |
 |---|---|
-| Dépôt git (racine) | La source : listes de paquets, services, réglages système, dotfiles, outils Rust. `bootstrap.sh` l'applique |
-| Couches | distribution (racine) → matériel (`hardware/<machine>`) → personnel (`users/<login>`, jamais dans l'ISO) |
-| Dépôt xbps (`build-repo.sh`) | `fili-apps` : outils de `apps/` déjà compilés, pas besoin de cargo. `fili-<liste>` : un méta-paquet par `packages/<liste>.txt` |
-| ISO (`build-iso.sh`) | Live console Void (`void-mklive`), avec le dépôt xbps, une copie générique du dépôt git et l'installateur `fili-install` |
+| Git repository (root) | The source: package lists, services, system settings, dotfiles, Rust tools. `bootstrap.sh` applies it |
+| Layers | distribution (root) → hardware (`hardware/<machine>`) → personal (`users/<login>`, never in the ISO) |
+| xbps repository (`build-repo.sh`) | `fili-apps`: the tools from `apps/`, already built, no cargo needed. `fili-<list>`: one meta-package per `packages/<list>.txt` |
+| ISO (`build-iso.sh`) | Void console live system (`void-mklive`) with the xbps repository, a generic copy of the git repository and the `fili-install` installer |
 
-Philosophie (voir `CLAUDE.md`) : l'OS laisse la RAM et le CPU au navigateur, aux agents et aux conteneurs. Les paquets Void natifs passent avant tout, aucun démon inutile, pas d'Electron, de JVM ni de Node résident. Les outils maison sont des binaires Rust. `budget` mesure le respect de cette règle.
+Philosophy (see `AGENTS.md`): the OS leaves RAM and CPU to the browser, agents and containers. Native Void packages come first, with no unnecessary daemon, no Electron, JVM or resident Node. Home-made tools are Rust binaries. `budget` measures how well this rule is kept.
 
-## Construire
+## Building
 
 ```
-distro/build-repo.sh              # sans root: distro/out/repo (paquets non signés)
-sudo distro/build-iso.sh          # root (void-mklive monte et chroote): distro/out/fili-live-x86_64-<date>.iso
+distro/build-repo.sh              # no root: distro/out/repo (unsigned packages)
+sudo distro/build-iso.sh          # root (void-mklive mounts and chroots): distro/out/fili-live-x86_64-<date>.iso
 ```
 
-En CI (`.github/workflows/distro.yml`, branche `distro` ou lancement manuel) : construction dans un conteneur Void privilégié, puis démarrage de l'ISO dans QEMU jusqu'à l'invite de connexion, et ISO gardée 7 jours en artefact.
+In CI (`.github/workflows/distro.yml`, branch `distro` or manual run): built in a privileged Void container, then the ISO is booted in QEMU up to the login prompt and kept for 7 days as an artifact.
 
-## Installer depuis l'ISO
+## Installing from the ISO
 
-Démarrer l'ISO (session `anon` ouverte automatiquement), brancher le réseau, puis `fili-install`. L'installateur demande le disque, l'utilisateur et le nom de la machine, puis lance `install-void.sh`, qui efface tout le disque et demande de taper son chemin pour confirmer. Ensuite `bootstrap.sh --user-layer none` tourne dans le chroot et installe `fili-apps` depuis le dépôt embarqué.
+Boot the ISO (the `anon` session opens automatically), connect the network, then run `fili-install`. The installer asks for the disk, the user and the machine name, then runs `install-void.sh`, which erases the whole disk and asks you to type its path to confirm. Then `bootstrap.sh --user-layer none` runs in the chroot and installs `fili-apps` from the embedded repository.
 
-## Limites du prototype
+## Limits of the prototype
 
-- **Réseau obligatoire** : seuls les paquets de la distribution sont dans l'ISO, les ~650 paquets Void sont téléchargés à l'installation.
-- **Live en console** : pas de session niri pour essayer avant d'installer.
-- **Pas de dépôt publié** : le dépôt n'est ni hébergé ni signé (il faudrait une clé `XBPS_PRIVKEY` en secret CI et un hébergement, par exemple GitHub Pages). Les mises à jour passent donc par `git pull` puis `./bootstrap.sh`, pas encore par `xbps-install -Su`.
-- **Méta-paquets non utilisés** : `bootstrap.sh` installe encore les listes une par une. Les méta-paquets `fili-*` sont prêts pour le jour où le dépôt sera publié.
-- **Copie du dépôt sans historique git** : pour suivre les mises à jour, cloner `DISTRO_GIT` à la place.
-- **x86_64 seulement** pour l'ISO, et UEFI seulement pour l'installation, comme `install-void.sh`.
+- **Network required**: only the distribution's own packages are on the ISO; the ~650 Void packages are downloaded during installation.
+- **Console live system**: no niri session to try before installing.
+- **No published repository**: the repository is neither hosted nor signed (it would need an `XBPS_PRIVKEY` CI secret and hosting, for example GitHub Pages). Updates therefore go through `git pull` then `./bootstrap.sh`, not yet through `xbps-install -Su`.
+- **Unused meta-packages**: `bootstrap.sh` still installs the lists one by one. The `fili-*` meta-packages are ready for the day the repository is published.
+- **Repository copy without git history**: to follow updates, clone `DISTRO_GIT` instead.
+- **x86_64 only** for the ISO, and UEFI only for installation, like `install-void.sh`.
