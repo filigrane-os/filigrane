@@ -293,7 +293,7 @@ Singleton {
                         Text {
                             text: box.listMode ? "" : ""
                             color: FiliTheme.ardoise
-                            font { family: "Symbols Nerd Font Mono"; pixelSize: 15 }
+                            font { family: "Fili Icons"; pixelSize: 16 }
                         }
                         TextInput {
                             id: input
@@ -393,7 +393,7 @@ Singleton {
                                         anchors.centerIn: parent
                                         text: row.e.glyph
                                         color: row.sel ? FiliTheme.voile : FiliTheme.brume2
-                                        font { family: "Symbols Nerd Font Mono"; pixelSize: 16 }
+                                        font { family: "Fili Icons"; pixelSize: 18 }
                                     }
                                     IconImage {
                                         visible: row.e.icon !== ""
