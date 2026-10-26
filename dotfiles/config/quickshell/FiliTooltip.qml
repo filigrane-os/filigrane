@@ -27,7 +27,7 @@ Singleton {
     }
     function show(item, content) {
         const c = normalize(content);
-        if (empty(c)) {
+        if (empty(c) || FiliShell.panelOpen) {
             hide(item);
             return;
         }

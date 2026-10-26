@@ -18,6 +18,8 @@ Singleton {
     // Un seul panneau de la fili-bar ouvert à la fois (fili-panel, fili-calendar, fili-notification-center): celui qui
     // s'ouvre l'annonce ("panel", "calendar", "center"), les autres se ferment
     signal popupOpened(string who)
+    // Un fili-panel est ouvert (posé par FiliPanel): la fili-tooltip ne s'affiche pas
+    property bool panelOpen: false
 
     // bar refresh N
     signal refresh(int n)

@@ -11,6 +11,7 @@ import Quickshell.Wayland
 Singleton {
     id: panel
     property string view: ""
+    onViewChanged: FiliShell.panelOpen = view !== ""
     property real anchorX: 0
     property var screen: null
     readonly property bool open: view !== ""

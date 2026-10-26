@@ -291,6 +291,17 @@ ShellRoot {
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
             },
+            // Aucune fili-tooltip tant qu'un fili-panel est ouvert
+            () => {
+                const it = t.find(t.bar.contentItem, "volume");
+                FiliPanel.summon("audio");
+                FiliTooltip.show(it, { title: "x" });
+                ok(FiliTooltip.target === null, "fili-tooltip: masquée quand un fili-panel est ouvert");
+                FiliPanel.close();
+                FiliTooltip.show(it, { title: "x" });
+                ok(FiliTooltip.target === it, "fili-tooltip: de nouveau permise panneau fermé");
+                FiliTooltip.hide();
+            },
             // Interrupteurs à droite du titre (Wi-Fi, Bluetooth): présents, Bluetooth grisé sans adaptateur
             () => {
                 for (const [v, name] of [["network", "wifi-power"], ["bluetooth", "power"]]) {
