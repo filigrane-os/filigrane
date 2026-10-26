@@ -192,10 +192,16 @@ PanelWindow {
             implicitWidth: clockText.implicitWidth + 12
             implicitHeight: FiliTheme.barHeight
             SystemClock { id: clock; precision: SystemClock.Minutes }
+            // Minuteur ou chronomètre en cours (bar-timer, rafraîchi chaque seconde par son ticker): remplace la date
+            BarScript { id: timerState; visible: false; cmd: bar.b + "/bar-timer"; signal: 12 }
+            readonly property bool timing: timerState.text !== "" && timerState.cls !== "idle"
             Label {
                 id: clockText
                 anchors.centerIn: parent
-                text: Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
+                text: clockItem.timing ? timerState.text : Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
+                color: !clockItem.timing ? FiliTheme.brume : timerState.cls === "done" ? FiliTheme.cendre : FiliTheme.sable
+                // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
+                font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
                 font.weight: Font.Medium
             }
             MouseArea {
