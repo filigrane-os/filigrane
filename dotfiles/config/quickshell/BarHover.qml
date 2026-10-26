@@ -24,12 +24,19 @@ MouseArea {
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
     cursorShape: (click || rclick) ? Qt.PointingHandCursor : Qt.ArrowCursor
 
-    onClicked: m => {
+    onClicked: m => press(m.button)
+    onWheel: w => {
+        if (w.angleDelta.y !== 0)
+            roll(w.angleDelta.y > 0);
+    }
+
+    // Clic et molette (appelés aussi par les tests)
+    function press(button) {
         FiliTooltip.hide();
-        if (m.button === Qt.LeftButton) {
+        if (button === Qt.LeftButton) {
             FiliTheme.run(click);
             leftClicked();
-        } else if (m.button === Qt.RightButton) {
+        } else if (button === Qt.RightButton) {
             FiliTheme.run(rclick);
             rightClicked();
         } else {
@@ -37,11 +44,11 @@ MouseArea {
             middleClicked();
         }
     }
-    onWheel: w => {
-        if (w.angleDelta.y > 0) {
+    function roll(up) {
+        if (up) {
             FiliTheme.run(scrollUp);
             wheelUp();
-        } else if (w.angleDelta.y < 0) {
+        } else {
             FiliTheme.run(scrollDown);
             wheelDown();
         }

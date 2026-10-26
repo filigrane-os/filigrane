@@ -23,6 +23,8 @@ Singleton {
     property var shown: []      // { e, score, hits }
     property int current: 0
     property bool open: false
+    // Texte saisi (lu et écrit par les tests)
+    property alias query: input.text
 
     readonly property color nuit2: "#232b36"
     readonly property color selMatch: "#b9d0e4"
@@ -234,7 +236,7 @@ Singleton {
 
     PanelWindow {
         id: win
-        visible: launcher.open || linger.running
+        visible: (launcher.open || linger.running) && !FiliTheme.testing
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay

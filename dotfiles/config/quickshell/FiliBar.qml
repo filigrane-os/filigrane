@@ -21,6 +21,7 @@ PanelWindow {
     anchors { top: true; left: true; right: true }
     implicitHeight: FiliTheme.barHeight
     color: FiliTheme.nuit
+    visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
 
     readonly property string b: FiliTheme.bin
@@ -53,6 +54,7 @@ PanelWindow {
                 fillMode: Image.PreserveAspectFit
             }
             BarHover {
+                objectName: "logo"
                 anchors.fill: parent
                 tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal" })
                 click: "setsid -f " + bar.b + "/menu"
@@ -105,6 +107,7 @@ PanelWindow {
 
         // Clic milieu ou droit = fermer la fenêtre
         BarItem {
+            objectName: "window"
             Layout.maximumWidth: 420
             text: {
                 const t = Niri.focused?.title ?? "";
@@ -125,19 +128,19 @@ PanelWindow {
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
         Row {
             // Nouveaux mails Proton / événement Proton Calendar imminent (masqués sinon, voir bar-alert), clic = ouvrir et effacer
-            BarScript { cmd: bar.b + "/bar-alert mail"; signal: 16; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
-            BarScript { cmd: bar.b + "/bar-alert whatsapp"; signal: 19; click: bar.b + "/bar-alert open whatsapp" }
-            BarScript { cmd: bar.b + "/bar-alert cal"; signal: 17; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
+            BarScript { objectName: "mail"; cmd: bar.b + "/bar-alert mail"; signal: 16; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
+            BarScript { objectName: "whatsapp"; cmd: bar.b + "/bar-alert whatsapp"; signal: 19; click: bar.b + "/bar-alert open whatsapp" }
+            BarScript { objectName: "cal"; cmd: bar.b + "/bar-alert cal"; signal: 17; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
             // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
-            BarScript { cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
+            BarScript { objectName: "rec"; cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
             // Session SSH entrante, mode avion (clic = désactiver), VPN: réveillés par bar-stats watch
-            BarScript { cmd: bar.b + "/bar-status remote"; signal: 21; color: FiliTheme.cendre }
-            BarScript { cmd: bar.b + "/bar-status air"; signal: 14; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
-            BarScript { cmd: bar.b + "/bar-status vpn"; signal: 22 }
+            BarScript { objectName: "remote"; cmd: bar.b + "/bar-status remote"; signal: 21; color: FiliTheme.cendre }
+            BarScript { objectName: "air"; cmd: bar.b + "/bar-status air"; signal: 14; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
+            BarScript { objectName: "vpn"; cmd: bar.b + "/bar-status vpn"; signal: 22 }
             // Rapports de veille non lus, clic = les lire
-            BarScript { cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
+            BarScript { objectName: "news"; cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
             // Mises à jour xbps (masqué s'il n'y en a pas), clic = mettre à jour dans un terminal flottant
-            BarScript { cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
+            BarScript { objectName: "update"; cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
         }
 
         // Tiroir (bar-tray): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
@@ -173,19 +176,20 @@ PanelWindow {
                 }
             }
             // Minuteur / chronomètre: clic = choisir (ou arrêter), clic droit = +5 min; notification à la fin
-            BarScript { cmd: bar.b + "/bar-tray timer"; signal: 12; click: bar.b + "/bar-timer click"; rclick: bar.b + "/bar-timer add" }
+            BarScript { objectName: "timer"; cmd: bar.b + "/bar-tray timer"; signal: 12; click: bar.b + "/bar-timer click"; rclick: bar.b + "/bar-timer add" }
             // Caféine: tasse jaune = verrouillage auto coupé, grise = actif; clic = bascule
-            BarScript { cmd: bar.b + "/bar-tray idle"; signal: 13; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle idle" }
+            BarScript { objectName: "idle"; cmd: bar.b + "/bar-tray idle"; signal: 13; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle idle" }
             // Veilleuse (wlsunset, 4500 K la nuit), clic = coupe/force
-            BarScript { cmd: bar.b + "/bar-tray night"; signal: 10; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle night" }
+            BarScript { objectName: "night"; cmd: bar.b + "/bar-tray night"; signal: 10; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle night" }
             // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
             BarScript {
+                objectName: "backup"
                 cmd: bar.b + "/bar-tray backup"; interval: 3600; signal: 18
                 colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
                 click: bar.b + "/bar-backup run"
             }
             // Chevron du tiroir: clic = afficher / replier
-            BarScript { cmd: bar.b + "/bar-tray handle"; signal: 20; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
+            BarScript { objectName: "tray-handle"; cmd: bar.b + "/bar-tray handle"; signal: 20; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
         }
 
         // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
@@ -201,14 +205,17 @@ PanelWindow {
                 font.weight: Font.Medium
             }
             MouseArea {
+                objectName: "clock"
                 anchors.fill: parent
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 onContainsMouseChanged: if (containsMouse) { cal.shift = 0; cal.visible = true; } else if (!cal.pinned) cal.visible = false
-                onClicked: m => {
-                    if (m.button === Qt.LeftButton) {
+                onClicked: m => press(m.button)
+                // Clic (appelé aussi par les tests)
+                function press(button) {
+                    if (button === Qt.LeftButton) {
                         FiliTheme.run(bar.b + "/webapp https://calendar.proton.me");
-                    } else if (m.button === Qt.MiddleButton) {
+                    } else if (button === Qt.MiddleButton) {
                         cal.shift = 0;
                     } else {
                         cal.pinned = !cal.pinned;
@@ -232,6 +239,7 @@ PanelWindow {
 
         // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {
+            objectName: "media"
             readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
             text: {
                 if (!player || !player.trackTitle)
@@ -259,10 +267,11 @@ PanelWindow {
 
         // Ressources: CPU (top 5 en infobulle), température, mémoire, disque; clic = htop
         Row {
-            BarScript { cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
-            BarScript { cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
-            BarScript { cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { objectName: "cpu"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { objectName: "mem"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
             BarScript {
+                objectName: "disk"
                 cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: espace occupé par dossier"
                 click: bar.b + "/bar-tui sh -c 'df -h; echo; du -xh --max-depth=1 ~ 2>/dev/null | sort -h | tail -15; read _'"
             }
@@ -272,6 +281,7 @@ PanelWindow {
         Row {
             // Micro: clic = couper/activer, molette = volume, clic droit ou milieu = mixeur (onglet entrées)
             BarItem {
+                objectName: "mic"
                 readonly property var audio: bar.source?.audio ?? null
                 text: audio ? (audio.muted ? "" : "") : ""
                 color: audio?.muted ? FiliTheme.cendre : FiliTheme.brume
@@ -288,6 +298,7 @@ PanelWindow {
             }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
             BarItem {
+                objectName: "volume"
                 readonly property var audio: bar.sink?.audio ?? null
                 readonly property int vol: audio ? Math.round(audio.volume * 100) : 0
                 text: !audio ? "" : audio.muted ? " muet" : (vol < 34 ? "" : vol < 67 ? "" : "") + " " + vol + "%"
@@ -306,6 +317,7 @@ PanelWindow {
             }
             // Disposition clavier (bépo / qwerty australien): clic = bascule
             BarItem {
+                objectName: "keyboard"
                 readonly property string name: Niri.layouts[Niri.layout] ?? ""
                 readonly property string short: {
                     const m = name.match(/\((Australian|US|UK)/);
@@ -323,6 +335,7 @@ PanelWindow {
             }
             // Écrans: clic = wdisplays, molette = luminosité (fiche: écrans, définition, échelle, luminosité)
             BarItem {
+                objectName: "display"
                 text: ""
                 tipCmd: bar.b + "/fili-info display"
                 hover.click: bar.b + "/focus-or-run wdisplays wdisplays"
@@ -331,6 +344,7 @@ PanelWindow {
             }
             // Bluetooth (masqué sans adaptateur): clic = bluetui (appairage, connexion, oubli)
             BarItem {
+                objectName: "bluetooth"
                 readonly property var adapter: Bluetooth.defaultAdapter
                 readonly property var connected: adapter ? adapter.devices.values.filter(d => d.connected) : []
                 text: {
@@ -354,6 +368,7 @@ PanelWindow {
             }
             // Wi-Fi: clic = impala (SSID, connexion), clic droit = menu réseau (IP, ping, débit)
             BarScript {
+                objectName: "network"
                 cmd: "exec " + bar.b + "/bar-stats net"; interval: -1; hideEmpty: false
                 colors: ({ disconnected: FiliTheme.cendre })
                 click: bar.b + "/bar-tui impala"
@@ -362,6 +377,7 @@ PanelWindow {
             }
             // Notifications: clic = historique, clic droit = Ne pas déranger
             BarItem {
+                objectName: "notifications"
                 text: FiliNotification.dnd ? "" : ""
                 color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.ardoise
                 tip: ({
@@ -376,12 +392,13 @@ PanelWindow {
 
         // Batterie: clic = menu système (verrouiller, veille, quitter...)
         BarPower {
+            objectName: "power"
             tipCmd: bar.b + "/fili-info power"
             hover.click: "setsid -f " + bar.b + "/menu system"
         }
 
         // Invisible: surveille SSH entrant, mode avion, VPN, veilleuse, sauvegarde, agenda et batterie faible
         // (bar-stats watch) et réveille par `bar refresh N` le module dont l'état a changé
-        BarScript { cmd: "exec " + bar.b + "/bar-stats watch"; interval: -1 }
+        BarScript { objectName: "watch"; cmd: "exec " + bar.b + "/bar-stats watch"; interval: -1 }
     }
 }

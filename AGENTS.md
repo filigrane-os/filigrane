@@ -9,6 +9,7 @@ La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` 
 - Gestionnaire de paquets: **xbps** (jamais apt, pacman, dnf, brew, nix, flatpak). Init: **runit** (jamais systemctl ni journalctl). Root via `sudo`.
 - Lecture seule d'abord pour diagnostiquer, cause en une ou deux phrases, puis correction.
 - Avant de recharger la config niri: `niri validate`.
+- Après un changement du fili-shell (`dotfiles/config/quickshell/`, scripts `bar-*`, `fili-*`): `tests/fili-shell/run.sh` doit passer avant le commit.
 
 ## Déclaratif
 

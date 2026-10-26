@@ -98,7 +98,7 @@ Singleton {
 
     // fili-notification: bulles
     PanelWindow {
-        visible: !notifs.dnd && notifs.popups.length > 0
+        visible: !notifs.dnd && notifs.popups.length > 0 && !FiliTheme.testing
         anchors { top: true; right: true }
         margins { top: 12; right: 12 }
         exclusionMode: ExclusionMode.Normal
@@ -233,7 +233,7 @@ Singleton {
 
     // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic hors du panneau = fermer
     PanelWindow {
-        visible: notifs.centerOpen
+        visible: notifs.centerOpen && !FiliTheme.testing
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: 0

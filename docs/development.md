@@ -35,6 +35,7 @@ How the repository is organised, how to test a change, and what the CI checks.
 - `niri validate` before reloading the niri configuration.
 - `scripts/check-packages.sh [arch]` checks that every listed package exists in the Void repository.
 - `shellcheck -x -S error <script>` for shell scripts.
+- `tests/fili-shell/run.sh` for the Quickshell shell (bar, notifications, launcher): an isolated instance on a private D-Bus loads the real config and checks every bar click, the `fili-shell` channel, the launcher, notifications and `fili-info`. Needs a running Wayland session (not run by the CI).
 - A virtual machine is the best test bed: dotfiles there are links into a clone of the repo, so edits are live. `scripts/pull-from-vm.sh [host]` copies the configuration folders back to your working copy; read `git diff`, then commit.
 - Never run `install-void.sh` on a disk you care about.
 

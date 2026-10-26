@@ -16,7 +16,10 @@ Singleton {
     readonly property var focused: focusedId !== null ? windows[focusedId] ?? null : null
 
     function action(...args) {
-        Quickshell.execDetached(["niri", "msg", "action", ...args]);
+        if (FiliTheme.testing)
+            FiliTheme.ran = FiliTheme.ran.concat(["niri msg action " + args.join(" ")]);
+        else
+            Quickshell.execDetached(["niri", "msg", "action", ...args]);
     }
 
     function setWindows(m) {

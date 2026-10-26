@@ -113,7 +113,9 @@ Item {
         }
     }
 
+    property alias hover: hov
     BarHover {
+        id: hov
         anchors.fill: parent
         tip: mod.hint ? { text: mod.tip, hint: mod.hint } : mod.tip
         tipCmd: mod.tipCmd
