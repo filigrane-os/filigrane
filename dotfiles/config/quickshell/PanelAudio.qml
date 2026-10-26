@@ -17,6 +17,20 @@ ColumnLayout {
     function name(n) {
         return n.description || n.nickname || n.name;
     }
+    // Casque ou enceinte Bluetooth: codec négocié (api.bluez5.codec), « Bluetooth » seul tant qu'il est inconnu
+    readonly property var codecs: ({
+        sbc: "SBC", sbc_xq: "SBC-XQ", aac: "AAC", ldac: "LDAC", aptx: "aptX", aptx_hd: "aptX HD",
+        aptx_ll: "aptX LL", aptx_ll_duplex: "aptX LL", faststream: "FastStream", faststream_duplex: "FastStream",
+        lc3: "LC3", lc3_swb: "LC3", msbc: "mSBC", cvsd: "CVSD", opus_05: "Opus", opus_05_51: "Opus",
+        opus_05_71: "Opus", opus_05_duplex: "Opus", opus_05_pro: "Opus"
+    })
+    function detail(n) {
+        const p = n.properties;
+        if (p["device.api"] !== "bluez5" && !(p["node.name"] ?? "").startsWith("bluez_"))
+            return "";
+        const c = p["api.bluez5.codec"];
+        return c ? "Bluetooth · " + (codecs[c] ?? c.toUpperCase()) : "Bluetooth";
+    }
     function app(n) {
         return n.properties["application.name"] || n.properties["node.name"] || n.name;
     }
@@ -41,9 +55,16 @@ ColumnLayout {
             required property var modelData
             objectName: "sink"
             label: view.name(modelData)
+            detail: view.detail(modelData)
             sel: modelData.id === view.sink?.id
             onClicked: Pipewire.preferredDefaultAudioSink = modelData
         }
+    }
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.topMargin: 4
+        implicitHeight: 1
+        color: FiliTheme.nuit3
     }
     PanelSection { text: "ENTRÉE" }
     PanelSlider {
@@ -60,6 +81,7 @@ ColumnLayout {
             required property var modelData
             objectName: "source"
             label: view.name(modelData)
+            detail: view.detail(modelData)
             sel: modelData.id === view.source?.id
             onClicked: Pipewire.preferredDefaultAudioSource = modelData
         }
