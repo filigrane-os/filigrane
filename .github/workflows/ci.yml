@@ -1,13 +1,13 @@
 name: CI
 
-# Sur les pull requests vers main et sur les push vers main et distro (pas sur develop).
+# Sur les pull requests vers main et sur les push vers main, develop et distro.
 # Rien n'installe de système: on vérifie la logique de sélection
-# (profil, machine, CPU, GPU, architecture), l'existence des paquets et la pose des dotfiles.
+# (profil, machine, CPU, GPU, architecture), l'existence des paquets, la config niri et la pose des dotfiles.
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, distro]
+    branches: [main, develop, distro]
 
 permissions:
   contents: read
@@ -24,6 +24,50 @@ jobs:
           done
       - name: shellcheck (erreurs seulement)
         run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install users/*/layer.sh
+      - name: shellcheck des scripts utilisateur (~/.local/bin, hooks; pas les scripts Python)
+        run: |
+          scripts=()
+          for f in dotfiles/home/.local/bin/* dotfiles/home/.claude/hooks/*.sh; do
+            head -1 "$f" | grep -qE '^#!(/bin/|/usr/bin/env )(ba)?sh' && scripts+=("$f")
+          done
+          shellcheck -x -S error "${scripts[@]}"
+      - name: JSON valides (une erreur fait ignorer tout le fichier, sans message)
+        run: |
+          # hardware/*/audio: SPA-JSON de PipeWire (virgules finales admises), pas du JSON strict
+          git ls-files '*.json' ':!:hardware/*/audio/*' | while read -r f; do
+            jq empty "$f" || { echo "JSON invalide: $f"; exit 1; }
+          done
+      - name: Consignes et skills des agents
+        run: |
+          # CLAUDE.md importe AGENTS.md (une seule source pour Claude Code, Codex et opencode)
+          for d in . agents/work; do
+            grep -qx '@AGENTS.md' "$d/CLAUDE.md" && test -s "$d/AGENTS.md" || { echo "$d: CLAUDE.md doit importer AGENTS.md"; exit 1; }
+          done
+          for s in agents/skills/*/SKILL.md; do
+            fm="$(awk 'NR==1 && $0=="---" {f=1; next} f && $0=="---" {exit} f' "$s")"
+            grep -q '^name: ' <<<"$fm" && grep -q '^description: ' <<<"$fm" || { echo "frontmatter sans name ou description: $s"; exit 1; }
+          done
+
+  # niri validate sur la config de la distribution, puis avec la couche personnelle (local.kdl)
+  niri:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/void-linux/void-glibc-full:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: niri (version du dépôt Void)
+        run: |
+          xbps-install -Syu xbps || true
+          xbps-install -Sy niri
+      - name: Validation
+        run: |
+          d="$(mktemp -d)"
+          cp dotfiles/config/niri/config.kdl "$d/"
+          niri validate -c "$d/config.kdl"
+          for l in users/*/dotfiles/config/niri/local.kdl; do
+            [ -f "$l" ] || continue
+            cp "$l" "$d/local.kdl"
+            niri validate -c "$d/config.kdl"
+          done
 
   # Une ligne par configuration à valider: bootstrap.sh --plan doit résoudre toutes les listes
   plan:
@@ -96,6 +140,18 @@ jobs:
         run: |
           broken="$(find "$HOME" -xdev -xtype l -not -path "$HOME/.cache/*" -not -path "$HOME/.local/state/*" 2>/dev/null || true)"
           [ -z "$broken" ] || { echo "$broken"; exit 1; }
+      - name: Agent IA (skills, dossier de travail, fili-ai sans réseau)
+        run: |
+          for d in .claude/skills .agents/skills; do test -f "$HOME/$d/filigrane/SKILL.md"; done
+          for f in AGENTS.md CLAUDE.md; do test -f "$HOME/work/$f"; done
+          conf="$HOME/.config/filigrane/ai.env"
+          grep -qx 'FILI_AI=claude' "$conf"
+          fili="$HOME/.local/bin/fili-ai"
+          "$fili" status
+          "$fili" use none
+          grep -qx 'FILI_AI=none' "$conf"
+          if "$fili" use inconnu; then echo "agent inconnu accepté"; exit 1; fi
+          if "$fili" </dev/null; then echo "lancé sans agent"; exit 1; fi
       - name: Fichiers T2
         run: |
           t2="$HOME/.config/t2-audio/tune.conf"
