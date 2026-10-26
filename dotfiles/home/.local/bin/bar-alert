@@ -15,10 +15,10 @@ case "$1" in
     push)  # bar-alert push mail "expéditeur" "sujet" | bar-alert push cal EPOCH HH:MM titre
         kind="$2"; shift 2
         printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"
-        "$HOME/.local/bin/fili-shell" signal "$(sig "$kind")"; exit 0 ;;
+        "$HOME/.local/bin/fili-shell" bar refresh "$(sig "$kind")"; exit 0 ;;
     open)
         : >"$D/$2"
-        "$HOME/.local/bin/fili-shell" signal "$(sig "$2")"
+        "$HOME/.local/bin/fili-shell" bar refresh "$(sig "$2")"
         case "$2" in
             mail) exec "$HOME/.local/bin/webapp" https://mail.proton.me ;;
             cal)  exec "$HOME/.local/bin/webapp" https://calendar.proton.me ;;

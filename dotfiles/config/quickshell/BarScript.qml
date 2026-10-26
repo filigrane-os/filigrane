@@ -1,4 +1,4 @@
-// Module de barre alimenté par un script: même protocole que les modules custom de Waybar (une ligne JSON
+// Module de la fili-bar alimenté par un script: même protocole que les modules custom de Waybar (une ligne JSON
 // {text, class, tooltip} par mise à jour), pour réutiliser bar-status, bar-tray, bar-alert, bar-stats...
 //   interval > 0: relancé toutes les N s; 0: une fois (puis sur signal); -1: résident (une ligne par mise à jour)
 //   signal: rafraîchi par `fili-shell signal N` (ex-`pkill -RTMIN+N waybar`)
@@ -14,7 +14,7 @@ Item {
     property bool hideEmpty: true
     // Couleur par classe (clé "" = défaut)
     property var colors: ({})
-    property color color: Theme.brume
+    property color color: FiliTheme.brume
     // Classe qui clignote (sauvegarde en cours)
     property string blinkClass: ""
     property string click
@@ -27,11 +27,15 @@ Item {
     property string text: ""
     property string cls: ""
     property string tip: ""
+    // Ligne d'aide de la fili-tooltip (actions des clics)
+    property string hint
+    // Fiche lue au survol (remplace le texte du script), voir BarHover
+    property string tipCmd
     property bool pending: false
 
     visible: !(hideEmpty && text === "")
     implicitWidth: visible ? label.implicitWidth + 2 * pad : 0
-    implicitHeight: Theme.barHeight
+    implicitHeight: FiliTheme.barHeight
 
     function parse(line) {
         line = line.trim();
@@ -85,7 +89,7 @@ Item {
         onTriggered: mod.update()
     }
     Connections {
-        target: Control
+        target: FiliShell
         enabled: mod.signal >= 0
         function onRefresh(n) {
             if (n === mod.signal)
@@ -98,8 +102,8 @@ Item {
         anchors.centerIn: parent
         text: mod.text
         color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
-        font.family: Theme.font
-        font.pixelSize: Theme.size
+        font.family: FiliTheme.font
+        font.pixelSize: FiliTheme.size
         SequentialAnimation on opacity {
             running: mod.blinkClass !== "" && mod.cls === mod.blinkClass
             loops: Animation.Infinite
@@ -109,9 +113,10 @@ Item {
         }
     }
 
-    Hover {
+    BarHover {
         anchors.fill: parent
-        tip: mod.tip
+        tip: mod.hint ? { text: mod.tip, hint: mod.hint } : mod.tip
+        tipCmd: mod.tipCmd
         click: mod.click
         rclick: mod.rclick
         mclick: mod.mclick

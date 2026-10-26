@@ -1,5 +1,5 @@
-// Filigrane (brand.md): fond nuit, texte brume, accent voile; aucune autre couleur vive, états désaturés
 pragma Singleton
+// Filigrane (brand.md): fond nuit, texte brume, accent voile; aucune autre couleur vive, états désaturés
 import QtQuick
 import Quickshell
 

@@ -1,6 +1,6 @@
+pragma Singleton
 // État de niri (espaces de travail, fenêtres, disposition clavier) depuis `niri msg -j event-stream`:
 // Quickshell n'a pas de module niri, le flux d'événements donne tout sans interroger.
-pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io

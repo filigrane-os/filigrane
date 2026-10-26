@@ -15,7 +15,7 @@ case "$1" in
         exit 0 ;;
     toggle)
         if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi
-        "$HOME/.local/bin/fili-shell" signal 20 12 13 10 18
+        "$HOME/.local/bin/fili-shell" bar refresh 20 12 13 10 18
         exit 0 ;;
     timer) out="$("$B/bar-timer")" ;;
     idle|night) out="$("$B/bar-status" "$1")" ;;
@@ -30,7 +30,7 @@ case "$out" in
         if [ ! -e "$f" ]; then
             age=$(( $(date +%s) - $(stat -c %Y "$stamp" 2>/dev/null || echo 0) ))
             if [ "$age" -lt 10 ]; then
-                [ -e "$stamp.wait" ] || { : >"$stamp.wait"; setsid sh -c "sleep $((11 - age)); rm -f '$stamp.wait'; \"\$HOME/.local/bin/fili-shell\" signal $sig" >/dev/null 2>&1 & }
+                [ -e "$stamp.wait" ] || { : >"$stamp.wait"; setsid sh -c "sleep $((11 - age)); rm -f '$stamp.wait'; \"\$HOME/.local/bin/fili-shell\" bar refresh $sig" >/dev/null 2>&1 & }
             else
                 out='{"text":""}'
             fi

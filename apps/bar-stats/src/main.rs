@@ -145,19 +145,19 @@ fn temp(every: Duration) {
     }
 }
 
-// Ligne de commande pour le shell Quickshell: tuyau nommé lu par shell.qml (Control.qml); ignorée s'il ne tourne pas
+// Ligne de commande pour le fili-shell (Quickshell): tuyau nommé lu par FiliShell.qml; ignorée s'il ne tourne pas
 // (ouverture non bloquante: ENXIO sans lecteur)
 fn shell_cmd(line: &str) {
     let run = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into());
-    if let Ok(mut f) = fs::OpenOptions::new().write(true).custom_flags(libc::O_NONBLOCK).open(format!("{run}/filigrane-shell")) {
+    if let Ok(mut f) = fs::OpenOptions::new().write(true).custom_flags(libc::O_NONBLOCK).open(format!("{run}/fili-shell")) {
         let _ = writeln!(f, "{line}");
     }
 }
 
-// Rafraîchit un module de la barre: Quickshell (tuyau) ou Waybar (signal temps réel, comme `pkill -RTMIN+n waybar`);
+// Rafraîchit un module de la fili-bar (`bar refresh N` dans le tuyau) ou de Waybar (signal temps réel, comme `pkill -RTMIN+n waybar`);
 // /proc n'est parcouru que lorsqu'un état change
 fn refresh(sig: i32) {
-    shell_cmd(&format!("signal {sig}"));
+    shell_cmd(&format!("bar refresh {sig}"));
     let Ok(dir) = fs::read_dir("/proc") else { return };
     for e in dir.flatten() {
         let Some(pid) = e.file_name().to_str().and_then(|s| s.parse::<i32>().ok()) else { continue };

@@ -15,7 +15,7 @@ if [ "$1" = open ]; then
         tmp=$1; shift
         bat --paging=always -l md --style=plain "$tmp" 2>/dev/null || less "$tmp"
         mkdir -p "$(dirname "$1")/archive" && mv "$@" "$(dirname "$1")/archive/"
-        rm -f "$tmp"; "$HOME/.local/bin/fili-shell" signal 15' _ "$tmp" "${files[@]}"
+        rm -f "$tmp"; "$HOME/.local/bin/fili-shell" bar refresh 15' _ "$tmp" "${files[@]}"
 fi
 
 if [ ${#files[@]} -eq 0 ]; then

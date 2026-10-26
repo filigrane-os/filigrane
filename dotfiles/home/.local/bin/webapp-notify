@@ -52,7 +52,7 @@ dbus-monitor --session "interface='org.freedesktop.Notifications',member='Notify
     }
 ' | while IFS="$US" read -r name kind icon summary body; do
     sleep 0.15   # laisse le shell afficher la notification d'origine
-    "$BIN/fili-shell" dismiss-summary "$summary"
+    "$BIN/fili-shell" notification dismiss "$summary"
     notify-send -a "$name" -i "$icon" "$summary" "$body"
     "$BIN/bar-alert" push "$kind" "$summary" "$body"
 done

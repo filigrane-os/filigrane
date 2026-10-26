@@ -1,7 +1,8 @@
-// Serveur de notifications (remplace mako): bulles en haut à droite sous la barre, 4 au plus, durée selon l'urgence
-// (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées), historique des 30 dernières.
-// Clic gauche: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); clic droit: fermer.
 pragma Singleton
+// fili-notification: serveur de notifications (remplace mako), bulles en haut à droite sous la fili-bar, 4 au plus,
+// durée selon l'urgence (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées).
+// fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
+// Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); clic droit: fermer.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -16,7 +17,7 @@ Singleton {
     property var popups: []
     // Historique (copies, plus récentes en tête): { app, icon, summary, body, time }
     property var history: []
-    property bool historyOpen: false
+    property bool centerOpen: false
     property int serial: 0
 
     function timeout(n) {
@@ -44,15 +45,15 @@ Singleton {
         for (const p of popups.slice())
             close(p.n, "dismiss");
     }
-    function toggleHistory() {
-        historyOpen = !historyOpen;
+    function toggleCenter() {
+        centerOpen = !centerOpen;
     }
     function activate(n) {
         const def = n.actions.find(a => a.identifier === "default");
         const app = n.appName, entry = n.desktopEntry;
         if (def)
             def.invoke();
-        Quickshell.execDetached([Theme.bin + "/notif-focus", app, entry]);
+        Quickshell.execDetached([FiliTheme.bin + "/notif-focus", app, entry]);
         close(n, "dismiss");
     }
 
@@ -75,25 +76,27 @@ Singleton {
     }
 
     Connections {
-        target: Control
-        function onCommand(name, args) {
+        target: FiliShell
+        function onCommand(target, name, args) {
+            if (target !== "notification")
+                return;
             if (name === "dnd")
                 notifs.dnd = args[0] === "on" ? true : args[0] === "off" ? false : !notifs.dnd;
             else if (name === "dismiss-all")
                 notifs.dismissAll();
-            else if (name === "dismiss-summary") {
+            else if (name === "dismiss") {
                 const s = args.join(" ");
                 const p = notifs.popups.find(p => p.n.summary === s);
                 if (p)
                     notifs.close(p.n, "dismiss");
-            } else if (name === "history")
-                notifs.toggleHistory();
-            else if (name === "history-json")
-                Control.reply(args[0], JSON.stringify(notifs.history.map(h => ({ app_name: h.app, app_icon: h.icon, summary: h.summary, body: h.body }))));
+            } else if (name === "center")
+                notifs.toggleCenter();
+            else if (name === "history")
+                FiliShell.reply(args[0], JSON.stringify(notifs.history.map(h => ({ app_name: h.app, app_icon: h.icon, summary: h.summary, body: h.body }))));
         }
     }
 
-    // Bulles
+    // fili-notification: bulles
     PanelWindow {
         visible: !notifs.dnd && notifs.popups.length > 0
         anchors { top: true; right: true }
@@ -101,7 +104,7 @@ Singleton {
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: 0
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "filigrane-notifications"
+        WlrLayershell.namespace: "fili-notification"
         implicitWidth: 360
         implicitHeight: Math.max(1, stack.implicitHeight)
         color: "transparent"
@@ -128,10 +131,10 @@ Singleton {
         readonly property bool critical: n.urgency === NotificationUrgency.Critical
         readonly property string img: notifs.icon(n)
         implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56))
-        color: Theme.nuit
+        color: FiliTheme.nuit
         radius: 12
         border.width: 1
-        border.color: critical ? Theme.cendre : low ? Theme.nuit3 : Theme.nuit4
+        border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.nuit4
         clip: true
 
         Timer {
@@ -157,8 +160,8 @@ Singleton {
                     Layout.fillWidth: true
                     text: card.n.summary
                     elide: Text.ElideRight
-                    color: card.low ? Theme.brume2 : Theme.brume
-                    font { family: Theme.font; pixelSize: 15; weight: Font.Medium }
+                    color: card.low ? FiliTheme.brume2 : FiliTheme.brume
+                    font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
                 }
                 Text {
                     Layout.fillWidth: true
@@ -168,9 +171,9 @@ Singleton {
                     wrapMode: Text.Wrap
                     maximumLineCount: 4
                     elide: Text.ElideRight
-                    color: card.low ? Theme.brume2 : Theme.brume
-                    linkColor: Theme.voile
-                    font { family: Theme.font; pixelSize: 14 }
+                    color: card.low ? FiliTheme.brume2 : FiliTheme.brume
+                    linkColor: FiliTheme.voile
+                    font { family: FiliTheme.font; pixelSize: 14 }
                     onLinkActivated: l => Qt.openUrlExternally(l)
                 }
                 // Barre de progression (indice "value")
@@ -180,12 +183,12 @@ Singleton {
                     Layout.topMargin: 4
                     implicitHeight: 4
                     radius: 2
-                    color: Theme.nuit3
+                    color: FiliTheme.nuit3
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(100, card.n.hints.value ?? 0)) / 100
                         height: parent.height
                         radius: 2
-                        color: Theme.voile
+                        color: FiliTheme.voile
                     }
                 }
             }
@@ -199,30 +202,30 @@ Singleton {
         }
     }
 
-    // Historique: clic = copier le texte, clic droit = retirer, Échap ou clic hors du panneau = fermer
+    // fili-notification-center: clic = copier le texte, clic droit = retirer, Échap ou clic hors du panneau = fermer
     PanelWindow {
-        visible: notifs.historyOpen
+        visible: notifs.centerOpen
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: 0
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "filigrane-history"
+        WlrLayershell.namespace: "fili-notification-center"
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         color: "transparent"
 
         MouseArea {
             anchors.fill: parent
-            onClicked: notifs.historyOpen = false
+            onClicked: notifs.centerOpen = false
         }
         Rectangle {
             anchors { top: parent.top; right: parent.right; margins: 12 }
             width: 380
             height: Math.min(parent.height - 24, col.implicitHeight + 28)
-            color: Theme.nuit
+            color: FiliTheme.nuit
             radius: 12
-            border { width: 1; color: Theme.nuit4 }
+            border { width: 1; color: FiliTheme.nuit4 }
             focus: true
-            Keys.onEscapePressed: notifs.historyOpen = false
+            Keys.onEscapePressed: notifs.centerOpen = false
             MouseArea { anchors.fill: parent }
 
             ColumnLayout {
@@ -234,28 +237,28 @@ Singleton {
                     Text {
                         Layout.fillWidth: true
                         text: "Notifications" + (notifs.dnd ? "  ·  ne pas déranger" : "")
-                        color: Theme.voile
-                        font { family: Theme.font; pixelSize: 15; weight: Font.Medium }
+                        color: FiliTheme.voile
+                        font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
                     }
                     Text {
                         text: notifs.dnd ? "" : ""
-                        color: notifs.dnd ? Theme.sable : Theme.ardoise
-                        font { family: Theme.font; pixelSize: 15 }
+                        color: notifs.dnd ? FiliTheme.sable : FiliTheme.ardoise
+                        font { family: FiliTheme.font; pixelSize: 15 }
                         MouseArea { anchors.fill: parent; onClicked: notifs.dnd = !notifs.dnd }
                     }
                     Text {
                         text: "Effacer"
                         visible: notifs.history.length > 0
-                        color: Theme.ardoise
-                        font { family: Theme.font; pixelSize: 13 }
+                        color: FiliTheme.ardoise
+                        font { family: FiliTheme.font; pixelSize: 13 }
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
                     }
                 }
                 Text {
                     visible: notifs.history.length === 0
                     text: "Aucune notification"
-                    color: Theme.ardoise
-                    font { family: Theme.font; pixelSize: 13 }
+                    color: FiliTheme.ardoise
+                    font { family: FiliTheme.font; pixelSize: 13 }
                 }
                 ListView {
                     Layout.fillWidth: true
@@ -270,7 +273,7 @@ Singleton {
                         width: ListView.view.width
                         implicitHeight: entry.implicitHeight + 16
                         radius: 9
-                        color: hov.containsMouse ? Theme.nuit3 : "transparent"
+                        color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
                         ColumnLayout {
                             id: entry
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8 }
@@ -278,15 +281,15 @@ Singleton {
                             Text {
                                 Layout.fillWidth: true
                                 text: parent.parent.modelData.app + "  ·  " + Qt.formatTime(parent.parent.modelData.time, "HH:mm")
-                                color: Theme.ardoise
-                                font { family: Theme.font; pixelSize: 12 }
+                                color: FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: 12 }
                             }
                             Text {
                                 Layout.fillWidth: true
                                 text: parent.parent.modelData.summary
                                 elide: Text.ElideRight
-                                color: Theme.brume
-                                font { family: Theme.font; pixelSize: 14; weight: Font.Medium }
+                                color: FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
                             }
                             Text {
                                 Layout.fillWidth: true
@@ -295,8 +298,8 @@ Singleton {
                                 wrapMode: Text.Wrap
                                 maximumLineCount: 2
                                 elide: Text.ElideRight
-                                color: Theme.brume2
-                                font { family: Theme.font; pixelSize: 13 }
+                                color: FiliTheme.brume2
+                                font { family: FiliTheme.font; pixelSize: 13 }
                             }
                         }
                         MouseArea {
@@ -310,7 +313,7 @@ Singleton {
                                     notifs.history = notifs.history.filter(x => x !== h);
                                 } else {
                                     Quickshell.execDetached(["wl-copy", h.summary + (h.body ? "\n" + h.body.replace(/<[^>]*>/g, "") : "")]);
-                                    notifs.historyOpen = false;
+                                    notifs.centerOpen = false;
                                 }
                             }
                         }

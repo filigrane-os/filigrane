@@ -17,7 +17,7 @@ case "$1" in
             pgrep -x wlsunset >/dev/null || run 6500
         elif pgrep -x wlsunset >/dev/null; then stop
         else run 4501; fi
-        sleep 0.3; "$HOME/.local/bin/fili-shell" signal 10 ;;
+        sleep 0.3; "$HOME/.local/bin/fili-shell" bar refresh 10 ;;
     rec)
         if pgrep -x wf-recorder >/dev/null; then
             pkill -INT -x wf-recorder; notify-send "Enregistrement" "Terminé: ~/Videos"
@@ -26,7 +26,7 @@ case "$1" in
             setsid wf-recorder -f "$HOME/Videos/rec-$(date +%Y%m%d-%H%M%S).mp4" >/dev/null 2>&1 &
             notify-send "Enregistrement" "Démarré (clic sur l'indicateur pour arrêter)"
         fi
-        sleep 0.5; "$HOME/.local/bin/fili-shell" signal 11 ;;
+        sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 11 ;;
     idle)
         if [ "$2" = start ] || ! pgrep -x swayidle >/dev/null; then
             pgrep -x swayidle >/dev/null || setsid swayidle -w \
@@ -38,22 +38,22 @@ case "$1" in
         else
             pkill -x swayidle; notify-send -u low "Verrouillage auto" "Désactivé"
         fi
-        sleep 0.3; "$HOME/.local/bin/fili-shell" signal 13 ;;
+        sleep 0.3; "$HOME/.local/bin/fili-shell" bar refresh 13 ;;
     air)
         if rfkill list 2>/dev/null | grep -q 'Soft blocked: yes'; then
             rfkill unblock all; notify-send -u low "Mode avion" "Désactivé"
         else
             rfkill block all; notify-send -u low "Mode avion" "Activé (Wi-Fi et Bluetooth coupés)"
         fi
-        sleep 0.5; "$HOME/.local/bin/fili-shell" signal 14 ;;
+        sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 14 ;;
     present)
         # Mode présentation: ni verrouillage auto ni notifications
         if pgrep -x swayidle >/dev/null; then
-            pkill -x swayidle; "$HOME/.local/bin/fili-shell" dnd on
+            pkill -x swayidle; "$HOME/.local/bin/fili-shell" notification dnd on
             notify-send -u low "Présentation" "Activée"
         else
-            "$0" idle start; "$HOME/.local/bin/fili-shell" dnd off
+            "$0" idle start; "$HOME/.local/bin/fili-shell" notification dnd off
             notify-send -u low "Présentation" "Terminée"
         fi
-        "$HOME/.local/bin/fili-shell" signal 13 ;;
+        "$HOME/.local/bin/fili-shell" bar refresh 13 ;;
 esac
