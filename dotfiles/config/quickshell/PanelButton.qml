@@ -9,12 +9,16 @@ Rectangle {
     property string detail
     property bool sel: false
     property bool dim: false
+    // Interrupteur à droite (activer / désactiver): switchable = false le grise (rien à activer)
+    property bool toggle: false
+    property bool switchable: true
     property color tint: sel ? FiliTheme.voile : dim ? FiliTheme.ardoise : FiliTheme.brume
     signal clicked(int button)
 
     Layout.fillWidth: true
     implicitHeight: 30
     radius: 6
+    enabled: !toggle || switchable
     color: area.containsMouse ? FiliTheme.nuit3 : "transparent"
 
     RowLayout {
@@ -35,8 +39,22 @@ Rectangle {
             elide: Text.ElideRight
             font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: btn.sel ? Font.Medium : Font.Normal }
         }
+        Rectangle {
+            visible: btn.toggle
+            implicitWidth: 34
+            implicitHeight: 18
+            radius: 9
+            opacity: btn.switchable ? 1 : 0.4
+            color: btn.sel ? FiliTheme.voile : FiliTheme.nuit4
+            Rectangle {
+                x: btn.sel ? parent.width - width - 2 : 2
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14; height: 14; radius: 7
+                color: btn.sel ? FiliTheme.nuit : FiliTheme.brume2
+            }
+        }
         Text {
-            visible: btn.detail !== ""
+            visible: btn.detail !== "" && !btn.toggle
             text: btn.detail
             color: FiliTheme.ardoise
             font { family: FiliTheme.font; pixelSize: 12 }

@@ -345,14 +345,14 @@ PanelWindow {
                 hover.scrollUp: "brightnessctl -q set 5%+"
                 hover.scrollDown: "brightnessctl -q set 5%-"
             }
-            // Bluetooth (masqué sans adaptateur): clic = bluetui (appairage, connexion, oubli)
+            // Bluetooth (toujours visible, grisé sans adaptateur): clic = panneau (activer, appairer, connecter, oublier)
             BarItem {
                 objectName: "bluetooth"
                 readonly property var adapter: Bluetooth.defaultAdapter
                 readonly property var connected: adapter ? adapter.devices.values.filter(d => d.connected) : []
                 text: {
                     if (!adapter)
-                        return "";
+                        return "";
                     if (!adapter.enabled)
                         return " off";
                     const d = connected[0];
@@ -360,7 +360,8 @@ PanelWindow {
                         return " on";
                     return " " + d.name + (d.batteryAvailable ? " " + Math.round(d.battery * 100) + "%" : "");
                 }
-                tip: !adapter ? "" : {
+                color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
+                tip: !adapter ? { title: "Bluetooth", rows: [["État", "aucun adaptateur détecté"]], hint: "clic: panneau Bluetooth" } : {
                     title: "Bluetooth",
                     rows: [[adapter.name, adapter.enabled ? "activé" : "désactivé"]].concat(
                         adapter.devices.values.filter(d => d.paired || d.connected).map(d => [d.name,

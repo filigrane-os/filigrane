@@ -16,17 +16,21 @@ ColumnLayout {
     }
     Text {
         visible: !view.adapter
-        text: "Aucun adaptateur"
+        text: "Aucun adaptateur Bluetooth détecté (contrôleur absent ou micrologiciel non chargé)"
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
+        Layout.maximumWidth: 300
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
     PanelButton {
         objectName: "power"
-        visible: !!view.adapter
+        toggle: true
+        switchable: !!view.adapter
         glyph: ""
-        label: view.adapter?.enabled ? "Activé" : "Désactivé"
+        label: "Activé"
         sel: view.adapter?.enabled ?? false
-        onClicked: view.adapter.enabled = !view.adapter.enabled
+        onClicked: { if (view.adapter) view.adapter.enabled = !view.adapter.enabled; }
     }
     PanelButton {
         objectName: "scan"

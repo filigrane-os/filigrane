@@ -73,9 +73,10 @@ ColumnLayout {
     }
     PanelButton {
         objectName: "wifi-power"
+        toggle: true
         visible: view.wifi.device !== ""
         glyph: ""
-        label: view.wifi.powered ? "Activé" : "Désactivé"
+        label: "Activé"
         sel: view.wifi.powered
         onClicked: view.act(["power", view.wifi.powered ? "off" : "on"])
     }
