@@ -357,13 +357,12 @@ PanelWindow {
                 hover.onLeftClicked: FiliPanel.toggle(hover, "keyboard", bar)
                 hover.onMiddleClicked: Niri.action("switch-layout", "next")
             }
-            // Écrans: clic = panneau (disposition, définition, échelle, rotation), clic droit = wdisplays, molette = luminosité
+            // Écrans: clic = panneau (disposition, définition, échelle, rotation), molette = luminosité
             BarItem {
                 objectName: "display"
                 text: ""
                 tipCmd: bar.b + "/fili-info display"
                 hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
-                hover.rclick: bar.b + "/focus-or-run wdisplays wdisplays"
                 hover.scrollUp: "brightnessctl -q set 5%+"
                 hover.scrollDown: "brightnessctl -q set 5%-"
             }

@@ -405,6 +405,21 @@ ColumnLayout {
         }
     }
 
+    PanelSection { text: "PROFIL" }
+    PanelButton {
+        objectName: "save"
+        glyph: ""
+        label: "Enregistrer pour ces écrans"
+        detail: "kanshi"
+        onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
+    }
+    // Réglages de l'écran lui-même, en bas
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.topMargin: 6
+        implicitHeight: 1
+        color: FiliTheme.nuit4
+    }
     PanelSection { visible: view.screen >= 0; text: "LUMINOSITÉ" }
     PanelSlider {
         objectName: "screen"
@@ -434,21 +449,6 @@ ColumnLayout {
                 FiliTheme.run(FiliTheme.bin + "/bar-toggle night " + (view.night ? "on" : "off"));
             }
         }
-    }
-
-    PanelSection { text: "PROFIL" }
-    PanelButton {
-        objectName: "save"
-        glyph: ""
-        label: "Enregistrer pour ces écrans"
-        detail: "kanshi"
-        onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
-    }
-    PanelButton {
-        glyph: ""
-        label: "Éditeur graphique (wdisplays)"
-        dim: true
-        onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/focus-or-run wdisplays wdisplays"); }
     }
 
     // Panneau fermé avec un changement à confirmer: on revient en arrière plutôt que de laisser un écran inutilisable

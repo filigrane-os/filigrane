@@ -160,7 +160,6 @@ ShellRoot {
                 }
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
-                expectClick("display", R, "wdisplays");
                 expectClick("display", "up", "brightnessctl -q set 5%+");
                 expectClick("display", "down", "brightnessctl -q set 5%-");
                 expectClick("network", R, "menu network");
@@ -180,7 +179,7 @@ ShellRoot {
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts appelés par la fili-bar présents dans " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installés
-            wait(() => t.shell('for c in impala bluetui wiremix htop foot wdisplays brightnessctl niri jq; do command -v $c >/dev/null || echo $c; done'),
+            wait(() => t.shell('for c in impala bluetui wiremix htop foot brightnessctl niri jq; do command -v $c >/dev/null || echo $c; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "programmes lancés par la fili-bar installés", t.shellOut.out.trim()),
 

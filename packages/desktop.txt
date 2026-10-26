@@ -30,8 +30,7 @@ noto-fonts-emoji
 # Panneau clavier: visualiseur (fili-keymap lit le keymap avec xkbcli) et emoji, frappe dans la fenêtre active (wtype)
 wtype
 libxkbcommon-tools
-# Écrans: réglage visuel (wdisplays) et profils automatiques (kanshi)
-wdisplays
+# Écrans: profils automatiques (kanshi)
 kanshi
 python3
 # Clics de la barre: moniteur système et mixeur audio en TUI (pas de daemon)

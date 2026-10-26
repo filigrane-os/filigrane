@@ -411,13 +411,6 @@ window-rule {
     default-window-height { fixed 600; }
 }
 
-// Réglage des écrans: fenêtre flottante
-window-rule {
-    match app-id=r#"^wdisplays$"#
-    open-floating true
-    default-column-width { proportion 0.75; }
-    default-window-height { proportion 0.75; }
-}
 
 // TUI lancées depuis la barre (bar-tui): fenêtre flottante
 window-rule {
@@ -459,7 +452,7 @@ binds {
     Mod+Ctrl+E hotkey-overlay-title="Son: égaliseur haut-parleurs" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }
     Mod+Ctrl+W hotkey-overlay-title="Wi-Fi (impala)" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }
     Mod+Ctrl+B hotkey-overlay-title="Bluetooth (bluetui)" { spawn-sh "$HOME/.local/bin/bar-tui bluetui"; }
-    Mod+Ctrl+D hotkey-overlay-title="Écrans (wdisplays)" { spawn-sh "GDK_GL=disable wdisplays"; }
+    Mod+Ctrl+D hotkey-overlay-title="Écrans: panneau" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "$HOME/.local/bin/menu apps"; }
     Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
     // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
