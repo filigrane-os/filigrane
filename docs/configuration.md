@@ -72,13 +72,14 @@ LOCALE="${LOCALE:-fr_FR.UTF-8}"
 ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
                [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
                [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<login>]
-               [--system-only | --dotfiles-only | --plan]
+               [--system-only | --dotfiles-only | --fili-shell | --plan]
 ```
 
 | Option | Effect |
 |---|---|
 | `--system-only` | Packages, services, system settings, AI agent install; no dotfiles |
 | `--dotfiles-only` | Symlinks and Rust tools; no packages or services |
+| `--fili-shell` | Only the fili-shell (QML, `bar-*`, `fili-*` scripts) is linked and reloaded; no sudo |
 | `--plan` | Print the package lists, services and layers that would be applied, then exit without changing anything |
 
 Run as a normal user (it calls `sudo`), or as root with `TARGET_USER=<login>` (what `install-void.sh` does in its chroot).
