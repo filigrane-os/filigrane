@@ -5,7 +5,7 @@ A light Void Linux + niri desktop, described by a git repository and replayable 
 The OS stays in the background, like a watermark (*filigrane* in French): RAM, CPU and battery go to the browser, AI agents and containers, not to the system.
 
 - **Void Linux**: xbps packages, runit services, no systemd, rolling release.
-- **niri**: a scrollable-tiling Wayland compositor, with waybar, fuzzel, mako and foot.
+- **niri**: a scrollable-tiling Wayland compositor, with a Quickshell shell (bar, notifications, menu) and foot.
 - **Declarative**: packages, services, settings and dotfiles live in this repo. `bootstrap.sh` applies them and is idempotent.
 - **Layered**: distribution → hardware → personal. Your own accounts, services and tastes stay in `users/<login>/` and override the distribution without forking it.
 - **AI agent built in**: `Mod+Y` starts Claude Code, Codex, opencode or local models (Ollama). The agent knows the system's rules (xbps, runit, layers, resource budget) through the `filigrane` skill.

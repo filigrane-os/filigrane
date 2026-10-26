@@ -1,5 +1,5 @@
 #!/bin/sh
-# Indicateurs Waybar (JSON): mic | dnd | night | rec | idle | remote | air | vpn | batwatch. Rafraîchis par signal (clic, ou bar-stats watch quand l'état change) ou par intervalle.
+# Indicateurs de la barre (JSON, protocole des modules custom de Waybar): mic | night | rec | idle | remote | air | vpn | batwatch. Rafraîchis par signal (clic, ou bar-stats watch quand l'état change) ou par intervalle.
 # CPU, mémoire et température: bar-stats (apps/bar-stats, Rust, résident).
 case "$1" in
     mic)
@@ -8,12 +8,6 @@ case "$1" in
             *MUTED*) printf '{"text":"\\uf131","class":"muted","tooltip":"Micro coupé"}\n' ;;
             *) printf '{"text":"\\uf130","tooltip":"Micro actif: %s"}\n' "$(echo "$v" | awk '{printf "%d%%", $2*100}')" ;;
         esac ;;
-    dnd)
-        if makoctl mode 2>/dev/null | grep -q do-not-disturb; then
-            printf '{"text":"\\uf1f6","class":"active","tooltip":"Ne pas déranger (clic: historique, clic droit: réactiver)"}\n'
-        else
-            printf '{"text":"\\uf0f3","class":"idle","tooltip":"Notifications actives (clic: historique, clic droit: les couper)"}\n'
-        fi ;;
     night)
         # Active seulement si l'écran est réellement réchauffé (forcé, ou auto en soirée); auto en journée = au repos.
         if pgrep -x wlsunset >/dev/null; then

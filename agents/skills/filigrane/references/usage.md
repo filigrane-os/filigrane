@@ -27,7 +27,7 @@ Paths are relative to `$FILIGRANE_DIR`. `<layer>` is `users/<login>/` from `.use
 | `USER_GROUPS` | groups added to the user |
 | `FILI_AI`, `FILI_AI_MODEL`, `FILI_AI_WORKDIR`, `FILI_AI_ARGS` | AI agent (below) |
 
-Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), waybar, menu entries `~/.config/menu/entries`: `references/niri.md`.
+Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), bar/notifications/menu (Quickshell), menu entries `~/.config/menu/entries`: `references/niri.md`.
 
 ## Updating
 

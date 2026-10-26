@@ -279,7 +279,7 @@ layout {
 // which may be more convenient to use.
 // See the binds section below for more spawn examples.
 
-// Variables d'environnement des applications lancées par niri (fuzzel, terminaux...).
+// Variables d'environnement des applications lancées par niri (shell Quickshell, terminaux...).
 // Chromium: le wrapper Void lit CHROME_FLAGS. Wayland natif + partage d'écran via pipewire.
 environment {
     CHROME_FLAGS "--ozone-platform=wayland --enable-features=WebRTCPipeWireCapturer"
@@ -297,15 +297,14 @@ spawn-at-startup "dbus-update-activation-environment" "WAYLAND_DISPLAY" "XDG_CUR
 spawn-at-startup "pipewire"
 // Réglages du DSP haut-parleurs (sound-tune), réappliqués quand le filtre apparaît
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/sound-tune --apply"
-// This line starts waybar, a commonly used bar for Wayland compositors.
-// Relancée si elle s'arrête: waybar plante quand ses écrans disparaissent (débranchement)
-spawn-sh-at-startup "while :; do waybar; sleep 1; done"
-spawn-at-startup "mako"
+// fili-shell (Quickshell, ~/.config/quickshell): fili-bar, fili-notification et fili-menu en un processus.
+// Relancé s'il s'arrête (écran débranché, plantage)
+spawn-sh-at-startup "while :; do quickshell; sleep 1; done"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
 // Profils d'écrans automatiques (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
-// Notifications des webapps listées dans ~/.config/webapps/notify (WhatsApp...): indicateur Waybar, voir ~/.local/bin/webapp-notify
+// Notifications des webapps listées dans ~/.config/webapps/notify (WhatsApp...): indicateur de la barre, voir ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
 // Mini-cron: tâches de ~/.config/cron-watch/jobs.d/ (MAJ Void toutes les 6 h...), voir ~/.local/bin/cron-watch
 spawn-sh-at-startup "$HOME/.local/bin/cron-watch"
@@ -360,9 +359,9 @@ animations {
 
 // Work around WezTerm's initial configure bug
 // by setting an empty default-column-width.
-// Flou du fond autour de fuzzel: voile plein écran de `menu-backdrop`, présent seulement pendant que le menu est ouvert
+// Flou du fond derrière le fili-menu: sa fenêtre plein écran (calque fili-menu), présente seulement menu ouvert
 layer-rule {
-    match namespace="^menu-backdrop$"
+    match namespace="^fili-menu$"
     background-effect {
         blur true
         xray false
@@ -461,10 +460,10 @@ binds {
     Mod+Ctrl+W hotkey-overlay-title="Wi-Fi (impala)" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }
     Mod+Ctrl+B hotkey-overlay-title="Bluetooth (bluetui)" { spawn-sh "$HOME/.local/bin/bar-tui bluetui"; }
     Mod+Ctrl+D hotkey-overlay-title="Écrans (wdisplays)" { spawn-sh "GDK_GL=disable wdisplays"; }
-    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn-sh "$HOME/.local/bin/menu apps"; }
-    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "pkill -x fuzzel || exec $HOME/.local/bin/menu"; }
+    Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "$HOME/.local/bin/menu apps"; }
+    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "$HOME/.local/bin/fili-shell menu close || exec $HOME/.local/bin/menu"; }
     // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
-    Ctrl+Space hotkey-overlay-title=null { spawn-sh "pkill -x fuzzel || exec $HOME/.local/bin/menu"; }
+    Ctrl+Space hotkey-overlay-title=null { spawn-sh "$HOME/.local/bin/fili-shell menu close || exec $HOME/.local/bin/menu"; }
     Mod+L hotkey-overlay-title="Verrouiller l'écran" { spawn-sh "$HOME/.local/bin/lock"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
@@ -495,8 +494,8 @@ binds {
     XF86KbdBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "+10%"; }
     XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "10%-"; }
     Mod+Tab hotkey-overlay-title="Fenêtres: aller à" { spawn-sh "$HOME/.local/bin/menu windows"; }
-    Mod+B hotkey-overlay-title="Notifications: activer/couper" { spawn-sh "makoctl mode -t do-not-disturb; pkill -RTMIN+9 waybar"; }
-    Mod+Shift+B hotkey-overlay-title="Notifications: fermer toutes" { spawn-sh "makoctl dismiss -a"; }
+    Mod+B hotkey-overlay-title="Notifications: activer/couper" { spawn-sh "$HOME/.local/bin/fili-shell notification dnd toggle"; }
+    Mod+Shift+B hotkey-overlay-title="Notifications: fermer toutes" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
     Mod+Shift+Space hotkey-overlay-title="Aide des raccourcis" { spawn-sh "$HOME/.local/bin/menu keys"; }
     // Écran: pas de 1%, Shift pour un pas fin de 30 unités (~0,17%, max 17777)
     XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "-d" "intel_backlight" "set" "+1%"; }
@@ -651,7 +650,7 @@ binds {
     Mod+Ctrl+plus { move-column-to-workspace 7; }
     Mod+Ctrl+minus { move-column-to-workspace 8; }
     Mod+Ctrl+slash { move-column-to-workspace 9; }
-    // Même chose en layout qwerty australien (bascule Waybar): les chiffres sont alors de vrais chiffres
+    // Même chose en layout qwerty australien (bascule: icône clavier de la barre): les chiffres sont alors de vrais chiffres
     Mod+1 { focus-workspace 1; }
     Mod+2 { focus-workspace 2; }
     Mod+3 { focus-workspace 3; }

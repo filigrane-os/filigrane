@@ -1,8 +1,9 @@
-// Modules Waybar CPU, mémoire et température, résidents: `bar-stats cpu|mem|temp` écrit une ligne JSON par intervalle
-// (module sans "interval" dans la config Waybar). Lit /proc et /sys directement, sans lancer top, ps ni awk.
+// Modules de la barre (Quickshell, protocole JSON des modules custom de Waybar) CPU, mémoire et température, résidents:
+// `bar-stats cpu|mem|temp` écrit une ligne JSON par intervalle. Lit /proc et /sys directement, sans lancer top, ps ni awk.
 // `bar-stats watch` surveille les indicateurs à changement rare et réveille leur module par signal (voir watch).
-// Même sortie que l'ancien `bar-status cpu|mem|temp`. Se termine quand Waybar ferme le tuyau.
-use std::{collections::HashMap, env, fs, io::Write, os::unix::fs::MetadataExt, process, thread, time::{Duration, Instant}};
+// `bar-stats net|disk`: réseau et espace disque, comme les anciens modules intégrés de Waybar.
+// Se termine quand la barre ferme le tuyau.
+use std::{collections::HashMap, env, ffi::CStr, fs, io::Write, net::Ipv4Addr, os::unix::fs::{MetadataExt, OpenOptionsExt}, process, thread, time::{Duration, Instant}};
 
 struct Proc {
     name: String,
@@ -144,8 +145,19 @@ fn temp(every: Duration) {
     }
 }
 
-// Signal temps réel à Waybar (comme `pkill -RTMIN+n waybar`); /proc n'est parcouru que lorsqu'un état change
+// Ligne de commande pour le fili-shell (Quickshell): tuyau nommé lu par FiliShell.qml; ignorée s'il ne tourne pas
+// (ouverture non bloquante: ENXIO sans lecteur)
+fn shell_cmd(line: &str) {
+    let run = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into());
+    if let Ok(mut f) = fs::OpenOptions::new().write(true).custom_flags(libc::O_NONBLOCK).open(format!("{run}/fili-shell")) {
+        let _ = writeln!(f, "{line}");
+    }
+}
+
+// Rafraîchit un module de la fili-bar (`bar refresh N` dans le tuyau) ou de Waybar (signal temps réel, comme `pkill -RTMIN+n waybar`);
+// /proc n'est parcouru que lorsqu'un état change
 fn refresh(sig: i32) {
+    shell_cmd(&format!("bar refresh {sig}"));
     let Ok(dir) = fs::read_dir("/proc") else { return };
     for e in dir.flatten() {
         let Some(pid) = e.file_name().to_str().and_then(|s| s.parse::<i32>().ok()) else { continue };
@@ -210,11 +222,11 @@ fn locked(path: &str) -> bool {
         .any(|l| l.split_whitespace().any(|t| t.matches(':').count() == 2 && t.rsplit(':').next() == Some(ino.as_str())))
 }
 
-// Indicateurs à changement rare, sans sondage de Waybar: `bar-stats watch` lit /proc et /sys à chaque intervalle
+// Indicateurs à changement rare, sans sondage de la barre: `bar-stats watch` lit /proc et /sys à chaque intervalle
 // sans rien lancer et ne réveille un module (signal) que si son état a changé. Remplace les "interval" de 10 à 120 s
 // de remote, air, vpn, night, backup, cal et batwatch, qui lançaient chacun un shell et ses commandes.
 fn watch(every: Duration) {
-    // Lancé par `exec` depuis Waybar: s'arrête avec lui
+    // Lancé par `exec` depuis la barre: s'arrête avec elle
     // SAFETY: prctl ne touche qu'aux attributs de ce processus
     unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) };
     emit(r#"{"text":""}"#.into());
@@ -269,6 +281,135 @@ fn watch(every: Duration) {
     }
 }
 
+// Taille lisible en octets (base 1024, comme Waybar)
+fn human(b: f64) -> String {
+    let units = ["o", "Kio", "Mio", "Gio", "Tio"];
+    let mut v = b;
+    let mut i = 0;
+    while v >= 1024.0 && i < units.len() - 1 {
+        v /= 1024.0;
+        i += 1;
+    }
+    if i == 0 { format!("{v:.0} {}", units[i]) } else { format!("{v:.1} {}", units[i]) }
+}
+
+// Espace disque de / (statvfs), comme le module disk de Waybar
+fn disk(every: Duration) {
+    loop {
+        // SAFETY: statvfs remplit une structure initialisée à zéro, chemin C valide
+        let mut s: libc::statvfs = unsafe { std::mem::zeroed() };
+        if unsafe { libc::statvfs(c"/".as_ptr(), &mut s) } == 0 {
+            let f = s.f_frsize as f64;
+            let (total, free, avail) = (s.f_blocks as f64 * f, s.f_bfree as f64 * f, s.f_bavail as f64 * f);
+            let used = total - free;
+            let pct = (used * 100.0 / (used + avail)).round();
+            emit(format!(
+                r#"{{"text":"\uf0a0 {pct}%","tooltip":"{} / {} ({} libres)"}}"#,
+                human(used),
+                human(total),
+                human(avail)
+            ));
+        }
+        thread::sleep(every);
+    }
+}
+
+// Interface de la route par défaut (/proc/net/route, destination 0)
+fn default_iface() -> Option<String> {
+    fs::read_to_string("/proc/net/route").ok()?.lines().skip(1).find_map(|l| {
+        let f: Vec<&str> = l.split_whitespace().collect();
+        (f.len() > 1 && f[1] == "00000000").then(|| f[0].to_string())
+    })
+}
+
+// Première adresse IPv4 de l'interface (getifaddrs)
+fn ipv4(iface: &str) -> Option<Ipv4Addr> {
+    let mut list: *mut libc::ifaddrs = std::ptr::null_mut();
+    // SAFETY: liste allouée par getifaddrs, parcourue en lecture puis libérée par freeifaddrs
+    unsafe {
+        if libc::getifaddrs(&mut list) != 0 {
+            return None;
+        }
+        let mut cur = list;
+        let mut found = None;
+        while !cur.is_null() {
+            let a = &*cur;
+            if !a.ifa_addr.is_null()
+                && i32::from((*a.ifa_addr).sa_family) == libc::AF_INET
+                && CStr::from_ptr(a.ifa_name).to_str() == Ok(iface)
+            {
+                let sin = &*(a.ifa_addr as *const libc::sockaddr_in);
+                found = Some(Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr)));
+                break;
+            }
+            cur = a.ifa_next;
+        }
+        libc::freeifaddrs(list);
+        found
+    }
+}
+
+fn counter(iface: &str, name: &str) -> u64 {
+    fs::read_to_string(format!("/sys/class/net/{iface}/statistics/{name}")).ok().and_then(|s| s.trim().parse().ok()).unwrap_or(0)
+}
+
+// Réseau, comme le module network de Waybar: lit /proc et /sys toutes les 5 s, n'écrit que si l'état change
+// (débits rafraîchis toutes les 30 s); SSID et fréquence via `iw` seulement quand le lien change (iwd n'expose rien dans /sys)
+fn net(every: Duration) {
+    let mut last_key = String::new();
+    let (mut ssid, mut freq) = (String::new(), String::new());
+    let mut prev: Option<(String, u64, u64, Instant)> = None;
+    let mut rates = (0.0, 0.0);
+    let mut since = Instant::now() - Duration::from_secs(3600);
+    loop {
+        let iface = default_iface();
+        let ip = iface.as_deref().and_then(ipv4);
+        let key = format!("{iface:?} {ip:?}");
+        let wifi = iface.as_deref().is_some_and(|i| fs::metadata(format!("/sys/class/net/{i}/wireless")).is_ok());
+        let changed = key != last_key;
+        if changed && wifi {
+            let out = process::Command::new("iw").args(["dev", iface.as_deref().unwrap_or(""), "link"]).output();
+            let text = out.map(|o| String::from_utf8_lossy(&o.stdout).into_owned()).unwrap_or_default();
+            let field = |k: &str| text.lines().find_map(|l| l.trim().strip_prefix(k).map(|v| v.trim().to_string())).unwrap_or_default();
+            ssid = field("SSID:");
+            freq = field("freq:").split('.').next().unwrap_or("").to_string();
+        }
+        if changed || since.elapsed() >= Duration::from_secs(30) {
+            if let Some(i) = iface.as_deref() {
+                let (rx, tx, now) = (counter(i, "rx_bytes"), counter(i, "tx_bytes"), Instant::now());
+                if let Some((pi, prx, ptx, pt)) = &prev {
+                    let secs = now.duration_since(*pt).as_secs_f64();
+                    if pi == i && secs > 0.0 {
+                        rates = (rx.saturating_sub(*prx) as f64 / secs, tx.saturating_sub(*ptx) as f64 / secs);
+                    }
+                }
+                prev = Some((i.to_string(), rx, tx, now));
+            }
+            since = Instant::now();
+            last_key = key;
+            let ipt = ip.map(|a| a.to_string()).unwrap_or_else(|| "pas d'IPv4".into());
+            let bw = format!("↓ {}/s  ↑ {}/s", human(rates.0), human(rates.1));
+            let line = match iface.as_deref() {
+                None => r#"{"text":"\uf071 hors ligne","class":"disconnected","tooltip":"Aucune connexion (clic: Wi-Fi)"}"#.to_string(),
+                Some(i) if wifi => {
+                    let q = fs::read_to_string("/proc/net/wireless")
+                        .unwrap_or_default()
+                        .lines()
+                        .find(|l| l.trim_start().starts_with(&format!("{i}:")))
+                        .and_then(|l| l.split_whitespace().nth(2).and_then(|v| v.trim_end_matches('.').parse::<f64>().ok()))
+                        .map_or(0, |v| (v * 100.0 / 70.0).round() as i64);
+                    let ghz = freq.parse::<f64>().map(|f| format!("{:.1}", f / 1000.0)).unwrap_or_default();
+                    let name = clean(&ssid);
+                    format!(r#"{{"text":"\uf1eb {name}","class":"wifi","tooltip":"{name} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
+                }
+                Some(i) => format!(r#"{{"text":"\uf796 {i}","class":"ethernet","tooltip":"{i}: {ipt}\n{bw}"}}"#),
+            };
+            emit(line);
+        }
+        thread::sleep(every);
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let secs = |default: u64| Duration::from_secs(args.get(2).and_then(|s| s.parse().ok()).unwrap_or(default));
@@ -279,8 +420,10 @@ fn main() {
         Some("mem") => mem(secs(15), page_kb),
         Some("temp") => temp(secs(15)),
         Some("watch") => watch(secs(5)),
+        Some("net") => net(secs(5)),
+        Some("disk") => disk(secs(300)),
         _ => {
-            eprintln!("usage: bar-stats cpu|mem|temp|watch [intervalle en s]");
+            eprintln!("usage: bar-stats cpu|mem|temp|watch|net|disk [intervalle en s]");
             process::exit(2);
         }
     }

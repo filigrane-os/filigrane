@@ -28,7 +28,7 @@ restic cat config >/dev/null 2>"$STATE/backup.err" || refuse "dépôt restic abs
 # Verrou tenu pendant la sauvegarde: bar-backup s'en sert pour afficher "en cours"
 exec 8>"$STATE/backup.lock"
 flock -n 8 || { [ "$manual" = 1 ] && notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
-pkill -RTMIN+18 waybar
+"$HOME/.local/bin/fili-shell" bar refresh 18
 
 if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$HOME/.config/watch/backup-excludes" \
         --tag auto >"$STATE/backup.log" 2>>"$STATE/backup.err"; then
@@ -37,11 +37,11 @@ if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$
         restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune >>"$STATE/backup.log" 2>>"$STATE/backup.err"
     fi
     echo ok >"$STATE/backup.status"; touch "$STATE/backup.stamp"
-    pkill -RTMIN+18 waybar
+    "$HOME/.local/bin/fili-shell" bar refresh 18
     notify-send -u low -a backup "Sauvegarde NAS terminée" "$(tail -n 1 "$STATE/backup.log")"
     exit 0
 fi
 echo fail >"$STATE/backup.status"
-pkill -RTMIN+18 waybar
+"$HOME/.local/bin/fili-shell" bar refresh 18
 notify-send -u critical -a backup "Sauvegarde NAS échouée" "$(tail -n 2 "$STATE/backup.err" | tr '\n' ' ')"
 exit 1

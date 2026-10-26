@@ -557,7 +557,7 @@ setup_dotfiles() {
         "            layout \"$2\"" "            variant \"$3\"" "            options \"$4\"" "        }" "    }" "}" > "$5"' _ \
         "// Généré par bootstrap.sh depuis config.env (XKB_LAYOUT, XKB_VARIANT, XKB_OPTIONS), ne pas modifier ici" \
         "$XKB_LAYOUT" "$XKB_VARIANT" "$XKB_OPTIONS" "$TARGET_HOME/.config/niri/keyboard.kdl"
-    # Identité Filigrane: fichiers maîtres du logo (brand/) dans ~/.local/share/filigrane (logo de waybar),
+    # Identité Filigrane: fichiers maîtres du logo (brand/) dans ~/.local/share/filigrane (logo de la fili-bar),
     # polices Jost et JetBrains Mono (dotfiles/home/.local/share/fonts, OFL, absentes des dépôts Void)
     link_one "$ROOT/brand" "$TARGET_HOME/.local/share/filigrane"
     run_as_user fc-cache -f "$TARGET_HOME/.local/share/fonts" >/dev/null || warn 'fc-cache failed'

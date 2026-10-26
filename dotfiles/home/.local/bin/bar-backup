@@ -1,5 +1,5 @@
 #!/bin/sh
-# Indicateur Waybar de la sauvegarde restic (watch-backup). Sans argument: JSON d'état; `run`: sauvegarde immédiate.
+# Indicateur de la barre de la sauvegarde restic (watch-backup). Sans argument: JSON d'état; `run`: sauvegarde immédiate.
 #   idle (gris) | active (vert clignotant, en cours: verrou backup.lock tenu) | failed (rouge, dernier essai en échec)
 STATE="$HOME/.local/state/watch"
 if [ "$1" = run ]; then

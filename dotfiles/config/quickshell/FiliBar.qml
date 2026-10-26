@@ -1,0 +1,387 @@
+// fili-bar: barre du haut, une par écran: mêmes modules et interactions que l'ancienne Waybar (inspirée de la barre Omarchy
+// Quattro). Clic: action principale; clic droit/milieu/molette: voir chaque module. Les TUI s'ouvrent via bar-tui.
+// Scripts réutilisés (BarScript.qml); natifs: niri, horloge, audio (PipeWire), MPRIS, Bluetooth, tray, batterie.
+// Survol: fili-tooltip (fiche inspirée des panneaux d'Omarchy: état détaillé + rappel des clics); réseau, alimentation
+// et écran lus au survol seulement (fili-info).
+import QtQuick
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import Quickshell.Widgets
+import Quickshell.Services.SystemTray
+import Quickshell.Services.Pipewire
+import Quickshell.Services.Mpris
+import Quickshell.Bluetooth
+
+PanelWindow {
+    id: bar
+    required property var modelData
+    screen: modelData
+    anchors { top: true; left: true; right: true }
+    implicitHeight: FiliTheme.barHeight
+    color: FiliTheme.nuit
+    WlrLayershell.namespace: "fili-bar"
+
+    readonly property string b: FiliTheme.bin
+    readonly property var sink: Pipewire.defaultAudioSink
+    readonly property var source: Pipewire.defaultAudioSource
+
+    PwObjectTracker { objects: [bar.sink, bar.source] }
+
+    component Label: Text {
+        color: FiliTheme.brume
+        font.family: FiliTheme.font
+        font.pixelSize: FiliTheme.size
+        verticalAlignment: Text.AlignVCenter
+    }
+
+    // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
+    RowLayout {
+        anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        spacing: 12
+
+        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
+        Item {
+            Layout.leftMargin: 10
+            implicitWidth: 44
+            implicitHeight: FiliTheme.barHeight
+            Image {
+                anchors.centerIn: parent
+                source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-sombre.svg"
+                sourceSize.width: 44
+                fillMode: Image.PreserveAspectFit
+            }
+            BarHover {
+                anchors.fill: parent
+                tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal" })
+                click: "setsid -f " + bar.b + "/menu"
+                rclick: "setsid -f foot"
+            }
+        }
+
+        // Clic = aller au workspace, molette = précédent/suivant (sans boucler)
+        Row {
+            Layout.fillHeight: true
+            Repeater {
+                model: Niri.workspaces.filter(w => w.output === bar.screen.name)
+                Rectangle {
+                    required property var modelData
+                    implicitWidth: ws.implicitWidth + 12
+                    implicitHeight: FiliTheme.barHeight
+                    color: modelData.is_active || wsHover.containsMouse ? FiliTheme.nuit3 : "transparent"
+                    Label {
+                        id: ws
+                        anchors.centerIn: parent
+                        text: parent.modelData.idx
+                        color: parent.modelData.is_active || wsHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
+                    }
+                    Rectangle {
+                        visible: parent.modelData.is_active
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                        height: 2
+                        color: FiliTheme.voile
+                    }
+                    BarHover {
+                        id: wsHover
+                        anchors.fill: parent
+                        // Fenêtres de l'espace (app, titre)
+                        tip: {
+                            const id = parent.modelData.id;
+                            const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
+                            return {
+                                title: "Espace " + parent.modelData.idx,
+                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", "aucune fenêtre"]],
+                                hint: "clic: y aller · molette: précédent / suivant"
+                            };
+                        }
+                        onLeftClicked: Niri.action("focus-workspace", String(parent.modelData.idx))
+                        onWheelUp: Niri.action("focus-workspace-up")
+                        onWheelDown: Niri.action("focus-workspace-down")
+                    }
+                }
+            }
+        }
+
+        // Clic milieu ou droit = fermer la fenêtre
+        BarItem {
+            Layout.maximumWidth: 420
+            text: {
+                const t = Niri.focused?.title ?? "";
+                return t.length > 60 ? t.slice(0, 59) + "…" : t;
+            }
+            color: FiliTheme.brume2
+            tip: Niri.focused ? { title: Niri.focused.app_id, text: Niri.focused.title, hint: "clic droit ou milieu: fermer la fenêtre" } : ""
+            hover.onRightClicked: Niri.action("close-window")
+            hover.onMiddleClicked: Niri.action("close-window")
+        }
+    }
+
+    // ───────── Centre: indicateurs, tiroir, horloge ─────────
+    RowLayout {
+        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
+        spacing: 12
+
+        // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
+        Row {
+            // Nouveaux mails Proton / événement Proton Calendar imminent (masqués sinon, voir bar-alert), clic = ouvrir et effacer
+            BarScript { cmd: bar.b + "/bar-alert mail"; signal: 16; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
+            BarScript { cmd: bar.b + "/bar-alert whatsapp"; signal: 19; click: bar.b + "/bar-alert open whatsapp" }
+            BarScript { cmd: bar.b + "/bar-alert cal"; signal: 17; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
+            // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
+            BarScript { cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
+            // Session SSH entrante, mode avion (clic = désactiver), VPN: réveillés par bar-stats watch
+            BarScript { cmd: bar.b + "/bar-status remote"; signal: 21; color: FiliTheme.cendre }
+            BarScript { cmd: bar.b + "/bar-status air"; signal: 14; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
+            BarScript { cmd: bar.b + "/bar-status vpn"; signal: 22 }
+            // Rapports de veille non lus, clic = les lire
+            BarScript { cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
+            // Mises à jour xbps (masqué s'il n'y en a pas), clic = mettre à jour dans un terminal flottant
+            BarScript { cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
+        }
+
+        // Tiroir (bar-tray): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
+        Row {
+            Repeater {
+                model: SystemTray.items
+                Item {
+                    id: trayItem
+                    required property var modelData
+                    implicitWidth: 24
+                    implicitHeight: FiliTheme.barHeight
+                    IconImage {
+                        anchors.centerIn: parent
+                        implicitSize: 16
+                        source: parent.modelData.icon
+                    }
+                    BarHover {
+                        anchors.fill: parent
+                        tip: parent.modelData.tooltipTitle || parent.modelData.title
+                        onLeftClicked: parent.modelData.onlyMenu ? menuAnchor.open() : parent.modelData.activate()
+                        onRightClicked: if (parent.modelData.hasMenu) menuAnchor.open()
+                        onMiddleClicked: parent.modelData.secondaryActivate()
+                        onWheelUp: parent.modelData.scroll(1, false)
+                        onWheelDown: parent.modelData.scroll(-1, false)
+                    }
+                    QsMenuAnchor {
+                        id: menuAnchor
+                        menu: trayItem.modelData.menu
+                        anchor.item: trayItem
+                        anchor.edges: Edges.Bottom
+                        anchor.gravity: Edges.Bottom
+                    }
+                }
+            }
+            // Minuteur / chronomètre: clic = choisir (ou arrêter), clic droit = +5 min; notification à la fin
+            BarScript { cmd: bar.b + "/bar-tray timer"; signal: 12; click: bar.b + "/bar-timer click"; rclick: bar.b + "/bar-timer add" }
+            // Caféine: tasse jaune = verrouillage auto coupé, grise = actif; clic = bascule
+            BarScript { cmd: bar.b + "/bar-tray idle"; signal: 13; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle idle" }
+            // Veilleuse (wlsunset, 4500 K la nuit), clic = coupe/force
+            BarScript { cmd: bar.b + "/bar-tray night"; signal: 10; colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.sable }); click: bar.b + "/bar-toggle night" }
+            // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
+            BarScript {
+                cmd: bar.b + "/bar-tray backup"; interval: 3600; signal: 18
+                colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
+                click: bar.b + "/bar-backup run"
+            }
+            // Chevron du tiroir: clic = afficher / replier
+            BarScript { cmd: bar.b + "/bar-tray handle"; signal: 20; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
+        }
+
+        // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
+        Item {
+            id: clockItem
+            implicitWidth: clockText.implicitWidth + 12
+            implicitHeight: FiliTheme.barHeight
+            SystemClock { id: clock; precision: SystemClock.Minutes }
+            Label {
+                id: clockText
+                anchors.centerIn: parent
+                text: Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
+                font.weight: Font.Medium
+            }
+            MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                onContainsMouseChanged: if (containsMouse) { cal.shift = 0; cal.visible = true; } else if (!cal.pinned) cal.visible = false
+                onClicked: m => {
+                    if (m.button === Qt.LeftButton) {
+                        FiliTheme.run(bar.b + "/webapp https://calendar.proton.me");
+                    } else if (m.button === Qt.MiddleButton) {
+                        cal.shift = 0;
+                    } else {
+                        cal.pinned = !cal.pinned;
+                        cal.visible = cal.pinned;
+                    }
+                }
+                onWheel: w => cal.shift += w.angleDelta.y > 0 ? -1 : 1
+            }
+            FiliCalendar {
+                id: cal
+                anchor.item: clockItem
+                today: clock.date
+            }
+        }
+    }
+
+    // ───────── Droite: média, ressources, système, batterie ─────────
+    RowLayout {
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
+        spacing: 12
+
+        // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
+        BarItem {
+            readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
+            text: {
+                if (!player || !player.trackTitle)
+                    return "";
+                const t = player.isPlaying ? " " + player.trackTitle + (player.trackArtist ? "  ·  " + player.trackArtist : "") : " " + player.trackTitle;
+                return t.length > 40 ? t.slice(0, 39) + "…" : t;
+            }
+            color: FiliTheme.brume2
+            function mmss(s) {
+                s = Math.max(0, Math.round(s));
+                return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+            }
+            tip: !player ? "" : {
+                title: player.identity,
+                rows: [["Titre", player.trackTitle], ["Artiste", player.trackArtist], ["Album", player.trackAlbum],
+                       ["État", player.isPlaying ? "lecture" : "pause"],
+                       ["Position", player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
+                hint: "clic: lecture/pause · clic milieu: suivant · molette: précédent / suivant"
+            }
+            hover.onLeftClicked: player.togglePlaying()
+            hover.onMiddleClicked: player.next()
+            hover.onWheelUp: player.previous()
+            hover.onWheelDown: player.next()
+        }
+
+        // Ressources: CPU (top 5 en infobulle), température, mémoire, disque; clic = htop
+        Row {
+            BarScript { cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript { cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; click: bar.b + "/bar-tui htop"; hint: "clic: htop" }
+            BarScript {
+                cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: espace occupé par dossier"
+                click: bar.b + "/bar-tui sh -c 'df -h; echo; du -xh --max-depth=1 ~ 2>/dev/null | sort -h | tail -15; read _'"
+            }
+        }
+
+        // Système: micro, sortie audio, clavier, écrans, Bluetooth, réseau, notifications
+        Row {
+            // Micro: clic = couper/activer, molette = volume, clic droit ou milieu = mixeur (onglet entrées)
+            BarItem {
+                readonly property var audio: bar.source?.audio ?? null
+                text: audio ? (audio.muted ? "" : "") : ""
+                color: audio?.muted ? FiliTheme.cendre : FiliTheme.brume
+                tip: !audio ? "" : {
+                    title: audio.muted ? "Micro coupé" : "Micro",
+                    rows: [["Entrée", bar.source.description || bar.source.nickname || bar.source.name], ["Volume", Math.round(audio.volume * 100) + " %"]],
+                    hint: "clic: couper / activer · molette: volume · clic droit: mixeur"
+                }
+                hover.onLeftClicked: audio.muted = !audio.muted
+                hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
+                hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
+                hover.rclick: bar.b + "/bar-tui wiremix --tab input"
+                hover.mclick: bar.b + "/bar-tui wiremix --tab input"
+            }
+            // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
+            BarItem {
+                readonly property var audio: bar.sink?.audio ?? null
+                readonly property int vol: audio ? Math.round(audio.volume * 100) : 0
+                text: !audio ? "" : audio.muted ? " muet" : (vol < 34 ? "" : vol < 67 ? "" : "") + " " + vol + "%"
+                color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
+                tip: !audio ? "" : {
+                    title: audio.muted ? "Son coupé" : "Son",
+                    rows: [["Sortie", bar.sink.description || bar.sink.nickname || bar.sink.name], ["Volume", vol + " %"],
+                           ["Entrée", bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
+                    hint: "clic: muet · molette: volume · clic droit: mixeur · clic milieu: égaliseur"
+                }
+                hover.onLeftClicked: audio.muted = !audio.muted
+                hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
+                hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
+                hover.rclick: bar.b + "/bar-tui wiremix --tab output"
+                hover.mclick: bar.b + "/bar-tui sound-tune"
+            }
+            // Disposition clavier (bépo / qwerty australien): clic = bascule
+            BarItem {
+                readonly property string name: Niri.layouts[Niri.layout] ?? ""
+                readonly property string short: {
+                    const m = name.match(/\((Australian|US|UK)/);
+                    if (m)
+                        return { Australian: "au", US: "us", UK: "gb" }[m[1]];
+                    return name.slice(0, 2).toLowerCase();
+                }
+                text: name ? " " + short : ""
+                tip: ({
+                    title: "Clavier",
+                    rows: Niri.layouts.map((l, i) => [i === Niri.layout ? "●" : "", l]),
+                    hint: "clic: disposition suivante"
+                })
+                hover.onLeftClicked: Niri.action("switch-layout", "next")
+            }
+            // Écrans: clic = wdisplays, molette = luminosité (fiche: écrans, définition, échelle, luminosité)
+            BarItem {
+                text: ""
+                tipCmd: bar.b + "/fili-info display"
+                hover.click: bar.b + "/focus-or-run wdisplays wdisplays"
+                hover.scrollUp: "brightnessctl -q set 5%+"
+                hover.scrollDown: "brightnessctl -q set 5%-"
+            }
+            // Bluetooth (masqué sans adaptateur): clic = bluetui (appairage, connexion, oubli)
+            BarItem {
+                readonly property var adapter: Bluetooth.defaultAdapter
+                readonly property var connected: adapter ? adapter.devices.values.filter(d => d.connected) : []
+                text: {
+                    if (!adapter)
+                        return "";
+                    if (!adapter.enabled)
+                        return " off";
+                    const d = connected[0];
+                    if (!d)
+                        return " on";
+                    return " " + d.name + (d.batteryAvailable ? " " + Math.round(d.battery * 100) + "%" : "");
+                }
+                tip: !adapter ? "" : {
+                    title: "Bluetooth",
+                    rows: [[adapter.name, adapter.enabled ? "activé" : "désactivé"]].concat(
+                        adapter.devices.values.filter(d => d.paired || d.connected).map(d => [d.name,
+                            (d.connected ? "connecté" : "appairé") + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
+                    hint: "clic: bluetui (appairer, connecter, oublier)"
+                }
+                hover.click: bar.b + "/bar-tui bluetui"
+            }
+            // Wi-Fi: clic = impala (SSID, connexion), clic droit = menu réseau (IP, ping, débit)
+            BarScript {
+                cmd: "exec " + bar.b + "/bar-stats net"; interval: -1; hideEmpty: false
+                colors: ({ disconnected: FiliTheme.cendre })
+                click: bar.b + "/bar-tui impala"
+                rclick: "setsid -f " + bar.b + "/menu network"
+                tipCmd: bar.b + "/fili-info network"
+            }
+            // Notifications: clic = historique, clic droit = Ne pas déranger
+            BarItem {
+                text: FiliNotification.dnd ? "" : ""
+                color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.ardoise
+                tip: ({
+                    title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",
+                    rows: [["Bulles", FiliNotification.dnd ? "masquées" : "affichées"], ["Historique", FiliNotification.history.length + " notification(s)"]],
+                    hint: "clic: fili-notification-center · clic droit: ne pas déranger"
+                })
+                hover.onLeftClicked: FiliNotification.toggleCenter()
+                hover.onRightClicked: FiliNotification.dnd = !FiliNotification.dnd
+            }
+        }
+
+        // Batterie: clic = menu système (verrouiller, veille, quitter...)
+        BarPower {
+            tipCmd: bar.b + "/fili-info power"
+            hover.click: "setsid -f " + bar.b + "/menu system"
+        }
+
+        // Invisible: surveille SSH entrant, mode avion, VPN, veilleuse, sauvegarde, agenda et batterie faible
+        // (bar-stats watch) et réveille par `bar refresh N` le module dont l'état a changé
+        BarScript { cmd: "exec " + bar.b + "/bar-stats watch"; interval: -1 }
+    }
+}

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Notifications d'applications web -> indicateur Waybar + clic qui ouvre/focalise la webapp (WhatsApp Web n'a pas à être ouvert).
+# Notifications d'applications web -> indicateur de la barre + clic qui ouvre/focalise la webapp (WhatsApp Web n'a pas à être ouvert).
 # Écoute les appels Notify sur le bus D-Bus de session (dbus-monitor + awk, aucun interpréteur résident de plus). Une notification
 # est rattachée à une webapp de ~/.config/webapps/list suivie dans ~/.config/webapps/notify ("Nom | émetteur", un par ligne):
 #   - émetteur natif (WhatsApp | whatsapp-unreadd): client sans navigateur, reconnu par son nom d'application
@@ -51,9 +51,8 @@ dbus-monitor --session "interface='org.freedesktop.Notifications',member='Notify
         blk = ""
     }
 ' | while IFS="$US" read -r name kind icon summary body; do
-    sleep 0.15   # laisse mako enregistrer la notification d'origine
-    id="$(makoctl list | awk -v sum="$summary" '$1 == "Notification" && substr($0, index($0, ": ") + 2) == sum { m = $2 + 0 } END { if (m) print m }')"
-    [ -n "$id" ] && makoctl dismiss -n "$id" >/dev/null 2>&1
+    sleep 0.15   # laisse le shell afficher la notification d'origine
+    "$BIN/fili-shell" notification dismiss "$summary"
     notify-send -a "$name" -i "$icon" "$summary" "$body"
     "$BIN/bar-alert" push "$kind" "$summary" "$body"
 done

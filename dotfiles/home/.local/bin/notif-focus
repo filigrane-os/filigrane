@@ -1,18 +1,12 @@
 #!/bin/sh
-# Clic sur une notification (mako): invoque son action par défaut, puis met le focus sur la fenêtre de l'appli émettrice.
-# Usage: notif-focus <id notification>. Correspondance par nom d'appli ou desktop-entry contre l'app_id ou le titre
-# des fenêtres niri (minuscules, sans ponctuation: "foo-bar" retrouve l'app-id "foobar").
+# Clic sur une notification (shell Quickshell, Notifs.qml, après son action par défaut): met le focus sur la fenêtre
+# de l'appli émettrice. Usage: notif-focus <nom de l'appli> [desktop-entry]. Correspondance par nom d'appli ou
+# desktop-entry contre l'app_id ou le titre des fenêtres niri (minuscules, sans ponctuation: "foo-bar" retrouve l'app-id "foobar").
 # Si l'appli porte le nom d'une application web (~/.config/webapps/list), son domaine sert aussi à retrouver la fenêtre
 # (app-id Chrome "chrome-mail.proton.me__-Default"), et la webapp est ouverte si aucune fenêtre n'existe.
-id="$1"
-[ -n "$id" ] || exit 1
-info="$(makoctl list | awk -v id="$id" '
-    $1 == "Notification" { cur = ($2 == id ":") }
-    cur && /^  App name: /      { sub(/^  App name: /, ""); print "app=" $0 }
-    cur && /^  Desktop entry: / { sub(/^  Desktop entry: /, ""); print "entry=" $0 }')"
-app="$(printf '%s\n' "$info" | sed -n 's/^app=//p')"
-entry="$(printf '%s\n' "$info" | sed -n 's/^entry=//p')"
-makoctl invoke -n "$id" >/dev/null 2>&1
+app="$1"
+entry="$2"
+[ -n "$app$entry" ] || exit 1
 url="$(awk -F'|' -v a="$app" '
     BEGIN { a = tolower(a) }
     /^#/ || NF < 2 { next }
@@ -33,6 +27,5 @@ if [ -n "$win" ]; then
 elif [ -n "$url" ]; then
     setsid -f "$HOME/.local/bin/webapp" "$url" >/dev/null 2>&1
 fi
-echo "$(date +%T) id=$id app=$app entry=$entry fenêtre=${win:-aucune}" >> "${XDG_RUNTIME_DIR:-/tmp}/notif-focus.log"
-makoctl dismiss -n "$id" >/dev/null 2>&1
+echo "$(date +%T) app=$app entry=$entry fenêtre=${win:-aucune}" >> "${XDG_RUNTIME_DIR:-/tmp}/notif-focus.log"
 exit 0

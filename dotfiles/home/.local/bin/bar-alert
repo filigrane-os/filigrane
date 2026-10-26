@@ -1,8 +1,8 @@
 #!/bin/bash
-# Indicateurs Waybar: nouveaux mails Proton (mail), événements Proton Calendar imminents (cal) et messages des autres
+# Indicateurs de la barre: nouveaux mails Proton (mail), événements Proton Calendar imminents (cal) et messages des autres
 # webapps suivies par webapp-notify (whatsapp...), vides sinon (module masqué).
 # Alimentés par mail-notify, cal-notify et webapp-notify via ~/.local/state/alerts/<kind>; `bar-alert open <kind>` ouvre la webapp et efface.
-# Ajouter une webapp: son nom dans ~/.config/webapps/notify, un signal ici, un module custom/<kind> dans Waybar.
+# Ajouter une webapp: son nom dans ~/.config/webapps/notify, un signal ici, un module Mod dans ~/.config/quickshell/Bar.qml.
 #   mail: une ligne "expéditeur<TAB>sujet" par mail arrivé depuis le dernier clic
 #   cal:  une ligne "début epoch<TAB>HH:MM<TAB>titre", affichée jusqu'à 5 min après le début
 D="$HOME/.local/state/alerts"
@@ -15,10 +15,10 @@ case "$1" in
     push)  # bar-alert push mail "expéditeur" "sujet" | bar-alert push cal EPOCH HH:MM titre
         kind="$2"; shift 2
         printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"
-        pkill -RTMIN+"$(sig "$kind")" waybar; exit 0 ;;
+        "$HOME/.local/bin/fili-shell" bar refresh "$(sig "$kind")"; exit 0 ;;
     open)
         : >"$D/$2"
-        pkill -RTMIN+"$(sig "$2")" waybar
+        "$HOME/.local/bin/fili-shell" bar refresh "$(sig "$2")"
         case "$2" in
             mail) exec "$HOME/.local/bin/webapp" https://mail.proton.me ;;
             cal)  exec "$HOME/.local/bin/webapp" https://calendar.proton.me ;;
