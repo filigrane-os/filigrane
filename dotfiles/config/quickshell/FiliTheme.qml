@@ -26,13 +26,16 @@ Singleton {
     readonly property bool testing: Quickshell.env("FILI_TEST") === "1"
     property var ran: []
 
-    // Lance une commande shell détachée (actions des clics)
+    // Lance une commande shell détachée (actions des clics), depuis $HOME: un dossier courant supprimé ferait
+    // échouer foot et d'autres ("failed to get current working directory"). Commande, sortie et erreurs dans
+    // $XDG_RUNTIME_DIR/fili-shell-run.log (tmpfs) pour comprendre un clic qui ne lance rien
     function run(cmd) {
         if (!cmd)
             return;
-        if (testing)
+        if (testing) {
             ran = ran.concat([cmd]);
-        else
-            Quickshell.execDetached(["sh", "-c", cmd]);
+            return;
+        }
+        Quickshell.execDetached(["sh", "-c", 'cd "$HOME" 2>/dev/null; l="${XDG_RUNTIME_DIR:-/tmp}/fili-shell-run.log"; echo "$(date +%T) $1" >> "$l"; sh -c "$1" >> "$l" 2>&1 || echo "  -> code $?" >> "$l"', "sh", cmd]);
     }
 }
