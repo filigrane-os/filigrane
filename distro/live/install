@@ -3,7 +3,7 @@
 # de la machine, puis lance install-void.sh du dépôt embarqué, distribution seule (sans couche personnelle).
 # Options supplémentaires transmises à install-void.sh (--profile, --machine, --cpu, --gpu).
 set -euo pipefail
-SRC="${SRC:-/usr/share/fili/void-setup}"
+SRC="${SRC:-/usr/share/fili/filigrane}"
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 # shellcheck source=distro/distro.env
 source "$SRC/distro/distro.env"
@@ -26,6 +26,6 @@ read -r -p "Nom de la machine [$DISTRO]: " host
 # Copie modifiable (le live est en lecture seule): .user-layer=none fixe la distribution seule, même si le nom
 # d'utilisateur correspond à une couche users/<nom> du dépôt
 work="$(mktemp -d)"
-cp -a "$SRC" "$work/void-setup"
-echo none > "$work/void-setup/.user-layer"
-exec "$work/void-setup/install-void.sh" --disk "$disk" --user "$user" --hostname "${host:-$DISTRO}" "$@"
+cp -a "$SRC" "$work/filigrane"
+echo none > "$work/filigrane/.user-layer"
+exec "$work/filigrane/install-void.sh" --disk "$disk" --user "$user" --hostname "${host:-$DISTRO}" "$@"

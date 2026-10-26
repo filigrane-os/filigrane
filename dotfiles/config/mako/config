@@ -1,15 +1,17 @@
-# Catppuccin Mocha
-font=DejaVu Sans 11
-background-color=#1e1e2e
-text-color=#cdd6f4
-border-color=#b4befe
-progress-color=over #45475a
+# Filigrane (brand.md): nuit, brume, liseré discret
+font=Jost 11
+background-color=#1c222b
+text-color=#dbe7f4
+border-color=#3c4858
+progress-color=over #2d3744
 
 width=360
 height=140
 margin=12
 padding=14
-border-size=2
+border-size=1
+# Pas de gras (brand.md): titre en Jost 500
+format=<span weight="500">%s</span>\n%b
 border-radius=12
 default-timeout=5000
 max-history=30
@@ -27,12 +29,13 @@ on-button-right=dismiss
 history=0
 
 [urgency=low]
-border-color=#6c7086
+border-color=#2d3744
+text-color=#a9b8c8
 default-timeout=3000
 
 [urgency=critical]
-border-color=#fab387
-text-color=#fab387
+border-color=#c98f93
+text-color=#dbe7f4
 default-timeout=10000
 
 [mode=do-not-disturb]

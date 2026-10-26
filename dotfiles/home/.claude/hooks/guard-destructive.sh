@@ -6,7 +6,7 @@ cmd=$(jq -r '.tool_input.command // empty' 2>/dev/null)
 
 # Cas sans confirmation: rm simple dans le scratchpad ou le dépôt, xbps-remove simple d'un paquet non critique.
 if ! printf '%s' "$cmd" | grep -Eq '[;&|`$()<>]|\.\.'; then
-    if printf '%s' "$cmd" | grep -Eq '^rm( -[rf]+)? (/tmp/claude-1000/|/home/thomas/Projects/void-setup/)[^ ]*( (/tmp/claude-1000/|/home/thomas/Projects/void-setup/)[^ ]*)*$'; then exit 0; fi
+    if printf '%s' "$cmd" | grep -Eq '^rm( -[rf]+)? (/tmp/claude-1000/|/home/thomas/Projects/filigrane/)[^ ]*( (/tmp/claude-1000/|/home/thomas/Projects/filigrane/)[^ ]*)*$'; then exit 0; fi
     if printf '%s' "$cmd" | grep -Eq '^(sudo )?xbps-remove( -y)?( [a-z0-9][a-z0-9._+-]*)+$' \
        && ! printf '%s' "${cmd#sudo }" | grep -Eq '( |^)(base-system|linux[0-9._-]*|linux-firmware[a-z0-9-]*|glibc|xbps|runit[a-z-]*|sudo|dracut|grub[a-z0-9-]*|elogind|niri)( |$)'; then exit 0; fi
 fi

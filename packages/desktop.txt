@@ -36,7 +36,7 @@ python3
 btop
 wiremix
 # Wi-Fi et Bluetooth (pile d'Omarchy): iwd + impala, bluez + bluetui. Démons au repos si aucun adaptateur.
-# iwd remplace wpa_supplicant (DHCP reste géré par dhcpcd).
+# iwd remplace wpa_supplicant et configure l'IP du Wi-Fi (dhcpcd: filaire seulement).
 iwd
 impala
 bluez
@@ -63,6 +63,11 @@ rtkit
 Thunar
 thunar-volman
 gvfs
+# Archives: xarchiver (GTK3, sans daemon) + clic droit Extraire/Compresser dans Thunar; zip pour créer, 7zip pour 7z/rar
+xarchiver
+thunar-archive-plugin
+zip
+7zip
 # Icônes du Thunar/GTK (fichiers statiques, ~100 Mo disque)
 papirus-icon-theme
 papirus-folders  # couleur des dossiers: sudo papirus-folders -C violet -t Papirus-Dark (à relancer après mise à jour des icônes)

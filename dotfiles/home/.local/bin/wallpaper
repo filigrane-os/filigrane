@@ -1,11 +1,11 @@
 #!/bin/sh
 # Fond d'écran léger (swaybg, statique). Usage: wallpaper [image]
-# Sans argument: dernière image choisie, sinon fond Catppuccin Mocha par défaut.
+# Sans argument: dernière image choisie, sinon fond Filigrane (scripts/brand-assets.sh).
 dir="$HOME/.local/share/wallpapers"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper"
 img="${1:-$(cat "$state" 2>/dev/null)}"
-[ -f "$img" ] || img="$dir/mocha.png"
+[ -f "$img" ] || img="$dir/filigrane.png"
 mkdir -p "$(dirname "$state")"
 printf '%s\n' "$img" > "$state"
 pkill -x swaybg 2>/dev/null
-exec swaybg -c 1e1e2e -i "$img" -m fill
+exec swaybg -c 1c222b -i "$img" -m fill

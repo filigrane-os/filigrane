@@ -1,4 +1,4 @@
-// Waybar léger, interactions inspirées de la barre Omarchy Quattro (cf. skill void-linux, budget ressources)
+// Waybar léger, interactions inspirées de la barre Omarchy Quattro (cf. skill filigrane, budget ressources)
 // Clic: action principale; clic droit/milieu/molette: voir chaque module. Les TUI s'ouvrent via bar-tui.
 {
     "layer": "top",
@@ -6,7 +6,7 @@
     "height": 24,
     "spacing": 0,
 
-    "modules-left": ["custom/menu", "niri/workspaces", "niri/window"],
+    "modules-left": ["image#logo", "niri/workspaces", "niri/window"],
     "modules-center": ["group/ind", "group/quick", "clock"],
     "modules-right": ["mpris", "group/res", "group/sys", "battery", "custom/batwatch"],
 
@@ -33,8 +33,11 @@
     },
 
     // Bouton menu: clic = menu, clic droit = terminal
-    "custom/menu": {
-        "format": "\uf0c9",
+    // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
+    "image#logo": {
+        "exec": "echo \"$HOME/.local/share/filigrane/filigrane-sombre.svg\"",
+        "interval": 86400,
+        "size": 44,
         "tooltip": false,
         "on-click": "setsid -f $HOME/.local/bin/menu",
         "on-click-right": "setsid -f foot"

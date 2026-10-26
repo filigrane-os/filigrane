@@ -393,7 +393,9 @@ menu_capture() {
     arg="$1"
     act="${arg:-$(printf 'Region\nScreen\nWindow\nColor (picker)\nScreen recording\n' | pick "Capture › " 5)}"
     [ -n "$act" ] || { cancel; return $BACK; }
-    sleep 0.4 # laisse fuzzel disparaître avant de capturer
+    # Le voile ne se ferme seul que 1,2 s après fuzzel: niri figerait l'écran flouté pour la capture
+    kill "$BACKDROP" 2>/dev/null
+    sleep 0.4 # laisse fuzzel et le voile disparaître avant de capturer
     case "$act" in
         Region) niri msg action screenshot ;;
         Screen) niri msg action screenshot-screen ;;
@@ -664,7 +666,7 @@ action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
 
 # Mise en page du menu principal (police à chasse fixe): glyphe + 2 espaces, touche alignée à droite.
 # Largeur en caractères = largeur fuzzel (36) moins les marges.
-MENU_FONT="DejaVu Sans Mono:size=12,Symbols Nerd Font Mono:size=12"
+MENU_FONT="JetBrains Mono:size=12,Symbols Nerd Font Mono:size=12"
 MENU_COLS=33
 align_hints() {
     awk -v w="$MENU_COLS" '{

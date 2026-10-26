@@ -1,8 +1,8 @@
-# void-setup: Void Linux + niri
+# Filigrane: Void Linux + niri
 
 Ce dépôt décrit la machine (paquets, services, dotfiles) et c'est depuis lui que Claude Code est lancé (Mod+Y). Les conversations portent sur cette machine: config, paquets, services, niri, dépannage. Les dotfiles de `~` et `~/.config` sont des liens vers `dotfiles/` (`bootstrap.sh`).
 
-La skill `void-linux` contient le détail (références xbps, runit, niri, ressources, dépannage). Ce fichier ne garde que les règles toujours actives.
+La skill `filigrane` contient le détail (système, niri, ressources, identité visuelle). Ce fichier ne garde que les règles toujours actives. Tout travail visuel suit `.claude/skills/filigrane/references/brand.md` (fichiers maîtres dans `brand/`).
 
 ## Règles dures
 

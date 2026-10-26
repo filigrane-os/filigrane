@@ -58,7 +58,7 @@ block() {
     mid="$(cat /etc/machine-id 2>/dev/null || cat /var/lib/dbus/machine-id)"
     echo "/+$TITLE"
     echo "comment: machine-id=$mid order-priority=$PRIORITY"
-    echo "comment: généré par limine-void (void-setup), ne pas éditer"
+    echo "comment: généré par limine-void (filigrane), ne pas éditer"
     while read -r v; do
         label="Linux $v"
         if [ "$v" = "$pin" ]; then label="$label (épinglé)"

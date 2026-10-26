@@ -1,4 +1,7 @@
 {
+  "env": {
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
+  },
   "permissions": {
     "allow": [
       "Bash(xbps-query *)",
@@ -17,23 +20,23 @@
       "Bash(wpctl status *)",
       "Bash(niri validate *)",
       "Bash(niri msg *)",
-      "Bash(git -C ~/void-setup status *)",
-      "Bash(git -C ~/void-setup diff *)",
-      "Bash(git -C ~/void-setup log *)",
-      "Read(~/Projects/void-setup/**)",
-      "Edit(~/Projects/void-setup/**)",
+      "Bash(git -C ~/filigrane status *)",
+      "Bash(git -C ~/filigrane diff *)",
+      "Bash(git -C ~/filigrane log *)",
+      "Read(~/Projects/filigrane/**)",
+      "Edit(~/Projects/filigrane/**)",
       "Read(~/work/**)",
       "Edit(~/work/**)",
       "Bash(sudo xbps-remove *)",
       "Bash(rm /tmp/claude-1000/*)",
       "Bash(rm -f /tmp/claude-1000/*)",
       "Bash(rm -rf /tmp/claude-1000/*)",
-      "Bash(rm /home/thomas/Projects/void-setup/*)",
-      "Bash(rm -f /home/thomas/Projects/void-setup/*)",
-      "Bash(rm -rf /home/thomas/Projects/void-setup/*)",
+      "Bash(rm /home/thomas/Projects/filigrane/*)",
+      "Bash(rm -f /home/thomas/Projects/filigrane/*)",
+      "Bash(rm -rf /home/thomas/Projects/filigrane/*)",
       "Bash(git push origin develop)",
       "Bash(git push origin develop *)",
-      "Bash(git -C /home/thomas/Projects/void-setup push origin develop)"
+      "Bash(git -C /home/thomas/Projects/filigrane push origin develop)"
     ],
     "deny": [
       "Bash(*install-void.sh*)",
@@ -81,9 +84,7 @@
       "Bash(git push* -f*)"
     ]
   },
-  "env": {
-    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
-  },
+  "model": "opus",
   "skillOverrides": {
     "anthropic-skills:computer-use": "off",
     "anthropic-skills:built-in-browser": "off",
@@ -92,7 +93,6 @@
     "anthropic-skills:import-memory": "off",
     "anthropic-skills:docs": "off"
   },
-  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -110,6 +110,14 @@
     "type": "command",
     "command": "/bin/bash /home/thomas/.claude/statusline-command.sh"
   },
+  "extraKnownMarketplaces": {
+    "logo-design-skill": {
+      "source": {
+        "source": "github",
+        "repo": "kaankiziltug/logo-design-skill"
+      }
+    }
+  },
   "modelSettings": {
     "claude-opus-5-5": {
       "effortLevel": "high"
@@ -121,5 +129,8 @@
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "enabledPlugins": {
+    "logo-design@logo-design-skill": true
+  }
 }

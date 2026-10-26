@@ -63,16 +63,22 @@ case "$1" in
             printf '{"text":""}\n'
         fi ;;
     batwatch)
-        # Alerte batterie faible (<=10 %) puis veille (<=5 %), une seule fois par décharge; aucun affichage
+        # Alerte batterie faible (<=10 %) puis arrêt propre (<=1 %) après 1 min sauf si le chargeur est branché,
+        # une seule fois par décharge; aucun affichage. Pas de veille: en S3 la batterie finit de se vider (coupure brutale).
         printf '{"text":""}\n'
         b=/sys/class/power_supply/BAT0; [ -r "$b/capacity" ] || exit 0
         f="${XDG_RUNTIME_DIR:-/tmp}/battery-notified"
         if [ "$(cat "$b/status")" = "Discharging" ] && [ "$(cat "$b/capacity")" -le 10 ]; then
             [ -e "$f" ] || { notify-send -u critical "Batterie faible" "$(cat "$b/capacity")%: brancher le chargeur"; : > "$f"; }
-            if [ "$(cat "$b/capacity")" -le 5 ] && [ ! -e "$f.zzz" ]; then
-                : > "$f.zzz"; notify-send -u critical "Batterie critique" "Mise en veille"; (sleep 3; sudo -n zzz) >/dev/null 2>&1 &
+            if [ "$(cat "$b/capacity")" -le 1 ] && [ ! -e "$f.off" ]; then
+                : > "$f.off"
+                notify-send -u critical -t 60000 "Batterie critique: extinction dans 1 min" "Brancher le chargeur pour l'annuler"
+                setsid -f sh -c '
+                    sleep 60
+                    if [ "$(cat '"$b"'/status)" = "Discharging" ]; then sync; sudo -n poweroff
+                    else rm -f '"$f.off"'; notify-send "Extinction annulée" "Chargeur branché"; fi' >/dev/null 2>&1
             fi
         else
-            rm -f "$f" "$f.zzz"
+            rm -f "$f" "$f.off"
         fi ;;
 esac

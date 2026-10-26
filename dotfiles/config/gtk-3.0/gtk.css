@@ -1,35 +1,35 @@
-/* Catppuccin Mocha sur Adwaita (aucun thème GTK Catppuccin dans les dépôts Void) */
-@define-color theme_bg_color #1e1e2e;
-@define-color theme_base_color #181825;
-@define-color theme_fg_color #cdd6f4;
-@define-color theme_text_color #cdd6f4;
-@define-color theme_selected_bg_color #89b4fa;
-@define-color theme_selected_fg_color #11111b;
-@define-color theme_unfocused_bg_color #1e1e2e;
-@define-color theme_unfocused_base_color #181825;
-@define-color theme_unfocused_fg_color #a6adc8;
-@define-color theme_unfocused_text_color #a6adc8;
-@define-color theme_unfocused_selected_bg_color #45475a;
-@define-color theme_unfocused_selected_fg_color #cdd6f4;
-@define-color insensitive_bg_color #1e1e2e;
-@define-color insensitive_fg_color #6c7086;
-@define-color insensitive_base_color #181825;
-@define-color borders #313244;
-@define-color unfocused_borders #313244;
-@define-color warning_color #f9e2af;
-@define-color error_color #f38ba8;
-@define-color success_color #a6e3a1;
-@define-color content_view_bg #181825;
-@define-color wm_bg #1e1e2e;
-@define-color wm_title #cdd6f4;
+/* Filigrane (brand.md) sur Adwaita sombre: nuit, brume, accent ardoise/voile */
+@define-color theme_bg_color #1c222b;
+@define-color theme_base_color #181d25;
+@define-color theme_fg_color #dbe7f4;
+@define-color theme_text_color #dbe7f4;
+@define-color theme_selected_bg_color #5f7894;
+@define-color theme_selected_fg_color #f3f1ec;
+@define-color theme_unfocused_bg_color #1c222b;
+@define-color theme_unfocused_base_color #181d25;
+@define-color theme_unfocused_fg_color #a9b8c8;
+@define-color theme_unfocused_text_color #a9b8c8;
+@define-color theme_unfocused_selected_bg_color #3c4858;
+@define-color theme_unfocused_selected_fg_color #dbe7f4;
+@define-color insensitive_bg_color #1c222b;
+@define-color insensitive_fg_color #5f7894;
+@define-color insensitive_base_color #181d25;
+@define-color borders #2d3744;
+@define-color unfocused_borders #2d3744;
+@define-color warning_color #d2bf92;
+@define-color error_color #c98f93;
+@define-color success_color #a3bfa8;
+@define-color content_view_bg #181d25;
+@define-color wm_bg #1c222b;
+@define-color wm_title #dbe7f4;
 
 /* Thunar: barre latérale plus sombre, lignes aérées, coins arrondis */
-.thunar .sidebar, .thunar .sidebar row, .thunar placessidebar { background-color: #181825; }
+.thunar .sidebar, .thunar .sidebar row, .thunar placessidebar { background-color: #181d25; }
 .thunar .sidebar row { border-radius: 6px; margin: 1px 6px; padding: 2px 4px; }
-.thunar .sidebar row:selected { background-color: #313244; color: #b4befe; }
-.thunar toolbar, .thunar .toolbar { background-color: #1e1e2e; border: none; padding: 4px; }
+.thunar .sidebar row:selected { background-color: #2d3744; color: #9dbbd6; }
+.thunar toolbar, .thunar .toolbar { background-color: #1c222b; border: none; padding: 4px; }
 .thunar treeview.view row { padding: 2px 0; }
-.thunar treeview.view:selected, .thunar iconview:selected { background-color: #45475a; color: #cdd6f4; }
-.thunar paned > separator { background-color: #11111b; }
-.thunar statusbar { color: #a6adc8; }
+.thunar treeview.view:selected, .thunar iconview:selected { background-color: #3c4858; color: #dbe7f4; }
+.thunar paned > separator { background-color: #151a21; }
+.thunar statusbar { color: #a9b8c8; }
 button { border-radius: 6px; }

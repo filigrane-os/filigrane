@@ -15,9 +15,9 @@ use wayland_protocols_wlr::layer_shell::v1::client::{
     zwlr_layer_surface_v1::{self, Anchor, KeyboardInteractivity, ZwlrLayerSurfaceV1},
 };
 
-// Un seul pixel rgba(17, 17, 27, 0.35), étiré à tout l'écran par le viewporter
+// Un seul pixel rgba(24, 29, 37, 0.35) (nuit profond Filigrane), étiré à tout l'écran par le viewporter
 // (niri n'a pas single-pixel-buffer). ARGB8888 prémultiplié, octets en petit-boutiste: B, G, R, A.
-const PIXEL: [u8; 4] = [9, 6, 6, 89];
+const PIXEL: [u8; 4] = [13, 10, 8, 89];
 
 struct App {
     surface: wl_surface::WlSurface,

@@ -114,6 +114,11 @@ input {
 }
 
 // Settings that influence how windows are positioned and sized.
+// Vue d'ensemble (Mod+O): fond nuit profond (brand.md)
+overview {
+    backdrop-color "#181d25"
+}
+
 // Find more information on the wiki:
 // https://niri-wm.github.io/niri/Configuration:-Layout
 layout {
@@ -174,13 +179,13 @@ layout {
         // - CSS-like notation: "rgb(255, 127, 0)", rgba(), hsl() and a few others.
 
         // Color of the ring on the active monitor.
-        active-color "#b4befe99"
+        active-color "#9dbbd699"
 
         // Color of the ring on inactive monitors.
         //
         // The focus ring only draws around the active window, so the only place
         // where you can see its inactive-color is on other monitors.
-        inactive-color "#45475a55"
+        inactive-color "#3c485855"
 
         // You can also use gradients. They take precedence over solid colors.
         // Gradients are rendered the same as CSS linear-gradient(angle, from, to).
@@ -205,11 +210,11 @@ layout {
         off
 
         width 4
-        active-color "#b4befe"
-        inactive-color "#45475a"
+        active-color "#9dbbd6"
+        inactive-color "#3c4858"
 
         // Color of the border around windows that request your attention.
-        urgent-color "#f38ba8"
+        urgent-color "#c98f93"
 
         // Gradients can use a few different interpolation color spaces.
         // For example, this is a pastel rainbow gradient via in="oklch longer hue".
@@ -253,7 +258,7 @@ layout {
         offset x=0 y=5
 
         // You can also change the shadow color and opacity.
-        color "#11111b99"
+        color "#181d2599"
     }
 
     // Struts shrink the area occupied by windows, similarly to layer-shell panels.
@@ -407,6 +412,14 @@ window-rule {
     default-window-height { fixed 600; }
 }
 
+// Réglage des écrans: fenêtre flottante
+window-rule {
+    match app-id=r#"^wdisplays$"#
+    open-floating true
+    default-column-width { proportion 0.75; }
+    default-window-height { proportion 0.75; }
+}
+
 // TUI lancées depuis la barre (bar-tui): fenêtre flottante
 window-rule {
     match app-id=r#"^bar-tui$"#
@@ -440,7 +453,7 @@ binds {
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
-    Mod+Y hotkey-overlay-title="Claude Code" { spawn "foot" "-e" "bash" "-lc" "cd ~/Projects/void-setup && claude --dangerously-skip-permissions --add-dir ~"; }
+    Mod+Y hotkey-overlay-title="Claude Code" { spawn "foot" "-e" "bash" "-lc" "cd ~/Projects/filigrane && claude --dangerously-skip-permissions --add-dir ~"; }
     Mod+P hotkey-overlay-title="Écrans: réglage visuel (wdisplays)" { spawn-sh "GDK_GL=disable wdisplays"; }
     Mod+Ctrl+P hotkey-overlay-title="Écrans: enregistrer le profil" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
@@ -769,6 +782,13 @@ prefer-no-csd
 window-rule {
     match app-id="^foot$"
     scroll-factor 5.0
+}
+
+// Lancé par `dbus-run-session niri` (sans --session, pas de systemd): sans ceci niri ne publie pas
+// org.gnome.Mutter.ScreenCast, et xdg-desktop-portal-gnome n'offre pas le partage d'écran entier
+// (Chrome/Meet/Chromecast: seuls les onglets passaient). Lu au démarrage de niri seulement.
+debug {
+    dbus-interfaces-in-non-session-instances
 }
 
 // Couches: disposition clavier générée par bootstrap.sh, puis réglages personnels (users/<login>/dotfiles/config/niri/local.kdl).

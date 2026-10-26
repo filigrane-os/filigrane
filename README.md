@@ -1,6 +1,6 @@
-# void-setup
+# Filigrane
 
-Environnement Void Linux (niri, thème Catppuccin Mocha) rejouable sur VM, PC ou Mac Intel (x86_64, glibc, UEFI).
+Environnement Void Linux (niri, identité visuelle Filigrane) rejouable sur VM, PC ou Mac Intel (x86_64, glibc, UEFI).
 Objectif: un système léger qui s'efface, pour laisser la RAM et le CPU au navigateur, aux agents et aux conteneurs.
 
 ## Structure
@@ -17,7 +17,7 @@ Objectif: un système léger qui s'efface, pour laisser la RAM et le CPU au navi
 | `services/*.txt` | Services runit : `common`, `vm` |
 | `dotfiles/home`, `dotfiles/config` | Fichiers liés par symlink dans `~` et `~/.config` |
 | `hardware/<machine>/` | Tout ce qui est propre à un matériel : `mac-t2/` (Mac Intel à puce T2, voir son README). `dotfiles/{home,config}` y est lié en plus des dotfiles communs |
-| `scripts/` | `pull-from-vm.sh`, `gen-wallpaper.py`, `gen-emoji.py` |
+| `scripts/` | `pull-from-vm.sh`, `brand-assets.sh` (visuels Filigrane), `gen-emoji.py` |
 
 Trois couches, appliquées dans l'ordre ; un fichier de même chemin dans une couche suivante remplace le précédent :
 
@@ -45,7 +45,7 @@ Axes matériels, détectés puis forçables (utile pour tester) :
 ## Ce que contient le bureau
 
 - **Session** : sur la VM, connexion automatique sur `tty1` (`AUTOLOGIN=auto` : actif en VM, inactif sur machine physique), puis `~/.zprofile` lance `dbus-run-session niri`. Désactiver : `touch ~/.no-niri`, ou se connecter sur `tty2` à `tty6`.
-- **Thème** : Catppuccin Mocha pour niri, waybar, fuzzel, mako, foot, zellij, nvim.
+- **Thème** : identité Filigrane (`brand/`, polices Jost et JetBrains Mono) pour niri, waybar, fuzzel, mako, foot, swaylock, GTK, zellij, nvim, fond d'écran et écran de démarrage Plymouth (invite de passphrase LUKS). Visuels générés par `scripts/brand-assets.sh`.
 - **Menu** (`Mod+Space`) : catégories à vide, recherche floue sur tout dès qu'on tape (applications, actions système, entrées perso). Clavier : `Maj+Retour arrière` remonte d'un niveau, `Échap` quitte tout le menu (`fuzzel` ne sait pas distinguer un retour arrière sur saisie vide). `Mod+D` ouvre le lanceur d'applications seul (`menu apps`): les plus lancées d'abord, puis les applis avant leurs préférences (compteur dans `~/.local/state/menu-apps-count`). Entrées perso dans `~/.config/menu/entries` (`Libellé | mode | commande`, par exemple `Claude | term | claude`).
 - **Captures** : outil intégré à niri, sans logiciel en plus. `Mod+Shift+4` zone, `Mod+Shift+3` écran, `Mod+Shift+Ctrl+4` fenêtre, `Mod+Shift+5` interface de capture, `Print` / `Ctrl+Print` / `Alt+Print`, ou le menu (`Capture: ...`). Enregistrées dans `~/Screenshots` (local, hors iCloud) et copiées dans le presse-papiers.
 - **Shell** : zsh sans oh-my-zsh, zellij à la demande (`zj`), pas lancé automatiquement, outils CLI repris du Mac (`eza`, `fzf`, `zoxide`, `ripgrep`, `bat`, `lazygit`, `gh`), neovim avec LazyVim.
@@ -58,7 +58,7 @@ Axes matériels, détectés puis forçables (utile pour tester) :
   proton-drive auth login
   ```
   Puis par exemple `proton-drive filesystem upload -f skip -d merge -t ./dossier /my-files/sauvegardes`. Le trousseau est verrouillé à chaque démarrage : la première utilisation de la session le redemande.
-- **Claude Code** : installé par `bootstrap.sh` (`~/.local/bin/claude`, `/login` au premier lancement, `Mod+Y`), avec le skill `void-linux` (règles xbps/runit, budget ressources, tout changement durable reporté dans ce dépôt).
+- **Claude Code** : installé par `bootstrap.sh` (`~/.local/bin/claude`, `/login` au premier lancement, `Mod+Y`), avec la skill `filigrane` (règles xbps/runit, budget ressources, identité visuelle, tout changement durable reporté dans ce dépôt).
 
 ## Ce que Void + niri apporte par rapport à macOS
 
@@ -84,7 +84,7 @@ Ce que macOS ne permet pas sur ce Mac et qui marche ici en natif (sans adaptateu
 ## Réinstaller un système complet
 
 1. Démarrer sur l'ISO live Void (glibc x86_64), réseau actif, `root` / `voidlinux`.
-2. `xbps-install -Sy git && git clone https://github.com/thooams/void-setup && cd void-setup`
+2. `xbps-install -Sy git && git clone https://github.com/thooams/filigrane && cd filigrane`
 3. `./install-void.sh --disk /dev/sda --user thomas --hostname void` (NVMe : `/dev/nvme0n1`)
 4. Taper le chemin du disque pour confirmer l'effacement, saisir les mots de passe, redémarrer.
 
@@ -93,7 +93,7 @@ GRUB est installé en `--removable` : pas d'entrée NVRAM, donc démarrage fiabl
 ## Rejouer sur un Void déjà installé
 
 ```
-git clone https://github.com/thooams/void-setup ~/void-setup && cd ~/void-setup
+git clone https://github.com/thooams/filigrane ~/filigrane && cd ~/filigrane
 ./bootstrap.sh                 # tout (demande le mot de passe sudo)
 ./bootstrap.sh --dotfiles-only # liens seulement
 ```
@@ -101,11 +101,11 @@ git clone https://github.com/thooams/void-setup ~/void-setup && cd ~/void-setup
 Les dotfiles existants sont déplacés en `*.bak.<date>`. Le dépôt doit rester à son emplacement (les liens pointent dedans). Les liens vers le dépôt devenus orphelins (fichier déplacé ou supprimé) sont retirés.
 
 Sans accès à GitHub, copier le dépôt depuis un autre poste (pas de `rsync` sur Void de base) :
-`tar --exclude=.git -C ~/Projects/void-setup -cf - . | ssh void 'mkdir -p ~/void-setup && tar -xf - -C ~/void-setup'`, puis `ssh -t void 'cd ~/void-setup && ./bootstrap.sh'` (`-t` pour le mot de passe sudo).
+`tar --exclude=.git -C ~/Projects/filigrane -cf - . | ssh void 'mkdir -p ~/filigrane && tar -xf - -C ~/filigrane'`, puis `ssh -t void 'cd ~/filigrane && ./bootstrap.sh'` (`-t` pour le mot de passe sudo).
 
 ## Workflow
 
-La VM sert de terrain d'essai : on règle niri, waybar, le menu... dessus (les fichiers sont des liens vers `~/void-setup` sur la VM), puis `scripts/pull-from-vm.sh` rapatrie le tout, on relit le diff et on commite.
+La VM sert de terrain d'essai : on règle niri, waybar, le menu... dessus (les fichiers sont des liens vers `~/filigrane` sur la VM), puis `scripts/pull-from-vm.sh` rapatrie le tout, on relit le diff et on commite.
 Nouveau paquet : l'ajouter dans le bon fichier `packages/*.txt` (distribution) ou `users/<login>/packages/*.txt` (personnel).
 
 ## Limites connues

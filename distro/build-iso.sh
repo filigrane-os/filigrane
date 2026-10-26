@@ -27,13 +27,13 @@ echo "void-mklive $(git -C "$MK" rev-parse --short HEAD)"
 
 INC="$(mktemp -d)"
 trap 'rm -rf "$INC"' EXIT
-SRC="$INC/usr/share/$DISTRO/void-setup"
+SRC="$INC/usr/share/$DISTRO/filigrane"
 mkdir -p "$SRC" "$INC/usr/bin" "$INC/etc"
 # Fichiers suivis par git (modifications locales comprises), sans les couches personnelles
 (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | grep -zv '^users/' | tar --null -T - -cf -) | tar -xf - -C "$SRC"
 mkdir -p "$SRC/distro/out"
 cp -a "$REPO" "$SRC/distro/out/repo"
-sed "s|^SRC=.*|SRC=\"\${SRC:-/usr/share/$DISTRO/void-setup}\"|" "$ROOT/distro/live/install" > "$INC/usr/bin/$DISTRO-install"
+sed "s|^SRC=.*|SRC=\"\${SRC:-/usr/share/$DISTRO/filigrane}\"|" "$ROOT/distro/live/install" > "$INC/usr/bin/$DISTRO-install"
 chmod 755 "$INC/usr/bin/$DISTRO-install"
 cat > "$INC/etc/motd" <<EOF
 

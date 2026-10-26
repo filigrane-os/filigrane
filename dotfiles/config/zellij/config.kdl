@@ -283,7 +283,23 @@ web_client {
 // Default: default
 // 
 // theme "dracula"
-theme "catppuccin-mocha"
+theme "filigrane"
+// Filigrane (brand.md): nuit, brume, accent voile (format de thème historique, couleurs nommées)
+themes {
+    filigrane {
+        fg "#dbe7f4"
+        bg "#2d3744"
+        black "#1c222b"
+        red "#c98f93"
+        green "#9dbbd6"
+        yellow "#d2bf92"
+        blue "#9dbbd6"
+        magenta "#b3a8c9"
+        cyan "#95c0c6"
+        white "#dbe7f4"
+        orange "#d2bf92"
+    }
+}
  
 // Choose the base input mode of zellij.
 // Default: normal
