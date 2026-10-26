@@ -8,7 +8,7 @@
 
     "modules-left": ["image#logo", "niri/workspaces", "niri/window"],
     "modules-center": ["group/ind", "group/quick", "clock"],
-    "modules-right": ["mpris", "group/res", "group/sys", "battery", "custom/batwatch"],
+    "modules-right": ["mpris", "group/res", "group/sys", "battery", "custom/watch"],
 
     // Modules regroupés dans une seule pastille chacun (gain de place, voir style.css)
     // Indicateurs et bascules: enregistrement, SSH, avion, VPN, veille, MAJ
@@ -57,8 +57,8 @@
     // Clic = date complète avec semaine ISO, clic droit = calendrier mois/année, clic milieu = mois courant
     "clock": {
         "format": "{:%a %d %b  %H:%M}",
-        "format-alt": "{:%A %d %B %Y  ·  S%V  %H:%M:%S}",
-        "interval": 1,
+        "format-alt": "{:%A %d %B %Y  ·  S%V  %H:%M}",
+        "interval": 60,
         "tooltip-format": "<tt>{calendar}</tt>",
         "calendar": { "mode": "month", "weeks-pos": "left", "on-scroll": 1 },
         "on-click": "$HOME/.local/bin/webapp https://calendar.proton.me",
@@ -101,7 +101,7 @@
     "custom/cal": {
         "exec": "$HOME/.local/bin/bar-alert cal",
         "return-type": "json",
-        "interval": 60,
+        "interval": "once",
         "signal": 17,
         "hide-empty-text": true,
         "on-click": "$HOME/.local/bin/bar-alert open cal"
@@ -125,10 +125,11 @@
         "on-click": "$HOME/.local/bin/bar-update run"
     },
     // Sauvegarde restic vers le NAS: gris au repos, vert clignotant en cours, rouge en échec; clic = sauvegarder maintenant
+    // Rafraîchie par watch-backup (début/fin) et custom/watch (verrou); l'heure de la dernière sauvegarde, chaque heure
     "custom/backup": {
         "exec": "$HOME/.local/bin/bar-tray backup",
         "return-type": "json",
-        "interval": 10,
+        "interval": 3600,
         "signal": 18,
         "hide-empty-text": true,
         "on-click": "$HOME/.local/bin/bar-backup run"
@@ -145,12 +146,12 @@
     },
     // Usage et top 5 processus en infobulle, clic = htop
     "custom/cpu": {
-        "exec": "$HOME/.local/bin/bar-stats cpu",
+        "exec": "exec $HOME/.local/bin/bar-stats cpu",
         "return-type": "json",
         "on-click": "$HOME/.local/bin/bar-tui htop"
     },
     "custom/mem": {
-        "exec": "$HOME/.local/bin/bar-stats mem",
+        "exec": "exec $HOME/.local/bin/bar-stats mem",
         "return-type": "json",
         "on-click": "$HOME/.local/bin/bar-tui htop"
     },
@@ -205,7 +206,7 @@
     "custom/night": {
         "exec": "$HOME/.local/bin/bar-tray night",
         "return-type": "json",
-        "interval": 120,
+        "interval": "once",
         "signal": 10,
         "hide-empty-text": true,
         "on-click": "$HOME/.local/bin/bar-toggle night"
@@ -242,14 +243,15 @@
     "custom/remote": {
         "exec": "$HOME/.local/bin/bar-status remote",
         "return-type": "json",
-        "interval": 30,
+        "interval": "once",
+        "signal": 21,
         "hide-empty-text": true
     },
     // Mode avion (visible seulement actif), clic = désactiver
     "custom/air": {
         "exec": "$HOME/.local/bin/bar-status air",
         "return-type": "json",
-        "interval": 60,
+        "interval": "once",
         "signal": 14,
         "hide-empty-text": true,
         "on-click": "$HOME/.local/bin/bar-toggle air"
@@ -258,12 +260,13 @@
     "custom/vpn": {
         "exec": "$HOME/.local/bin/bar-status vpn",
         "return-type": "json",
-        "interval": 60,
+        "interval": "once",
+        "signal": 22,
         "hide-empty-text": true
     },
     // Température CPU (masquée sans sonde), clic = htop
     "custom/temp": {
-        "exec": "$HOME/.local/bin/bar-stats temp",
+        "exec": "exec $HOME/.local/bin/bar-stats temp",
         "return-type": "json",
         "hide-empty-text": true,
         "on-click": "$HOME/.local/bin/bar-tui htop"
@@ -276,11 +279,11 @@
         "tooltip-format": "{used} / {total} ({free} libres)",
         "on-click": "$HOME/.local/bin/bar-tui sh -c 'df -h; echo; du -xh --max-depth=1 ~ 2>/dev/null | sort -h | tail -15; read _'"
     },
-    // Alerte batterie faible (<= 10 %), invisible
-    "custom/batwatch": {
-        "exec": "$HOME/.local/bin/bar-status batwatch",
+    // Invisible: surveille SSH entrant, mode avion, VPN, veilleuse, sauvegarde, agenda et batterie faible (bar-stats watch,
+    // lecture de /proc et /sys toutes les 5 s sans rien lancer) et réveille par signal le module dont l'état a changé
+    "custom/watch": {
+        "exec": "exec $HOME/.local/bin/bar-stats watch",
         "return-type": "json",
-        "interval": 60,
         "hide-empty-text": true
     },
     // Disposition clavier (bépo / qwerty australien): clic = bascule

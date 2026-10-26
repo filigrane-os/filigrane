@@ -1,7 +1,8 @@
 // Modules Waybar CPU, mémoire et température, résidents: `bar-stats cpu|mem|temp` écrit une ligne JSON par intervalle
 // (module sans "interval" dans la config Waybar). Lit /proc et /sys directement, sans lancer top, ps ni awk.
+// `bar-stats watch` surveille les indicateurs à changement rare et réveille leur module par signal (voir watch).
 // Même sortie que l'ancien `bar-status cpu|mem|temp`. Se termine quand Waybar ferme le tuyau.
-use std::{collections::HashMap, env, fs, io::Write, process, thread, time::{Duration, Instant}};
+use std::{collections::HashMap, env, fs, io::Write, os::unix::fs::MetadataExt, process, thread, time::{Duration, Instant}};
 
 struct Proc {
     name: String,
@@ -143,6 +144,131 @@ fn temp(every: Duration) {
     }
 }
 
+// Signal temps réel à Waybar (comme `pkill -RTMIN+n waybar`); /proc n'est parcouru que lorsqu'un état change
+fn refresh(sig: i32) {
+    let Ok(dir) = fs::read_dir("/proc") else { return };
+    for e in dir.flatten() {
+        let Some(pid) = e.file_name().to_str().and_then(|s| s.parse::<i32>().ok()) else { continue };
+        if fs::read_to_string(format!("/proc/{pid}/comm")).is_ok_and(|c| c.trim_end() == "waybar") {
+            // SAFETY: envoi d'un signal, sans effet sur ce processus
+            unsafe { libc::kill(pid, libc::SIGRTMIN() + sig) };
+        }
+    }
+}
+
+// Sessions SSH entrantes établies (port local 22), comme `ss -Htn state established '( sport = :22 )'`
+fn ssh_in() -> usize {
+    ["/proc/net/tcp", "/proc/net/tcp6"]
+        .iter()
+        .filter_map(|p| fs::read_to_string(p).ok())
+        .map(|s| {
+            s.lines()
+                .skip(1)
+                .filter(|l| {
+                    let f: Vec<&str> = l.split_whitespace().collect();
+                    f.len() > 3 && f[3] == "01" && f[1].ends_with(":0016")
+                })
+                .count()
+        })
+        .sum()
+}
+
+// Mode avion: une radio bloquée par logiciel (`rfkill list` « Soft blocked: yes »)
+fn airplane() -> bool {
+    fs::read_dir("/sys/class/rfkill")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|e| fs::read_to_string(e.path().join("soft")).is_ok_and(|s| s.trim() == "1"))
+}
+
+// Interfaces VPN levées (IFF_UP), mêmes préfixes que bar-status vpn
+fn vpn() -> String {
+    let mut up: Vec<String> = fs::read_dir("/sys/class/net")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .filter_map(|e| e.file_name().into_string().ok())
+        .filter(|n| ["tun", "tap", "wg", "tailscale", "proton", "nordlynx"].iter().any(|p| n.starts_with(p)))
+        .filter(|n| {
+            fs::read_to_string(format!("/sys/class/net/{n}/flags"))
+                .ok()
+                .and_then(|f| u32::from_str_radix(f.trim().trim_start_matches("0x"), 16).ok())
+                .is_some_and(|f| f & 1 != 0)
+        })
+        .collect();
+    up.sort();
+    up.join(" ")
+}
+
+// Verrou flock tenu (sauvegarde en cours), lu dans /proc/locks: le tester avec flock pourrait faire échouer watch-backup
+fn locked(path: &str) -> bool {
+    let Ok(ino) = fs::metadata(path).map(|m| m.ino().to_string()) else { return false };
+    fs::read_to_string("/proc/locks")
+        .unwrap_or_default()
+        .lines()
+        .any(|l| l.split_whitespace().any(|t| t.matches(':').count() == 2 && t.rsplit(':').next() == Some(ino.as_str())))
+}
+
+// Indicateurs à changement rare, sans sondage de Waybar: `bar-stats watch` lit /proc et /sys à chaque intervalle
+// sans rien lancer et ne réveille un module (signal) que si son état a changé. Remplace les "interval" de 10 à 120 s
+// de remote, air, vpn, night, backup, cal et batwatch, qui lançaient chacun un shell et ses commandes.
+fn watch(every: Duration) {
+    // Lancé par `exec` depuis Waybar: s'arrête avec lui
+    // SAFETY: prctl ne touche qu'aux attributs de ce processus
+    unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) };
+    emit(r#"{"text":""}"#.into());
+    let home = env::var("HOME").unwrap_or_default();
+    let run = env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into());
+    let night = format!("{run}/wlsunset.log");
+    let lock = format!("{home}/.local/state/watch/backup.lock");
+    let cal = format!("{home}/.local/state/alerts/cal");
+    let batwatch = format!("{home}/.local/bin/bar-status");
+    let bat = "/sys/class/power_supply/BAT0";
+    // (signal du module, empreinte de son état); /proc/net/tcp* coûte plus cher (sockets parcourues): un tour sur trois
+    let mut tick = 0u64;
+    let probes: [(i32, Box<dyn Fn(u64) -> Option<String>>); 5] = [
+        (21, Box::new(|t| (t % 3 == 0).then(|| ssh_in().to_string()))),
+        (14, Box::new(|_| Some(airplane().to_string()))),
+        (22, Box::new(|_| Some(vpn()))),
+        // wlsunset écrit une ligne à chaque changement de température (bar-status night la lit)
+        (10, Box::new(move |_| Some(format!("{:?}", fs::metadata(&night).map(|m| (m.len(), m.modified().ok())).ok())))),
+        (18, Box::new(move |_| Some(locked(&lock).to_string()))),
+    ];
+    let mut seen: Vec<String> = probes.iter().map(|(_, f)| f(0).unwrap_or_default()).collect();
+    let (mut low, mut bat_seen) = (false, String::new());
+    let mut cal_t = Instant::now();
+    loop {
+        thread::sleep(every);
+        tick += 1;
+        for ((sig, f), old) in probes.iter().zip(seen.iter_mut()) {
+            let Some(v) = f(tick) else { continue };
+            if v != *old {
+                refresh(*sig);
+                *old = v;
+            }
+        }
+        // Agenda: l'événement affiché disparaît 5 min après son début, rafraîchi chaque minute tant qu'il y en a un
+        if cal_t.elapsed() >= Duration::from_secs(60) {
+            cal_t = Instant::now();
+            if fs::metadata(&cal).is_ok_and(|m| m.len() > 0) {
+                refresh(17);
+            }
+        }
+        // Batterie faible: alerte et extinction restent dans `bar-status batwatch`, lancé seulement quand l'état
+        // bouge sous 10 % sur batterie, et une fois au retour (chargeur branché) pour réarmer l'alerte.
+        // status interroge le matériel (~1 ms, contre quelques µs pour capacity): lu seulement sous 10 %
+        let cap = fs::read_to_string(format!("{bat}/capacity")).ok().and_then(|s| s.trim().parse::<u8>().ok()).unwrap_or(100);
+        let status = if cap <= 10 || low { fs::read_to_string(format!("{bat}/status")).unwrap_or_default() } else { String::new() };
+        let now_low = status.trim() == "Discharging" && cap <= 10;
+        let fp = format!("{} {cap}", status.trim());
+        if (now_low || low) && fp != bat_seen {
+            let _ = process::Command::new(&batwatch).arg("batwatch").stdout(process::Stdio::null()).status();
+        }
+        (low, bat_seen) = (now_low, fp);
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let secs = |default: u64| Duration::from_secs(args.get(2).and_then(|s| s.parse().ok()).unwrap_or(default));
@@ -152,8 +278,9 @@ fn main() {
         Some("cpu") => cpu(secs(10), page_kb, hz),
         Some("mem") => mem(secs(15), page_kb),
         Some("temp") => temp(secs(15)),
+        Some("watch") => watch(secs(5)),
         _ => {
-            eprintln!("usage: bar-stats cpu|mem|temp [intervalle en s]");
+            eprintln!("usage: bar-stats cpu|mem|temp|watch [intervalle en s]");
             process::exit(2);
         }
     }

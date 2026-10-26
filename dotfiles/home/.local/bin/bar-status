@@ -1,5 +1,5 @@
 #!/bin/sh
-# Indicateurs Waybar (JSON): mic | dnd | night | rec | idle | remote | air | vpn | batwatch. Rafraîchis par signal (clic) ou par intervalle.
+# Indicateurs Waybar (JSON): mic | dnd | night | rec | idle | remote | air | vpn | batwatch. Rafraîchis par signal (clic, ou bar-stats watch quand l'état change) ou par intervalle.
 # CPU, mémoire et température: bar-stats (apps/bar-stats, Rust, résident).
 case "$1" in
     mic)
@@ -63,6 +63,7 @@ case "$1" in
             printf '{"text":""}\n'
         fi ;;
     batwatch)
+        # Lancé par bar-stats watch (sous 10 % sur batterie, puis au retour du chargeur), sortie ignorée.
         # Alerte batterie faible (<=10 %) puis arrêt propre (<=1 %) après 1 min sauf si le chargeur est branché,
         # une seule fois par décharge; aucun affichage. Pas de veille: en S3 la batterie finit de se vider (coupure brutale).
         printf '{"text":""}\n'
