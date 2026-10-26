@@ -2,7 +2,7 @@ pragma Singleton
 // fili-notification: serveur de notifications (remplace mako), bulles en haut à droite sous la fili-bar, 4 au plus,
 // durée selon l'urgence (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées).
 // fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
-// Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); clic droit: fermer.
+// Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); croix ou clic droit: fermer.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -138,13 +138,13 @@ Singleton {
         clip: true
 
         Timer {
-            running: !area.containsMouse
+            running: !area.containsMouse && !closeBtn.hovered
             interval: notifs.timeout(card.n)
             onTriggered: notifs.close(card.n, "expire")
         }
         RowLayout {
             id: row
-            anchors { fill: parent; margins: 14 }
+            anchors { fill: parent; margins: 14; rightMargin: 34 }
             spacing: 12
             IconImage {
                 visible: card.img !== ""
@@ -200,9 +200,38 @@ Singleton {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: m => m.button === Qt.LeftButton ? notifs.activate(card.n) : notifs.close(card.n, "dismiss")
         }
+        CloseCross {
+            id: closeBtn
+            anchors { top: parent.top; right: parent.right; margins: 8 }
+            onClicked: notifs.close(card.n, "dismiss")
+        }
     }
 
-    // fili-notification-center: clic = copier le texte, clic droit = retirer, Échap ou clic hors du panneau = fermer
+    // Croix de fermeture (bulles et fili-notification-center): discrète, plus claire au survol
+    component CloseCross: Rectangle {
+        id: cross
+        signal clicked
+        readonly property bool hovered: crossArea.containsMouse
+        width: 22
+        height: 22
+        radius: 6
+        color: hovered ? FiliTheme.nuit3 : "transparent"
+        Text {
+            anchors.centerIn: parent
+            text: "\u2715"
+            color: cross.hovered ? FiliTheme.brume : FiliTheme.ardoise
+            font { family: FiliTheme.font; pixelSize: 12 }
+        }
+        MouseArea {
+            id: crossArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: cross.clicked()
+        }
+    }
+
+    // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic hors du panneau = fermer
     PanelWindow {
         visible: notifs.centerOpen
         anchors { top: true; bottom: true; left: true; right: true }
@@ -276,7 +305,7 @@ Singleton {
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
                         ColumnLayout {
                             id: entry
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8 }
+                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8; rightMargin: 32 }
                             spacing: 1
                             Text {
                                 Layout.fillWidth: true
@@ -316,6 +345,11 @@ Singleton {
                                     notifs.centerOpen = false;
                                 }
                             }
+                        }
+                        CloseCross {
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
+                            visible: hov.containsMouse || hovered
+                            onClicked: notifs.history = notifs.history.filter(x => x !== parent.modelData)
                         }
                     }
                 }
