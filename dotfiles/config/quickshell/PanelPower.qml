@@ -1,4 +1,4 @@
-// fili-panel alimentation: batterie (fili-info power), luminosité de l'écran (brightnessctl), accès au menu système.
+// fili-panel alimentation: batterie (fili-info power), luminosité de l'écran (brightnessctl), actions système (verrouiller, veille, quitter, redémarrer, éteindre).
 // Pas de profils d'énergie: Void n'a pas power-profiles-daemon (voir la skill filigrane pour tlp/cpupower).
 import QtQuick
 import QtQuick.Layouts
@@ -36,11 +36,16 @@ ColumnLayout {
             FiliTheme.run("brightnessctl -q set " + Math.max(1, Math.round(v * 100)) + "%");
         }
     }
-    PanelButton {
-        Layout.topMargin: 6
-        glyph: ""
-        label: "Menu système (verrouiller, veille…)"
-        dim: true
-        onClicked: { FiliPanel.close(); FiliTheme.run("setsid -f " + FiliTheme.bin + "/menu system"); }
+    PanelSection { text: "SYSTÈME" }
+    // Actions du menu système (menu system <action>: confirmation demandée pour quitter, redémarrer et éteindre)
+    Repeater {
+        model: [["", "Verrouiller", "Lock"], ["", "Veille", "Sleep"], ["", "Quitter la session", "Log out"], ["", "Redémarrer", "Reboot"], ["", "Éteindre", "Power off"]]
+        PanelButton {
+            required property var modelData
+            objectName: "system"
+            glyph: modelData[0]
+            label: modelData[1]
+            onClicked: { FiliPanel.close(); FiliTheme.run("setsid -f " + FiliTheme.bin + "/menu system '" + modelData[2] + "'"); }
+        }
     }
 }
