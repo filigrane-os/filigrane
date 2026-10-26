@@ -23,7 +23,7 @@ jobs:
             bash -n "$f"
           done
       - name: shellcheck (erreurs seulement)
-        run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install users/*/layer.sh
+        run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install users/*/layer.sh lib/i18n.sh lib/i18n/*.sh
       - name: shellcheck des scripts utilisateur (~/.local/bin, hooks; pas les scripts Python)
         run: |
           scripts=()
@@ -47,6 +47,15 @@ jobs:
             fm="$(awk 'NR==1 && $0=="---" {f=1; next} f && $0=="---" {exit} f' "$s")"
             grep -q '^name: ' <<<"$fm" && grep -q '^description: ' <<<"$fm" || { echo "frontmatter sans name ou description: $s"; exit 1; }
           done
+
+      - name: Traductions (chaque message a une entrée dans chaque catalogue)
+        run: |
+          scripts/check-i18n.sh
+          plan="--plan --profile vm --machine generic --cpu other --gpu none --arch x86_64"
+          # shellcheck disable=SC2086
+          LANG=fr_FR.UTF-8 ./bootstrap.sh $plan | grep -q '^==> Profil:'
+          # shellcheck disable=SC2086
+          LANG=de_DE.UTF-8 ./bootstrap.sh $plan | grep -q '^==> Profile:'
 
   # niri validate sur la config de la distribution, puis avec la couche personnelle (local.kdl)
   niri:

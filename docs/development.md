@@ -14,6 +14,7 @@ How the repository is organised, how to test a change, and what the CI checks.
 | `system/` | Files installed under `/etc` and elsewhere: elogind, iwd, iptables, sysctl, udev, plymouth, earlyoom, zramen |
 | `dotfiles/home`, `dotfiles/config` | Linked into `~` and `~/.config` |
 | `apps/` | Native Rust tools: `bar-stats` (waybar modules), `menu-backdrop` (menu blur), `budget` (resource budget) |
+| `lib/` | `i18n.sh` and `i18n/<lang>.sh`: translations for the scripts, see [Translations](#translations) |
 | `agents/` | `skills/filigrane/` (the agent skill) and `work/` (instructions linked into the agent working directory) |
 | `brand/` | Master logo files (SVG), colours and typography: see `agents/skills/filigrane/references/brand.md` |
 | `hardware/<machine>/` | Everything specific to a hardware model |
@@ -50,6 +51,26 @@ How the repository is organised, how to test a change, and what the CI checks.
 | `dotfiles` | Dotfiles applied in a clean `HOME` for `generic` and `mac-t2`: no broken link, T2 files only on the T2 machine, agent skills linked, `fili-ai` smoke test, idempotence |
 
 `.github/workflows/distro.yml` (branch `distro`, or by hand) builds the xbps repository and the ISO in a privileged Void container, boots it in QEMU up to the login prompt, and keeps the ISO as an artifact for 7 days.
+
+## Translations
+
+Messages shown by the scripts are written in English in the code and translated at display time. `lib/i18n.sh` picks the language from `FILI_LANG`, else `LC_ALL`, `LC_MESSAGES` or `LANG` (`fr_FR.UTF-8` → `fr`). A catalog `lib/i18n/<lang>.sh` maps each exact English text to its translation; a language without a catalog, or a message without an entry, is shown in English.
+
+```sh
+FILI_LIB="$ROOT/lib"
+. "$FILI_LIB/i18n.sh"
+t 'Installing %s' "$name"          # printf-style, no newline
+```
+
+Scripts using it (`bootstrap.sh`, `fili-ai`) define `log`, `warn`, `die`, `say` and `note` on top of `t`; they all take the English text first, then the `printf` arguments. Write the English text in single quotes, without an apostrophe inside, and put variables in arguments, never in the text.
+
+To add or fix a language:
+
+1. Copy `lib/i18n/fr.sh` to `lib/i18n/<lang>.sh` (two letters, as in `LANG`) and translate the right-hand sides, keeping the same `%s` placeholders in the same order.
+2. Run `scripts/check-i18n.sh`: it fails on a missing entry, on a different number of placeholders, and on an entry no script uses any more. CI runs it.
+3. Try it: `LANG=<lang>_XX.UTF-8 ./bootstrap.sh --plan`.
+
+Not translated yet: the menu, the waybar scripts, the niri shortcut titles, `config.env` comments and the agent skill. Documentation is in English only.
 
 ## Rust tools
 
