@@ -15,9 +15,9 @@ case "$WAYLAND_DISPLAY" in /*) wl="$WAYLAND_DISPLAY" ;; *) wl="${XDG_RUNTIME_DIR
 mkdir -m 700 "$T/run" "$T/bin"
 cp -r "$ROOT/dotfiles/config/quickshell" "$T/config"
 cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
-# Scripts du dépôt, et binaires compilés de apps/ (bar-stats) depuis ~/.local/bin
+# Scripts du dépôt, et binaires compilés de apps/ (bar-stats): $FILI_APPS (build en cours) sinon ~/.local/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
-for f in "$HOME"/.local/bin/bar-stats; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
+for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
 
 FILI_TEST=1 FILI_BIN="$T/bin" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1

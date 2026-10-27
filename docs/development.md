@@ -13,7 +13,7 @@ How the repository is organised, how to test a change, and what the CI checks.
 | `services/*.txt` | runit services: `common`, `vm`, `baremetal` |
 | `system/` | Files installed under `/etc` and elsewhere: elogind, iwd, iptables, sysctl, udev, plymouth, earlyoom, zramen |
 | `dotfiles/home`, `dotfiles/config` | Linked into `~` and `~/.config` |
-| `apps/` | Native Rust tools: `bar-stats` (bar modules: CPU, RAM, temperature, disk, network, state watcher), `budget` (resource budget) |
+| `apps/` | Native Rust tools: `bar-stats` (fili-shell's resident helper: bar stats, state watcher, pipe reader, charger events), `budget` (resource budget) |
 | `lib/` | `i18n.sh` and `i18n/<lang>.sh`: translations for the scripts, see [Translations](#translations) |
 | `agents/` | `skills/filigrane/` (the agent skill) and `work/` (instructions linked into the agent working directory) |
 | `brand/` | Master logo files (SVG), colours and typography: see `agents/skills/filigrane/references/brand.md` |

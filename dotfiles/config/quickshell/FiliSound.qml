@@ -1,6 +1,6 @@
 pragma Singleton
 // fili-sound: sons de la fili-shell (notification: brand/sound/notification.wav; chargeur: thème freedesktop; pw-play): nouvelle notification (FiliNotification) et
-// chargeur branché (événements du noyau sur power_supply, via `udevadm monitor`: rien ne sonde, le processus dort).
+// chargeur branché (événements du noyau sur power_supply, lus par bar-stats: rien ne sonde).
 // Chacun s'active et se coupe dans le fili-notification-center; réglage gardé dans ~/.local/state/fili-sound/ (un
 // fichier par son, "off" = coupé; absent = activé).
 import QtQuick
@@ -65,38 +65,19 @@ Singleton {
             }
         }
     }
-    // État du chargeur: une fois au démarrage (sans son), puis à chaque événement power_supply
-    Process {
-        id: acRead
-        command: ["sh", "-c", "cat /sys/class/power_supply/A*/online 2>/dev/null | head -1"]
-        stdout: StdioCollector {
-            onStreamFinished: snd.acEvent(text.trim() === "1")
+    // État du chargeur (`ac 0|1` de bar-stats, voir FiliShell): au démarrage (sans son), puis à chaque changement
+    property bool acKnown: false
+    Connections {
+        target: FiliShell
+        enabled: !FiliTheme.testing
+        function onCommand(target, action, args) {
+            if (target !== "ac")
+                return;
+            if (snd.acKnown)
+                snd.acEvent(action === "1");
+            else
+                snd.ac = action === "1";
+            snd.acKnown = true;
         }
-    }
-    Process {
-        id: acInit
-        running: !FiliTheme.testing
-        command: acRead.command
-        stdout: StdioCollector {
-            onStreamFinished: snd.ac = text.trim() === "1"
-        }
-    }
-    Process {
-        id: events
-        running: !FiliTheme.testing
-        command: ["udevadm", "monitor", "--kernel", "--subsystem-match=power_supply"]
-        stdout: SplitParser {
-            // « KERNEL[…] change /devices/…/ADP1 (power_supply) »: la batterie change souvent, elle ne compte pas
-            onRead: line => {
-                if (line.indexOf("(power_supply)") > 0 && line.indexOf("BAT") < 0)
-                    acRead.running = true;
-            }
-        }
-        onExited: retry.start()
-    }
-    Timer {
-        id: retry
-        interval: 5000
-        onTriggered: events.running = true
     }
 }

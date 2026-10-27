@@ -190,6 +190,15 @@ ShellRoot {
             () => ok(true, "fili-shell notification dnd on"),
             wait(() => t.shell(t.bin + "/fili-shell notification dnd off"), () => FiliNotification.dnd === false),
             () => ok(true, "fili-shell notification dnd off"),
+            // bar-stats: lecteur du tuyau et modules écrits sans script (stat NOM JSON)
+            wait(() => {}, () => FiliShell.stats.cpu !== undefined && FiliShell.stats.net !== undefined && FiliShell.stats.air !== undefined),
+            () => {
+                const cpu = t.find(t.bar.contentItem, "cpu");
+                ok(cpu && /^\d+%$/.test(cpu.text), "bar-stats: module cpu rempli (stat cpu)", cpu ? cpu.text : "module introuvable");
+                ok(t.find(t.bar.contentItem, "network").text !== "", "bar-stats: module réseau rempli (stat net)");
+                // Niri: flux d'événements lu sur le socket de niri
+                ok(Niri.workspaces.length > 0, "niri: espaces de travail reçus par le socket", Niri.workspaces.length);
+            },
 
             // ───── fili-launcher ─────
             () => {

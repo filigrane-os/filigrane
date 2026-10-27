@@ -7,7 +7,7 @@ The base system idles as low as possible: the browser, agents and containers kee
 
 ## Home-made tools (`apps/`)
 
-Native Rust binary rather than a script loading a heavy runtime (Python/GTK, Node). Example: `bar-stats` (bar modules) ~2 MB RSS each, no forks, vs a shell script spawned every few seconds. Shell stays fine for glue.
+Native Rust binary rather than a script loading a heavy runtime (Python/GTK, Node). Example: `bar-stats` (all bar stats, the pipe reader and kernel events in one process, under 1 MB PSS, no forks) vs a shell script spawned every few seconds. Shell stays fine for glue.
 
 - `apps/<name>/`, `Cargo.lock` committed, built `--locked`; minimal deps (raw `wayland-client` + `wayland-protocols*`, no toolkit).
 - Release profile: `opt-level = "s"`, `lto`, `codegen-units = 1`, `panic = "abort"`, `strip`.

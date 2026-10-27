@@ -2,6 +2,7 @@
 // {text, class, tooltip} par mise à jour), pour réutiliser bar-status, bar-tray, bar-alert, bar-stats...
 //   interval > 0: relancé toutes les N s; 0: une fois (puis sur signal); -1: résident (une ligne par mise à jour)
 //   signal: rafraîchi par `fili-shell signal N` (ex-`pkill -RTMIN+N waybar`)
+//   stat: sans script, état écrit par bar-stats (`stat NOM JSON`, voir FiliShell)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -9,6 +10,7 @@ import Quickshell.Io
 Item {
     id: mod
     property string cmd
+    property string stat
     property int interval: 0
     property int signal: -1
     property bool hideEmpty: true
@@ -44,25 +46,40 @@ Item {
         if (!line)
             return;
         try {
-            const j = JSON.parse(line);
-            mod.text = j.text ?? "";
-            mod.cls = Array.isArray(j["class"]) ? (j["class"][0] ?? "") : (j["class"] ?? "");
-            mod.tip = j.tooltip ?? "";
+            apply(JSON.parse(line));
         } catch (e) {
             mod.text = line;
         }
+    }
+    function apply(j) {
+        mod.text = j.text ?? "";
+        mod.cls = Array.isArray(j["class"]) ? (j["class"][0] ?? "") : (j["class"] ?? "");
+        mod.tip = j.tooltip ?? "";
     }
 
     function update() {
         if (proc.running) {
             if (interval >= 0)
                 pending = true;
-        } else {
+        } else if (!stat) {
             proc.running = true;
         }
     }
 
-    Component.onCompleted: proc.running = true
+    Component.onCompleted: {
+        if (!stat)
+            proc.running = true;
+        else if (FiliShell.stats[stat])
+            apply(FiliShell.stats[stat]);
+    }
+    Connections {
+        target: FiliShell
+        enabled: mod.stat !== ""
+        function onStat(name, data) {
+            if (name === mod.stat)
+                mod.apply(data);
+        }
+    }
 
     Process {
         id: proc
@@ -74,7 +91,7 @@ Item {
             if (mod.pending) {
                 mod.pending = false;
                 proc.running = true;
-            } else if (mod.interval < 0) {
+            } else if (mod.interval < 0 && !mod.stat) {
                 respawn.start();
             }
         }

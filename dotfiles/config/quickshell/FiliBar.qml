@@ -149,10 +149,10 @@ PanelWindow {
             BarScript { objectName: "cal"; cmd: bar.b + "/bar-alert cal"; signal: 17; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
             // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
             BarScript { objectName: "rec"; cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
-            // Session SSH entrante, mode avion (clic = désactiver), VPN: réveillés par bar-stats watch
-            BarScript { objectName: "remote"; cmd: bar.b + "/bar-status remote"; signal: 21; color: FiliTheme.cendre }
-            BarScript { objectName: "air"; cmd: bar.b + "/bar-status air"; signal: 14; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
-            BarScript { objectName: "vpn"; cmd: bar.b + "/bar-status vpn"; signal: 22 }
+            // Session SSH entrante, mode avion (clic = désactiver), VPN: écrits par bar-stats quand l'état change
+            BarScript { objectName: "remote"; stat: "remote"; color: FiliTheme.cendre }
+            BarScript { objectName: "air"; stat: "air"; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
+            BarScript { objectName: "vpn"; stat: "vpn" }
             // Rapports de veille non lus, clic = les lire
             BarScript { objectName: "news"; cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
             // Mises à jour xbps (masqué s'il n'y en a pas), clic = mettre à jour dans un terminal flottant
@@ -326,12 +326,12 @@ PanelWindow {
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
-            BarScript { objectName: "cpu"; tag: "CPU"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "mem"; tag: "RAM"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript {
                 objectName: "disk"
-                cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: moniteur"
+                stat: "disk"; hint: "clic: moniteur"
                 colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar)
             }
@@ -424,7 +424,7 @@ PanelWindow {
             // Wi-Fi: clic = impala (SSID, connexion), clic droit = menu réseau (IP, ping, débit)
             BarScript {
                 objectName: "network"
-                cmd: "exec " + bar.b + "/bar-stats net"; interval: -1; hideEmpty: false
+                stat: "net"; hideEmpty: false
                 colors: ({ disconnected: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "network", bar)
                 rclick: "setsid -f " + bar.b + "/menu network"
@@ -452,9 +452,5 @@ PanelWindow {
             hover.onLeftClicked: FiliPanel.toggle(hover, "power", bar)
             hover.rclick: "setsid -f " + bar.b + "/menu system"
         }
-
-        // Invisible: surveille SSH entrant, mode avion, VPN, veilleuse, sauvegarde, agenda et batterie faible
-        // (bar-stats watch) et réveille par `bar refresh N` le module dont l'état a changé
-        BarScript { objectName: "watch"; cmd: "exec " + bar.b + "/bar-stats watch"; interval: -1 }
     }
 }

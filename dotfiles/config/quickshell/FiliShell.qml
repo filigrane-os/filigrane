@@ -1,12 +1,15 @@
 pragma Singleton
 // fili-shell: canal de commandes du shell. Une ligne par commande dans le tuyau nommé $XDG_RUNTIME_DIR/fili-shell,
-// écrite par le client ~/.local/bin/fili-shell, bar-stats watch ou les scripts:
+// écrite par le client ~/.local/bin/fili-shell ou les scripts:
 //   bar refresh N...                      rafraîchit les modules de la fili-bar abonnés à N
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
 //   reload
-// Lu par un `cat` ouvert en lecture-écriture (jamais de fin de fichier). Les réponses partent vers le tuyau RÉPONSE.
+// Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
+//   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn), voir BarScript
+//   ac 0|1                                chargeur (FiliSound)
+// Sans bar-stats (apps/ non compilé): un `cat` ouvert en lecture-écriture. Les réponses partent vers le tuyau RÉPONSE.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -33,6 +36,9 @@ Singleton {
     signal refresh(int n)
     // notification ..., menu ..., reload: élément visé, action et arguments
     signal command(string target, string action, var args)
+    // stat NOM JSON: nouvel état d'un module; dernier état gardé pour les barres créées ensuite (écran branché)
+    signal stat(string name, var data)
+    readonly property var stats: ({})
 
     // Écrit une réponse dans le tuyau de la requête
     function reply(path, text) {
@@ -43,9 +49,19 @@ Singleton {
         id: reader
         running: true
         // Tuyau recréé à chaque démarrage, lecteur tué avec Quickshell (sinon un ancien lecteur volerait les commandes)
-        command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" && exec setpriv --pdeathsig TERM cat 0<>"$f"', "sh", shell.fifo]
+        command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; [ -x "$2/bar-stats" ] && exec "$2/bar-stats" "$f"; exec setpriv --pdeathsig TERM cat 0<>"$f"',
+            "sh", shell.fifo, FiliTheme.bin]
         stdout: SplitParser {
             onRead: line => {
+                if (line.startsWith("stat ")) {
+                    const i = line.indexOf(" ", 5);
+                    try {
+                        const data = JSON.parse(line.slice(i + 1));
+                        shell.stats[line.slice(5, i)] = data;
+                        shell.stat(line.slice(5, i), data);
+                    } catch (e) {}
+                    return;
+                }
                 const parts = line.trim().split(" ");
                 const target = parts.shift();
                 const action = parts.shift() ?? "";
