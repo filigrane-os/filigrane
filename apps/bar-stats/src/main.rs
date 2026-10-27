@@ -107,7 +107,7 @@ fn mem(every: Duration, page_kb: u64) {
                 format!("{:<22} {v}", clean(n))
             })
             .collect();
-        emit(format!(r#"{{"text":" {used:.1}G","tooltip":"<tt>Top RAM\n{}</tt>"}}"#, tip.join("\\n")));
+        emit(format!(r#"{{"text":"RAM {used:.1}G","tooltip":"<tt>Top RAM\n{}</tt>"}}"#, tip.join("\\n")));
         thread::sleep(every);
     }
 }
@@ -130,16 +130,22 @@ fn temp_path() -> Option<String> {
     None
 }
 
+// Affichée seulement quand la température est très haute: dès 85 °C, masquée de nouveau sous 80 °C (hystérésis)
 fn temp(every: Duration) {
     let path = temp_path();
+    let mut shown = false;
     loop {
         match path.as_ref().and_then(|p| fs::read_to_string(p).ok()).and_then(|s| s.trim().parse::<i64>().ok()) {
-            Some(t) => {
+            Some(t) if (shown && t / 1000 >= 80) || t / 1000 >= 85 => {
+                shown = true;
                 let c = t / 1000;
-                let class = if c >= 80 { "critical" } else { "" };
+                let class = if c >= 90 { "critical" } else { "" };
                 emit(format!(r#"{{"text":" {c}°","class":"{class}","tooltip":"Température CPU: {c}°C"}}"#));
             }
-            None => emit(r#"{"text":""}"#.into()),
+            _ => {
+                shown = false;
+                emit(r#"{"text":""}"#.into());
+            }
         }
         thread::sleep(every);
     }
@@ -294,7 +300,9 @@ fn human(b: f64) -> String {
 }
 
 // Espace disque de / (statvfs), comme le module disk de Waybar
+// Affiché seulement quand presque plein: dès 90 %, masqué de nouveau sous 88 % (hystérésis)
 fn disk(every: Duration) {
+    let mut shown = false;
     loop {
         // SAFETY: statvfs remplit une structure initialisée à zéro, chemin C valide
         let mut s: libc::statvfs = unsafe { std::mem::zeroed() };
@@ -303,8 +311,15 @@ fn disk(every: Duration) {
             let (total, free, avail) = (s.f_blocks as f64 * f, s.f_bfree as f64 * f, s.f_bavail as f64 * f);
             let used = total - free;
             let pct = (used * 100.0 / (used + avail)).round();
+            shown = (shown && pct >= 88.0) || pct >= 90.0;
+            if !shown {
+                emit(r#"{"text":""}"#.into());
+                thread::sleep(every);
+                continue;
+            }
+            let class = if pct >= 95.0 { "critical" } else { "" };
             emit(format!(
-                r#"{{"text":"\uf0a0 {pct}%","tooltip":"{} / {} ({} libres)"}}"#,
+                r#"{{"text":"\uf0a0 {pct}%","class":"{class}","tooltip":"{} / {} ({} libres)"}}"#,
                 human(used),
                 human(total),
                 human(avail)

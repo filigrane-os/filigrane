@@ -311,14 +311,16 @@ PanelWindow {
             hover.onWheelDown: player.next()
         }
 
-        // Ressources: CPU (top 5 en infobulle), température, mémoire, disque; clic = htop
+        // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 85 °C) et disque (dès 90 %) seulement quand ils
+        // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
             BarScript { objectName: "cpu"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript { objectName: "mem"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript {
                 objectName: "disk"
                 cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: moniteur"
+                colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar)
             }
         }
