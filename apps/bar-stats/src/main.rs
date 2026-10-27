@@ -130,13 +130,13 @@ fn temp_path() -> Option<String> {
     None
 }
 
-// Affichée seulement quand la température est très haute: dès 85 °C, masquée de nouveau sous 80 °C (hystérésis)
+// Affichée seulement quand la température est élevée: dès 50 °C, masquée de nouveau sous 45 °C (hystérésis)
 fn temp(every: Duration) {
     let path = temp_path();
     let mut shown = false;
     loop {
         match path.as_ref().and_then(|p| fs::read_to_string(p).ok()).and_then(|s| s.trim().parse::<i64>().ok()) {
-            Some(t) if (shown && t / 1000 >= 80) || t / 1000 >= 85 => {
+            Some(t) if (shown && t / 1000 >= 45) || t / 1000 >= 50 => {
                 shown = true;
                 let c = t / 1000;
                 let class = if c >= 90 { "critical" } else { "" };

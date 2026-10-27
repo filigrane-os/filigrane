@@ -319,7 +319,7 @@ PanelWindow {
             hover.onWheelDown: player.next()
         }
 
-        // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 85 °C) et disque (dès 90 %) seulement quand ils
+        // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
             BarScript { objectName: "cpu"; tag: "CPU"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
