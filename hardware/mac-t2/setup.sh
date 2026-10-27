@@ -83,7 +83,12 @@ fetch_ref() { # fetch_ref DEPOT REF DESTINATION
 
 setup_packages() {
     log "Paquets (dkms, en-têtes noyau, alsa-ucm-conf, outils firmware)"
-    xbps-install -y $(read_list "$ROOT/packages/mac-t2.txt")
+    # Seulement ceux qui manquent: xbps-install signale chaque paquet déjà là par un « ERROR »
+    local pkg todo=()
+    for pkg in $(read_list "$ROOT/packages/mac-t2.txt"); do
+        if xbps-query "$pkg" >/dev/null 2>&1; then echo "SKIP: $pkg déjà installé"; else todo+=("$pkg"); fi
+    done
+    [ ${#todo[@]} -eq 0 ] || xbps-install -y "${todo[@]}"
 }
 
 installed_kernels() { # versions dont les en-têtes sont présents
