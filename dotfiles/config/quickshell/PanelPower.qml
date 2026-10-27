@@ -18,6 +18,7 @@ ColumnLayout {
     }
 
     PanelInfo { title: true; cmd: FiliTheme.bin + "/fili-info power" }
+    PanelSection { text: "CAFÉINE" }
     RowLayout {
         Layout.fillWidth: true
         Layout.topMargin: 4
