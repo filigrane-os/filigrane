@@ -324,7 +324,8 @@ spawn-sh-at-startup "wl-paste --type image --watch cliphist store"
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.
-    // skip-at-startup
+    // Remplacé par la fenêtre des raccourcis du fili-shell (FiliHotkeys.qml, Mod+Shift+Slash)
+    skip-at-startup
 }
 
 // Uncomment this line to ask the clients to omit their client-side decorations if possible.
@@ -441,7 +442,7 @@ binds {
 
     // Mod-Shift-/, which is usually the same as Mod-?,
     // shows a list of important hotkeys.
-    Mod+Shift+Slash { show-hotkey-overlay; }
+    Mod+Shift+Slash hotkey-overlay-title="Raccourcis clavier" { spawn-sh "$HOME/.local/bin/fili-shell hotkeys"; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }

@@ -20,6 +20,7 @@ ShellRoot {
         FiliSound.notify;
         FiliLauncher.open;
         FiliShell.fifo;
+        FiliHotkeys.startup();
     }
 
     Connections {
@@ -27,6 +28,8 @@ ShellRoot {
         function onCommand(target, action, args) {
             if (target === "panel")
                 FiliPanel.summon(action);
+            else if (target === "hotkeys")
+                FiliHotkeys.toggle();
             else if (target === "reload")
                 Quickshell.reload(false);
         }

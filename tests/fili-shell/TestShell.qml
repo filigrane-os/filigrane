@@ -367,6 +367,10 @@ ShellRoot {
                     t.find(kbd, "keys").moved(0.5);
                     ok(FiliTheme.ran.some(c => c.indexOf("kbd_backlight' set 50%") > 0), "fili-panel clavier: curseur du rétroéclairage", JSON.stringify(FiliTheme.ran));
                 }
+                t.find(kbd, "open-hotkeys").press(Qt.LeftButton);
+                ok(FiliHotkeys.open && !FiliPanel.open, "fili-panel clavier: lien Raccourcis clavier -> fenêtre des raccourcis, panneau fermé");
+                FiliHotkeys.close();
+                FiliPanel.view = "keyboard";
                 FiliPanel.loaded.page = "viewer";
                 ok(FiliPanel.loaded.passive, "fili-panel clavier: le visualiseur ne prend pas le focus");
             },

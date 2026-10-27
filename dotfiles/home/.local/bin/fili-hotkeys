@@ -1,0 +1,15 @@
+#!/bin/sh
+# Raccourcis niri à afficher (fili-hotkeys, FiliHotkeys.qml): les binds de binds { } qui ont un hotkey-overlay-title
+# (config.kdl, puis local.kdl qui complète ou remplace), en JSON [{"key": "Super+Ctrl+W", "title": "Wi-Fi (impala)"}].
+# Mod devient Super; hotkey-overlay-title=null masque la ligne.
+dir="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
+cat "$dir/config.kdl" "$dir/local.kdl" 2>/dev/null | awk '
+    /^binds[[:space:]]*\{/ {b=1; next}
+    b && /^\}/ {b=0}
+    b && /^[[:space:]]*[A-Za-z0-9_+]+[[:space:]]/ && !/^[[:space:]]*\/\// {
+        key=$1
+        if (match($0, /hotkey-overlay-title=null/)) { printf "%s\t\n", key; next }
+        if (match($0, /hotkey-overlay-title="[^"]*"/)) printf "%s\t%s\n", key, substr($0, RSTART+22, RLENGTH-23)
+    }' |
+    jq -Rn '[inputs | split("\t") | {key: (.[0] | sub("^Mod\\+"; "Super+") | gsub("\\+Mod\\+"; "+Super+")), title: (.[1] // "")}]
+        | reduce .[] as $e ([]; map(select(.key != $e.key)) + [$e]) | map(select(.title != ""))'

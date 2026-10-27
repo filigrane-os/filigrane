@@ -175,6 +175,17 @@ ColumnLayout {
         label: "Emoji"
         onClicked: view.page = "emoji"
     }
+    PanelButton {
+        objectName: "open-hotkeys"
+        visible: view.page === "layouts"
+        glyph: "\uf11c"
+        label: "Raccourcis clavier"
+        detail: "Super+Maj+/"
+        onClicked: {
+            FiliPanel.close();
+            FiliHotkeys.show();
+        }
+    }
     Text {
         visible: view.page === "layouts" && Niri.layouts.length > 1
         Layout.topMargin: 4
