@@ -190,7 +190,7 @@ impl Temp {
                 self.shown = true;
                 let c = t / 1000;
                 let class = if c >= 90 { "critical" } else { "" };
-                stat("temp", &format!(r#"{{"text":" {c}°","class":"{class}","tooltip":"Température CPU: {c}°C"}}"#));
+                stat("temp", &format!(r#"{{"text":" {c}°","class":"{class}","tooltip":"Température CPU: {c}°C"}}"#));
             }
             _ => {
                 self.shown = false;
