@@ -246,10 +246,15 @@ Singleton {
         }
     }
 
-    // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic hors du panneau = fermer
+    // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic sur une fenêtre = fermer.
+    // Fenêtre de la taille du panneau (pas de calque plein écran); clic ailleurs: le focus part, le centre se ferme.
     PanelWindow {
+        id: centerWin
         visible: notifs.centerOpen && !FiliTheme.testing
-        anchors { top: true; bottom: true; left: true; right: true }
+        anchors { top: true; right: true }
+        margins { top: 12; right: 12 }
+        implicitWidth: centerCard.width
+        implicitHeight: centerCard.height
         exclusionMode: ExclusionMode.Normal
         exclusiveZone: 0
         WlrLayershell.layer: WlrLayer.Overlay
@@ -257,20 +262,29 @@ Singleton {
         WlrLayershell.keyboardFocus: WlrKeyboardFocus.OnDemand
         color: "transparent"
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: notifs.centerOpen = false
-        }
         Rectangle {
-            anchors { top: parent.top; right: parent.right; margins: 12 }
+            id: centerCard
             width: 380
-            height: Math.min(parent.height - 24, col.implicitHeight + 28)
+            height: Math.min((centerWin.screen?.height ?? 800) - FiliTheme.barHeight - 24, col.implicitHeight + 28)
             color: FiliTheme.nuit
             radius: 12
             border { width: 1; color: FiliTheme.nuit4 }
             focus: true
             Keys.onEscapePressed: notifs.centerOpen = false
-            MouseArea { anchors.fill: parent }
+            // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
+            property bool held: false
+            Window.onActiveChanged: {
+                if (Window.active)
+                    held = true;
+                else if (held)
+                    notifs.centerOpen = false;
+            }
+            Connections {
+                target: notifs
+                function onCenterOpenChanged() {
+                    centerCard.held = false;
+                }
+            }
 
             ColumnLayout {
                 id: col
