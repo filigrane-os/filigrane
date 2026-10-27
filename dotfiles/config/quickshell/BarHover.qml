@@ -24,12 +24,27 @@ MouseArea {
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
     cursorShape: (click || rclick) ? Qt.PointingHandCursor : Qt.ArrowCursor
 
-    onClicked: m => press(m.button)
+    // Panneau ouvert: niri retire le focus clavier au fili-panel dès le clic sur la barre et le clic (appui puis
+    // relâchement) est perdu, d'où deux clics. Alors l'action part à l'appui, et le relâchement ne la rejoue pas.
+    property bool early: false
+    onPressed: m => down(m.button)
+    onClicked: m => up(m.button)
     onWheel: w => {
         if (w.angleDelta.y !== 0)
             roll(w.angleDelta.y > 0);
     }
 
+    function down(button) {
+        early = FiliShell.panelOpen;
+        if (early)
+            press(button);
+    }
+    function up(button) {
+        if (early)
+            early = false;
+        else
+            press(button);
+    }
     // Clic et molette (appelés aussi par les tests)
     function press(button) {
         FiliTooltip.hide();

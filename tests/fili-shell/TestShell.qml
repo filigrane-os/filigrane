@@ -386,6 +386,23 @@ ShellRoot {
                 }
                 FiliPanel.close();
             },
+            // Panneau ouvert: l'action d'un module part à l'appui (un seul clic), pas deux fois au relâchement
+            () => {
+                const logo = t.find(t.bar.contentItem, "logo");
+                const area = logo.hover ?? logo;
+                FiliPanel.summon("audio");
+                FiliTheme.ran = [];
+                area.down(Qt.LeftButton);
+                ok(FiliTheme.ran.length === 1, "fili-bar: panneau ouvert, action à l'appui", JSON.stringify(FiliTheme.ran));
+                area.up(Qt.LeftButton);
+                ok(FiliTheme.ran.length === 1, "fili-bar: panneau ouvert, pas de second déclenchement au relâchement", JSON.stringify(FiliTheme.ran));
+                FiliPanel.close();
+                FiliTheme.ran = [];
+                area.down(Qt.LeftButton);
+                ok(FiliTheme.ran.length === 0, "fili-bar: panneau fermé, rien à l'appui");
+                area.up(Qt.LeftButton);
+                ok(FiliTheme.ran.length === 1, "fili-bar: panneau fermé, action au relâchement", JSON.stringify(FiliTheme.ran));
+            },
             // Un seul panneau ouvert: panneau, calendrier épinglé et centre de notifications se ferment l'un l'autre
             () => {
                 const cal = t.find(t.bar.contentItem, "clock");
