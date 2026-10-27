@@ -38,7 +38,8 @@ Teintes dérivées (entre nuit et voile) et états désaturés, communs à toute
 - Son : le bruit du papier et de l'écriture, jamais une cloche; sourd, discret, sans aigus stridents (bruit filtré, petits chocs graves, écho aérien, volume bas). `brand/sound/notification.wav` (notification: deux frappes de machine à écrire) généré par `brand/sound/make-sounds.py`, joué par la fili-shell (`FiliSound.qml`). Nouveau son: une entrée dans `SOUNDS` du script.
 - Barre (fili-bar): chaque module est « icône ou étiquette en ardoise → valeur en brume » (son 85 %, clavier fr, écran 65 %, Bluetooth 2 (appareils connectés)/SHARE/OFF, notifications 3 (nombre)/MUTE, CPU/RAM). Règle appliquée par `BarItem`/`BarScript` (`FiliTheme.glyph/value/iconColor`); un état (sable, cendre, voile) colore tout le module. États en majuscules.
 - Logo : `brand/` lié dans `~/.local/share/filigrane` (bouton menu de la barre : `filigrane-sombre.svg`).
-- Fond d'écran `filigrane.png` et images Plymouth : générés par `scripts/brand-assets.sh` (relancer si `brand/` change).
+- Fond d'écran `filigrane.png` (défaut après installation) et images Plymouth : générés par `scripts/brand-assets.sh` (relancer si `brand/` change).
+- Autres fonds livrés (`dotfiles/home/.local/share/wallpapers/voile-*.jpg`, 2560×1600) : photos de brume en couches, tons nuit/voile/brume, toutes CC0 (Unsplash via Wikimedia Commons) : `voile-brume-bleue` (Blue haze over wooded slopes), `voile-crepuscule` (Blue dusk in the mountains), `voile-foret-brouillard` (Dense fog in the woods), `voile-mer-de-nuages` (Sea of clouds), `voile-montagne-brumeuse` (Misty Mountains zR40wedS1aQ). Tout nouveau fond : licence libre vérifiée (CC0 ou domaine public), source notée ici.
 - Démarrage : thème Plymouth `system/plymouth/filigrane/` (logo empilé, étiquette « PHRASE DE PASSE », points), installé par `sudo system/plymouth/install.sh` (régénère l'initramfs).
 
 ## Typographie
