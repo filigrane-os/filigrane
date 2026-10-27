@@ -38,6 +38,8 @@ MAP = {
     0xF242: "battery-medium", 0xF243: "battery-low", 0xF244: "battery", 0xF293: "bluetooth", 0xF2C9: "thermometer",
     0xF2DB: "cpu", 0xF2F2: "timer", 0xF538: "memory-stick", 0xF796: "ethernet-port", 0xF05A3: "message-circle",
     0xF040: "pencil",
+    # force du signal Wi-Fi (codes Nerd Font md-wifi_strength_1..4): fili-bar (bar-stats net) et fili-panel réseau
+    0xF091F: "wifi-zero", 0xF0922: "wifi-low", 0xF0925: "wifi-high", 0xF0928: "wifi",
     # menu (I_* de ~/.local/bin/menu)
     0xF009: "layout-grid", 0xF0EA: "clipboard", 0xF118: "smile", 0xF1EC: "calculator", 0xF011: "power",
     0xF1FC: "paintbrush", 0xF1B2: "package", 0xF005: "star", 0xF08B: "log-out", 0xF01E: "rotate-cw",

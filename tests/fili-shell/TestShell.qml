@@ -439,6 +439,13 @@ ShellRoot {
                 area.up(Qt.LeftButton);
                 ok(FiliTheme.ran.length === 1, "fili-bar: panneau fermé, action au relâchement", JSON.stringify(FiliTheme.ran));
             },
+            // fili-panel réseau: l'icône suit la force du signal (paliers de 25)
+            () => {
+                FiliPanel.view = "network";
+                const g = s => FiliPanel.loaded.signalGlyph(s).codePointAt(0);
+                ok(g(100) === 0xF0928 && g(75) === 0xF0928 && g(50) === 0xF0925 && g(25) === 0xF0922 && g(0) === 0xF091F, "fili-panel réseau: icône selon la force du signal", [g(100), g(50), g(25), g(0)].map(x => x.toString(16)).join(","));
+                FiliPanel.close();
+            },
             // Un seul panneau ouvert: panneau, calendrier épinglé et centre de notifications se ferment l'un l'autre
             () => {
                 const cal = t.find(t.bar.contentItem, "clock");

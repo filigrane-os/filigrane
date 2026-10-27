@@ -372,6 +372,7 @@ fn counter(iface: &str, name: &str) -> u64 {
 // (débits rafraîchis toutes les 30 s); SSID et fréquence via `iw` seulement quand le lien change (iwd n'expose rien dans /sys)
 fn net(every: Duration) {
     let mut last_key = String::new();
+    let mut last_level = -1;
     let (mut ssid, mut freq) = (String::new(), String::new());
     let mut prev: Option<(String, u64, u64, Instant)> = None;
     let mut rates = (0.0, 0.0);
@@ -382,6 +383,18 @@ fn net(every: Duration) {
         let key = format!("{iface:?} {ip:?}");
         let wifi = iface.as_deref().is_some_and(|i| fs::metadata(format!("/sys/class/net/{i}/wireless")).is_ok());
         let changed = key != last_key;
+        // Qualité du lien Wi-Fi en % (/proc/net/wireless: sur 70) et palier d'icône: 0 à 3
+        let q = if wifi {
+            iface.as_deref().and_then(|i| {
+                fs::read_to_string("/proc/net/wireless").ok()?.lines()
+                    .find(|l| l.trim_start().starts_with(&format!("{i}:")))
+                    .and_then(|l| l.split_whitespace().nth(2).and_then(|v| v.trim_end_matches('.').parse::<f64>().ok()))
+                    .map(|v| (v * 100.0 / 70.0).round() as i64)
+            }).unwrap_or(0)
+        } else {
+            0
+        };
+        let level = if !wifi { -1 } else if q >= 70 { 3 } else if q >= 45 { 2 } else if q >= 20 { 1 } else { 0 };
         if changed && wifi {
             let out = process::Command::new("iw").args(["dev", iface.as_deref().unwrap_or(""), "link"]).output();
             let text = out.map(|o| String::from_utf8_lossy(&o.stdout).into_owned()).unwrap_or_default();
@@ -389,7 +402,7 @@ fn net(every: Duration) {
             ssid = field("SSID:");
             freq = field("freq:").split('.').next().unwrap_or("").to_string();
         }
-        if changed || since.elapsed() >= Duration::from_secs(30) {
+        if changed || level != last_level || since.elapsed() >= Duration::from_secs(30) {
             if let Some(i) = iface.as_deref() {
                 let (rx, tx, now) = (counter(i, "rx_bytes"), counter(i, "tx_bytes"), Instant::now());
                 if let Some((pi, prx, ptx, pt)) = &prev {
@@ -402,20 +415,17 @@ fn net(every: Duration) {
             }
             since = Instant::now();
             last_key = key;
+            last_level = level;
             let ipt = ip.map(|a| a.to_string()).unwrap_or_else(|| "pas d'IPv4".into());
             let bw = format!("↓ {}/s  ↑ {}/s", human(rates.0), human(rates.1));
             let line = match iface.as_deref() {
                 None => r#"{"text":"\uf071 hors ligne","class":"disconnected","tooltip":"Aucune connexion (clic: Wi-Fi)"}"#.to_string(),
-                Some(i) if wifi => {
-                    let q = fs::read_to_string("/proc/net/wireless")
-                        .unwrap_or_default()
-                        .lines()
-                        .find(|l| l.trim_start().starts_with(&format!("{i}:")))
-                        .and_then(|l| l.split_whitespace().nth(2).and_then(|v| v.trim_end_matches('.').parse::<f64>().ok()))
-                        .map_or(0, |v| (v * 100.0 / 70.0).round() as i64);
+                Some(_) if wifi => {
+                    // Icône selon la qualité (codes md-wifi_strength_1..4, police Fili Icons): trait plein = bon signal
+                    let glyph = ['\u{F091F}', '\u{F0922}', '\u{F0925}', '\u{F0928}'][level as usize];
                     let ghz = freq.parse::<f64>().map(|f| format!("{:.1}", f / 1000.0)).unwrap_or_default();
                     let name = clean(&ssid);
-                    format!(r#"{{"text":"\uf1eb {name}","class":"wifi","tooltip":"{name} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
+                    format!(r#"{{"text":"{glyph} {name}","class":"wifi","tooltip":"{name} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
                 }
                 Some(i) => format!(r#"{{"text":"\uf796 {i}","class":"ethernet","tooltip":"{i}: {ipt}\n{bw}"}}"#),
             };

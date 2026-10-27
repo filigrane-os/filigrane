@@ -12,6 +12,10 @@ ColumnLayout {
     property string message: ""
     readonly property string net: FiliTheme.bin + "/fili-net"
 
+    // Icône selon la force du signal (0-100, par paliers de 25): codes md-wifi_strength_1..4 (police Fili Icons)
+    function signalGlyph(signal) {
+        return String.fromCodePoint(signal >= 75 ? 0xF0928 : signal >= 50 ? 0xF0925 : signal >= 25 ? 0xF0922 : 0xF091F);
+    }
     function refresh() {
         if (!list.running)
             list.running = true;
@@ -91,10 +95,10 @@ ColumnLayout {
             Layout.fillWidth: true
             PanelButton {
                 objectName: "network"
-                glyph: modelData.security === "open" ? "" : ""
+                glyph: view.signalGlyph(modelData.signal)
                 label: modelData.ssid
                 sel: modelData.connected
-                detail: modelData.connected ? "connecté" : modelData.known ? "connu" : modelData.security === "open" ? "ouvert" : ""
+                detail: modelData.connected ? "connecté" : modelData.known ? "connu" : modelData.security === "open" ? "ouvert" : "chiffré"
                 onClicked: b => {
                     if (b === Qt.RightButton) {
                         if (modelData.known)
