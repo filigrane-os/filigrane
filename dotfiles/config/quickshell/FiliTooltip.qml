@@ -31,7 +31,7 @@ Singleton {
         const c = normalize(content);
         // Rien pendant un fili-panel, ni juste après sa fermeture (la souris est encore sur l'icône cliquée: la fiche
         // surgirait aussitôt et on croirait à un bug): il faut quitter l'icône puis y revenir après le répit
-        if (empty(c) || FiliShell.panelOpen || Date.now() < FiliShell.panelClosedAt + cooldown) {
+        if (empty(c) || FiliShell.anyOpen || Date.now() < FiliShell.panelClosedAt + cooldown) {
             hide(item);
             return;
         }

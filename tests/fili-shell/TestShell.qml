@@ -399,6 +399,16 @@ ShellRoot {
                 FiliTooltip.show(it, { title: "x" });
                 ok(FiliTooltip.target === it, "fili-tooltip: de nouveau permise après le répit");
                 FiliTooltip.hide();
+                // Même chose avec le centre de notifications ouvert
+                FiliShell.panelClosedAt = Date.now() - 5000;
+                FiliNotification.centerOpen = true;
+                FiliTooltip.show(it, { title: "x" });
+                ok(FiliTooltip.target === null, "fili-tooltip: masquée quand le centre de notifications est ouvert");
+                FiliNotification.centerOpen = false;
+                FiliTooltip.show(it, { title: "x" });
+                ok(FiliTooltip.target === null, "fili-tooltip: répit aussi après la fermeture du centre de notifications");
+                FiliShell.panelClosedAt = Date.now() - 5000;
+                FiliTooltip.hide();
             },
             // Interrupteurs à droite du titre (Wi-Fi, Bluetooth): présents, Bluetooth grisé sans adaptateur
             () => {

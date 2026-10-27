@@ -23,7 +23,11 @@ Singleton {
     // Instant de la dernière fermeture d'un fili-panel (ms): la fili-tooltip attend un peu après, sinon elle surgit
     // aussitôt sous la souris et on croirait à un bug
     property double panelClosedAt: 0
-    onPanelOpenChanged: if (!panelOpen) panelClosedAt = Date.now()
+    // Le fili-notification-center est ouvert (posé par FiliNotification)
+    property bool centerOpen: false
+    // Un panneau de la barre est ouvert (fili-panel ou centre de notifications): ni fiche ni double clic
+    readonly property bool anyOpen: panelOpen || centerOpen
+    onAnyOpenChanged: if (!anyOpen) panelClosedAt = Date.now()
 
     // bar refresh N
     signal refresh(int n)

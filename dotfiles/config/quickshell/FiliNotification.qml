@@ -18,6 +18,7 @@ Singleton {
     // Historique (copies, plus récentes en tête): { app, icon, summary, body, time }
     property var history: []
     property bool centerOpen: false
+    onCenterOpenChanged: FiliShell.centerOpen = centerOpen
     property int serial: 0
 
     function timeout(n) {

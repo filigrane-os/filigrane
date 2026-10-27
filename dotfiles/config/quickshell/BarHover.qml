@@ -35,7 +35,7 @@ MouseArea {
     }
 
     function down(button) {
-        early = FiliShell.panelOpen;
+        early = FiliShell.anyOpen;
         if (early)
             press(button);
     }
