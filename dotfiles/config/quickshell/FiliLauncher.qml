@@ -3,7 +3,7 @@ pragma Singleton
 // appelé par `fili-shell launcher`. Liste filtrée au clavier, icônes (protocole dmenu étendu "texte\0icon\037chemin"),
 // invite seule pour une saisie libre. La fenêtre couvre l'écran (calque "fili-launcher", flouté par niri) et la boîte
 // est un voile à peine translucide au tiers haut (elle ne saute pas pendant le filtrage); le voile reste 250 ms après
-// un choix pour enchaîner les sous-menus sans clignoter. Aucune animation (brand.md).
+// un choix, avec la boîte figée, pour enchaîner les sous-menus sans clignoter. Aucune animation (brand.md).
 // Lignes du menu: "glyphe  Libellé ›  ‹Touche›" mis en page (colonne d'icône, chevron de sous-menu, touche en
 // étiquette) plutôt qu'aligné par des espaces; la valeur rendue reste la ligne d'origine.
 // Entrée = choix (ou texte saisi sans correspondance), Échap = annuler (1), Maj+Retour arrière = revenir (10),
@@ -32,10 +32,11 @@ Singleton {
     function finish(rc, text) {
         if (replyTo)
             FiliShell.reply(replyTo, rc + "\n" + (text ?? ""));
-        replyTo = "";
-        req = null;
-        open = false;
+        // req et shown gardés: la boîte reste figée pendant le linger, remplacée par la requête suivante.
+        // linger avant open = false: la fenêtre ne passe jamais invisible (surface détruite = clignotement)
         linger.restart();
+        replyTo = "";
+        open = false;
     }
 
     // Découpe une ligne affichée: glyphe Nerd Font en tête (zone d'usage privé), "‹Touche›" et chevron "›" en fin
@@ -88,7 +89,6 @@ Singleton {
     }
 
     function start(opts, reply, raw) {
-        linger.stop();
         req = opts;
         replyTo = reply;
         const list = [];
@@ -113,6 +113,7 @@ Singleton {
         input.text = "";
         filter();
         open = true;
+        linger.stop();
         input.forceActiveFocus();
     }
 
@@ -247,12 +248,12 @@ Singleton {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: launcher.finish(1, "")
+            onClicked: if (launcher.open) launcher.finish(1, "")
         }
 
         Rectangle {
             id: box
-            visible: launcher.open
+            enabled: launcher.open
             readonly property int rowH: 40
             readonly property int pad: 18
             readonly property bool listMode: !launcher.req?.promptOnly
