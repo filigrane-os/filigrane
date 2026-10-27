@@ -2,7 +2,7 @@
 # Partage de fichiers du panneau Bluetooth de la fili-shell: une seule interface, trois protocoles.
 #   airdrop    omdrop (https://github.com/netmojo-systems/omdrop-plugin), radio AWDL (awdl0) requise
 #   bluetooth  OBEX Object Push (bluez-obex: obexd, via D-Bus), appareils appairés
-#   localsend  LocalSend, pas encore de moteur (indisponible)
+#   localsend  LocalSend v2 (apps/localsend: lsend pour envoyer, localsendd pour recevoir), même réseau local
 # Usage: fili-share protocols                    JSON [{id, label, available, why}]
 #        fili-share peers PROTO                  JSON [{id, name}]
 #        fili-share send PROTO ID NOM            choisit les fichiers (yazi), les envoie, notifie
@@ -10,6 +10,9 @@
 OBEXD=/usr/libexec/bluetooth/obexd
 PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
 DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
+LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
+export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
+export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
 
 notify() { notify-send -a fili-share "Partage" "$1" 2>/dev/null; }
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
@@ -23,7 +26,7 @@ why() {
     bluetooth)
         [ -x "$OBEXD" ] || { echo "bluez-obex non installé"; return; }
         bluetoothctl list 2>/dev/null | grep -q Controller || echo "aucun adaptateur Bluetooth" ;;
-    localsend) echo "non installé" ;;
+    localsend) command -v lsend >/dev/null && command -v localsendd >/dev/null || echo "non installé (./bootstrap.sh)" ;;
     *) echo "protocole inconnu" ;;
     esac
 }
@@ -47,6 +50,7 @@ bt_send() { # bt_send MAC FICHIER...
     obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.RemoveSession "$s" >/dev/null 2>&1
     return $rc
 }
+ls_running() { [ -r "$LSPID" ] && [ "$(cat "/proc/$(cat "$LSPID")/comm" 2>/dev/null)" = localsendd ]; }
 bt_running() { [ -r "$PIDF" ] && [ "$(cat "/proc/$(cat "$PIDF")/comm" 2>/dev/null)" = obexd ]; }
 
 case "$1" in
@@ -64,6 +68,9 @@ peers)
         omdrop peers -n 2>/dev/null | sed 's/^ *//; s/ *$//' | grep -v -E '^\(|:$|^$' | awk '{ print $0 "\t" $0 }' | json_peers ;;
     bluetooth)
         bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' | json_peers ;;
+    localsend)
+        # Pairs vus en multicast pendant 2 s (l'adresse IP sert d'identifiant); notre propre daemon est écarté
+        lsend scan --json -d 2 2>/dev/null | jq -c --arg me "$(hostname)" '[.[] | select(.alias != $me) | { id: .ip, name: .alias }]' ;;
     *) echo '[]' ;;
     esac
     ;;
@@ -81,6 +88,7 @@ send)
     case "$proto" in
     airdrop) omdrop send "$@" "$name" ;;
     bluetooth) bt_send "$id" "$@" ;;
+    localsend) lsend send "$id" "$@" ;;
     esac
     if [ $? -eq 0 ]; then notify "Envoyé à $name"; else notify "Échec de l'envoi à $name"; exit 1; fi
     ;;
@@ -104,6 +112,17 @@ receive)
         bluetoothctl discoverable off >/dev/null 2>&1
         ;;
     bluetooth:status) bt_running && echo on || echo off ;;
+    localsend:on)
+        ls_running && exit 0
+        mkdir -p "$DEST"
+        # Reçoit sans confirmation tant que le mode est actif (comme AirDrop « visible »): `receive localsend off` l'arrête
+        setsid -f sh -c 'echo $$ > "$1"; exec localsendd -d "$2" -a "$3" --auto-accept always' sh "$LSPID" "$DEST" "$(hostname)" >/dev/null 2>&1
+        ;;
+    localsend:off)
+        ls_running && kill "$(cat "$LSPID")"
+        rm -f "$LSPID"
+        ;;
+    localsend:status) ls_running && echo on || echo off ;;
     *:status) echo off ;;
     *) exit 1 ;;
     esac
