@@ -229,6 +229,7 @@ ShellRoot {
             // ───── fili-notification ─────
             wait(() => t.shell("notify-send -a test 'Résumé test' 'Corps du test'"), () => FiliNotification.popups.length === 1),
             () => ok(FiliNotification.popups[0].n.summary === "Résumé test", "fili-notification bulle reçue"),
+            () => ok(FiliTheme.ran.filter(c => c === "sound message-new-instant").length === 1, "fili-sound: un son à la notification reçue", JSON.stringify(FiliTheme.ran.slice(-3))),
             wait(() => t.shell(t.bin + "/fili-shell notification dismiss 'Résumé test'"), () => FiliNotification.popups.length === 0),
             () => ok(FiliNotification.history.length === 1 && FiliNotification.history[0].summary === "Résumé test", "fili-notification fermée -> historique"),
             wait(() => t.shell(t.bin + "/fili-shell notification history"), () => t.shellOut !== null),
@@ -248,7 +249,26 @@ ShellRoot {
             }, () => t.shellOut !== null && FiliNotification.history.length === 4),
             () => {
                 ok(FiliNotification.popups.length === 0, "fili-notification ne pas déranger: pas de bulle, entrée dans l'historique");
+                ok(FiliTheme.ran.filter(c => c === "sound message-new-instant").length <= 2, "fili-sound: pas de son en ne pas déranger", FiliTheme.ran.filter(c => c.indexOf("sound") === 0).length);
                 FiliNotification.dnd = false;
+            },
+            // fili-sound: chargeur branché (son au branchement seulement), réglages de coupure
+            () => {
+                FiliTheme.ran = [];
+                FiliSound.ac = false;
+                FiliSound.acEvent(true);
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0] === "sound power-plug", "fili-sound: son au branchement du chargeur", JSON.stringify(FiliTheme.ran));
+                FiliSound.acEvent(true);
+                FiliSound.acEvent(false);
+                ok(FiliTheme.ran.length === 1, "fili-sound: ni redite ni son au débranchement", JSON.stringify(FiliTheme.ran));
+                FiliSound.set("plug", false);
+                FiliSound.acEvent(true);
+                ok(FiliTheme.ran.length === 1 && !FiliSound.plug, "fili-sound: son du chargeur coupé", JSON.stringify(FiliTheme.ran));
+                FiliSound.set("plug", true);
+                FiliSound.set("notify", false);
+                FiliSound.notified();
+                ok(FiliTheme.ran.length === 1 && !FiliSound.notify, "fili-sound: son des notifications coupé", JSON.stringify(FiliTheme.ran));
+                FiliSound.set("notify", true);
             },
 
             // ───── fili-tooltip ─────

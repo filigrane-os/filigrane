@@ -72,6 +72,8 @@ Singleton {
                 notifs.close(n, "expire");
                 return;
             }
+            if (n.urgency !== NotificationUrgency.Low)
+                FiliSound.notified();
             notifs.popups = notifs.popups.concat([{ n: n, key: ++notifs.serial }]);
             n.closed.connect(() => notifs.popups = notifs.popups.filter(p => p.n !== n));
         }
@@ -290,6 +292,25 @@ Singleton {
                         color: FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: 13 }
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
+                    }
+                }
+                // Sons (FiliSound): nouvelle notification et chargeur branché
+                Repeater {
+                    model: [["notify", "Son des notifications"], ["plug", "Son du chargeur branché"]]
+                    RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: parent.modelData[1]
+                            color: FiliTheme.brume
+                            font { family: FiliTheme.font; pixelSize: 13 }
+                        }
+                        PanelSwitch {
+                            objectName: "sound-" + parent.modelData[0]
+                            checked: parent.modelData[0] === "notify" ? FiliSound.notify : FiliSound.plug
+                            onToggled: FiliSound.set(parent.modelData[0], !checked)
+                        }
                     }
                 }
                 Text {

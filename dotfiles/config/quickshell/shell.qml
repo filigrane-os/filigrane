@@ -17,6 +17,7 @@ ShellRoot {
     // Instanciés au démarrage (singletons sinon chargés au premier usage)
     Component.onCompleted: {
         FiliNotification.dnd;
+        FiliSound.notify;
         FiliLauncher.open;
         FiliShell.fifo;
     }

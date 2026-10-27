@@ -41,6 +41,7 @@ wiremix
 iwd
 impala
 bluez
+sound-theme-freedesktop   # sons: notification et chargeur branché (fili-sound)
 bluez-obex         # envoi/réception de fichiers Bluetooth (fili-share); obexd ne tourne que sur demande
 libspa-bluetooth   # son Bluetooth (casques) dans PipeWire
 bluetui
