@@ -218,7 +218,7 @@ PanelWindow {
                 color: !clockItem.timing ? FiliTheme.brume : timerState.cls === "done" ? FiliTheme.cendre : FiliTheme.sable
                 // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
                 font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
-                font.weight: Font.Medium
+                font.weight: Font.Normal
             }
             MouseArea {
                 objectName: "clock"
