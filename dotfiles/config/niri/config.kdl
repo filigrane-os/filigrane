@@ -44,7 +44,8 @@ input {
         drag-lock
         dwt
         click-method "clickfinger"
-        scroll-factor 0.2
+        // 0.2 (Omarchy) rendait le défilement poussif dans foot et Quickshell; 1 = défaut de niri
+        scroll-factor 0.5
         accel-speed -0.15
     }
 

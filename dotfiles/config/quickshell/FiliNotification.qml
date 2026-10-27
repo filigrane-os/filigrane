@@ -350,7 +350,9 @@ Singleton {
                     implicitHeight: contentHeight
                     clip: true
                     spacing: 6
+                    boundsBehavior: Flickable.StopAtBounds
                     model: notifs.history
+                    KineticScroll {}
                     delegate: Rectangle {
                         id: item
                         required property var modelData

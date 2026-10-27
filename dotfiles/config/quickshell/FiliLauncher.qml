@@ -3,7 +3,8 @@ pragma Singleton
 // appelé par `fili-shell launcher`. Liste filtrée au clavier, icônes (protocole dmenu étendu "texte\0icon\037chemin"),
 // invite seule pour une saisie libre. La fenêtre couvre l'écran (calque "fili-launcher", flouté par niri) et la boîte
 // est un voile à peine translucide au tiers haut (elle ne saute pas pendant le filtrage); le voile reste 250 ms après
-// un choix, avec la boîte figée, pour enchaîner les sous-menus sans clignoter. Aucune animation (brand.md).
+// un choix, avec la boîte figée, pour enchaîner les sous-menus sans clignoter. Aucune animation (brand.md),
+// sauf l'élan du défilement au pavé tactile (KineticScroll).
 // Lignes du menu: "glyphe  Libellé ›  ‹Touche›" mis en page (colonne d'icône, chevron de sous-menu, touche en
 // étiquette) plutôt qu'aligné par des espaces; la valeur rendue reste la ligne d'origine.
 // Entrée = choix (ou texte saisi sans correspondance), Échap = annuler (1), Maj+Retour arrière = revenir (10),
@@ -361,6 +362,7 @@ Singleton {
                         currentIndex: launcher.current
                         highlightMoveDuration: 0
                         boundsBehavior: Flickable.StopAtBounds
+                        KineticScroll {}
                         delegate: Rectangle {
                             id: row
                             required property var modelData
