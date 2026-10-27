@@ -1,0 +1,77 @@
+#!/bin/sh
+# Mode sombre (défaut) ou clair de Filigrane. Usage: fili-theme [get|dark|light|toggle|apply]
+# Choisi dans le fili-panel écrans (APPARENCE). État: $XDG_STATE_HOME/filigrane/theme (absent = sombre), relu en
+# direct par la fili-shell (FiliTheme.qml). "apply" (bootstrap.sh) réapplique l'état enregistré. Appliqué à:
+#   portail xdg (gsettings color-scheme): Chromium, GTK4/libadwaita (~/.config/gtk-4.0/gtk.css suit la préférence)
+#   GTK3: thème Adwaita ou Adwaita-dark, icônes Papirus, couleurs Filigrane (~/.config/gtk-3.0/theme.css, généré)
+#   foot: fenêtres ouvertes par signal (SIGUSR1 sombre, SIGUSR2 clair), suivantes par ~/.config/foot/theme.ini (généré)
+#   niri: anneau de focus, bordures, ombre, vue d'ensemble (~/.config/niri/theme.kdl, généré, relu par niri)
+#   fond d'écran Filigrane clair ou sombre (wallpaper), sauf image choisie par l'utilisateur
+set -u
+dir="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+cur=$(cat "$dir/theme" 2>/dev/null)
+[ "$cur" = light ] || cur=dark
+case "${1:-get}" in
+    get) echo "$cur"; exit 0 ;;
+    toggle) [ "$cur" = light ] && mode=dark || mode=light ;;
+    dark | light) mode=$1 ;;
+    apply) mode=$cur ;;
+    *) echo "usage: fili-theme [get|dark|light|toggle|apply]" >&2; exit 2 ;;
+esac
+
+mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/foot" "$cfg/niri"
+# Écrit sur place (pas de renommage): la fili-shell suit le fichier par inotify
+printf '%s\n' "$mode" > "$dir/theme"
+
+if [ "$mode" = light ]; then
+    scheme=prefer-light gtk=Adwaita icons=Papirus sig=USR2
+else
+    scheme=prefer-dark gtk=Adwaita-dark icons=Papirus-Dark sig=USR1
+fi
+gen="// Généré par fili-theme ($mode), ne pas modifier ici"
+
+printf '/* %s */\n@import url("filigrane-%s.css");\n' "${gen#// }" "$mode" > "$cfg/gtk-3.0/theme.css"
+printf '# %s\n[main]\ninitial-color-theme=%s\n' "${gen#// }" "$mode" > "$cfg/foot/theme.ini"
+if [ "$mode" = light ]; then
+    cat > "$cfg/niri/theme.kdl" <<EOF
+$gen
+// Mode clair (brand.md): anneau et bordure ardoise, liserés et vue d'ensemble papier
+layout {
+    focus-ring {
+        active-color "#5f789499"
+        inactive-color "#cdc8bd55"
+    }
+    border {
+        active-color "#5f7894"
+        inactive-color "#cdc8bd"
+        urgent-color "#9a4f55"
+    }
+    shadow {
+        color "#1c222b33"
+    }
+}
+overview {
+    backdrop-color "#dfdbd2"
+}
+EOF
+else
+    printf '%s\n// Mode sombre: couleurs de config.kdl\n' "$gen" > "$cfg/niri/theme.kdl"
+fi
+
+# Sans session D-Bus (installation), seuls les fichiers sont écrits
+gsettings set org.gnome.desktop.interface color-scheme "$scheme" 2>/dev/null
+gsettings set org.gnome.desktop.interface gtk-theme "$gtk" 2>/dev/null
+gsettings set org.gnome.desktop.interface icon-theme "$icons" 2>/dev/null
+
+# Fenêtres ouvertes et fond d'écran: seulement à un changement de mode ("apply" ne bascule rien de visible)
+[ -n "${WAYLAND_DISPLAY:-}" ] && [ "$1" != apply ] || exit 0
+pkill -"$sig" -x foot 2>/dev/null
+pkill -"$sig" -x footclient 2>/dev/null
+# Fond d'écran: seulement le fond Filigrane (une image choisie reste)
+wp=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper" 2>/dev/null)
+case "$wp" in
+    "" | */wallpapers/filigrane.png | */wallpapers/filigrane-clair.png)
+        setsid -f "$HOME/.local/bin/wallpaper" >/dev/null 2>&1 ;;
+esac
+exit 0

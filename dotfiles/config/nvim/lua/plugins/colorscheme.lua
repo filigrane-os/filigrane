@@ -1,11 +1,13 @@
--- Filigrane (brand.md): catppuccin avec sa palette remplacée (nuit, brume, voile, états désaturés)
+-- Filigrane (brand.md): catppuccin avec sa palette remplacée (nuit, brume, voile, états désaturés).
+-- Mode clair (fili-theme): nvim lit le fond de foot (papier), background=light choisit latte, texte nuit, accent ardoise
 return {
   {
     "catppuccin/nvim",
     name = "catppuccin",
     priority = 1000,
     opts = {
-      flavour = "mocha",
+      flavour = "auto",
+      background = { dark = "mocha", light = "latte" },
       color_overrides = {
         mocha = {
           rosewater = "#dbe7f4",
@@ -34,6 +36,34 @@ return {
           base = "#1c222b",
           mantle = "#181d25",
           crust = "#151a21",
+        },
+        latte = {
+          rosewater = "#9a4f55",
+          flamingo = "#b0636a",
+          pink = "#7f70a0",
+          mauve = "#6b5b8a",
+          red = "#9a4f55",
+          maroon = "#b0636a",
+          peach = "#80662b",
+          yellow = "#94793a",
+          green = "#4a7354",
+          teal = "#3d6f75",
+          sky = "#4f858b",
+          sapphire = "#2f4a66",
+          blue = "#3f5a78",
+          lavender = "#2f4a66",
+          text = "#1c222b",
+          subtext1 = "#3c4858",
+          subtext0 = "#4f5e70",
+          overlay2 = "#5f6b78",
+          overlay1 = "#76818d",
+          overlay0 = "#8a94a0",
+          surface2 = "#bdb8ad",
+          surface1 = "#cdc8bd",
+          surface0 = "#dfdbd2",
+          base = "#f3f1ec",
+          mantle = "#e9e6df",
+          crust = "#dfdbd2",
         },
       },
     },

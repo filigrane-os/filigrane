@@ -504,6 +504,19 @@ ShellRoot {
                 }
                 FiliPanel.close();
             },
+            // fili-panel écrans, apparence: sombre par défaut, « Clair » passe le shell en papier et lance fili-theme
+            () => {
+                FiliPanel.view = "display";
+                const chips = t.find(FiliPanel.loaded, "theme");
+                ok(chips && chips.current === "dark" && Qt.colorEqual(FiliTheme.nuit, "#1c222b"), "fili-panel écrans: mode sombre par défaut", chips ? chips.current : "introuvable");
+                FiliTheme.ran = [];
+                chips.pick(1);
+                ok(FiliTheme.light && Qt.colorEqual(FiliTheme.nuit, "#f3f1ec") && Qt.colorEqual(FiliTheme.brume, "#1c222b"), "fili-panel écrans: mode clair, fond papier et texte nuit", FiliTheme.mode);
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme light$/.test(FiliTheme.ran[0]), "fili-panel écrans: fili-theme light lancé", JSON.stringify(FiliTheme.ran));
+                chips.pick(0);
+                ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel écrans: retour au sombre", JSON.stringify(FiliTheme.ran));
+                FiliPanel.close();
+            },
             // Panneau ouvert: l'action d'un module part à l'appui (un seul clic), pas deux fois au relâchement
             () => {
                 const logo = t.find(t.bar.contentItem, "logo");

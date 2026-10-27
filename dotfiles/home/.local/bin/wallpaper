@@ -1,11 +1,17 @@
 #!/bin/sh
 # Fond d'écran léger (swaybg, statique). Usage: wallpaper [image]
-# Sans argument: dernière image choisie, sinon fond Filigrane (scripts/brand-assets.sh).
+# Sans argument: dernière image choisie, sinon fond Filigrane (scripts/brand-assets.sh), clair ou sombre selon fili-theme.
 dir="$HOME/.local/share/wallpapers"
 state="${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper"
 img="${1:-$(cat "$state" 2>/dev/null)}"
-[ -f "$img" ] || img="$dir/filigrane.png"
+if [ "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/theme" 2>/dev/null)" = light ]; then
+    def="$dir/filigrane-clair.png" bg=f3f1ec
+else
+    def="$dir/filigrane.png" bg=1c222b
+fi
+case "$img" in "$dir/filigrane.png" | "$dir/filigrane-clair.png") img="$def" ;; esac
+[ -f "$img" ] || img="$def"
 mkdir -p "$(dirname "$state")"
 printf '%s\n' "$img" > "$state"
 pkill -x swaybg 2>/dev/null
-exec swaybg -c 1c222b -i "$img" -m fill
+exec swaybg -c "$bg" -i "$img" -m fill

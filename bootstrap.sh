@@ -612,12 +612,13 @@ setup_dotfiles() {
     run_as_user fc-cache -f "$TARGET_HOME/.local/share/fonts" >/dev/null || warn 'fc-cache failed'
     # .desktop des applications web (liste ~/.config/webapps/list)
     HOME="$TARGET_HOME" sh "$ROOT/dotfiles/home/.local/bin/webapp-sync"
-    # Thème sombre par défaut (portail xdg: Chromium, GTK4, libadwaita); sans effet hors session D-Bus
-    if gsettings set org.gnome.desktop.interface color-scheme prefer-dark 2>/dev/null; then
-        gsettings set org.gnome.desktop.interface font-name 'Jost 10'
+    # Mode sombre par défaut, ou clair s'il a été choisi (fili-panel écrans): fichiers inclus par foot, niri et GTK3,
+    # gsettings (portail xdg: Chromium, GTK, libadwaita; sans effet hors session D-Bus)
+    run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'
+    if gsettings set org.gnome.desktop.interface font-name 'Jost 10' 2>/dev/null; then
         gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
     else
-        warn 'gsettings: theme and fonts not applied (no D-Bus session)'
+        warn 'gsettings: fonts not applied (no D-Bus session)'
     fi
     # Thunar: Espace lance l'aperçu rapide (action "quicklook" de uca.xml). Thunar réécrit accels.scm
     # en quittant (un lien serait remplacé, l'ajout perdu): on le ferme puis on ajoute la ligne.

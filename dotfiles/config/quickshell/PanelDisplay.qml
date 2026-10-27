@@ -2,7 +2,8 @@
 // bords), puis pour l'écran choisi allumage, définition, fréquence, échelle, rotation et VRR. Les changements passent
 // par `niri msg output` (temporaires, appliqués tout de suite); définition, échelle, rotation et extinction sont à
 // confirmer sous 15 s, sinon retour à l'état d'avant. « Enregistrer » écrit le profil kanshi (display-save),
-// réappliqué à chaque branchement d'écran. Luminosité de l'écran interne en bas (lue par bar-stats, réglée par brightnessctl).
+// réappliqué à chaque branchement d'écran. En bas: luminosité de l'écran interne (lue par bar-stats, réglée par
+// brightnessctl), apparence sombre/claire (fili-theme) et veilleuse.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -408,6 +409,18 @@ ColumnLayout {
         onMoved: v => {
             view.screen = Math.max(0.01, v);
             FiliTheme.run("brightnessctl -q set " + Math.max(1, Math.round(v * 100)) + "%; " + FiliTheme.bin + "/fili-shell bar refresh 23");
+        }
+    }
+
+    // Mode sombre (défaut) ou clair: shell, GTK, navigateur (portail), foot, niri, fond d'écran (fili-theme)
+    PanelSection { text: "APPARENCE" }
+    PanelChips {
+        objectName: "theme"
+        model: [{ label: "Sombre", value: "dark" }, { label: "Clair", value: "light" }]
+        current: FiliTheme.mode
+        onPicked: v => {
+            FiliTheme.mode = v;
+            FiliTheme.run(FiliTheme.bin + "/fili-theme " + v);
         }
     }
 

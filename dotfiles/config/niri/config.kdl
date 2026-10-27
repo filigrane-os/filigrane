@@ -786,7 +786,9 @@ debug {
     dbus-interfaces-in-non-session-instances
 }
 
-// Couches: disposition clavier générée par bootstrap.sh, puis réglages personnels (users/<login>/dotfiles/config/niri/local.kdl).
-// Absents = ignorés. Les réglages inclus après remplacent ceux d'avant.
+// Couches: disposition clavier générée par bootstrap.sh, couleurs du mode clair/sombre écrites par fili-theme, puis
+// réglages personnels (users/<login>/dotfiles/config/niri/local.kdl). Absents = ignorés. Les réglages inclus après
+// remplacent ceux d'avant.
 include optional=true "keyboard.kdl"
+include optional=true "theme.kdl"
 include optional=true "local.kdl"

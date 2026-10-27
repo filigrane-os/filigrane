@@ -65,7 +65,7 @@ PanelWindow {
             implicitHeight: FiliTheme.barHeight
             Image {
                 anchors.centerIn: parent
-                source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-sombre.svg"
+                source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-" + (FiliTheme.light ? "couleur" : "sombre") + ".svg"
                 sourceSize.width: 44
                 fillMode: Image.PreserveAspectFit
             }

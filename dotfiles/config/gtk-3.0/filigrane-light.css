@@ -1,0 +1,34 @@
+/* Filigrane (brand.md), mode clair sur Adwaita: papier, texte nuit, accent ardoise (importé par gtk.css via theme.css) */
+@define-color theme_bg_color #f3f1ec;
+@define-color theme_base_color #f8f7f3;
+@define-color theme_fg_color #1c222b;
+@define-color theme_text_color #1c222b;
+@define-color theme_selected_bg_color #5f7894;
+@define-color theme_selected_fg_color #f3f1ec;
+@define-color theme_unfocused_bg_color #f3f1ec;
+@define-color theme_unfocused_base_color #f8f7f3;
+@define-color theme_unfocused_fg_color #4f5e70;
+@define-color theme_unfocused_text_color #4f5e70;
+@define-color theme_unfocused_selected_bg_color #cdc8bd;
+@define-color theme_unfocused_selected_fg_color #1c222b;
+@define-color insensitive_bg_color #f3f1ec;
+@define-color insensitive_fg_color #5f7894;
+@define-color insensitive_base_color #f8f7f3;
+@define-color borders #dfdbd2;
+@define-color unfocused_borders #dfdbd2;
+@define-color warning_color #80662b;
+@define-color error_color #9a4f55;
+@define-color success_color #4a7354;
+@define-color content_view_bg #f8f7f3;
+@define-color wm_bg #f3f1ec;
+@define-color wm_title #1c222b;
+
+/* Thunar: barre latérale un ton plus soutenu, lignes aérées, coins arrondis */
+.thunar .sidebar, .thunar .sidebar row, .thunar placessidebar { background-color: #e9e6df; }
+.thunar .sidebar row { border-radius: 6px; margin: 1px 6px; padding: 2px 4px; }
+.thunar .sidebar row:selected { background-color: #dfdbd2; color: #3f5a78; }
+.thunar toolbar, .thunar .toolbar { background-color: #f3f1ec; border: none; padding: 4px; }
+.thunar treeview.view row { padding: 2px 0; }
+.thunar treeview.view:selected, .thunar iconview:selected { background-color: #cdc8bd; color: #1c222b; }
+.thunar paned > separator { background-color: #dfdbd2; }
+.thunar statusbar { color: #4f5e70; }

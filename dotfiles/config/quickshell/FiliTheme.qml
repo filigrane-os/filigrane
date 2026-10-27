@@ -1,18 +1,45 @@
 pragma Singleton
-// Filigrane (brand.md): fond nuit, texte brume, accent voile; aucune autre couleur vive, états désaturés
+// Filigrane (brand.md): fond nuit, texte brume, accent voile; aucune autre couleur vive, états désaturés.
+// Mode clair (fili-theme light, choisi dans le fili-panel écrans): les noms gardent leur rôle du mode sombre
+// (nuit = fond, brume = texte, voile = accent) et prennent les teintes claires: fond papier, texte nuit, accent
+// ardoise foncé, états assombris (contraste ≥ 4,8:1 sur papier)
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 Singleton {
-    readonly property color nuit: "#1c222b"
-    readonly property color nuit3: "#2d3744"
-    readonly property color nuit4: "#3c4858"
+    id: theme
+    // "dark" (défaut) ou "light", lu dans l'état de fili-theme et relu dès qu'il change (les tests le fixent)
+    property string mode: "dark"
+    readonly property bool light: mode === "light"
+    readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/theme"
+    FileView {
+        path: theme.testing ? "" : theme.stateFile
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: theme.mode = text().trim() === "light" ? "light" : "dark"
+        onLoadFailed: theme.mode = "dark"
+    }
+    // FileView ne voit pas naître un fichier dans un dossier absent
+    Component.onCompleted: if (!testing) Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")])
+
+    readonly property color nuit: light ? "#f3f1ec" : "#1c222b"
+    readonly property color nuitProfond: light ? "#f8f7f3" : "#181d25"
+    readonly property color nuit2: light ? "#e9e6df" : "#232b36"
+    readonly property color nuit3: light ? "#dfdbd2" : "#2d3744"
+    readonly property color nuit4: light ? "#cdc8bd" : "#3c4858"
     readonly property color ardoise: "#5f7894"
-    readonly property color brume2: "#a9b8c8"
-    readonly property color voile: "#9dbbd6"
-    readonly property color brume: "#dbe7f4"
-    readonly property color sable: "#d2bf92"
-    readonly property color cendre: "#c98f93"
+    readonly property color brume2: light ? "#4f5e70" : "#a9b8c8"
+    readonly property color voile: light ? "#3f5a78" : "#9dbbd6"
+    readonly property color voileVif: light ? "#2f4a66" : "#b9d0e4"
+    readonly property color brume: light ? "#1c222b" : "#dbe7f4"
+    readonly property color sable: light ? "#80662b" : "#d2bf92"
+    readonly property color cendre: light ? "#9a4f55" : "#c98f93"
+    // Couleur c avec l'opacité a (voiles translucides)
+    function alpha(c, a) {
+        return Qt.rgba(c.r, c.g, c.b, a);
+    }
 
     readonly property string font: "Jost"
     readonly property string mono: "JetBrains Mono"

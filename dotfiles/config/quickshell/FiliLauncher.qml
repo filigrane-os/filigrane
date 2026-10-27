@@ -26,8 +26,8 @@ Singleton {
     // Texte saisi (lu et écrit par les tests)
     property alias query: input.text
 
-    readonly property color nuit2: "#232b36"
-    readonly property color selMatch: "#b9d0e4"
+    readonly property color nuit2: FiliTheme.nuit2
+    readonly property color selMatch: FiliTheme.voileVif
 
     function finish(rc, text) {
         if (replyTo)
@@ -242,8 +242,8 @@ Singleton {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-launcher"
         WlrLayershell.keyboardFocus: launcher.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        // rgba(24, 29, 37, 0.35): nuit profond, flouté par niri (layer-rule fili-launcher)
-        color: Qt.rgba(24 / 255, 29 / 255, 37 / 255, 0.35)
+        // Nuit profond à 35 %, flouté par niri (layer-rule fili-launcher)
+        color: FiliTheme.alpha(FiliTheme.nuitProfond, 0.35)
 
         MouseArea {
             anchors.fill: parent
@@ -265,7 +265,7 @@ Singleton {
             x: (win.width - width) / 2
             y: Math.round(win.height * 0.2)
             // Voile à peine translucide: le flou du bureau transparaît (brand.md, transparence)
-            color: Qt.rgba(28 / 255, 34 / 255, 43 / 255, 0.94)
+            color: FiliTheme.alpha(FiliTheme.nuit, 0.94)
             radius: 16
             border { width: 1; color: FiliTheme.nuit4 }
             MouseArea { anchors.fill: parent }
