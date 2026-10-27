@@ -229,7 +229,7 @@ ShellRoot {
             // ───── fili-notification ─────
             wait(() => t.shell("notify-send -a test 'Résumé test' 'Corps du test'"), () => FiliNotification.popups.length === 1),
             () => ok(FiliNotification.popups[0].n.summary === "Résumé test", "fili-notification bulle reçue"),
-            () => ok(FiliTheme.ran.filter(c => c === "sound message-new-instant").length === 1, "fili-sound: un son à la notification reçue", JSON.stringify(FiliTheme.ran.slice(-3))),
+            () => ok(FiliTheme.ran.filter(c => c === "sound notification").length === 1, "fili-sound: un son à la notification reçue", JSON.stringify(FiliTheme.ran.slice(-3))),
             wait(() => t.shell(t.bin + "/fili-shell notification dismiss 'Résumé test'"), () => FiliNotification.popups.length === 0),
             () => ok(FiliNotification.history.length === 1 && FiliNotification.history[0].summary === "Résumé test", "fili-notification fermée -> historique"),
             wait(() => t.shell(t.bin + "/fili-shell notification history"), () => t.shellOut !== null),
@@ -249,7 +249,7 @@ ShellRoot {
             }, () => t.shellOut !== null && FiliNotification.history.length === 4),
             () => {
                 ok(FiliNotification.popups.length === 0, "fili-notification ne pas déranger: pas de bulle, entrée dans l'historique");
-                ok(FiliTheme.ran.filter(c => c === "sound message-new-instant").length <= 2, "fili-sound: pas de son en ne pas déranger", FiliTheme.ran.filter(c => c.indexOf("sound") === 0).length);
+                ok(FiliTheme.ran.filter(c => c === "sound notification").length <= 2, "fili-sound: pas de son en ne pas déranger", FiliTheme.ran.filter(c => c.indexOf("sound") === 0).length);
                 FiliNotification.dnd = false;
             },
             // fili-sound: chargeur branché (son au branchement seulement), réglages de coupure
@@ -269,6 +269,9 @@ ShellRoot {
                 FiliSound.notified();
                 ok(FiliTheme.ran.length === 1 && !FiliSound.notify, "fili-sound: son des notifications coupé", JSON.stringify(FiliTheme.ran));
                 FiliSound.set("notify", true);
+                FiliTheme.ran = [];
+                FiliSound.notified("niri");
+                ok(FiliTheme.ran.length === 0, "fili-sound: pas de son pour la capture d'écran (niri)", JSON.stringify(FiliTheme.ran));
             },
 
             // ───── fili-tooltip ─────

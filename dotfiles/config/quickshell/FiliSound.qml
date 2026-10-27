@@ -1,5 +1,5 @@
 pragma Singleton
-// fili-sound: sons de la fili-shell (thème freedesktop, joués par pw-play): nouvelle notification (FiliNotification) et
+// fili-sound: sons de la fili-shell (notification: brand/sound/notification.wav; chargeur: thème freedesktop; pw-play): nouvelle notification (FiliNotification) et
 // chargeur branché (événements du noyau sur power_supply, via `udevadm monitor`: rien ne sonde, le processus dort).
 // Chacun s'active et se coupe dans le fili-notification-center; réglage gardé dans ~/.local/state/fili-sound/ (un
 // fichier par son, "off" = coupé; absent = activé).
@@ -14,19 +14,23 @@ Singleton {
     // Chargeur branché (lu dans /sys/class/power_supply/*/online)
     property bool ac: false
     readonly property string dir: Quickshell.env("HOME") + "/.local/state/fili-sound"
+    readonly property string brandDir: Quickshell.env("HOME") + "/.local/share/filigrane/sound"
     readonly property string themeDir: "/usr/share/sounds/freedesktop/stereo/"
 
+    // Son de la marque (brand/sound, lié dans ~/.local/share/filigrane/sound) ou, à défaut, du thème freedesktop
     function play(name) {
         if (FiliTheme.testing)
             FiliTheme.ran = FiliTheme.ran.concat(["sound " + name]);
         else
-            Quickshell.execDetached(["pw-play", themeDir + name + ".oga"]);
+            Quickshell.execDetached(["sh", "-c", 'f="$1/$2.wav"; [ -r "$f" ] || f="$3$2.oga"; exec pw-play "$f"', "sh", brandDir, name, themeDir]);
     }
+    // Applications dont les notifications restent muettes (niri: « Screenshot captured », sans intérêt)
+    readonly property var silentApps: ["niri"]
     // Une nouvelle notification: un son, pas un par notification d'une rafale
-    function notified() {
-        if (!notify || quiet.running)
+    function notified(app) {
+        if (!notify || quiet.running || silentApps.indexOf(app) >= 0)
             return;
-        play("message-new-instant");
+        play("notification");
         quiet.start();
     }
     function set(which, on) {

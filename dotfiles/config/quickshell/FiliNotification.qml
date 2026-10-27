@@ -74,7 +74,7 @@ Singleton {
                 return;
             }
             if (n.urgency !== NotificationUrgency.Low)
-                FiliSound.notified();
+                FiliSound.notified(n.appName);
             notifs.popups = notifs.popups.concat([{ n: n, key: ++notifs.serial }]);
             n.closed.connect(() => notifs.popups = notifs.popups.filter(p => p.n !== n));
         }
