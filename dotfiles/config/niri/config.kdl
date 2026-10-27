@@ -492,10 +492,10 @@ binds {
     Mod+Shift+B hotkey-overlay-title="Notifications: fermer toutes" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
     Mod+Shift+Space hotkey-overlay-title="Aide des raccourcis" { spawn-sh "$HOME/.local/bin/menu keys"; }
     // Écran: pas de 1%, Shift pour un pas fin de 30 unités (~0,17%, max 17777)
-    XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "-d" "intel_backlight" "set" "+1%"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "intel_backlight" "set" "1%-"; }
-    Shift+XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "-d" "intel_backlight" "set" "+30"; }
-    Shift+XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "intel_backlight" "set" "30-"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set +1%; $HOME/.local/bin/fili-shell bar refresh 23"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set 1%-; $HOME/.local/bin/fili-shell bar refresh 23"; }
+    Shift+XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set +30; $HOME/.local/bin/fili-shell bar refresh 23"; }
+    Shift+XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set 30-; $HOME/.local/bin/fili-shell bar refresh 23"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
     // You can also move the mouse into the top-left hot corner,

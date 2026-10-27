@@ -111,8 +111,16 @@ Item {
             font { family: FiliTheme.font; pixelSize: 11; letterSpacing: 1 }
         }
         Text {
+            visible: text !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            text: FiliTheme.glyph(mod.text)
+            color: FiliTheme.iconColor(label.color)
+            font.family: FiliTheme.font
+            font.pixelSize: FiliTheme.size
+        }
+        Text {
             id: label
-            text: mod.text
+            text: FiliTheme.value(mod.text)
             color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.size

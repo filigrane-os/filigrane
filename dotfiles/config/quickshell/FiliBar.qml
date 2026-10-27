@@ -362,7 +362,7 @@ PanelWindow {
             BarItem {
                 objectName: "keyboard"
                 readonly property string name: Niri.layouts[Niri.layout] ?? ""
-                text: name ? " " + Niri.shortName(name) : ""
+                text: name ? " " + Niri.shortName(name) : ""
                 tip: ({
                     title: "Clavier",
                     rows: Niri.layouts.map((l, i) => [i === Niri.layout ? "●" : "", l]),
@@ -372,27 +372,43 @@ PanelWindow {
                 hover.onMiddleClicked: Niri.action("switch-layout", "next")
             }
             // Écrans: clic = panneau (disposition, définition, échelle, rotation), molette = luminosité
-            BarItem {
+            BarScript {
                 objectName: "display"
-                text: ""
+                cmd: "printf '{\"text\":\"\uf108 %s\"}\\n' \"$(brightnessctl -m 2>/dev/null | head -1 | cut -d, -f4)\""; signal: 23; hideEmpty: false
                 tipCmd: bar.b + "/fili-info display"
                 hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
-                hover.scrollUp: "brightnessctl -q set 5%+"
-                hover.scrollDown: "brightnessctl -q set 5%-"
+                scrollUp: "brightnessctl -q set 5%+; " + bar.b + "/fili-shell bar refresh 23"
+                scrollDown: "brightnessctl -q set 5%-; " + bar.b + "/fili-shell bar refresh 23"
             }
             // Bluetooth (toujours visible, grisé sans adaptateur): clic = panneau (activer, appairer, connecter, oublier)
             BarItem {
                 objectName: "bluetooth"
+                id: btItem
                 readonly property var adapter: Bluetooth.defaultAdapter
                 readonly property var connected: adapter ? adapter.devices.values.filter(d => d.connected) : []
+                // Réception de fichiers active (fili-share, un des protocoles): remplace ON par SHARE
+                property bool sharing: false
+                Process {
+                    id: shareProc
+                    command: [bar.b + "/fili-share", "receive", "any", "status"]
+                    stdout: SplitParser { onRead: line => btItem.sharing = line.trim() === "on" }
+                }
+                Connections {
+                    target: FiliShell
+                    function onRefresh(n) {
+                        if (n === 24 && !shareProc.running)
+                            shareProc.running = true;
+                    }
+                }
+                Component.onCompleted: shareProc.running = true
                 text: {
                     if (!adapter)
                         return "";
                     if (!adapter.enabled)
-                        return " off";
+                        return " OFF";
                     const d = connected[0];
                     if (!d)
-                        return " on";
+                        return sharing ? " SHARE" : " ON";
                     return " " + d.name + (d.batteryAvailable ? " " + Math.round(d.battery * 100) + "%" : "");
                 }
                 color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
@@ -417,7 +433,7 @@ PanelWindow {
             // Notifications: clic = historique, clic droit = Ne pas déranger
             BarItem {
                 objectName: "notifications"
-                text: FiliNotification.dnd ? "" : FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : ""
+                text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " ON"
                 color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
                 tip: ({
                     title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",

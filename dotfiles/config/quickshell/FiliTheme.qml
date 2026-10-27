@@ -29,6 +29,20 @@ Singleton {
         return /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF])$/.test(t);
     }
 
+    // Règle de la fili-bar: icône (ou étiquette) en ardoise devant la valeur en blanc. "<icône> valeur" est coupé ici;
+    // un état (sable, cendre, voile...) colore tout le module, seul le neutre (brume, brume2) grise l'icône.
+    function glyph(t) {
+        const m = /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF]) (.+)$/.exec(t);
+        return m ? m[1] : "";
+    }
+    function value(t) {
+        const m = /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF]) (.+)$/.exec(t);
+        return m ? m[2] : t;
+    }
+    function iconColor(c) {
+        return Qt.colorEqual(c, brume) || Qt.colorEqual(c, brume2) ? ardoise : c;
+    }
+
     // Scripts et binaires de la distribution (~/.local/bin; FILI_BIN pour les tests)
     readonly property string bin: Quickshell.env("FILI_BIN") || Quickshell.env("HOME") + "/.local/bin"
 

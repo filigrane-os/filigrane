@@ -123,9 +123,16 @@ receive)
         rm -f "$LSPID"
         ;;
     localsend:status) ls_running && echo on || echo off ;;
+    any:status)  # un des protocoles reçoit (pastille SHARE de la barre)
+        for p in airdrop bluetooth localsend; do
+            [ "$("$0" receive "$p" status 2>/dev/null)" = on ] && { echo on; exit 0; }
+        done
+        echo off ;;
     *:status) echo off ;;
     *) exit 1 ;;
     esac
+    # Pastille SHARE de la fili-bar (signal 24), après le démarrage du démon
+    case "$3" in on|off) setsid -f sh -c 'sleep 1; "$HOME/.local/bin/fili-shell" bar refresh 24' >/dev/null 2>&1 ;; esac
     ;;
 *) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NOM | receive PROTO on|off|status" >&2; exit 2 ;;
 esac
