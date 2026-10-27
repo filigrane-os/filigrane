@@ -433,7 +433,7 @@ PanelWindow {
             // Notifications: clic = historique, clic droit = Ne pas déranger
             BarItem {
                 objectName: "notifications"
-                text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " ON"
+                text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
                 color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
                 tip: ({
                     title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",
