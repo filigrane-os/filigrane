@@ -237,6 +237,24 @@ ShellRoot {
             () => ok(BarState.timer["class"] === "done", "BarState: minuteur écoulé -> bar-timer expire", FiliTheme.ran.join(" ")),
             wait(() => t.shell('rm -f "$XDG_RUNTIME_DIR/bar-timer" "$XDG_RUNTIME_DIR/bar-tray-open"'), () => BarState.timerFile.kind === "" && !BarState.trayOpen),
             () => ok(BarState.timer["class"] === "idle" && t.find(t.bar.contentItem, "tray-handle").cls === "", "BarState: fichiers supprimés -> repos"),
+            // Bluetooth: nombre d'appareils connectés (ou OFF / SHARE), plus de ON
+            () => {
+                const bt = t.find(t.bar.contentItem, "bluetooth");
+                ok(bt.text === "" || / (OFF|SHARE|\d+)$/.test(bt.text), "fili-bar bluetooth: nombre d'appareils connectés", bt.text);
+            },
+            // Sauvegarde en cours: clignote par un Timer (opacité basculée chaque seconde), pas par une animation
+            () => BarState.setBackup({ text: "", class: "active", tooltip: "test" }),
+            wait(() => {}, () => {
+                const row = t.find(t.bar.contentItem, "backup").children.find(c => c.spacing !== undefined);
+                return row && row.opacity < 1;
+            }, 3000),
+            () => {
+                const row = t.find(t.bar.contentItem, "backup").children.find(c => c.spacing !== undefined);
+                ok(row.opacity === 0.35, "fili-bar sauvegarde en cours: clignote", row.opacity);
+                BarState.setBackup({ text: "" });
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "backup").children.find(c => c.spacing !== undefined).opacity === 1, 3000),
+            () => ok(true, "fili-bar sauvegarde: opacité rétablie à l'arrêt du clignotement"),
 
             // ───── fili-launcher ─────
             () => {

@@ -54,16 +54,16 @@ Singleton {
         interval: 1000
     }
 
-    Process {
-        id: prefs
-        running: !FiliTheme.testing
-        command: ["sh", "-c", 'for k in notify plug; do printf "%s=%s\\n" "$k" "$(cat "$1/$k" 2>/dev/null)"; done', "sh", snd.dir]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                snd.notify = text.indexOf("notify=off") < 0;
-                snd.plug = text.indexOf("plug=off") < 0;
-            }
-        }
+    // Réglages lus au démarrage, sans processus (fichier absent: activé)
+    FileView {
+        path: FiliTheme.testing ? "" : snd.dir + "/notify"
+        printErrors: false
+        onLoaded: snd.notify = text().trim() !== "off"
+    }
+    FileView {
+        path: FiliTheme.testing ? "" : snd.dir + "/plug"
+        printErrors: false
+        onLoaded: snd.plug = text().trim() !== "off"
     }
     // État du chargeur (`ac 0|1` de bar-stats, voir FiliShell): au démarrage (sans son), puis à chaque changement
     property bool acKnown: false

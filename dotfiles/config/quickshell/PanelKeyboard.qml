@@ -58,7 +58,7 @@ ColumnLayout {
             loadKeys();
         else if (page === "emoji") {
             if (emojis.length === 0)
-                emojiFile.running = true;
+                emojiFile.path = Quickshell.env("FILI_EMOJI") || Quickshell.env("HOME") + "/.local/share/menu/emoji.txt";
             search.forceActiveFocus();
         }
     }
@@ -82,17 +82,16 @@ ColumnLayout {
             }
         }
     }
-    Process {
+    // Liste lue à la première ouverture de la page emoji (chemin posé à ce moment-là), sans processus
+    FileView {
         id: emojiFile
-        command: ["cat", (Quickshell.env("FILI_EMOJI") || Quickshell.env("HOME") + "/.local/share/menu/emoji.txt")]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                // « 😀 grinning face (face-smiling) »: caractère, puis nom en anglais
-                view.emojis = text.split("\n").filter(l => l).map(l => {
-                    const i = l.indexOf(" ");
-                    return { c: l.slice(0, i), name: l.slice(i + 1).toLowerCase() };
-                });
-            }
+        printErrors: false
+        onLoaded: {
+            // « 😀 grinning face (face-smiling) »: caractère, puis nom en anglais
+            view.emojis = text().split("\n").filter(l => l).map(l => {
+                const i = l.indexOf(" ");
+                return { c: l.slice(0, i), name: l.slice(i + 1).toLowerCase() };
+            });
         }
     }
 

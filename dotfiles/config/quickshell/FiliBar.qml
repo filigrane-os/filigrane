@@ -386,7 +386,7 @@ PanelWindow {
                 id: btItem
                 readonly property var adapter: Bluetooth.defaultAdapter
                 readonly property var connected: adapter ? adapter.devices.values.filter(d => d.connected) : []
-                // Réception de fichiers active (fili-share, un des protocoles): remplace ON par SHARE
+                // Réception de fichiers active (fili-share, un des protocoles): SHARE quand aucun appareil n'est connecté
                 property bool sharing: false
                 Process {
                     id: shareProc
@@ -406,10 +406,10 @@ PanelWindow {
                         return "";
                     if (!adapter.enabled)
                         return " OFF";
-                    const d = connected[0];
-                    if (!d)
-                        return sharing ? " SHARE" : " ON";
-                    return " " + d.name + (d.batteryAvailable ? " " + Math.round(d.battery * 100) + "%" : "");
+                    // Appareils connectés: leur nombre (noms et batteries dans la fiche); aucun et réception active: SHARE
+                    if (connected.length === 0 && sharing)
+                        return " SHARE";
+                    return " " + connected.length;
                 }
                 color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
                 tip: !adapter ? { title: "Bluetooth", rows: [["État", "aucun adaptateur détecté"]], hint: "clic: panneau Bluetooth" } : {

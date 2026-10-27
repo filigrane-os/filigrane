@@ -147,13 +147,15 @@ Item {
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.size
         }
-        SequentialAnimation on opacity {
-            running: mod.blinkClass !== "" && mod.cls === mod.blinkClass
-            loops: Animation.Infinite
-            onStopped: content.opacity = 1
-            NumberAnimation { to: 0.35; duration: 1000 }
-            NumberAnimation { to: 1; duration: 1000 }
-        }
+    }
+    // Clignotement (sauvegarde en cours): opacité basculée chaque seconde, deux rendus par cycle au lieu d'une
+    // animation continue (60 rendus/s en rendu logiciel)
+    Timer {
+        running: mod.blinkClass !== "" && mod.cls === mod.blinkClass
+        repeat: true
+        interval: 1000
+        onTriggered: content.opacity = content.opacity < 1 ? 1 : 0.35
+        onRunningChanged: content.opacity = 1
     }
 
     property alias hover: hov
