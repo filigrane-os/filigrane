@@ -413,13 +413,6 @@ ColumnLayout {
         detail: "kanshi"
         onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
     }
-    // Réglages de l'écran lui-même, en bas
-    Rectangle {
-        Layout.fillWidth: true
-        Layout.topMargin: 6
-        implicitHeight: 1
-        color: FiliTheme.nuit4
-    }
     PanelSection { visible: view.screen >= 0; text: "LUMINOSITÉ" }
     PanelSlider {
         objectName: "screen"

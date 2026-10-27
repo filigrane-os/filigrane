@@ -446,6 +446,14 @@ ShellRoot {
                 ok(g(100) === 0xF0928 && g(75) === 0xF0928 && g(50) === 0xF0925 && g(25) === 0xF0922 && g(0) === 0xF091F, "fili-panel réseau: icône selon la force du signal", [g(100), g(50), g(25), g(0)].map(x => x.toString(16)).join(","));
                 FiliPanel.close();
             },
+            // fili-panel: un filet sépare les sections (le premier intertitre visible n'en a pas)
+            () => FiliPanel.view = "display",
+            wait(() => {}, () => FiliPanel.loaded && FiliPanel.loaded.children.filter(c => c.isSection === true && c.visible).length > 1 && FiliPanel.loaded.children.filter(c => c.isSection === true && c.first).length === 1),
+            () => {
+                const secs = FiliPanel.loaded.children.filter(c => c.isSection === true && c.visible);
+                ok(secs.length > 1 && secs[0].first && secs.slice(1).every(s => !s.first), "fili-panel: filet entre les sections, pas avant la première", secs.map(s => s.first).join(","));
+                FiliPanel.close();
+            },
             // Un seul panneau ouvert: panneau, calendrier épinglé et centre de notifications se ferment l'un l'autre
             () => {
                 const cal = t.find(t.bar.contentItem, "clock");

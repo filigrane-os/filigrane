@@ -60,12 +60,6 @@ ColumnLayout {
             onClicked: Pipewire.preferredDefaultAudioSink = modelData
         }
     }
-    Rectangle {
-        Layout.fillWidth: true
-        Layout.topMargin: 4
-        implicitHeight: 1
-        color: FiliTheme.nuit3
-    }
     PanelSection { text: "ENTRÉE" }
     PanelSlider {
         objectName: "micro"
