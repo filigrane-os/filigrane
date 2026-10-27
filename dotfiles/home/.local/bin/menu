@@ -4,7 +4,7 @@
 # Le script n'existe que le temps du menu; l'affichage (et le flou du fond) est fait par le shell déjà résident.
 #
 #   menu                  catégories à vide; en tapant, recherche floue sur tout
-#   menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system|audio|network|style|packages|capture|custom
+#   menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|custom
 #                         ouvre directement une section (raccourcis clavier)
 #
 # Entrées perso: ~/.config/menu/entries (Libellé | mode | commande).
@@ -801,7 +801,7 @@ case "${1:-}" in
     keys) menu_keys ;;
     toggles) menu_toggles ;;
     history) menu_toggles "Notification history" ;;
-    system) menu_system ;;
+    system) menu_system "${2:-}" ;;
     audio) menu_audio ;;
     network) menu_network ;;
     style) menu_style ;;
@@ -810,7 +810,7 @@ case "${1:-}" in
     ai) menu_ai ;;
     custom) menu_custom ;;
     "") menu_main ;;
-    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system|audio|network|style|packages|capture|ai|custom]" >&2; exit 1 ;;
+    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|ai|custom]" >&2; exit 1 ;;
 esac
 rc=$?
 [ "$rc" -eq "$BACK" ] && exit 0 # section lancée directement et annulée: sortie propre
