@@ -2,10 +2,14 @@
 // dans poll() entre deux échéances; lit /proc et /sys directement, sans lancer top, ps, awk ni udevadm. Une ligne par
 // mise à jour sur la sortie standard:
 //   stat cpu|mem|temp|disk|net|remote|air|vpn|backup JSON   modules de la fili-bar (protocole des modules custom de Waybar)
+//   stat display JSON                                       luminosité (au démarrage et sur `bar refresh 23`), champs screen et kbd en %
 //   ac 0|1                                                  chargeur branché ou non (au démarrage, puis à chaque événement)
+//   info SUJET JSON                                         fiche demandée sur l'entrée standard (`info network|power|monitor`, voir info.rs)
 //   toute ligne écrite dans TUYAU (client fili-shell, scripts), recopiée telle quelle
 // Événements du noyau (netlink uevent) pour le chargeur, le mode avion et les interfaces réseau: rien n'est sondé
 // pour eux. Se termine quand la barre ferme la sortie ou meurt.
+mod info;
+
 use std::{
     collections::HashMap,
     env,
@@ -76,11 +80,28 @@ struct Usage {
     prev: HashMap<u32, Proc>,
     prev_cpu: (u64, u64),
     prev_t: Instant,
+    // Plus gros consommateurs de CPU du dernier intervalle (nom, %), pour la fiche du moniteur
+    top: Vec<(String, f64)>,
 }
 
 impl Usage {
     fn new(page_kb: u64, hz: f64) -> Self {
-        Usage { page_kb, hz, prev: procs(page_kb), prev_cpu: cpu_times(), prev_t: Instant::now() }
+        Usage { page_kb, hz, prev: procs(page_kb), prev_cpu: cpu_times(), prev_t: Instant::now(), top: Vec::new() }
+    }
+
+    // % d'un CPU utilisé par le processus depuis le relevé précédent (même pid et même nom)
+    fn pct(&self, pid: u32, p: &Proc, secs: f64) -> f64 {
+        let d = p.ticks.saturating_sub(self.prev.get(&pid).filter(|q| q.name == p.name).map_or(p.ticks, |q| q.ticks));
+        d as f64 / self.hz / secs * 100.0
+    }
+
+    // Classement seul, sans rien écrire (bar-stats info monitor)
+    fn top_only(&mut self) {
+        let now = procs(self.page_kb);
+        let secs = self.prev_t.elapsed().as_secs_f64();
+        let mut top: Vec<(f64, &Proc)> = now.iter().map(|(pid, p)| (self.pct(*pid, p, secs), p)).collect();
+        top.sort_by(|a, b| b.0.total_cmp(&a.0));
+        self.top = top.iter().take(5).map(|(pct, p)| (clean(&p.name), *pct)).collect();
     }
 
     fn step(&mut self) {
@@ -90,14 +111,9 @@ impl Usage {
         self.prev_t = Instant::now();
         let (busy, total) = (cur_cpu.0 - self.prev_cpu.0, cur_cpu.1 - self.prev_cpu.1);
         let usage = if total > 0 { busy * 100 / total } else { 0 };
-        let mut top: Vec<(f64, &Proc)> = now
-            .iter()
-            .map(|(pid, p)| {
-                let d = p.ticks.saturating_sub(self.prev.get(pid).filter(|q| q.name == p.name).map_or(p.ticks, |q| q.ticks));
-                (d as f64 / self.hz / secs * 100.0, p)
-            })
-            .collect();
+        let mut top: Vec<(f64, &Proc)> = now.iter().map(|(pid, p)| (self.pct(*pid, p, secs), p)).collect();
         top.sort_by(|a, b| b.0.total_cmp(&a.0));
+        self.top = top.iter().take(5).map(|(pct, p)| (clean(&p.name), *pct)).collect();
         let tip: Vec<String> = top
             .iter()
             .take(5)
@@ -225,8 +241,8 @@ fn default_iface() -> Option<String> {
     })
 }
 
-// Première adresse IPv4 de l'interface (getifaddrs)
-fn ipv4(iface: &str) -> Option<Ipv4Addr> {
+// Première adresse IPv4 de l'interface et longueur de son préfixe (getifaddrs)
+fn ipv4(iface: &str) -> Option<(Ipv4Addr, u32)> {
     let mut list: *mut libc::ifaddrs = std::ptr::null_mut();
     // SAFETY: liste allouée par getifaddrs, parcourue en lecture puis libérée par freeifaddrs
     unsafe {
@@ -239,7 +255,8 @@ fn ipv4(iface: &str) -> Option<Ipv4Addr> {
             let a = &*cur;
             if !a.ifa_addr.is_null() && i32::from((*a.ifa_addr).sa_family) == libc::AF_INET && CStr::from_ptr(a.ifa_name).to_str() == Ok(iface) {
                 let sin = &*(a.ifa_addr as *const libc::sockaddr_in);
-                found = Some(Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr)));
+                let mask = if a.ifa_netmask.is_null() { 0 } else { (*(a.ifa_netmask as *const libc::sockaddr_in)).sin_addr.s_addr.count_ones() };
+                found = Some((Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr)), mask));
                 break;
             }
             cur = a.ifa_next;
@@ -269,7 +286,7 @@ struct Net {
 impl Net {
     fn step(&mut self) {
         let iface = default_iface();
-        let ip = iface.as_deref().and_then(ipv4);
+        let ip = iface.as_deref().and_then(ipv4).map(|(a, _)| a);
         let key = format!("{iface:?} {ip:?}");
         let wifi = iface.as_deref().is_some_and(|i| fs::metadata(format!("/sys/class/net/{i}/wireless")).is_ok());
         let changed = key != self.last_key;
@@ -540,23 +557,82 @@ fn uevents(fd: i32) -> Vec<String> {
     }
 }
 
+// Lignes complètes lues sur un descripteur non bloquant (reste gardé dans buf); None à la fin du flux
+fn lines(fd: i32, buf: &mut Vec<u8>) -> Option<Vec<String>> {
+    let mut chunk = [0u8; 4096];
+    loop {
+        // SAFETY: lecture dans un tampon local de la taille donnée
+        let n = unsafe { libc::read(fd, chunk.as_mut_ptr().cast(), chunk.len()) };
+        if n == 0 {
+            return None;
+        }
+        if n < 0 {
+            break;
+        }
+        buf.extend_from_slice(&chunk[..n as usize]);
+    }
+    let mut out = Vec::new();
+    while let Some(i) = buf.iter().position(|&b| b == b'\n') {
+        let l: Vec<u8> = buf.drain(..=i).collect();
+        out.push(String::from_utf8_lossy(&l[..i]).into_owned());
+    }
+    Some(out)
+}
+
+fn nonblock(fd: i32) {
+    // SAFETY: drapeaux d'un descripteur ouvert par ce processus
+    unsafe { libc::fcntl(fd, libc::F_SETFL, libc::fcntl(fd, libc::F_GETFL) | libc::O_NONBLOCK) };
+}
+
+// `bar-stats info SUJET`: une fiche sur la sortie standard (réseau avec le ping, moniteur sur 1 s)
+fn info_cli(topic: &str, page_kb: u64, hz: f64) {
+    let json = match topic {
+        "network" => {
+            let gw = default_iface().and_then(|i| info::gateway(&i));
+            let ping = gw.and_then(|g| info::ping_cmd(g).output().ok()).map(|o| info::ping_time(&String::from_utf8_lossy(&o.stdout))).unwrap_or_default();
+            info::network(&ping)
+        }
+        "power" => info::power(),
+        "display" => info::display(),
+        "monitor" => {
+            let mut usage = Usage::new(page_kb, hz);
+            std::thread::sleep(Duration::from_secs(1));
+            // Sortie de step (stat cpu/mem) inutile ici: seul le classement compte
+            usage.top_only();
+            info::monitor(&usage)
+        }
+        _ => {
+            eprintln!("usage: bar-stats info network|power|display|monitor");
+            process::exit(2);
+        }
+    };
+    println!("{json}");
+}
+
 fn main() {
-    let Some(fifo) = env::args().nth(1) else {
-        eprintln!("usage: bar-stats TUYAU   (lancé par le fili-shell, voir FiliShell.qml)");
+    // SAFETY: sysconf n'a pas d'effet de bord
+    let (page_kb, hz) = unsafe { (libc::sysconf(libc::_SC_PAGESIZE) as u64 / 1024, libc::sysconf(libc::_SC_CLK_TCK) as f64) };
+    let args: Vec<String> = env::args().collect();
+    if args.get(1).map(String::as_str) == Some("info") {
+        return info_cli(args.get(2).map_or("", String::as_str), page_kb, hz);
+    }
+    let Some(fifo) = args.get(1) else {
+        eprintln!("usage: bar-stats TUYAU   (lancé par le fili-shell, voir FiliShell.qml) | bar-stats info SUJET");
         process::exit(2);
     };
     // Lancé par `exec` depuis la barre: s'arrête avec elle
     // SAFETY: prctl ne touche qu'aux attributs de ce processus
     unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) };
     // Lecture-écriture: jamais de fin de fichier quand un client referme le tuyau (comme `cat 0<>tuyau`)
-    let mut pipe = fs::OpenOptions::new().read(true).write(true).custom_flags(libc::O_NONBLOCK).open(&fifo).unwrap_or_else(|e| {
+    let pipe = fs::OpenOptions::new().read(true).write(true).custom_flags(libc::O_NONBLOCK).open(fifo).unwrap_or_else(|e| {
         eprintln!("bar-stats: {fifo}: {e}");
         process::exit(1);
     });
     let uev = uevent_socket();
+    // Requêtes de la barre sur l'entrée standard; ignorée une fois fermée
+    let mut stdin_fd = 0;
+    nonblock(stdin_fd);
 
-    // SAFETY: sysconf n'a pas d'effet de bord
-    let (page_kb, hz) = unsafe { (libc::sysconf(libc::_SC_PAGESIZE) as u64 / 1024, libc::sysconf(libc::_SC_CLK_TCK) as f64) };
     let mut usage = Usage::new(page_kb, hz);
     let mut temp = Temp { path: temp_path(), shown: false };
     let mut disk_shown = false;
@@ -564,12 +640,15 @@ fn main() {
     let mut watch = Watch::new();
     watch.ac();
     watch.indicators(true);
+    stat("display", &info::display());
+    // Ping de la passerelle en cours pour la fiche réseau (renvoyée une seconde fois avec son résultat)
+    let mut ping: Option<process::Child> = None;
 
     // Échéances: CPU et mémoire 10 s (premier affichage rapide), température 15 s, disque 5 min, réseau et indicateurs 5 s
     let t0 = Instant::now();
     let mut next = [t0 + Duration::from_millis(500), t0, t0, t0, t0 + Duration::from_secs(5)];
     let every = [10, 15, 300, 5, 5].map(Duration::from_secs);
-    let mut line = Vec::new();
+    let (mut pipe_buf, mut stdin_buf) = (Vec::new(), Vec::new());
     loop {
         let now = Instant::now();
         for (i, due) in next.iter_mut().enumerate() {
@@ -587,29 +666,28 @@ fn main() {
         }
         let wait = next.iter().min().map_or(Duration::ZERO, |d| d.saturating_duration_since(Instant::now()));
 
+        let ping_fd = ping.as_ref().and_then(|c| c.stdout.as_ref()).map_or(-1, |o| o.as_raw_fd());
         let mut fds = [
             libc::pollfd { fd: pipe.as_raw_fd(), events: libc::POLLIN, revents: 0 },
             libc::pollfd { fd: uev.unwrap_or(-1), events: libc::POLLIN, revents: 0 },
+            libc::pollfd { fd: stdin_fd, events: libc::POLLIN, revents: 0 },
+            libc::pollfd { fd: ping_fd, events: libc::POLLIN, revents: 0 },
         ];
         // SAFETY: tableau local de pollfd valides (fd négatif ignoré par poll)
-        let r = unsafe { libc::poll(fds.as_mut_ptr(), 2, wait.as_millis().min(i32::MAX as u128) as i32 + 1) };
+        let r = unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, wait.as_millis().min(i32::MAX as u128) as i32 + 1) };
         if r <= 0 {
             continue;
         }
         if fds[0].revents & libc::POLLIN != 0 {
-            let mut buf = [0u8; 4096];
-            while let Ok(n) = pipe.read(&mut buf) {
-                if n == 0 {
-                    break;
-                }
-                line.extend_from_slice(&buf[..n]);
-            }
-            while let Some(i) = line.iter().position(|&b| b == b'\n') {
-                let l: Vec<u8> = line.drain(..=i).collect();
-                let l = String::from_utf8_lossy(&l[..i]).into_owned();
+            for l in lines(pipe.as_raw_fd(), &mut pipe_buf).unwrap_or_default() {
                 // Clic sur avion, SSH ou VPN (bar-toggle...), début ou fin de sauvegarde (watch-backup): état relu tout de suite
-                if l.starts_with("bar refresh") && l.split_whitespace().any(|n| matches!(n, "14" | "18" | "21" | "22")) {
-                    watch.indicators(true);
+                if l.starts_with("bar refresh") {
+                    if l.split_whitespace().any(|n| matches!(n, "14" | "18" | "21" | "22")) {
+                        watch.indicators(true);
+                    }
+                    if l.split_whitespace().any(|n| n == "23") {
+                        stat("display", &info::display());
+                    }
                 }
                 emit(&l);
             }
@@ -622,6 +700,42 @@ fn main() {
             if subs.iter().any(|s| s == "rfkill" || s == "net") {
                 watch.indicators(false);
             }
+        }
+        if fds[2].revents & (libc::POLLIN | libc::POLLHUP) != 0 {
+            match lines(stdin_fd, &mut stdin_buf) {
+                None => stdin_fd = -1,
+                Some(reqs) => {
+                    for topic in reqs.iter().filter_map(|l| l.strip_prefix("info ")) {
+                        let json = match topic.trim() {
+                            "network" => {
+                                // Fiche tout de suite, puis de nouveau avec le ping de la passerelle
+                                if ping.is_none() {
+                                    let gw = default_iface().and_then(|i| info::gateway(&i));
+                                    ping = gw.and_then(|g| info::ping_cmd(g).stdout(process::Stdio::piped()).stderr(process::Stdio::null()).spawn().ok());
+                                    if let Some(o) = ping.as_ref().and_then(|c| c.stdout.as_ref()) {
+                                        nonblock(o.as_raw_fd());
+                                    }
+                                }
+                                info::network("")
+                            }
+                            "power" => info::power(),
+                            "monitor" => info::monitor(&usage),
+                            _ => continue,
+                        };
+                        emit(&format!("info {} {json}", topic.trim()));
+                    }
+                }
+            }
+        }
+        if fds[3].revents & (libc::POLLIN | libc::POLLHUP) != 0
+            && let Some(mut child) = ping.take()
+        {
+            let mut out = String::new();
+            if let Some(o) = child.stdout.as_mut() {
+                let _ = o.read_to_string(&mut out);
+            }
+            let _ = child.wait();
+            emit(&format!("info network {}", info::network(&info::ping_time(&out))));
         }
     }
 }

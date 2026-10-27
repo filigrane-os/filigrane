@@ -1,4 +1,4 @@
-// fili-panel alimentation: batterie (fili-info power), actions système (verrouiller, veille, quitter, redémarrer, éteindre).
+// fili-panel alimentation: batterie (FiliInfo power), actions système (verrouiller, veille, quitter, redémarrer, éteindre).
 // Pas de profils d'énergie: Void n'a pas power-profiles-daemon (voir la skill filigrane pour tlp/cpupower).
 import QtQuick
 import QtQuick.Layouts
@@ -17,7 +17,7 @@ ColumnLayout {
         onExited: code => view.caffeine = code !== 0
     }
 
-    PanelInfo { title: true; cmd: FiliTheme.bin + "/fili-info power" }
+    PanelInfo { title: true; topic: "power" }
     PanelSection { text: "CAFÉINE" }
     RowLayout {
         Layout.fillWidth: true

@@ -1,14 +1,13 @@
 // Zone de clic et de fili-tooltip d'un module de la fili-bar: commandes shell par bouton et molette, ou signaux
-// (onLeftClicked...). tip: texte ou fiche (voir FiliTooltip); tipCmd: commande lancée seulement au survol, dont la
-// sortie JSON remplace la fiche (fili-info network|power|display), rien n'est sondé en continu.
+// (onLeftClicked...). tip: texte ou fiche (voir FiliTooltip); tipInfo: fiche demandée seulement au survol (FiliInfo:
+// network, power, display), qui remplace tip; rien n'est sondé en continu.
 import QtQuick
 import Quickshell
-import Quickshell.Io
 
 MouseArea {
     id: area
     property var tip
-    property string tipCmd
+    property string tipInfo
     property string click
     property string rclick
     property string mclick
@@ -73,24 +72,21 @@ MouseArea {
             FiliTooltip.hide(area);
             return;
         }
-        if (tipCmd) {
+        if (tipInfo) {
             FiliTooltip.show(area, tip || { title: "…" });
-            fetch.running = true;
+            FiliInfo.request(tipInfo);
         } else {
             FiliTooltip.show(area, tip);
         }
     }
-    onTipChanged: if (containsMouse && !tipCmd) FiliTooltip.update(area, tip)
+    onTipChanged: if (containsMouse && !tipInfo) FiliTooltip.update(area, tip)
 
-    Process {
-        id: fetch
-        command: ["sh", "-c", area.tipCmd]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    FiliTooltip.update(area, JSON.parse(text));
-                } catch (e) {}
-            }
+    Connections {
+        target: FiliInfo
+        enabled: area.tipInfo !== "" && area.containsMouse
+        function onReady(topic, card) {
+            if (topic === area.tipInfo)
+                FiliTooltip.update(area, card);
         }
     }
 }

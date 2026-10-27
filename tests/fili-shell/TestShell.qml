@@ -3,7 +3,7 @@
 // "not ok N - ...", puis "# fin: X échec(s)".
 // Couvre: clics de chaque module de la fili-bar, canal fili-shell (bar refresh, notification, launcher),
 // fili-launcher (découpe des lignes, filtre, réponses), fili-notification (bulles, croix, historique),
-// fili-tooltip et fili-info.
+// fili-tooltip et FiliInfo.
 //@ pragma Env QT_QUICK_BACKEND=software
 import QtQuick
 import Quickshell
@@ -61,7 +61,7 @@ ShellRoot {
         ok(r !== null && r.indexOf(needle) >= 0, "fili-bar " + name + ", " + label + " -> " + needle, r === null ? "module introuvable" : JSON.stringify(r));
     }
 
-    // Commande shell de test (client fili-shell, fili-info...), sortie et code récupérés
+    // Commande shell de test (client fili-shell, fili-net...), sortie et code récupérés
     property var shellOut: null
     Process {
         id: sh
@@ -80,6 +80,13 @@ ShellRoot {
         id: bars
         model: [Quickshell.screens[0]]
         FiliBar {}
+    }
+    property var cards: ({})
+    Connections {
+        target: FiliInfo
+        function onReady(topic, card) {
+            t.cards[topic] = card;
+        }
     }
     Connections {
         target: FiliShell
@@ -175,7 +182,7 @@ ShellRoot {
                 FiliTheme.ran = [];
             },
             // Les commandes des clics existent (scripts du dépôt)
-            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-info fili-shell; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
+            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts appelés par la fili-bar présents dans " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installés
@@ -322,21 +329,22 @@ ShellRoot {
                 ok(FiliTooltip.empty({}) && !FiliTooltip.empty({ title: "x" }), "fili-tooltip fiche vide");
             },
 
-            // ───── fili-info ─────
-            wait(() => t.shell("for x in network power display; do " + t.bin + "/fili-info $x; done"), () => t.shellOut !== null, 10000),
+            // ───── FiliInfo: fiches demandées à bar-stats (entrée standard) ou composées (écrans, socket niri) ─────
+            wait(() => {
+                t.cards = {};
+                for (const x of ["network", "power", "display", "monitor"])
+                    FiliInfo.request(x);
+            }, () => ["network", "power", "display", "monitor"].every(x => t.cards[x]), 10000),
             () => {
-                const lines = t.shellOut.out.trim().split("\n");
-                ok(lines.length === 3, "fili-info: trois fiches", t.shellOut.out);
-                for (const [i, topic] of ["network", "power", "display"].entries()) {
-                    let c = null;
-                    try {
-                        c = JSON.parse(lines[i]);
-                    } catch (e) {}
-                    ok(c && c.title && Array.isArray(c.rows) && c.hint, "fili-info " + topic + ": titre, lignes, aide", lines[i]);
+                for (const topic of ["network", "power", "display"]) {
+                    const c = t.cards[topic];
+                    ok(c && c.title && Array.isArray(c.rows) && c.hint, "FiliInfo " + topic + ": titre, lignes, aide", JSON.stringify(c));
                 }
+                ok(t.cards.monitor.title === "Système" && t.cards.monitor.rows.length > 4, "FiliInfo monitor: fiche", JSON.stringify(t.cards.monitor));
+                ok(t.cards.display.rows.length > 0, "FiliInfo display: sorties de niri", JSON.stringify(t.cards.display));
             },
 
-            // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net et fili-info monitor ─────
+            // ───── fili-panel: chaque vue se charge sans erreur, puis fili-net ─────
             () => {
                 for (const v of ["network", "audio", "bluetooth", "power", "monitor", "keyboard", "display"]) {
                     FiliPanel.view = v;
@@ -512,16 +520,13 @@ ShellRoot {
                 cal.press(Qt.RightButton);
                 FiliPanel.close();
             },
-            wait(() => t.shell(t.bin + "/fili-net list; " + t.bin + "/fili-info monitor"), () => t.shellOut !== null, 15000),
+            wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {
-                const lines = t.shellOut.out.trim().split("\n");
-                let n = null, m = null;
+                let n = null;
                 try {
-                    n = JSON.parse(lines[0]);
-                    m = JSON.parse(lines[1]);
+                    n = JSON.parse(t.shellOut.out.trim().split("\n")[0]);
                 } catch (e) {}
-                ok(n && typeof n.device === "string" && Array.isArray(n.networks), "fili-net list: JSON { device, networks }", lines[0]);
-                ok(m && m.title && m.rows.length > 4, "fili-info monitor: fiche", lines[1]);
+                ok(n && typeof n.device === "string" && Array.isArray(n.networks), "fili-net list: JSON { device, networks }", t.shellOut.out);
             },
         ];
         tick.start();

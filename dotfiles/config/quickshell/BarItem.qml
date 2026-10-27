@@ -7,7 +7,7 @@ Item {
     property color color: FiliTheme.brume
     property alias hover: hov
     property var tip
-    property alias tipCmd: hov.tipCmd
+    property alias tipInfo: hov.tipInfo
     property real pad: FiliTheme.pad
     implicitWidth: visible ? Math.max(FiliTheme.isIcon(nat.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
     implicitHeight: FiliTheme.barHeight

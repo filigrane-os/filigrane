@@ -2,7 +2,7 @@
 // Quattro). Clic: action principale; clic droit/milieu/molette: voir chaque module. Les TUI s'ouvrent via bar-tui.
 // Scripts réutilisés (BarScript.qml); natifs: niri, horloge, audio (PipeWire), MPRIS, Bluetooth, tray, batterie.
 // Survol: fili-tooltip (fiche inspirée des panneaux d'Omarchy: état détaillé + rappel des clics); réseau, alimentation
-// et écran lus au survol seulement (fili-info).
+// et écran lus au survol seulement (FiliInfo).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -374,8 +374,8 @@ PanelWindow {
             // Écrans: clic = panneau (disposition, définition, échelle, rotation), molette = luminosité
             BarScript {
                 objectName: "display"
-                cmd: "printf '{\"text\":\"\uf108 %s\"}\\n' \"$(brightnessctl -m 2>/dev/null | head -1 | cut -d, -f4)\""; signal: 23; hideEmpty: false
-                tipCmd: bar.b + "/fili-info display"
+                stat: "display"; hideEmpty: false
+                tipInfo: "display"
                 hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
                 scrollUp: "brightnessctl -q set 5%+; " + bar.b + "/fili-shell bar refresh 23"
                 scrollDown: "brightnessctl -q set 5%-; " + bar.b + "/fili-shell bar refresh 23"
@@ -428,7 +428,7 @@ PanelWindow {
                 colors: ({ disconnected: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "network", bar)
                 rclick: "setsid -f " + bar.b + "/menu network"
-                tipCmd: bar.b + "/fili-info network"
+                tipInfo: "network"
             }
             // Notifications: clic = historique, clic droit = Ne pas déranger
             BarItem {
@@ -448,7 +448,7 @@ PanelWindow {
         // Batterie: clic = menu système (verrouiller, veille, quitter...)
         BarPower {
             objectName: "power"
-            tipCmd: bar.b + "/fili-info power"
+            tipInfo: "power"
             hover.onLeftClicked: FiliPanel.toggle(hover, "power", bar)
             hover.rclick: "setsid -f " + bar.b + "/menu system"
         }

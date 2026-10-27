@@ -1,30 +1,25 @@
-// Fiche d'informations des fili-panel: lance `cmd` (JSON { title, rows }, comme fili-info) à l'ouverture et sur refresh()
+// Fiche d'informations des fili-panel ({ title, rows }, voir FiliInfo), demandée à l'ouverture et sur refresh()
 import QtQuick
 import QtQuick.Layouts
-import Quickshell.Io
 
 ColumnLayout {
     id: info
-    property string cmd
+    property string topic
     property var card: ({ rows: [] })
     property bool title: false
     spacing: 3
     Layout.fillWidth: true
 
     function refresh() {
-        if (cmd)
-            proc.running = true;
+        if (topic)
+            FiliInfo.request(topic);
     }
     Component.onCompleted: refresh()
-    Process {
-        id: proc
-        command: ["sh", "-c", info.cmd]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    info.card = JSON.parse(text);
-                } catch (e) {}
-            }
+    Connections {
+        target: FiliInfo
+        function onReady(topic, card) {
+            if (topic === info.topic)
+                info.card = card;
         }
     }
     Text {

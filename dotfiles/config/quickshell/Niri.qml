@@ -118,4 +118,43 @@ Singleton {
         interval: 1000
         onTriggered: stream.connected = stream.path !== ""
     }
+
+    // Requête ponctuelle (ex. "Outputs") sur une seconde connexion: rappel avec la réponse (champ Ok, ou null en
+    // erreur); les requêtes partent une à une, la connexion se ferme quand il n'y en a plus
+    property var pending: []
+    function request(name, done) {
+        pending = pending.concat([{ name: name, done: done }]);
+        if (!req.connected)
+            req.connected = req.path !== "";
+        else if (pending.length === 1)
+            req.send();
+    }
+    Socket {
+        id: req
+        path: stream.path
+        function send() {
+            write(JSON.stringify(niri.pending[0].name) + "\n");
+            flush();
+        }
+        onConnectedChanged: if (connected && niri.pending.length) send()
+        parser: SplitParser {
+            onRead: line => {
+                const p = niri.pending[0];
+                niri.pending = niri.pending.slice(1);
+                let r = null;
+                try {
+                    r = JSON.parse(line).Ok ?? null;
+                } catch (e) {}
+                // Un rappel en erreur (demandeur détruit entre-temps) ne bloque pas la file
+                try {
+                    if (p)
+                        p.done(r ? r[p.name] ?? r : null);
+                } catch (e) {}
+                if (niri.pending.length)
+                    req.send();
+                else
+                    req.connected = false;
+            }
+        }
+    }
 }

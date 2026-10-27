@@ -2,7 +2,7 @@
 // bords), puis pour l'écran choisi allumage, définition, fréquence, échelle, rotation et VRR. Les changements passent
 // par `niri msg output` (temporaires, appliqués tout de suite); définition, échelle, rotation et extinction sont à
 // confirmer sous 15 s, sinon retour à l'état d'avant. « Enregistrer » écrit le profil kanshi (display-save),
-// réappliqué à chaque branchement d'écran. Luminosité de l'écran interne en bas (brightnessctl).
+// réappliqué à chaque branchement d'écran. Luminosité de l'écran interne en bas (lue par bar-stats, réglée par brightnessctl).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -39,27 +39,23 @@ ColumnLayout {
         return { x: g.x, y: g.y, w: o.logical.width, h: o.logical.height };
     }
 
+    // Sorties demandées sur le socket de niri (requête Outputs), sans `niri msg`
     function read() {
-        reader.running = true;
+        Niri.request("Outputs", o => {
+            // Panneau fermé avant la réponse: plus rien à mettre à jour
+            if (!o || !view)
+                return;
+            view.outputs = Object.values(o).sort((a, b) => a.name.localeCompare(b.name));
+            if (!view.cur)
+                view.sel = (view.active[0] ?? view.outputs[0] ?? { name: "" }).name;
+        });
     }
     Component.onCompleted: {
         read();
-        readScreen.running = true;
+        // Luminosité de l'écran interne (stat display de bar-stats, en %), -1: absente
+        const b = FiliShell.stats.display?.screen ?? -1;
+        screen = b < 0 ? -1 : b / 100;
         readNight.running = true;
-    }
-    Process {
-        id: reader
-        command: ["niri", "msg", "-j", "outputs"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const o = JSON.parse(text);
-                    view.outputs = Object.values(o).sort((a, b) => a.name.localeCompare(b.name));
-                    if (!view.cur)
-                        view.sel = (view.active[0] ?? view.outputs[0] ?? { name: "" }).name;
-                } catch (e) {}
-            }
-        }
     }
     Timer {
         id: reread
@@ -72,16 +68,6 @@ ColumnLayout {
         id: readNight
         command: ["sh", "-c", 'exec "$0" night | grep -q \'"class":"active"\'', FiliTheme.bin + "/bar-status"]
         onExited: code => view.night = code === 0
-    }
-    Process {
-        id: readScreen
-        command: ["sh", "-c", "brightnessctl -m -c backlight -d '*' info 2>/dev/null | grep -v appletb | head -1 | cut -d, -f4 | tr -d %"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const v = parseInt(text);
-                view.screen = isNaN(v) ? -1 : v / 100;
-            }
-        }
     }
 
     // Applique des arguments `niri msg output`; risky = à confirmer (retour à l'état d'avant au bout de 15 s)
@@ -421,7 +407,7 @@ ColumnLayout {
         value: Math.max(0, view.screen)
         onMoved: v => {
             view.screen = Math.max(0.01, v);
-            FiliTheme.run("brightnessctl -q set " + Math.max(1, Math.round(v * 100)) + "%");
+            FiliTheme.run("brightnessctl -q set " + Math.max(1, Math.round(v * 100)) + "%; " + FiliTheme.bin + "/fili-shell bar refresh 23");
         }
     }
 

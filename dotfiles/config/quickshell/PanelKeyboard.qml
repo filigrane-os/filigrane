@@ -119,19 +119,8 @@ ColumnLayout {
     }
 
     // ───── dispositions ─────
-    // Rétroéclairage du clavier (brightnessctl), -1: absent
-    property real keys: -1
-    Process {
-        id: readKeys
-        command: ["sh", "-c", "brightnessctl -m -d '*kbd_backlight' info 2>/dev/null | head -1 | cut -d, -f4 | tr -d %"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const v = parseInt(text);
-                view.keys = isNaN(v) ? -1 : v / 100;
-            }
-        }
-    }
-    Component.onCompleted: readKeys.running = true
+    // Rétroéclairage du clavier (stat display de bar-stats, en %), -1: absent
+    property real keys: (FiliShell.stats.display?.kbd ?? -1) < 0 ? -1 : FiliShell.stats.display.kbd / 100
     PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: "DISPOSITIONS" }
     Repeater {
         model: view.page === "layouts" ? Niri.layouts : []
@@ -354,7 +343,7 @@ ColumnLayout {
         value: Math.max(0, view.keys)
         onMoved: v => {
             view.keys = v;
-            FiliTheme.run("brightnessctl -q -d '*kbd_backlight' set " + Math.round(v * 100) + "%");
+            FiliTheme.run("brightnessctl -q -d '*kbd_backlight' set " + Math.round(v * 100) + "%; " + FiliTheme.bin + "/fili-shell bar refresh 23");
         }
     }
 }

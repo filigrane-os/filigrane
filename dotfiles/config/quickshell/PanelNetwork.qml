@@ -1,5 +1,5 @@
 // fili-panel réseau (iwd): réseaux Wi-Fi (clic = connecter, mot de passe si nouveau, clic droit = oublier), activer,
-// déconnecter, état de la liaison (fili-info network). Les actions passent par fili-net (iwctl).
+// déconnecter, état de la liaison (FiliInfo network). Les actions passent par fili-net (iwctl).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -154,7 +154,7 @@ ColumnLayout {
         font { family: FiliTheme.font; pixelSize: 12 }
     }
     PanelSection { text: "LIAISON" }
-    PanelInfo { id: info; cmd: FiliTheme.bin + "/fili-info network" }
+    PanelInfo { id: info; topic: "network" }
     PanelButton {
         Layout.topMargin: 4
         glyph: ""

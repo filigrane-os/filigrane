@@ -37,7 +37,7 @@ Item {
     // Ligne d'aide de la fili-tooltip (actions des clics)
     property string hint
     // Fiche lue au survol (remplace le texte du script), voir BarHover
-    property string tipCmd
+    property string tipInfo
     property bool pending: false
 
     visible: !(hideEmpty && text === "")
@@ -161,7 +161,7 @@ Item {
         id: hov
         anchors.fill: parent
         tip: mod.hint ? { text: mod.tip, hint: mod.hint } : mod.tip
-        tipCmd: mod.tipCmd
+        tipInfo: mod.tipInfo
         click: mod.click
         rclick: mod.rclick
         mclick: mod.mclick

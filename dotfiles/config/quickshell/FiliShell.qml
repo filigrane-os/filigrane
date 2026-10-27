@@ -7,8 +7,9 @@ pragma Singleton
 //   panel NOM | close                    ouvre/ferme un fili-panel
 //   reload
 // Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
-//   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn), voir BarScript
+//   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), voir BarScript
 //   ac 0|1                                chargeur (FiliSound)
+//   info SUJET JSON                       fiche demandée par request("info SUJET") sur son entrée standard (FiliInfo)
 // Sans bar-stats (apps/ non compilé): un `cat` ouvert en lecture-écriture. Les réponses partent vers le tuyau RÉPONSE.
 import QtQuick
 import Quickshell
@@ -39,6 +40,14 @@ Singleton {
     // stat NOM JSON: nouvel état d'un module; dernier état gardé pour les barres créées ensuite (écran branché)
     signal stat(string name, var data)
     readonly property var stats: ({})
+    // info SUJET JSON: réponse à request("info SUJET")
+    signal info(string topic, var data)
+
+    // Requête à bar-stats (entrée standard), sans lancer de processus; ignorée sans bar-stats
+    function request(line) {
+        if (reader.running)
+            reader.write(line + "\n");
+    }
 
     // Écrit une réponse dans le tuyau de la requête
     function reply(path, text) {
@@ -51,14 +60,20 @@ Singleton {
         // Tuyau recréé à chaque démarrage, lecteur tué avec Quickshell (sinon un ancien lecteur volerait les commandes)
         command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; [ -x "$2/bar-stats" ] && exec "$2/bar-stats" "$f"; exec setpriv --pdeathsig TERM cat 0<>"$f"',
             "sh", shell.fifo, FiliTheme.bin]
+        stdinEnabled: true
         stdout: SplitParser {
             onRead: line => {
-                if (line.startsWith("stat ")) {
-                    const i = line.indexOf(" ", 5);
+                if (line.startsWith("stat ") || line.startsWith("info ")) {
+                    const j = line.indexOf(" ");
+                    const i = line.indexOf(" ", j + 1);
                     try {
                         const data = JSON.parse(line.slice(i + 1));
-                        shell.stats[line.slice(5, i)] = data;
-                        shell.stat(line.slice(5, i), data);
+                        if (line.startsWith("stat ")) {
+                            shell.stats[line.slice(j + 1, i)] = data;
+                            shell.stat(line.slice(j + 1, i), data);
+                        } else {
+                            shell.info(line.slice(j + 1, i), data);
+                        }
                     } catch (e) {}
                     return;
                 }

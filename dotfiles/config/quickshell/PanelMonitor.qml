@@ -1,4 +1,4 @@
-// fili-panel moniteur: charge, mémoire, disque, température et plus gros processus (fili-info monitor), tests de débit
+// fili-panel moniteur: charge, mémoire, disque, température et plus gros processus (FiliInfo monitor, sans processus), tests de débit
 // réseau et de disque (fili-speedtest), accès à htop
 import QtQuick
 import QtQuick.Layouts
@@ -32,7 +32,7 @@ ColumnLayout {
     }
     Timer { running: true; repeat: true; interval: 2000; onTriggered: info.refresh() }
 
-    PanelInfo { id: info; title: true; cmd: FiliTheme.bin + "/fili-info monitor" }
+    PanelInfo { id: info; title: true; topic: "monitor" }
     PanelSection { text: "TESTS" }
     PanelButton {
         objectName: "test-net"
