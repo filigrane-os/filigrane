@@ -47,7 +47,7 @@ ColumnLayout {
             }
         }
     }
-    PanelSection { rule: true; text: "SYSTÈME" }
+    PanelSection { text: "SYSTÈME" }
     // Actions du menu système (menu system <action>: confirmation demandée pour quitter, redémarrer et éteindre)
     Repeater {
         model: [["", "Verrouiller", "Lock"], ["", "Veille", "Sleep"], ["", "Quitter la session", "Log out"], ["", "Redémarrer", "Reboot"], ["", "Éteindre", "Power off"]]

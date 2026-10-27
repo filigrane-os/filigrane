@@ -153,7 +153,7 @@ ColumnLayout {
         Layout.maximumWidth: 300
         font { family: FiliTheme.font; pixelSize: 12 }
     }
-    PanelSection { rule: true; text: "LIAISON" }
+    PanelSection { text: "LIAISON" }
     PanelInfo { id: info; cmd: FiliTheme.bin + "/fili-info network" }
     PanelButton {
         Layout.topMargin: 4

@@ -9,9 +9,7 @@ Item {
     // Repère pour les sections sœurs (voir refresh)
     readonly property bool isSection: true
     property bool first: true
-    // Filet aussi en première position (sous une fiche d'information, pas sous un titre)
-    property bool rule: false
-    readonly property bool ruled: rule || !first
+    readonly property bool ruled: !first
 
     Layout.fillWidth: true
     implicitHeight: label.implicitHeight + (ruled ? 17 : 6)
@@ -29,16 +27,19 @@ Item {
         font { family: FiliTheme.font; pixelSize: 11; letterSpacing: 1 }
     }
 
-    // Premier visible parmi les sections de la vue? Recalculé à chaque changement de visibilité d'une section sœur
+    // Sans filet seulement la première section visible et collée au titre de la vue (y < 40): après une fiche, un
+    // bouton ou un canvas, le filet la sépare de ce qui précède. Recalculé quand une section change de visibilité ou
+    // de place (un élément apparaît au-dessus).
     function refresh() {
         let seen = false;
         for (const c of parent.children) {
             if (c.isSection !== true)
                 continue;
-            c.first = !seen && c.visible;
+            c.first = c.visible && !seen && c.y < 40;
             seen = seen || c.visible;
         }
     }
     onVisibleChanged: Qt.callLater(refresh)
+    onYChanged: Qt.callLater(refresh)
     Component.onCompleted: Qt.callLater(refresh)
 }

@@ -160,17 +160,6 @@ ColumnLayout {
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
-    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: "RÉTROÉCLAIRAGE" }
-    PanelSlider {
-        objectName: "keys"
-        visible: view.page === "layouts" && view.keys >= 0
-        glyph: "\uf11c"
-        value: Math.max(0, view.keys)
-        onMoved: v => {
-            view.keys = v;
-            FiliTheme.run("brightnessctl -q -d '*kbd_backlight' set " + Math.round(v * 100) + "%");
-        }
-    }
     PanelSection { visible: view.page === "layouts"; text: "OUTILS" }
     PanelButton {
         objectName: "open-viewer"
@@ -343,5 +332,18 @@ ColumnLayout {
         Layout.fillWidth: true
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: 12 }
+    }
+
+    // Rétroéclairage du clavier: tout en bas de la page des dispositions
+    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: "RÉTROÉCLAIRAGE" }
+    PanelSlider {
+        objectName: "keys"
+        visible: view.page === "layouts" && view.keys >= 0
+        glyph: "\uf11c"
+        value: Math.max(0, view.keys)
+        onMoved: v => {
+            view.keys = v;
+            FiliTheme.run("brightnessctl -q -d '*kbd_backlight' set " + Math.round(v * 100) + "%");
+        }
     }
 }
