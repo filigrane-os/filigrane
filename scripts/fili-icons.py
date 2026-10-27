@@ -6,6 +6,8 @@
 # Icônes réduites et centrées sur la hauteur des capitales de Jost (Lucide occupe tout l'em).
 #
 # Usage: scripts/fili-icons.py [lucide.ttf info.json]   (sans argument: télécharge lucide-static VERSION)
+# Après régénération (ou relien des polices par bootstrap.sh): relancer Quickshell (`pkill quickshell`, la boucle de niri le
+# relance), sinon son cache de polices perd Fili Icons et la barre retombe sur Font Awesome plein (icônes épaisses).
 # Ajouter une icône: une ligne dans MAP (code utilisé -> nom Lucide, voir https://lucide.dev/icons), relancer.
 # Dépendance de développement: fonttools (packages/dev.txt).
 import json

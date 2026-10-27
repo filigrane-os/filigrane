@@ -45,10 +45,18 @@ PanelWindow {
         onPressed: FiliShell.popupOpened("")
     }
 
+    // Filet fin sous la barre
+    Rectangle {
+        z: -1
+        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+        height: 1
+        color: FiliTheme.nuit3
+    }
+
     // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
     RowLayout {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
-        spacing: 12
+        spacing: FiliTheme.gap
 
         // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
         Item {
@@ -131,7 +139,7 @@ PanelWindow {
     // ───────── Centre: indicateurs, tiroir, horloge ─────────
     RowLayout {
         anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
-        spacing: 12
+        spacing: FiliTheme.gap
 
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
         Row {
@@ -158,7 +166,7 @@ PanelWindow {
                 Item {
                     id: trayItem
                     required property var modelData
-                    implicitWidth: 24
+                    implicitWidth: FiliTheme.iconCell
                     implicitHeight: FiliTheme.barHeight
                     IconImage {
                         anchors.centerIn: parent
@@ -281,7 +289,7 @@ PanelWindow {
     // ───────── Droite: média, ressources, système, batterie ─────────
     RowLayout {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
-        spacing: 12
+        spacing: FiliTheme.gap
 
         // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {
@@ -314,9 +322,9 @@ PanelWindow {
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 85 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
-            BarScript { objectName: "cpu"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "cpu"; tag: "CPU"; cmd: "exec " + bar.b + "/bar-stats cpu"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript { objectName: "temp"; cmd: "exec " + bar.b + "/bar-stats temp"; interval: -1; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "mem"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "mem"; tag: "RAM"; cmd: "exec " + bar.b + "/bar-stats mem"; interval: -1; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript {
                 objectName: "disk"
                 cmd: "exec " + bar.b + "/bar-stats disk"; interval: -1; hint: "clic: moniteur"

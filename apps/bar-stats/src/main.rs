@@ -79,7 +79,7 @@ fn cpu(every: Duration, page_kb: u64, hz: f64) {
                 format!("{:<22} {pct:5.1}%  {mem}", clean(&p.name))
             })
             .collect();
-        emit(format!(r#"{{"text":" {usage}%","tooltip":"<tt>Top CPU\n{}</tt>"}}"#, tip.join("\\n")));
+        emit(format!(r#"{{"text":"{usage}%","tooltip":"<tt>Top CPU\n{}</tt>"}}"#, tip.join("\\n")));
         prev = now;
         prev_cpu = cur_cpu;
     }
@@ -107,7 +107,7 @@ fn mem(every: Duration, page_kb: u64) {
                 format!("{:<22} {v}", clean(n))
             })
             .collect();
-        emit(format!(r#"{{"text":"RAM {used:.1}G","tooltip":"<tt>Top RAM\n{}</tt>"}}"#, tip.join("\\n")));
+        emit(format!(r#"{{"text":"{used:.1}G","tooltip":"<tt>Top RAM\n{}</tt>"}}"#, tip.join("\\n")));
         thread::sleep(every);
     }
 }
@@ -424,8 +424,9 @@ fn net(every: Duration) {
                     // Icône selon la qualité (codes md-wifi_strength_1..4, police Fili Icons): trait plein = bon signal
                     let glyph = ['\u{F091F}', '\u{F0922}', '\u{F0925}', '\u{F0928}'][level as usize];
                     let ghz = freq.parse::<f64>().map(|f| format!("{:.1}", f / 1000.0)).unwrap_or_default();
-                    let name = clean(&ssid);
-                    format!(r#"{{"text":"{glyph} {name}","class":"wifi","tooltip":"{name} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
+                    let full = clean(&ssid);
+                    let name = if full.chars().count() > 16 { format!("{}…", full.chars().take(15).collect::<String>()) } else { full.clone() };
+                    format!(r#"{{"text":"{glyph} {name}","class":"wifi","tooltip":"{full} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
                 }
                 Some(i) => format!(r#"{{"text":"\uf796 {i}","class":"ethernet","tooltip":"{i}: {ipt}\n{bw}"}}"#),
             };

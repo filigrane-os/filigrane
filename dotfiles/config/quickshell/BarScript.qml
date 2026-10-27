@@ -22,7 +22,9 @@ Item {
     property string mclick
     property string scrollUp
     property string scrollDown
-    property real pad: 4
+    property real pad: FiliTheme.pad
+    // Étiquette en petites capitales devant la valeur (CPU, RAM)
+    property string tag
 
     property string text: ""
     property string cls: ""
@@ -34,7 +36,7 @@ Item {
     property bool pending: false
 
     visible: !(hideEmpty && text === "")
-    implicitWidth: visible ? label.implicitWidth + 2 * pad : 0
+    implicitWidth: visible ? Math.max(FiliTheme.isIcon(mod.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
     implicitHeight: FiliTheme.barHeight
 
     function parse(line) {
@@ -97,17 +99,28 @@ Item {
         }
     }
 
-    Text {
-        id: label
+    Row {
+        id: content
         anchors.centerIn: parent
-        text: mod.text
-        color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
-        font.family: FiliTheme.font
-        font.pixelSize: FiliTheme.size
+        spacing: FiliTheme.labelGap
+        Text {
+            visible: mod.tag !== ""
+            anchors.verticalCenter: parent.verticalCenter
+            text: mod.tag
+            color: FiliTheme.ardoise
+            font { family: FiliTheme.font; pixelSize: 11; letterSpacing: 1 }
+        }
+        Text {
+            id: label
+            text: mod.text
+            color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
+            font.family: FiliTheme.font
+            font.pixelSize: FiliTheme.size
+        }
         SequentialAnimation on opacity {
             running: mod.blinkClass !== "" && mod.cls === mod.blinkClass
             loops: Animation.Infinite
-            onStopped: label.opacity = 1
+            onStopped: content.opacity = 1
             NumberAnimation { to: 0.35; duration: 1000 }
             NumberAnimation { to: 1; duration: 1000 }
         }

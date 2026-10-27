@@ -9,8 +9,8 @@ Item {
     property alias hover: hov
     property var tip
     property alias tipCmd: hov.tipCmd
-    property real pad: 4
-    implicitWidth: visible ? lbl.implicitWidth + 2 * pad : 0
+    property real pad: FiliTheme.pad
+    implicitWidth: visible ? Math.max(FiliTheme.isIcon(lbl.text) ? FiliTheme.iconCell : 0, lbl.implicitWidth + 2 * pad) : 0
     implicitHeight: FiliTheme.barHeight
     visible: lbl.text !== ""
     Text {
