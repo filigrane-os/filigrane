@@ -119,9 +119,21 @@ Singleton {
                         }
                     }
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
+                    Item {
+                    Layout.fillWidth: true
+                    implicitHeight: grid.implicitHeight
+                    // Filet entre les deux colonnes
+                    Rectangle {
+                        visible: grid.columns === 2
+                        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
+                        width: 1
+                        color: FiliTheme.nuit4
+                    }
                     GridLayout {
+                        id: grid
+                        anchors { left: parent.left; right: parent.right; top: parent.top }
                         columns: card.width > 640 ? 2 : 1
-                        columnSpacing: 28
+                        columnSpacing: 40
                         rowSpacing: 6
                         Layout.fillWidth: true
                         Repeater {
@@ -177,6 +189,7 @@ Singleton {
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
