@@ -11,6 +11,10 @@ Singleton {
     id: tip
     property Item target: null
     property var card: ({})
+    // Délai du survol (ms) et répit après la fermeture d'un fili-panel (ms)
+    readonly property int baseDelay: 400
+    readonly property int cooldown: 1000
+    readonly property alias delayMs: delay.interval
 
     function normalize(c) {
         if (typeof c === "string")
@@ -35,6 +39,8 @@ Singleton {
         if (target !== item) {
             target = item;
             popup.visible = false;
+            // Panneau fermé à l'instant: en plus du délai, attendre la fin du répit
+            delay.interval = baseDelay + Math.max(0, FiliShell.panelClosedAt + cooldown - Date.now());
             delay.restart();
         }
     }
@@ -53,7 +59,7 @@ Singleton {
 
     Timer {
         id: delay
-        interval: 400
+        interval: tip.baseDelay
         onTriggered: if (tip.target && !tip.empty(tip.card)) popup.visible = true
     }
 

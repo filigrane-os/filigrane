@@ -20,6 +20,10 @@ Singleton {
     signal popupOpened(string who)
     // Un fili-panel est ouvert (posé par FiliPanel): la fili-tooltip ne s'affiche pas
     property bool panelOpen: false
+    // Instant de la dernière fermeture d'un fili-panel (ms): la fili-tooltip attend un peu après, sinon elle surgit
+    // aussitôt sous la souris et on croirait à un bug
+    property double panelClosedAt: 0
+    onPanelOpenChanged: if (!panelOpen) panelClosedAt = Date.now()
 
     // bar refresh N
     signal refresh(int n)
