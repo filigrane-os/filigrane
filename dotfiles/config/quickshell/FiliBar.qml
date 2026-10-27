@@ -56,7 +56,7 @@ PanelWindow {
     // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
     RowLayout {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
-        spacing: FiliTheme.gap
+        spacing: 0
 
         // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
         Item {
@@ -85,7 +85,7 @@ PanelWindow {
                 model: Niri.workspaces.filter(w => w.output === bar.screen.name)
                 Rectangle {
                     required property var modelData
-                    implicitWidth: ws.implicitWidth + 12
+                    implicitWidth: ws.implicitWidth + 2 * FiliTheme.pad
                     implicitHeight: FiliTheme.barHeight
                     color: modelData.is_active || wsHover.containsMouse ? FiliTheme.nuit3 : "transparent"
                     Label {
@@ -139,7 +139,7 @@ PanelWindow {
     // ───────── Centre: indicateurs, tiroir, horloge ─────────
     RowLayout {
         anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
-        spacing: FiliTheme.gap
+        spacing: 0
 
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
         Row {
@@ -205,7 +205,7 @@ PanelWindow {
         // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
         Item {
             id: clockItem
-            implicitWidth: clockText.implicitWidth + 12
+            implicitWidth: clockText.implicitWidth + 2 * FiliTheme.pad
             implicitHeight: FiliTheme.barHeight
             SystemClock { id: clock; precision: SystemClock.Minutes }
             // Minuteur ou chronomètre en cours (bar-timer, rafraîchi chaque seconde par son ticker): remplace la date
@@ -289,7 +289,7 @@ PanelWindow {
     // ───────── Droite: média, ressources, système, batterie ─────────
     RowLayout {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
-        spacing: FiliTheme.gap
+        spacing: 0
 
         // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {

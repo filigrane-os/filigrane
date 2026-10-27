@@ -18,11 +18,11 @@ Singleton {
     readonly property string mono: "JetBrains Mono"
     readonly property int size: 13
     readonly property int barHeight: 24
-    // Rythme de la fili-bar: marge de chaque module, cellule minimale d'une icône seule (toutes alignées sur la même
-    // grille), espace entre deux groupes, espace entre l'étiquette (CPU, RAM) et sa valeur
-    readonly property int pad: 6
-    readonly property int iconCell: 26
-    readonly property int gap: 14
+    // Rythme de la fili-bar, un seul pour tous les modules (pas d'écart propre aux groupes): marge de chaque module
+    // (l'écart entre deux textes vaut donc 2 × pad), cellule minimale d'une icône seule (son trait fait ~10 px: de
+    // même marge visible), espace entre l'étiquette (CPU, RAM) et sa valeur
+    readonly property int pad: 7
+    readonly property int iconCell: 24
     readonly property int labelGap: 5
     // Texte réduit à une seule icône (code privé Nerd Font / Fili Icons)
     function isIcon(t) {
