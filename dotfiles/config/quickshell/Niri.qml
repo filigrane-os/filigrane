@@ -1,5 +1,5 @@
 pragma Singleton
-// État de niri (espaces de travail, fenêtres, disposition clavier) depuis `niri msg -j event-stream`:
+// État de niri (espaces de travail, fenêtres, disposition clavier) depuis son flux d'événements (socket $NIRI_SOCKET):
 // Quickshell n'a pas de module niri, le flux d'événements donne tout sans interroger.
 import QtQuick
 import Quickshell
@@ -44,12 +44,27 @@ Singleton {
     function setWindows(m) {
         windows = m;
     }
+    // Champs d'une fenêtre lus par la barre: niri renvoie la fenêtre entière à chaque déplacement ou redimensionnement
+    // (layout), sans rien changer de ce qui est affiché
+    function same(a, b) {
+        return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id;
+    }
 
-    Process {
+    // Flux d'événements lu directement sur le socket de niri (requête "EventStream"), sans processus `niri msg`
+    Socket {
         id: stream
-        running: true
-        command: ["niri", "msg", "-j", "event-stream"]
-        stdout: SplitParser {
+        path: Quickshell.env("NIRI_SOCKET") ?? ""
+        connected: path !== ""
+        onConnectedChanged: {
+            if (connected) {
+                write('"EventStream"\n');
+                flush();
+            } else {
+                // niri relancé ou flux coupé: on se reconnecte
+                restart.start();
+            }
+        }
+        parser: SplitParser {
             onRead: line => {
                 let ev;
                 try {
@@ -73,9 +88,13 @@ Singleton {
                     niri.setWindows(m);
                 } else if (ev.WindowOpenedOrChanged) {
                     const w = ev.WindowOpenedOrChanged.window;
-                    const m = Object.assign({}, niri.windows);
-                    m[w.id] = w;
-                    niri.setWindows(m);
+                    if (niri.same(niri.windows[w.id], w)) {
+                        niri.windows[w.id] = w;
+                    } else {
+                        const m = Object.assign({}, niri.windows);
+                        m[w.id] = w;
+                        niri.setWindows(m);
+                    }
                     if (w.is_focused)
                         niri.focusedId = w.id;
                 } else if (ev.WindowClosed) {
@@ -93,12 +112,10 @@ Singleton {
                 }
             }
         }
-        // niri relancé ou flux coupé: on se reconnecte
-        onExited: restart.start()
     }
     Timer {
         id: restart
         interval: 1000
-        onTriggered: stream.running = true
+        onTriggered: stream.connected = stream.path !== ""
     }
 }
