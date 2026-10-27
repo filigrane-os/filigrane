@@ -1,38 +1,8 @@
 #!/bin/sh
-# Tiroir de la barre à gauche de l'horloge: sauvegarde (+ tray système).
-# Replié, un indicateur au repos (classe idle) est masqué et seuls ceux en cours d'usage restent visibles;
-# un indicateur qui vient de passer au repos reste visible 10 s avant de se masquer; le chevron (clic) révèle tout. État: présence de $XDG_RUNTIME_DIR/bar-tray-open, sans daemon.
-# Usage: bar-tray handle | toggle | backup (JSON pour la barre)
+# Tiroir de la barre à gauche de l'horloge (sauvegarde, mail, WhatsApp, agenda au repos, tray système): `bar-tray toggle`
+# l'ouvre ou le replie. État: présence de $XDG_RUNTIME_DIR/bar-tray-open, lue par la barre (BarState.qml), sans daemon.
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-open"
-B="$HOME/.local/bin"
 case "$1" in
-    handle)
-        if [ -e "$f" ]; then
-            printf '{"text":"\\uf054","class":"open","tooltip":"Replier"}\n'
-        else
-            printf '{"text":"\\uf053","tooltip":"Afficher la sauvegarde"}\n'
-        fi
-        exit 0 ;;
-    toggle)
-        if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi
-        "$HOME/.local/bin/fili-shell" bar refresh 20 18 16 17 19
-        exit 0 ;;
-    backup) out="$("$B/bar-backup")" ;;
-    *) exit 1 ;;
+    toggle) if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi ;;
+    *) echo "usage: bar-tray toggle" >&2; exit 2 ;;
 esac
-# Un indicateur qui repasse au repos reste visible 10 s (pour pouvoir le réactiver après un clic par erreur), puis se masque.
-case "$1" in backup) sig=18 ;; esac
-stamp="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-last-$1"
-case "$out" in
-    *'"class":"idle"'*)
-        if [ ! -e "$f" ]; then
-            age=$(( $(date +%s) - $(stat -c %Y "$stamp" 2>/dev/null || echo 0) ))
-            if [ "$age" -lt 10 ]; then
-                [ -e "$stamp.wait" ] || { : >"$stamp.wait"; setsid sh -c "sleep $((11 - age)); rm -f '$stamp.wait'; \"\$HOME/.local/bin/fili-shell\" bar refresh $sig" >/dev/null 2>&1 & }
-            else
-                out='{"text":""}'
-            fi
-        fi ;;
-    *) : >"$stamp" ;;
-esac
-printf '%s\n' "$out"

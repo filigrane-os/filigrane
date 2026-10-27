@@ -4,7 +4,6 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import Quickshell
-import Quickshell.Io
 
 PopupWindow {
     id: cal
@@ -13,9 +12,9 @@ PopupWindow {
     property bool pinned: false
     // Souris sur le calendrier (garde le survol ouvert, voir la fili-bar)
     readonly property bool hovered: hover.hovered
-    // Minuteur / chronomètre (bar-timer): classe (idle, stopwatch, active, done) et texte du temps
-    property string timerClass: "idle"
-    property string timerText: ""
+    // Minuteur / chronomètre (BarState): classe (idle, stopwatch, active, done) et texte du temps
+    readonly property string timerClass: BarState.timer["class"] ?? "idle"
+    readonly property string timerText: BarState.timer.text.replace(/^\s*/, "")
     readonly property date shown: new Date(today.getFullYear(), today.getMonth() + shift, 1)
 
     visible: false
@@ -23,26 +22,6 @@ PopupWindow {
     function show() {
         FiliShell.popupOpened("calendar");
         visible = true;
-    }
-    function readTimer() {
-        if (!timerRead.running)
-            timerRead.running = true;
-    }
-    // Le minuteur ne se relit que tant que le calendrier est affiché
-    onVisibleChanged: if (visible) readTimer()
-    Timer { interval: 1000; repeat: true; running: cal.visible; onTriggered: cal.readTimer() }
-    Process {
-        id: timerRead
-        command: [FiliTheme.bin + "/bar-timer"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try {
-                    const j = JSON.parse(text);
-                    cal.timerClass = j.class ?? "idle";
-                    cal.timerText = (j.text ?? "").replace(/^\uf2f2\s*/, "");
-                } catch (e) {}
-            }
-        }
     }
     Connections {
         target: FiliShell

@@ -143,10 +143,10 @@ PanelWindow {
 
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
         Row {
-            // Nouveaux mails Proton / événement Proton Calendar imminent (masqués sinon, voir bar-alert), clic = ouvrir et effacer
-            BarScript { objectName: "mail"; cmd: bar.b + "/bar-alert mail"; signal: 16; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
-            BarScript { objectName: "whatsapp"; cmd: bar.b + "/bar-alert whatsapp"; signal: 19; click: bar.b + "/bar-alert open whatsapp" }
-            BarScript { objectName: "cal"; cmd: bar.b + "/bar-alert cal"; signal: 17; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
+            // Nouveaux mails Proton / événement Proton Calendar imminent (masqués sinon, voir BarState), clic = ouvrir et effacer
+            BarScript { objectName: "mail"; value: BarState.mail; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
+            BarScript { objectName: "whatsapp"; value: BarState.whatsapp; click: bar.b + "/bar-alert open whatsapp" }
+            BarScript { objectName: "cal"; value: BarState.cal; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
             // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
             BarScript { objectName: "rec"; cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
             // Session SSH entrante, mode avion (clic = désactiver), VPN: écrits par bar-stats quand l'état change
@@ -159,7 +159,7 @@ PanelWindow {
             BarScript { objectName: "update"; cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
         }
 
-        // Tiroir (bar-tray): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
+        // Tiroir (BarState, bar-tray toggle): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
         Row {
             Repeater {
                 model: SystemTray.items
@@ -192,18 +192,18 @@ PanelWindow {
                 }
             }
             // Mail, WhatsApp, agenda au repos: rangés dans le tiroir (visibles tiroir ouvert), ils sortent dans la barre quand il y a une alerte
-            BarScript { objectName: "mail-idle"; cmd: bar.b + "/bar-alert drawer mail"; signal: 16; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open mail" }
-            BarScript { objectName: "whatsapp-idle"; cmd: bar.b + "/bar-alert drawer whatsapp"; signal: 19; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open whatsapp" }
-            BarScript { objectName: "cal-idle"; cmd: bar.b + "/bar-alert drawer cal"; signal: 17; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open cal" }
+            BarScript { objectName: "mail-idle"; value: BarState.mailIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open mail" }
+            BarScript { objectName: "whatsapp-idle"; value: BarState.whatsappIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open whatsapp" }
+            BarScript { objectName: "cal-idle"; value: BarState.calIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open cal" }
             // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
             BarScript {
                 objectName: "backup"
-                cmd: bar.b + "/bar-tray backup"; interval: 3600; signal: 18
+                value: BarState.backup
                 colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
                 click: bar.b + "/bar-backup run"
             }
             // Chevron du tiroir: clic = afficher / replier
-            BarScript { objectName: "tray-handle"; cmd: bar.b + "/bar-tray handle"; signal: 20; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
+            BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
         }
 
         // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
@@ -212,14 +212,14 @@ PanelWindow {
             implicitWidth: clockText.implicitWidth + 2 * FiliTheme.pad
             implicitHeight: FiliTheme.barHeight
             SystemClock { id: clock; precision: SystemClock.Minutes }
-            // Minuteur ou chronomètre en cours (bar-timer, rafraîchi chaque seconde par son ticker): remplace la date
-            BarScript { id: timerState; visible: false; cmd: bar.b + "/bar-timer"; signal: 12 }
-            readonly property bool timing: timerState.text !== "" && timerState.cls !== "idle"
+            // Minuteur ou chronomètre en cours (bar-timer, état lu par BarState): remplace la date
+            readonly property var timerState: BarState.timer
+            readonly property bool timing: timerState["class"] !== "idle"
             Label {
                 id: clockText
                 anchors.centerIn: parent
-                text: clockItem.timing ? timerState.text : Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
-                color: !clockItem.timing ? FiliTheme.brume : timerState.cls === "done" ? FiliTheme.cendre : FiliTheme.sable
+                text: clockItem.timing ? clockItem.timerState.text : Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
+                color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
                 // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
                 font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
                 font.weight: Font.Normal

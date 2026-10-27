@@ -1,22 +1,6 @@
 #!/bin/sh
-# Indicateur de la barre de la sauvegarde restic (watch-backup). Sans argument: JSON d'état; `run`: sauvegarde immédiate.
-#   idle (gris) | active (vert clignotant, en cours: verrou backup.lock tenu) | failed (rouge, dernier essai en échec)
-STATE="$HOME/.local/state/watch"
-if [ "$1" = run ]; then
-    pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
-    setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &
-    exit 0
-fi
-# Sauvegarde non configurée (distribution sans NAS): indicateur masqué
-[ -r "$HOME/.config/restic/env" ] || { printf '{"text":""}\n'; exit 0; }
-if ! flock -n "$STATE/backup.lock" true 2>/dev/null; then
-    printf '{"text":"\\uf0ee","class":"active","tooltip":"Sauvegarde NAS en cours..."}\n'
-    exit 0
-fi
-last="jamais"
-[ -e "$STATE/backup.stamp" ] && last="$(date -d "@$(stat -c %Y "$STATE/backup.stamp")" '+%d/%m %H:%M')"
-if [ "$(cat "$STATE/backup.status" 2>/dev/null)" = fail ]; then
-    printf '{"text":"\\uf0ee","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: %s). Clic: réessayer"}\n' "$last"
-else
-    printf '{"text":"\\uf0ee","class":"idle","tooltip":"Sauvegarde NAS (dernière: %s). Clic: sauvegarder maintenant"}\n' "$last"
-fi
+# Sauvegarde restic immédiate depuis la barre (`bar-backup run`, watch-backup now). L'état affiché (idle, active, failed)
+# est écrit par bar-stats (apps/bar-stats, stat backup).
+[ "$1" = run ] || { echo "usage: bar-backup run" >&2; exit 2; }
+pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
+setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &

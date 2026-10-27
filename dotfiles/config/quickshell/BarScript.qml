@@ -3,6 +3,7 @@
 //   interval > 0: relancé toutes les N s; 0: une fois (puis sur signal); -1: résident (une ligne par mise à jour)
 //   signal: rafraîchi par `fili-shell signal N` (ex-`pkill -RTMIN+N waybar`)
 //   stat: sans script, état écrit par bar-stats (`stat NOM JSON`, voir FiliShell)
+//   value: sans script, état lié à un objet {text, class, tooltip} (BarState)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -11,6 +12,8 @@ Item {
     id: mod
     property string cmd
     property string stat
+    property var value: null
+    onValueChanged: if (value) apply(value)
     property int interval: 0
     property int signal: -1
     property bool hideEmpty: true
@@ -61,13 +64,15 @@ Item {
         if (proc.running) {
             if (interval >= 0)
                 pending = true;
-        } else if (!stat) {
+        } else if (cmd) {
             proc.running = true;
         }
     }
 
     Component.onCompleted: {
-        if (!stat)
+        if (value)
+            apply(value);
+        else if (cmd)
             proc.running = true;
         else if (FiliShell.stats[stat])
             apply(FiliShell.stats[stat]);
@@ -91,7 +96,7 @@ Item {
             if (mod.pending) {
                 mod.pending = false;
                 proc.running = true;
-            } else if (mod.interval < 0 && !mod.stat) {
+            } else if (mod.interval < 0 && mod.cmd) {
                 respawn.start();
             }
         }

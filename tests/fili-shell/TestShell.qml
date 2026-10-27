@@ -199,6 +199,37 @@ ShellRoot {
                 // Niri: flux d'événements lu sur le socket de niri
                 ok(Niri.workspaces.length > 0, "niri: espaces de travail reçus par le socket", Niri.workspaces.length);
             },
+            // BarState: états lus dans leurs fichiers (alertes, agenda, minuteur, tiroir), sans script
+            () => {
+                const now = 1000000;
+                const m = BarState.alert("mail", "Alice\tBonjour\nBob\tSalut\n", null, now);
+                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.startsWith("Alice: Bonjour\nBob: Salut"), "BarState: alerte mail", JSON.stringify(m));
+                const c = BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
+                ok(c.text === " Réunion 11:00" && c.tooltip.indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
+                ok(BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n", null, now).text === "", "BarState: agenda expiré masqué");
+                const w = BarState.alert("whatsapp", "", "3\n", now);
+                ok(w.text.endsWith(" 3") && w.tooltip.indexOf("3 non lu(s)") >= 0, "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(BarState.alert("whatsapp", "x\ty\n", "0", now).text === "", "BarState: compteur à 0 masque l'alerte");
+                ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: chronomètre", BarState.timerFor("S", now - 65, now).text);
+                const r = BarState.timerFor("T", now + 3700, now);
+                ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
+                ok(BarState.timerFor("T", now - 1, now)["class"] === "done" && BarState.timerFor("", 0, now)["class"] === "idle", "BarState: minuteur écoulé / au repos");
+            },
+            wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
+                 () => BarState.timerFile.kind === "S" && BarState.trayOpen),
+            () => {
+                ok(/ 01:0[5-7]$/.test(BarState.timer.text), "BarState: chronomètre lu dans bar-timer (FileView)", BarState.timer.text);
+                const h = t.find(t.bar.contentItem, "tray-handle");
+                ok(h.cls === "open", "BarState: tiroir ouvert (bar-tray-open)");
+                // Texte réellement affiché par le module (un enfant Text), pas seulement sa propriété
+                const shown = item => (item.children ?? []).some(c => (typeof c.text === "string" && c.text.indexOf("") >= 0) || shown(c));
+                ok(shown(h), "BarState: chevron du tiroir affiché par BarScript (value)");
+                FiliTheme.ran = [];
+            },
+            wait(() => t.shell('echo "T $(( $(date +%s) - 1 ))" > "$XDG_RUNTIME_DIR/bar-timer"'), () => FiliTheme.ran.join("\n").indexOf("bar-timer expire") >= 0),
+            () => ok(BarState.timer["class"] === "done", "BarState: minuteur écoulé -> bar-timer expire", FiliTheme.ran.join(" ")),
+            wait(() => t.shell('rm -f "$XDG_RUNTIME_DIR/bar-timer" "$XDG_RUNTIME_DIR/bar-tray-open"'), () => BarState.timerFile.kind === "" && !BarState.trayOpen),
+            () => ok(BarState.timer["class"] === "idle" && t.find(t.bar.contentItem, "tray-handle").cls === "", "BarState: fichiers supprimés -> repos"),
 
             // ───── fili-launcher ─────
             () => {

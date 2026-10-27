@@ -1,9 +1,8 @@
 // Processus unique du fili-shell (Quickshell), lancé par FiliShell.qml: `bar-stats TUYAU`. Un seul thread qui dort
 // dans poll() entre deux échéances; lit /proc et /sys directement, sans lancer top, ps, awk ni udevadm. Une ligne par
 // mise à jour sur la sortie standard:
-//   stat cpu|mem|temp|disk|net|remote|air|vpn JSON   modules de la fili-bar (protocole des modules custom de Waybar)
-//   ac 0|1                                           chargeur branché ou non (au démarrage, puis à chaque événement)
-//   bar refresh N                                    réveille un module à script dont l'état a changé (sauvegarde, agenda)
+//   stat cpu|mem|temp|disk|net|remote|air|vpn|backup JSON   modules de la fili-bar (protocole des modules custom de Waybar)
+//   ac 0|1                                                  chargeur branché ou non (au démarrage, puis à chaque événement)
 //   toute ligne écrite dans TUYAU (client fili-shell, scripts), recopiée telle quelle
 // Événements du noyau (netlink uevent) pour le chargeur, le mode avion et les interfaces réseau: rien n'est sondé
 // pour eux. Se termine quand la barre ferme la sortie ou meurt.
@@ -394,14 +393,42 @@ fn ac_online() -> Option<bool> {
     found
 }
 
-// Indicateurs à changement rare, sans sondage de la barre: lus dans /proc et /sys sans rien lancer. SSH entrant, mode
-// avion et VPN sont écrits directement (stat); sauvegarde et agenda réveillent leur module à script (bar refresh).
+// Date locale d'un instant (strftime)
+fn local_time(t: i64, fmt: &CStr) -> String {
+    // SAFETY: structures locales initialisées à zéro, tampon de la taille donnée, format C valide
+    unsafe {
+        let mut tm: libc::tm = std::mem::zeroed();
+        libc::localtime_r(&t, &mut tm);
+        let mut buf = [0u8; 64];
+        let n = libc::strftime(buf.as_mut_ptr().cast(), buf.len(), fmt.as_ptr(), &tm);
+        String::from_utf8_lossy(&buf[..n]).into_owned()
+    }
+}
+
+// Sauvegarde restic (watch-backup): masquée sans configuration (distribution sans NAS), active pendant la sauvegarde
+// (verrou tenu), failed si le dernier essai a échoué, idle sinon; le tiroir (BarState.qml) la masque au repos
+fn backup(dir: &str, env: &str) -> String {
+    if fs::metadata(env).is_err() {
+        return r#"{"text":""}"#.into();
+    }
+    let g = '\u{f0ee}';
+    if locked(&format!("{dir}/backup.lock")) {
+        return format!(r#"{{"text":"{g}","class":"active","tooltip":"Sauvegarde NAS en cours..."}}"#);
+    }
+    let last = fs::metadata(format!("{dir}/backup.stamp")).map_or("jamais".into(), |m| local_time(m.mtime(), c"%d/%m %H:%M"));
+    if fs::read_to_string(format!("{dir}/backup.status")).is_ok_and(|s| s.trim() == "fail") {
+        format!(r#"{{"text":"{g}","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: {last}). Clic: réessayer"}}"#)
+    } else {
+        format!(r#"{{"text":"{g}","class":"idle","tooltip":"Sauvegarde NAS (dernière: {last}). Clic: sauvegarder maintenant"}}"#)
+    }
+}
+
+// Indicateurs à changement rare, sans sondage de la barre: lus dans /proc et /sys sans rien lancer, écrits seulement
+// quand ils changent (stat): SSH entrant, mode avion, VPN, sauvegarde.
 struct Watch {
     seen: HashMap<&'static str, String>,
-    lock: String,
-    lock_seen: bool,
-    cal: String,
-    cal_t: Instant,
+    state: String,
+    restic: String,
     batwatch: String,
     low: bool,
     bat_seen: String,
@@ -414,13 +441,10 @@ const BAT: &str = "/sys/class/power_supply/BAT0";
 impl Watch {
     fn new() -> Self {
         let home = env::var("HOME").unwrap_or_default();
-        let lock = format!("{home}/.local/state/watch/backup.lock");
         Watch {
             seen: HashMap::new(),
-            lock_seen: locked(&lock),
-            lock,
-            cal: format!("{home}/.local/state/alerts/cal"),
-            cal_t: Instant::now(),
+            state: format!("{home}/.local/state/watch"),
+            restic: format!("{home}/.config/restic/env"),
             batwatch: format!("{home}/.local/bin/bar-status"),
             low: false,
             bat_seen: String::new(),
@@ -436,9 +460,11 @@ impl Watch {
         }
     }
 
-    // Modules écrits directement: au démarrage, à chaque tour, et tout de suite après un clic (bar refresh) ou un
-    // événement du noyau (rfkill, interface réseau)
+    // Modules écrits directement: au démarrage, à chaque tour, et tout de suite après un clic ou watch-backup (bar
+    // refresh) ou un événement du noyau (rfkill, interface réseau)
     fn indicators(&mut self, ssh: bool) {
+        let j = backup(&self.state, &self.restic);
+        self.put("backup", j);
         if ssh || !self.seen.contains_key("remote") {
             let n = ssh_in();
             let j = if n > 0 { format!(r#"{{"text":"","class":"active","tooltip":"{n} session(s) SSH entrante(s)"}}"#) } else { r#"{"text":""}"#.into() };
@@ -463,18 +489,6 @@ impl Watch {
         self.tick += 1;
         // /proc/net/tcp* coûte plus cher (sockets parcourues): un tour sur trois
         self.indicators(self.tick.is_multiple_of(3));
-        let l = locked(&self.lock);
-        if l != self.lock_seen {
-            self.lock_seen = l;
-            emit("bar refresh 18");
-        }
-        // Agenda: l'événement affiché disparaît 5 min après son début, rafraîchi chaque minute tant qu'il y en a un
-        if self.cal_t.elapsed() >= Duration::from_secs(60) {
-            self.cal_t = Instant::now();
-            if fs::metadata(&self.cal).is_ok_and(|m| m.len() > 0) {
-                emit("bar refresh 17");
-            }
-        }
         // Batterie faible: alerte et extinction restent dans `bar-status batwatch`, lancé seulement quand l'état
         // bouge sous 10 % sur batterie, et une fois au retour (chargeur branché) pour réarmer l'alerte.
         // status interroge le matériel (~1 ms, contre quelques µs pour capacity): lu seulement sous 10 %
@@ -593,8 +607,8 @@ fn main() {
             while let Some(i) = line.iter().position(|&b| b == b'\n') {
                 let l: Vec<u8> = line.drain(..=i).collect();
                 let l = String::from_utf8_lossy(&l[..i]).into_owned();
-                // Clic sur avion, SSH ou VPN (bar-toggle...): état relu tout de suite
-                if l.starts_with("bar refresh") && l.split_whitespace().any(|n| matches!(n, "14" | "21" | "22")) {
+                // Clic sur avion, SSH ou VPN (bar-toggle...), début ou fin de sauvegarde (watch-backup): état relu tout de suite
+                if l.starts_with("bar refresh") && l.split_whitespace().any(|n| matches!(n, "14" | "18" | "21" | "22")) {
                     watch.indicators(true);
                 }
                 emit(&l);
