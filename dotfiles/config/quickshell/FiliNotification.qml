@@ -17,8 +17,14 @@ Singleton {
     property var popups: []
     // Historique (copies, plus récentes en tête): { app, icon, summary, body, time }
     property var history: []
+    // Notifications arrivées depuis la dernière ouverture du centre (cloche de la barre)
+    property int unread: 0
     property bool centerOpen: false
-    onCenterOpenChanged: FiliShell.centerOpen = centerOpen
+    onCenterOpenChanged: {
+        FiliShell.centerOpen = centerOpen;
+        if (centerOpen)
+            unread = 0;
+    }
     property int serial: 0
 
     function timeout(n) {
@@ -38,8 +44,11 @@ Singleton {
         if (!n)
             return;
         popups = popups.filter(p => p.n !== n);
-        if (n.appName !== "niri")
+        if (n.appName !== "niri") {
+            if (!centerOpen)
+                unread++;
             history = [{ app: n.appName, icon: icon(n), summary: n.summary, body: n.body, time: new Date() }].concat(history).slice(0, 30);
+        }
         if (how === "expire")
             n.expire();
         else

@@ -418,10 +418,10 @@ PanelWindow {
             BarItem {
                 objectName: "notifications"
                 text: FiliNotification.dnd ? "" : ""
-                color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.ardoise
+                color: FiliNotification.dnd ? FiliTheme.sable : FiliNotification.unread > 0 ? FiliTheme.voile : FiliTheme.ardoise
                 tip: ({
                     title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",
-                    rows: [["Bulles", FiliNotification.dnd ? "masquées" : "affichées"], ["Historique", FiliNotification.history.length + " notification(s)"]],
+                    rows: [["Bulles", FiliNotification.dnd ? "masquées" : "affichées"], ["Non lues", String(FiliNotification.unread)], ["Historique", FiliNotification.history.length + " notification(s)"]],
                     hint: "clic: fili-notification-center · clic droit: ne pas déranger"
                 })
                 hover.onLeftClicked: FiliNotification.toggleCenter()
