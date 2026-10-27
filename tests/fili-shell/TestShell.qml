@@ -460,6 +460,17 @@ ShellRoot {
                 ok(FiliTheme.ran.some(c => c.indexOf("wl-copy") >= 0 && c.indexOf("wtype") >= 0), "fili-panel clavier: emoji copié et tapé", JSON.stringify(FiliTheme.ran));
                 ok(FiliPanel.view === "", "fili-panel clavier: choisir un emoji ferme le panneau");
             },
+            // Icône de la sortie audio selon son type (propriétés PipeWire)
+            () => {
+                const g = p => FiliTheme.sinkGlyph(p).codePointAt(0) ?? 0;
+                ok(g({ "device.icon_name": "audio-headphones", "device.profile.name": "HiFi: Headphones: sink" }) === 0xf025, "son: casque filaire");
+                ok(g({ "node.name": "alsa_output.pci.analog-stereo", "device.form-factor": "headset" }) === 0xf025, "son: casque-micro USB");
+                ok(g({ "device.api": "bluez5", "node.name": "bluez_output.AA_BB.1", "device.form-factor": "headphone" }) === 0xf0970, "son: casque Bluetooth");
+                ok(g({ "device.api": "bluez5", "node.name": "bluez_output.AA_BB.1", "device.form-factor": "speaker" }) === 0xf09a2, "son: enceinte Bluetooth");
+                ok(g({ "node.name": "alsa_output.pci-0000_00_1f.3.hdmi-stereo" }) === 0xf0379, "son: écran HDMI");
+                ok(g({ "node.name": "audio_effect.t2-speakers", "device.icon-name": "audio-speakers" }) === 0, "son: haut-parleurs (icône graduée)");
+                ok(g(null) === 0, "son: sortie absente");
+            },
             // Aucune fili-tooltip tant qu'un fili-panel est ouvert
             () => {
                 const it = t.find(t.bar.contentItem, "volume");

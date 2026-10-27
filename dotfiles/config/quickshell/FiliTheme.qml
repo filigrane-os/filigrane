@@ -43,6 +43,23 @@ Singleton {
         return Qt.colorEqual(c, brume) || Qt.colorEqual(c, brume2) ? ardoise : c;
     }
 
+    // Icône d'une sortie audio d'après ses propriétés PipeWire: casque (filaire ou Bluetooth), enceinte Bluetooth,
+    // écran (HDMI, DisplayPort); "" pour des haut-parleurs (l'appelant garde l'icône graduée selon le volume)
+    function sinkGlyph(p) {
+        if (!p)
+            return "";
+        const s = [p["device.form-factor"], p["device.icon-name"], p["device.icon_name"], p["device.profile.name"],
+                   p["node.name"], p["alsa.name"]].join(" ").toLowerCase();
+        const head = /head(phone|set)|hands-?free|earbud/.test(s);
+        if (p["device.api"] === "bluez5" || s.indexOf("bluez") >= 0 || s.indexOf("bluetooth") >= 0)
+            return String.fromCodePoint(/speaker|car|portable/.test(s) && !head ? 0xf09a2 : 0xf0970);
+        if (head)
+            return String.fromCodePoint(0xf025);
+        if (/hdmi|displayport/.test(s))
+            return String.fromCodePoint(0xf0379);
+        return "";
+    }
+
     // Scripts et binaires de la distribution (~/.local/bin; FILI_BIN pour les tests)
     readonly property string bin: Quickshell.env("FILI_BIN") || Quickshell.env("HOME") + "/.local/bin"
 

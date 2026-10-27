@@ -345,7 +345,9 @@ PanelWindow {
                 objectName: "volume"
                 readonly property var audio: bar.sink?.audio ?? null
                 readonly property int vol: audio ? Math.round(audio.volume * 100) : 0
-                text: !audio ? "" : audio.muted ? " muet" : (vol < 34 ? "" : vol < 67 ? "" : "") + " " + vol + "%"
+                readonly property string kind: FiliTheme.sinkGlyph(bar.sink?.properties)
+                text: !audio ? "" : (kind || (audio.muted ? "" : vol < 34 ? "" : vol < 67 ? "" : ""))
+                    + (audio.muted ? " muet" : " " + vol + "%")
                 color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
                 tip: !audio ? "" : {
                     title: audio.muted ? "Son coupé" : "Son",

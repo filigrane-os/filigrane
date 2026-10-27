@@ -42,7 +42,7 @@ ColumnLayout {
     }
     PanelSlider {
         objectName: "volume"
-        glyph: view.sink?.audio?.muted ? "" : ""
+        glyph: FiliTheme.sinkGlyph(view.sink?.properties) || (view.sink?.audio?.muted ? "" : "")
         muted: view.sink?.audio?.muted ?? false
         value: view.sink?.audio?.volume ?? 0
         onMoved: v => { if (view.sink?.audio) view.sink.audio.volume = v; }
@@ -54,6 +54,7 @@ ColumnLayout {
         PanelButton {
             required property var modelData
             objectName: "sink"
+            glyph: FiliTheme.sinkGlyph(modelData.properties) || ""
             label: view.name(modelData)
             detail: view.detail(modelData)
             sel: modelData.id === view.sink?.id
