@@ -311,6 +311,28 @@ ShellRoot {
                 ok(d.snap === null, "fili-panel écrans: garder");
                 FiliPanel.close();
             },
+            // fili-panel Bluetooth, partage de fichiers: protocoles grisés si indisponibles, même interface, commande d'envoi
+            () => {
+                FiliPanel.view = "bluetooth";
+                const bt = FiliPanel.loaded;
+                bt.protocols = [{ id: "airdrop", label: "AirDrop", available: false, why: "omdrop non installé" },
+                                { id: "bluetooth", label: "Bluetooth", available: true, why: "" },
+                                { id: "localsend", label: "LocalSend", available: false, why: "non installé" }];
+                bt.proto = "airdrop";
+                ok(!bt.shareOk && !t.find(bt, "share-receive").switchable, "fili-panel bluetooth: protocole indisponible, réception grisée");
+                const chips = t.find(bt, "share-protocols");
+                chips.pick(2);
+                ok(bt.proto === "airdrop", "fili-panel bluetooth: un protocole grisé ne se choisit pas", bt.proto);
+                chips.pick(1);
+                ok(bt.proto === "bluetooth" && bt.shareOk && t.find(bt, "share-receive").switchable, "fili-panel bluetooth: protocole disponible choisi", bt.proto);
+                FiliTheme.ran = [];
+                bt.setReceiving(true);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-share receive bluetooth on", "fili-panel bluetooth: réception -> fili-share receive", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                bt.sendTo({ id: "AA:BB:CC:DD:EE:FF", name: "Tel d'Alex" });
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-share send bluetooth 'AA:BB:CC:DD:EE:FF' 'Tel d'\\''Alex'", "fili-panel bluetooth: envoi -> fili-share send (noms quotés)", JSON.stringify(FiliTheme.ran));
+                FiliPanel.close();
+            },
             // fili-panel clavier: visualiseur (touches de fili-keymap, frappe wtype) et emoji (copie + frappe)
             () => {
                 FiliPanel.view = "keyboard";

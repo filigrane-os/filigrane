@@ -1,0 +1,112 @@
+#!/bin/sh
+# Partage de fichiers du panneau Bluetooth de la fili-shell: une seule interface, trois protocoles.
+#   airdrop    omdrop (https://github.com/netmojo-systems/omdrop-plugin), radio AWDL (awdl0) requise
+#   bluetooth  OBEX Object Push (bluez-obex: obexd, via D-Bus), appareils appairés
+#   localsend  LocalSend, pas encore de moteur (indisponible)
+# Usage: fili-share protocols                    JSON [{id, label, available, why}]
+#        fili-share peers PROTO                  JSON [{id, name}]
+#        fili-share send PROTO ID NOM            choisit les fichiers (yazi), les envoie, notifie
+#        fili-share receive PROTO on|off|status  status: affiche on ou off
+OBEXD=/usr/libexec/bluetooth/obexd
+PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
+DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
+
+notify() { notify-send -a fili-share "Partage" "$1" 2>/dev/null; }
+json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
+
+# Raison de l'indisponibilité d'un protocole (vide = disponible)
+why() {
+    case "$1" in
+    airdrop)
+        command -v omdrop >/dev/null || { echo "omdrop non installé"; return; }
+        [ -d /sys/class/net/awdl0 ] || echo "pas de radio AWDL (awdl0)" ;;
+    bluetooth)
+        [ -x "$OBEXD" ] || { echo "bluez-obex non installé"; return; }
+        bluetoothctl list 2>/dev/null | grep -q Controller || echo "aucun adaptateur Bluetooth" ;;
+    localsend) echo "non installé" ;;
+    *) echo "protocole inconnu" ;;
+    esac
+}
+
+# ───── Bluetooth (OBEX Object Push) ─────
+obex() { gdbus call --session --dest org.bluez.obex "$@"; }
+bt_send() { # bt_send MAC FICHIER...
+    mac="$1"; shift
+    s="$(obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.CreateSession "$mac" "{'Target': <'opp'>}" | sed -n "s/.*'\(\/[^']*\)'.*/\1/p")"
+    [ -n "$s" ] || return 1
+    rc=0
+    for f in "$@"; do
+        t="$(obex --object-path "$s" --method org.bluez.obex.ObjectPush1.SendFile "$f" | sed -n "s/^(objectpath '\([^']*\)'.*/\1/p")"
+        [ -n "$t" ] || { rc=1; break; }
+        while :; do
+            st="$(obex --object-path "$t" --method org.freedesktop.DBus.Properties.Get org.bluez.obex.Transfer1 Status | sed -n "s/.*'\([a-z]*\)'.*/\1/p")"
+            case "$st" in complete) break ;; error | "") rc=1; break 2 ;; esac
+            sleep 1
+        done
+    done
+    obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.RemoveSession "$s" >/dev/null 2>&1
+    return $rc
+}
+bt_running() { [ -r "$PIDF" ] && [ "$(cat "/proc/$(cat "$PIDF")/comm" 2>/dev/null)" = obexd ]; }
+
+case "$1" in
+protocols)
+    for p in airdrop:AirDrop bluetooth:Bluetooth localsend:LocalSend; do
+        id="${p%%:*}"; r="$(why "$id")"
+        jq -nc --arg id "$id" --arg label "${p#*:}" --arg why "$r" '{ id: $id, label: $label, available: ($why == ""), why: $why }'
+    done | jq -sc .
+    ;;
+peers)
+    [ -z "$(why "$2")" ] || { echo '[]'; exit 0; }
+    case "$2" in
+    airdrop)
+        # Noms répondant à `omdrop peers -n`: lignes sans entête ni « (no response) » / « (anonymous) »
+        omdrop peers -n 2>/dev/null | sed 's/^ *//; s/ *$//' | grep -v -E '^\(|:$|^$' | awk '{ print $0 "\t" $0 }' | json_peers ;;
+    bluetooth)
+        bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' | json_peers ;;
+    *) echo '[]' ;;
+    esac
+    ;;
+send)
+    proto="$2"; id="$3"; name="$4"
+    r="$(why "$proto")"
+    [ -z "$r" ] || { notify "$proto indisponible: $r"; exit 1; }
+    sel="$(mktemp)"
+    foot --app-id bar-tui -T "Envoyer à $name" -e yazi --chooser-file="$sel"
+    set --
+    while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
+    rm -f "$sel"
+    [ "$#" -gt 0 ] || exit 0
+    notify "Envoi à $name…"
+    case "$proto" in
+    airdrop) omdrop send "$@" "$name" ;;
+    bluetooth) bt_send "$id" "$@" ;;
+    esac
+    if [ $? -eq 0 ]; then notify "Envoyé à $name"; else notify "Échec de l'envoi à $name"; exit 1; fi
+    ;;
+receive)
+    proto="$2"
+    case "$proto:$3" in
+    airdrop:on) omdrop on 15 ;;
+    airdrop:off) omdrop off ;;
+    airdrop:status) omdrop status 2>/dev/null | grep -qiE 'visible|receiving|listening|\bon\b' && echo on || echo off ;;
+    bluetooth:on)
+        bt_running && exit 0
+        mkdir -p "$DEST"
+        pkill -x obexd 2>/dev/null
+        setsid -f sh -c 'echo $$ > "$1"; exec "$2" -n -a -r "$3"' sh "$PIDF" "$OBEXD" "$DEST" >/dev/null 2>&1
+        bluetoothctl pairable on >/dev/null 2>&1
+        bluetoothctl discoverable on >/dev/null 2>&1
+        ;;
+    bluetooth:off)
+        bt_running && kill "$(cat "$PIDF")"
+        rm -f "$PIDF"
+        bluetoothctl discoverable off >/dev/null 2>&1
+        ;;
+    bluetooth:status) bt_running && echo on || echo off ;;
+    *:status) echo off ;;
+    *) exit 1 ;;
+    esac
+    ;;
+*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NOM | receive PROTO on|off|status" >&2; exit 2 ;;
+esac

@@ -1,4 +1,5 @@
-// Rangée de choix des fili-panel (échelle, rotation, définition): model = [{label, value}], current = valeur choisie
+// Rangée de choix des fili-panel (échelle, rotation, définition): model = [{label, value, off?}], current = valeur choisie;
+// off = indisponible (grisé, sans clic)
 import QtQuick
 import QtQuick.Layouts
 
@@ -13,7 +14,7 @@ Flow {
 
     // Choix (appelé aussi par les tests)
     function pick(i) {
-        if (i >= 0 && i < model.length)
+        if (i >= 0 && i < model.length && !model[i].off)
             picked(model[i].value);
     }
 
@@ -23,10 +24,12 @@ Flow {
             required property int index
             required property var modelData
             readonly property bool on: String(modelData.value) === String(chips.current)
+            readonly property bool off: modelData.off === true
+            opacity: off ? 0.4 : 1
             width: label.implicitWidth + 16
             height: 24
             radius: 6
-            color: on ? FiliTheme.nuit4 : area.containsMouse ? FiliTheme.nuit3 : "transparent"
+            color: on ? FiliTheme.nuit4 : area.containsMouse && !off ? FiliTheme.nuit3 : "transparent"
             border.color: on ? FiliTheme.voile : FiliTheme.nuit3
             border.width: 1
             Text {
@@ -40,7 +43,7 @@ Flow {
                 id: area
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
+                cursorShape: parent.off ? Qt.ArrowCursor : Qt.PointingHandCursor
                 onClicked: chips.pick(parent.index)
             }
         }
