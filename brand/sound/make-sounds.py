@@ -73,8 +73,8 @@ def save(path, lr):
 
 
 SOUNDS = {
-    # « Goutte »: trois notes de verre pentatoniques qui montent (sol6, si6, ré7), courtes. Notification.
-    "notification": lambda: finish(mix([(0.0, note(1568.0, 0.7), 0.9), (0.09, note(1975.5, 0.7), 0.8), (0.18, note(2349.3, 0.8), 0.7)], 1.0)),
+    # « Fil »: une seule note aiguë (la6), deux cordes très légèrement désaccordées: un frémissement. Notification.
+    "notification": lambda: finish(mix([(0.0, note(1760.0, 1.3, detune=1.6), 1.0)], 1.4)),
 }
 
 if __name__ == "__main__":

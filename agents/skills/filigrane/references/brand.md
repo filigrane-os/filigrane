@@ -34,7 +34,7 @@ Teintes dérivées (entre nuit et voile) et états désaturés, communs à toute
 
 - Polices : `dotfiles/home/.local/share/fonts/` (Jost, JetBrains Mono, variables, OFL). Interface en Jost, terminaux en JetBrains Mono.
 - Icônes : au trait fin, jamais pleines. Police « Fili Icons » (Lucide, ISC) générée par `scripts/fili-icons.py` sur les codes Font Awesome / Nerd Font déjà utilisés; fontconfig la place juste derrière Jost (`dotfiles/config/fontconfig/conf.d/60-fili-icons.conf`), le terminal garde les Nerd Fonts. Nouvelle icône : une ligne dans `MAP` du script, le relancer.
-- Son : un fil de verre qu'on effleure, léger et transparent (attaque très douce, partiels de verre, écho aérien, volume bas). `brand/sound/notification.wav` (notification, « goutte »: sol6, si6, ré7) généré par `brand/sound/make-sounds.py`, joué par la fili-shell (`FiliSound.qml`). Nouveau son : une entrée dans `SOUNDS` du script.
+- Son : un fil de verre qu'on effleure, léger et transparent (attaque très douce, partiels de verre, écho aérien, volume bas). `brand/sound/notification.wav` (notification, « fil »: une note de verre, la6, qui frémit) généré par `brand/sound/make-sounds.py`, joué par la fili-shell (`FiliSound.qml`). Nouveau son : une entrée dans `SOUNDS` du script.
 - Logo : `brand/` lié dans `~/.local/share/filigrane` (bouton menu de la barre : `filigrane-sombre.svg`).
 - Fond d'écran `filigrane.png` et images Plymouth : générés par `scripts/brand-assets.sh` (relancer si `brand/` change).
 - Démarrage : thème Plymouth `system/plymouth/filigrane/` (logo empilé, étiquette « PHRASE DE PASSE », points), installé par `sudo system/plymouth/install.sh` (régénère l'initramfs).
