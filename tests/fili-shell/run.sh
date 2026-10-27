@@ -32,5 +32,12 @@ if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
     exit 1
 fi
+# Config live: chaque fichier QML du dépôt doit être lié dans ~/.config/quickshell (bootstrap.sh), sinon la session
+# ne charge plus le shell (type introuvable) alors que ces tests, sur une copie du dépôt, passent
+missing="$(for f in "$ROOT"/dotfiles/config/quickshell/*.qml; do [ -e "$HOME/.config/quickshell/${f##*/}" ] || printf '%s ' "${f##*/}"; done)"
+if [ -n "$missing" ]; then
+    echo "not ok - non liés dans ~/.config/quickshell (lancer ./bootstrap.sh --dotfiles-only): $missing"
+    exit 1
+fi
 grep -q '^# fin: 0 échec' "$T/clean" 2>/dev/null || grep -q '# fin: 0 échec' "$T/clean" || { [ "$rc" -eq 124 ] && echo "not ok - délai dépassé (90 s)"; exit 1; }
 exit 0

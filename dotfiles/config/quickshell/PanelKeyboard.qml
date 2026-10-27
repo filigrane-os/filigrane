@@ -53,6 +53,13 @@ ColumnLayout {
         keymap.command = [FiliTheme.bin + "/fili-keymap", String(Math.max(0, Niri.layout))];
         keymap.running = true;
     }
+    // Clavier: Retour arrière revient aux dispositions (hors du champ de recherche, qui le garde pour effacer)
+    Keys.onPressed: e => {
+        if (e.key === Qt.Key_Backspace && page !== "layouts") {
+            page = "layouts";
+            e.accepted = true;
+        }
+    }
     onPageChanged: {
         if (page === "viewer")
             loadKeys();
@@ -287,6 +294,9 @@ ColumnLayout {
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
             clip: true
             onTextChanged: view.query = text
+            activeFocusOnTab: true
+            // Entrée: premier résultat
+            Keys.onReturnPressed: if (view.found.length) view.pickEmoji(view.found[0].c)
             Text {
                 visible: !search.text
                 anchors.verticalCenter: parent.verticalCenter
@@ -303,10 +313,19 @@ ColumnLayout {
             model: view.page === "emoji" ? view.found : []
             Rectangle {
                 required property var modelData
+                id: cell
                 objectName: "emoji"
                 width: 39; height: 36
                 radius: 6
                 color: emojiArea.containsMouse ? FiliTheme.nuit3 : "transparent"
+                // Clavier: ←/→ (comme ↑/↓) d'emoji en emoji, Entrée ou Espace = choisir
+                activeFocusOnTab: true
+                onActiveFocusChanged: if (activeFocus) view.hovered = modelData.name
+                Keys.onLeftPressed: e => e.modifiers & Qt.ShiftModifier ? e.accepted = false : FiliPanel.moveFocus(cell, cell, false)
+                Keys.onRightPressed: e => e.modifiers & Qt.ShiftModifier ? e.accepted = false : FiliPanel.moveFocus(cell, cell, true)
+                Keys.onReturnPressed: view.pickEmoji(modelData.c)
+                Keys.onSpacePressed: view.pickEmoji(modelData.c)
+                FocusRing {}
                 Text {
                     anchors.centerIn: parent
                     text: modelData.c

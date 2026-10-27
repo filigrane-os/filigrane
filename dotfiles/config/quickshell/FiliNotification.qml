@@ -49,6 +49,14 @@ Singleton {
         for (const p of popups.slice())
             close(p.n, "dismiss");
     }
+    // Copie le texte d'une notification de l'historique et ferme le centre
+    function copy(h) {
+        if (FiliTheme.testing)
+            FiliTheme.ran = FiliTheme.ran.concat(["wl-copy " + h.summary]);
+        else
+            Quickshell.execDetached(["wl-copy", h.summary + (h.body ? "\n" + h.body.replace(/<[^>]*>/g, "") : "")]);
+        centerOpen = false;
+    }
     function toggleCenter() {
         centerOpen = !centerOpen;
         if (centerOpen)
@@ -247,6 +255,7 @@ Singleton {
     }
 
     // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic sur une fenêtre = fermer.
+    // Clavier (comme les fili-panel): ↑/↓ ou Tab d'élément en élément, Entrée = copier, Suppr = retirer, ←/→ = panneau voisin.
     // Fenêtre de la taille du panneau (pas de calque plein écran); clic ailleurs: le focus part, le centre se ferme.
     PanelWindow {
         id: centerWin
@@ -271,6 +280,12 @@ Singleton {
             border { width: 1; color: FiliTheme.nuit4 }
             focus: true
             Keys.onEscapePressed: notifs.centerOpen = false
+            Keys.onUpPressed: FiliPanel.moveFocus(centerCard, Window.activeFocusItem, false)
+            Keys.onDownPressed: FiliPanel.moveFocus(centerCard, Window.activeFocusItem, true)
+            Keys.onTabPressed: FiliPanel.moveFocus(centerCard, Window.activeFocusItem, true)
+            Keys.onBacktabPressed: FiliPanel.moveFocus(centerCard, Window.activeFocusItem, false)
+            Keys.onLeftPressed: FiliPanel.step(-1)
+            Keys.onRightPressed: FiliPanel.step(1)
             // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
             property bool held: false
             Window.onActiveChanged: {
@@ -283,6 +298,8 @@ Singleton {
                 target: notifs
                 function onCenterOpenChanged() {
                     centerCard.held = false;
+                    if (notifs.centerOpen && FiliShell.keyNav)
+                        Qt.callLater(() => FiliPanel.focusFirst(centerCard));
                 }
             }
 
@@ -303,6 +320,11 @@ Singleton {
                         color: notifs.dnd ? FiliTheme.sable : FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: 15 }
                         MouseArea { anchors.fill: parent; onClicked: notifs.dnd = !notifs.dnd }
+                        objectName: "center-dnd"
+                        activeFocusOnTab: true
+                        Keys.onReturnPressed: notifs.dnd = !notifs.dnd
+                        Keys.onSpacePressed: notifs.dnd = !notifs.dnd
+                        FocusRing { gap: 4 }
                     }
                     Text {
                         text: "Effacer"
@@ -310,6 +332,10 @@ Singleton {
                         color: FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: 13 }
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
+                        activeFocusOnTab: true
+                        Keys.onReturnPressed: notifs.history = []
+                        Keys.onSpacePressed: notifs.history = []
+                        FocusRing { gap: 4 }
                     }
                 }
                 Text {
@@ -333,6 +359,14 @@ Singleton {
                         implicitHeight: Math.max(entry.implicitHeight, 32) + 16
                         radius: 9
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
+                        // Clavier: Entrée ou Espace = copier (comme le clic), Suppr = retirer; la liste suit le focus
+                        objectName: "center-item"
+                        activeFocusOnTab: true
+                        onActiveFocusChanged: if (activeFocus) ListView.view.positionViewAtIndex(index, ListView.Contain)
+                        Keys.onReturnPressed: notifs.copy(modelData)
+                        Keys.onSpacePressed: notifs.copy(modelData)
+                        Keys.onDeletePressed: notifs.history = notifs.history.filter(x => x !== item.modelData)
+                        FocusRing {}
                         RowLayout {
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8; rightMargin: 32 }
                             spacing: 10
@@ -393,12 +427,10 @@ Singleton {
                             acceptedButtons: Qt.LeftButton | Qt.RightButton
                             onClicked: m => {
                                 const h = parent.modelData;
-                                if (m.button === Qt.RightButton) {
+                                if (m.button === Qt.RightButton)
                                     notifs.history = notifs.history.filter(x => x !== h);
-                                } else {
-                                    Quickshell.execDetached(["wl-copy", h.summary + (h.body ? "\n" + h.body.replace(/<[^>]*>/g, "") : "")]);
-                                    notifs.centerOpen = false;
-                                }
+                                else
+                                    notifs.copy(h);
                             }
                         }
                         CloseCross {

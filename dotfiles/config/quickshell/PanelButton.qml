@@ -16,6 +16,16 @@ Rectangle {
     implicitHeight: 30
     radius: 6
     color: area.containsMouse ? FiliTheme.nuit3 : "transparent"
+    // Clavier: Entrée ou Espace = clic, Maj+Entrée = clic droit
+    activeFocusOnTab: true
+    Keys.onReturnPressed: e => btn.key(e)
+    Keys.onEnterPressed: e => btn.key(e)
+    Keys.onSpacePressed: e => btn.key(e)
+    function key(e) {
+        FiliShell.keyNav = true;
+        press(e.modifiers & Qt.ShiftModifier ? Qt.RightButton : Qt.LeftButton);
+    }
+    FocusRing {}
 
     RowLayout {
         anchors { fill: parent; leftMargin: 8; rightMargin: 8 }

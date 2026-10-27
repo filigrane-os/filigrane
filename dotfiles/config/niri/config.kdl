@@ -448,6 +448,8 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
     Mod+Y hotkey-overlay-title="Agent IA (fili-ai)" { spawn "foot" "-e" "bash" "-lc" "exec ~/.local/bin/fili-ai"; }
     Mod+P hotkey-overlay-title="Écrans: panneau" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
+    // Panneaux de la barre au clavier: ←/→ panneau voisin, ↑/↓ élément, Entrée agir, Échap fermer (FiliPanel.qml)
+    Mod+A hotkey-overlay-title="Panneaux de la barre" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }
     Mod+Ctrl+P hotkey-overlay-title="Écrans: enregistrer le profil" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
     Mod+Ctrl+E hotkey-overlay-title="Son: égaliseur haut-parleurs" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }

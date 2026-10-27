@@ -538,6 +538,64 @@ ShellRoot {
                 cal.press(Qt.RightButton);
                 FiliPanel.close();
             },
+            // ───── navigation au clavier (Mod+A, ←/→, Entrée...) ─────
+            () => {
+                FiliPanel.last = "monitor";
+                FiliPanel.summon("toggle");
+                ok(FiliPanel.view === "monitor" && FiliShell.keyNav, "clavier: Mod+A ouvre le dernier panneau, contours actifs", FiliPanel.view);
+                FiliPanel.step(1);
+                ok(FiliPanel.view === "audio", "clavier: → panneau voisin (son)", FiliPanel.view);
+                FiliPanel.step(-1);
+                FiliPanel.step(-1);
+                ok(FiliPanel.view === "power", "clavier: ← depuis le premier boucle sur le dernier (alimentation)", FiliPanel.view);
+                FiliPanel.step(-1);
+                ok(FiliPanel.view === "" && FiliNotification.centerOpen && FiliShell.keyNav, "clavier: ← vers le centre de notifications", FiliPanel.view);
+                FiliPanel.step(-1);
+                ok(FiliPanel.view === "network" && !FiliNotification.centerOpen, "clavier: ← depuis le centre -> réseau", FiliPanel.view);
+                FiliPanel.summon("toggle");
+                ok(!FiliPanel.open && !FiliShell.keyNav, "clavier: Mod+A ferme, contours oubliés");
+                FiliPanel.summon("toggle");
+                ok(FiliPanel.view === "network", "clavier: Mod+A rouvre le dernier panneau (réseau)", FiliPanel.view);
+                const m = FiliPanel.modules[Quickshell.screens[0].name] ?? {};
+                ok(FiliPanel.ring.every(n => m[n]), "clavier: chaque panneau connaît son module de la barre", Object.keys(m).join(","));
+                FiliPanel.close();
+            },
+            () => FiliPanel.summon("keyboard"),
+            wait(() => {}, () => FiliPanel.loaded && t.find(FiliPanel.loaded, "open-emoji")),
+            () => {
+                const kb = FiliPanel.loaded;
+                t.find(kb, "open-emoji").key({ modifiers: 0 });
+                ok(kb.page === "emoji", "clavier: Entrée sur un bouton = clic", kb.page);
+                kb.page = "layouts";
+                FiliPanel.close();
+            },
+            () => FiliPanel.summon("display"),
+            wait(() => {}, () => FiliPanel.loaded && t.find(FiliPanel.loaded, "scale")),
+            () => {
+                const d = FiliPanel.loaded;
+                const chips = t.find(d, "scale");
+                const values = chips.model.filter(c => !c.off);
+                if (values.length > 1) {
+                    chips.cursor = chips.model.indexOf(values[0]);
+                    chips.move(1);
+                    FiliTheme.ran = [];
+                    ok(chips.cursor === chips.model.indexOf(values[1]) && FiliTheme.ran.length === 0, "clavier: → dans une rangée de choix déplace le curseur sans appliquer", chips.cursor);
+                }
+                const sl = t.find(d, "screen");
+                if (sl.visible) {
+                    FiliTheme.ran = [];
+                    const e = { modifiers: Qt.ShiftModifier, accepted: true };
+                    sl.nudge(e, 0.05);
+                    ok(!e.accepted && FiliTheme.ran.length === 0, "clavier: Maj+→ sur un curseur laissé au panneau (voisin)");
+                    sl.nudge({ modifiers: 0 }, 0.05);
+                    ok(FiliTheme.ran.join(" ").indexOf("brightnessctl -q set") >= 0, "clavier: → sur le curseur de luminosité = +5 %", FiliTheme.ran.join(" "));
+                }
+                FiliPanel.close();
+                FiliTheme.ran = [];
+                FiliNotification.centerOpen = true;
+                FiliNotification.copy({ summary: "test copie", body: "" });
+                ok(FiliTheme.ran[0] === "wl-copy test copie" && !FiliNotification.centerOpen, "clavier: Entrée sur une notification du centre = copie et fermeture", JSON.stringify(FiliTheme.ran));
+            },
             wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {
                 let n = null;

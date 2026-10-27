@@ -31,7 +31,14 @@ Singleton {
     property bool centerOpen: false
     // Un panneau de la barre est ouvert (fili-panel ou centre de notifications): ni fiche ni double clic
     readonly property bool anyOpen: panelOpen || centerOpen
-    onAnyOpenChanged: if (!anyOpen) panelClosedAt = Date.now()
+    // Panneaux pilotés au clavier (Mod+A, flèches...): contours de l'élément choisi (FocusRing); oublié à la fermeture
+    property bool keyNav: false
+    onAnyOpenChanged: {
+        if (!anyOpen) {
+            panelClosedAt = Date.now();
+            keyNav = false;
+        }
+    }
 
     // bar refresh N
     signal refresh(int n)

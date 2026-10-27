@@ -1,5 +1,6 @@
 // Rangée de choix des fili-panel (échelle, rotation, définition): model = [{label, value, off?}], current = valeur choisie;
-// off = indisponible (grisé, sans clic)
+// off = indisponible (grisé, sans clic). Clavier: un seul arrêt; ←/→ déplace le curseur sans rien appliquer (une
+// définition est à confirmer), Entrée ou Espace choisit; Maj+←/→ reste au fili-panel (panneau voisin)
 import QtQuick
 import QtQuick.Layouts
 
@@ -18,6 +19,31 @@ Flow {
             picked(model[i].value);
     }
 
+    // Curseur clavier: choix suivant ou précédent disponible (appelé aussi par les tests)
+    property int cursor: -1
+    function move(d) {
+        FiliShell.keyNav = true;
+        for (let i = cursor + d; i >= 0 && i < model.length; i += d) {
+            if (!model[i].off) {
+                cursor = i;
+                return;
+            }
+        }
+    }
+    activeFocusOnTab: model.some(m => !m.off)
+    // Au focus: sur le choix courant, sinon le premier disponible
+    onActiveFocusChanged: {
+        if (!activeFocus)
+            return;
+        const i = model.findIndex(m => String(m.value) === String(current) && !m.off);
+        cursor = i >= 0 ? i : model.findIndex(m => !m.off);
+    }
+    Keys.onLeftPressed: e => e.modifiers & Qt.ShiftModifier ? e.accepted = false : move(-1)
+    Keys.onRightPressed: e => e.modifiers & Qt.ShiftModifier ? e.accepted = false : move(1)
+    Keys.onReturnPressed: pick(cursor)
+    Keys.onEnterPressed: pick(cursor)
+    Keys.onSpacePressed: pick(cursor)
+
     Repeater {
         model: chips.model
         Rectangle {
@@ -30,8 +56,9 @@ Flow {
             height: 24
             radius: 6
             color: on ? FiliTheme.nuit4 : area.containsMouse && !off ? FiliTheme.nuit3 : "transparent"
-            border.color: on ? FiliTheme.voile : FiliTheme.nuit3
-            border.width: 1
+            readonly property bool atCursor: chips.activeFocus && FiliShell.keyNav && index === chips.cursor
+            border.color: on || atCursor ? FiliTheme.voile : FiliTheme.nuit3
+            border.width: atCursor ? 2 : 1
             Text {
                 id: label
                 anchors.centerIn: parent

@@ -11,7 +11,7 @@
   | fili-shell | the Quickshell process, and its client `~/.local/bin/fili-shell` | `shell.qml`, `FiliShell.qml` (commands) |
   | fili-bar | top bar, one per screen | `FiliBar.qml` (+ `BarScript`, `BarItem`, `BarHover`, `BarPower`) |
   | fili-tooltip | hover card of a bar module (details + click hints, Omarchy panels as model) | `FiliTooltip.qml`, data `FiliInfo.qml` (network/power/monitor from resident `bar-stats` over its stdin, `bar-stats info TOPIC` on the command line; displays from the niri socket), no process per hover |
-  | fili-panel | action window under a bar module (click: network/Wi-Fi, sound, Bluetooth, power, monitor; card-sized layer window, not full screen: 32 MB less while open; Esc, a click on a window (focus lost) or on the bar closes; `fili-shell panel NAME` for a key) | `FiliPanel.qml`, views `Panel*.qml`, scripts `fili-net` (iwctl), `fili-speedtest` |
+  | fili-panel | action window under a bar module (click: network/Wi-Fi, sound, Bluetooth, power, monitor; card-sized layer window, not full screen: 32 MB less while open; Esc, a click on a window (focus lost) or on the bar closes; keyboard: Mod+A opens the last panel or closes, ←/→ next panel in bar order incl. the notification center (Shift+←/→ on a slider, a choice row or a text field), ↑/↓ or Tab between items (`FocusRing` outline), Enter/Space acts, Shift+Enter = right click; `fili-shell panel NAME` for a key) | `FiliPanel.qml`, views `Panel*.qml`, scripts `fili-net` (iwctl), `fili-speedtest` |
   | fili-calendar | month grid under the clock | `FiliCalendar.qml` |
   | fili-notification | notification bubbles (top right) | `FiliNotification.qml` |
   | fili-notification-center | notification history panel (bell icon) | `FiliNotification.qml` |

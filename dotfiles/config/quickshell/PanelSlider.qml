@@ -12,9 +12,29 @@ RowLayout {
 
     Layout.fillWidth: true
     spacing: 8
+    // Clavier: ←/→ = ±5 % (Maj+←/→ reste au fili-panel: panneau voisin), Entrée ou Espace = clic sur l'icône (muet)
+    activeFocusOnTab: true
+    Keys.onLeftPressed: e => s.nudge(e, -0.05)
+    Keys.onRightPressed: e => s.nudge(e, 0.05)
+    Keys.onReturnPressed: s.activate()
+    Keys.onEnterPressed: s.activate()
+    Keys.onSpacePressed: s.activate()
+    function nudge(e, d) {
+        if (e && e.modifiers & Qt.ShiftModifier) {
+            e.accepted = false;
+            return;
+        }
+        FiliShell.keyNav = true;
+        s.moved(Math.max(0, Math.min(1, s.value + d)));
+    }
+    function activate() {
+        FiliShell.keyNav = true;
+        s.glyphClicked();
+    }
     Item {
         Layout.fillWidth: true
         implicitHeight: 22
+        FocusRing { shown: s.activeFocus; gap: 4 }
         Rectangle {
             id: track
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }

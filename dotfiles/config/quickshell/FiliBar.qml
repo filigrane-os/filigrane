@@ -326,7 +326,8 @@ PanelWindow {
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
-            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur"
+                Component.onCompleted: FiliPanel.register("monitor", hover, bar) }
             BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
             BarScript {
@@ -353,6 +354,7 @@ PanelWindow {
                     hint: "clic: panneau son · clic milieu: muet · molette: volume · clic droit: mixeur"
                 }
                 hover.onLeftClicked: FiliPanel.toggle(hover, "audio", bar)
+                Component.onCompleted: FiliPanel.register("audio", hover, bar)
                 hover.onMiddleClicked: audio.muted = !audio.muted
                 hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
                 hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
@@ -369,6 +371,7 @@ PanelWindow {
                     hint: "clic: panneau clavier · clic milieu: disposition suivante"
                 })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "keyboard", bar)
+                Component.onCompleted: FiliPanel.register("keyboard", hover, bar)
                 hover.onMiddleClicked: Niri.action("switch-layout", "next")
             }
             // Écrans: clic = panneau (disposition, définition, échelle, rotation), molette = luminosité
@@ -377,6 +380,7 @@ PanelWindow {
                 stat: "display"; hideEmpty: false
                 tipInfo: "display"
                 hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
+                Component.onCompleted: FiliPanel.register("display", hover, bar)
                 scrollUp: "brightnessctl -q set 5%+; " + bar.b + "/fili-shell bar refresh 23"
                 scrollDown: "brightnessctl -q set 5%-; " + bar.b + "/fili-shell bar refresh 23"
             }
@@ -400,7 +404,10 @@ PanelWindow {
                             shareProc.running = true;
                     }
                 }
-                Component.onCompleted: shareProc.running = true
+                Component.onCompleted: {
+                    shareProc.running = true;
+                    FiliPanel.register("bluetooth", hover, bar);
+                }
                 text: {
                     if (!adapter)
                         return "";
@@ -427,6 +434,7 @@ PanelWindow {
                 stat: "net"; hideEmpty: false
                 colors: ({ disconnected: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "network", bar)
+                Component.onCompleted: FiliPanel.register("network", hover, bar)
                 rclick: "setsid -f " + bar.b + "/menu network"
                 tipInfo: "network"
             }
@@ -441,6 +449,7 @@ PanelWindow {
                     hint: "clic: fili-notification-center · clic droit: ne pas déranger"
                 })
                 hover.onLeftClicked: FiliNotification.toggleCenter()
+                Component.onCompleted: FiliPanel.register("center", hover, bar)
                 hover.onRightClicked: FiliNotification.dnd = !FiliNotification.dnd
             }
         }
@@ -450,6 +459,7 @@ PanelWindow {
             objectName: "power"
             tipInfo: "power"
             hover.onLeftClicked: FiliPanel.toggle(hover, "power", bar)
+                Component.onCompleted: FiliPanel.register("power", hover, bar)
             hover.rclick: "setsid -f " + bar.b + "/menu system"
         }
     }

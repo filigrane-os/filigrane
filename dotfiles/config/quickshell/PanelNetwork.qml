@@ -121,6 +121,7 @@ ColumnLayout {
                     anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
                     verticalAlignment: TextInput.AlignVCenter
                     echoMode: TextInput.Password
+                    activeFocusOnTab: true
                     onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
                     color: FiliTheme.brume
                     font { family: FiliTheme.font; pixelSize: FiliTheme.size }

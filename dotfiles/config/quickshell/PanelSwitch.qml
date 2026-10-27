@@ -11,6 +11,16 @@ Rectangle {
     implicitHeight: 18
     radius: 9
     opacity: switchable ? 1 : 0.4
+    // Clavier: Entrée ou Espace = bascule
+    activeFocusOnTab: switchable
+    Keys.onReturnPressed: key()
+    Keys.onEnterPressed: key()
+    Keys.onSpacePressed: key()
+    function key() {
+        FiliShell.keyNav = true;
+        press();
+    }
+    FocusRing { gap: 3 }
     color: checked ? FiliTheme.voile : FiliTheme.nuit4
     Rectangle {
         x: sw.checked ? parent.width - width - 2 : 2
