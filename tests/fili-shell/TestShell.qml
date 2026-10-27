@@ -232,6 +232,7 @@ ShellRoot {
             () => ok(FiliTheme.ran.filter(c => c === "sound notification").length === 1, "fili-sound: un son à la notification reçue", JSON.stringify(FiliTheme.ran.slice(-3))),
             wait(() => t.shell(t.bin + "/fili-shell notification dismiss 'Résumé test'"), () => FiliNotification.popups.length === 0),
             () => ok(FiliNotification.history.length === 1 && FiliNotification.history[0].summary === "Résumé test", "fili-notification fermée -> historique"),
+            () => ok(typeof FiliNotification.history[0].icon === "string", "fili-notification historique: icône gardée (chaîne, vide sans icône)"),
             wait(() => t.shell(t.bin + "/fili-shell notification history"), () => t.shellOut !== null),
             () => {
                 let h = [];

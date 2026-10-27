@@ -28,6 +28,9 @@ Singleton {
         const i = n.image || n.appIcon;
         if (!i)
             return "";
+        // Nom d'icône déjà tourné en image://icon/NOM: absent du thème, il donnerait le damier magenta de Qt (rien à afficher)
+        if (i.startsWith("image://icon/") && !i.startsWith("image://icon//"))
+            return Quickshell.iconPath(i.slice(13), true);
         return i.startsWith("/") ? "file://" + i : i.indexOf("://") > 0 || i.startsWith("image:") ? i : Quickshell.iconPath(i, true);
     }
     // Ferme une bulle; elle passe dans l'historique (sauf captures niri: image plein écran, cf. ancien mako)
@@ -36,7 +39,7 @@ Singleton {
             return;
         popups = popups.filter(p => p.n !== n);
         if (n.appName !== "niri")
-            history = [{ app: n.appName, icon: n.appIcon, summary: n.summary, body: n.body, time: new Date() }].concat(history).slice(0, 30);
+            history = [{ app: n.appName, icon: icon(n), summary: n.summary, body: n.body, time: new Date() }].concat(history).slice(0, 30);
         if (how === "expire")
             n.expire();
         else
@@ -309,38 +312,64 @@ Singleton {
                     spacing: 6
                     model: notifs.history
                     delegate: Rectangle {
+                        id: item
                         required property var modelData
                         required property int index
                         width: ListView.view.width
-                        implicitHeight: entry.implicitHeight + 16
+                        implicitHeight: Math.max(entry.implicitHeight, 32) + 16
                         radius: 9
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
-                        ColumnLayout {
-                            id: entry
+                        RowLayout {
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8; rightMargin: 32 }
-                            spacing: 1
-                            Text {
-                                Layout.fillWidth: true
-                                text: parent.parent.modelData.app + "  ·  " + Qt.formatTime(parent.parent.modelData.time, "HH:mm")
-                                color: FiliTheme.ardoise
-                                font { family: FiliTheme.font; pixelSize: 12 }
+                            spacing: 10
+                            // Icône de l'appli ou de l'image de la notification (vide: un carré discret garde l'alignement)
+                            IconImage {
+                                implicitSize: 32
+                                Layout.alignment: Qt.AlignTop
+                                source: item.modelData.icon
+                                visible: item.modelData.icon !== ""
                             }
-                            Text {
-                                Layout.fillWidth: true
-                                text: parent.parent.modelData.summary
-                                elide: Text.ElideRight
-                                color: FiliTheme.brume
-                                font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                            Rectangle {
+                                visible: item.modelData.icon === ""
+                                implicitWidth: 32
+                                implicitHeight: 32
+                                Layout.alignment: Qt.AlignTop
+                                radius: 8
+                                color: FiliTheme.nuit3
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: ""
+                                    color: FiliTheme.ardoise
+                                    font { family: FiliTheme.font; pixelSize: 15 }
+                                }
                             }
-                            Text {
+                            ColumnLayout {
+                                id: entry
                                 Layout.fillWidth: true
-                                visible: text !== ""
-                                text: parent.parent.modelData.body.replace(/<[^>]*>/g, "")
-                                wrapMode: Text.Wrap
-                                maximumLineCount: 2
-                                elide: Text.ElideRight
-                                color: FiliTheme.brume2
-                                font { family: FiliTheme.font; pixelSize: 13 }
+                                spacing: 1
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: item.modelData.app + "  ·  " + Qt.formatTime(item.modelData.time, "HH:mm")
+                                    color: FiliTheme.ardoise
+                                    font { family: FiliTheme.font; pixelSize: 12 }
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: item.modelData.summary
+                                    elide: Text.ElideRight
+                                    color: FiliTheme.brume
+                                    font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    visible: text !== ""
+                                    text: item.modelData.body.replace(/<[^>]*>/g, "")
+                                    wrapMode: Text.Wrap
+                                    maximumLineCount: 2
+                                    elide: Text.ElideRight
+                                    color: FiliTheme.brume2
+                                    font { family: FiliTheme.font; pixelSize: 13 }
+                                }
                             }
                         }
                         MouseArea {
