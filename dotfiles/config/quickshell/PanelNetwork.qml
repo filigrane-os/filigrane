@@ -153,7 +153,14 @@ ColumnLayout {
         Layout.maximumWidth: 300
         font { family: FiliTheme.font; pixelSize: 12 }
     }
-    PanelSection { rule: true; text: "LIAISON" }
+    Rectangle {
+        visible: view.wifi.powered && view.wifi.networks.length > 0
+        Layout.fillWidth: true
+        Layout.topMargin: 4
+        implicitHeight: 1
+        color: FiliTheme.nuit3
+    }
+    PanelSection { text: "LIAISON" }
     PanelInfo { id: info; cmd: FiliTheme.bin + "/fili-info network" }
     PanelButton {
         Layout.topMargin: 4
