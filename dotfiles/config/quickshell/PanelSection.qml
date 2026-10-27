@@ -9,7 +9,9 @@ Item {
     // Repère pour les sections sœurs (voir refresh)
     readonly property bool isSection: true
     property bool first: true
-    readonly property bool ruled: !first
+    // false: pas de filet (sections d'un même bloc, voir PanelDisplay)
+    property bool divided: true
+    readonly property bool ruled: divided && !first
 
     Layout.fillWidth: true
     implicitHeight: label.implicitHeight + (ruled ? 17 : 6)

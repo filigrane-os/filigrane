@@ -331,7 +331,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { visible: view.curMode !== null; text: "DÉFINITION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: "DÉFINITION" }
     PanelChips {
         objectName: "resolution"
         visible: view.curMode !== null
@@ -339,7 +339,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.width + "x" + view.curMode.height : ""
         onPicked: v => view.setResolution(view.cur, view.resolutions.find(r => r.value === v))
     }
-    PanelSection { visible: view.refreshes.length > 1; text: "FRÉQUENCE" }
+    PanelSection { visible: view.refreshes.length > 1; divided: false; text: "FRÉQUENCE" }
     PanelChips {
         objectName: "refresh"
         visible: view.refreshes.length > 1
@@ -347,7 +347,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.refresh_rate : 0
         onPicked: v => view.setRefresh(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; text: "ÉCHELLE" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: "ÉCHELLE" }
     PanelChips {
         objectName: "scale"
         visible: view.curMode !== null
@@ -355,7 +355,7 @@ ColumnLayout {
         current: view.cur && view.cur.logical ? view.cur.logical.scale : 0
         onPicked: v => view.setScale(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; text: "ROTATION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: "ROTATION" }
     PanelChips {
         objectName: "transform"
         visible: view.curMode !== null
@@ -405,7 +405,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { text: "PROFIL" }
+    PanelSection { divided: false; text: "PROFIL" }
     PanelButton {
         objectName: "save"
         glyph: ""
