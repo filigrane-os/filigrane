@@ -11,10 +11,8 @@ Singleton {
     id: tip
     property Item target: null
     property var card: ({})
-    // Délai du survol (ms) et répit après la fermeture d'un fili-panel (ms)
-    readonly property int baseDelay: 400
-    readonly property int cooldown: 1000
-    readonly property alias delayMs: delay.interval
+    // Répit après la fermeture d'un fili-panel (ms), pendant lequel aucune fiche ne s'ouvre
+    readonly property int cooldown: 1500
 
     function normalize(c) {
         if (typeof c === "string")
@@ -31,7 +29,9 @@ Singleton {
     }
     function show(item, content) {
         const c = normalize(content);
-        if (empty(c) || FiliShell.panelOpen) {
+        // Rien pendant un fili-panel, ni juste après sa fermeture (la souris est encore sur l'icône cliquée: la fiche
+        // surgirait aussitôt et on croirait à un bug): il faut quitter l'icône puis y revenir après le répit
+        if (empty(c) || FiliShell.panelOpen || Date.now() < FiliShell.panelClosedAt + cooldown) {
             hide(item);
             return;
         }
@@ -39,8 +39,6 @@ Singleton {
         if (target !== item) {
             target = item;
             popup.visible = false;
-            // Panneau fermé à l'instant: en plus du délai, attendre la fin du répit
-            delay.interval = baseDelay + Math.max(0, FiliShell.panelClosedAt + cooldown - Date.now());
             delay.restart();
         }
     }
@@ -59,7 +57,7 @@ Singleton {
 
     Timer {
         id: delay
-        interval: tip.baseDelay
+        interval: 400
         onTriggered: if (tip.target && !tip.empty(tip.card)) popup.visible = true
     }
 

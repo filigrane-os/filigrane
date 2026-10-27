@@ -374,12 +374,10 @@ ShellRoot {
                 ok(FiliTooltip.target === null, "fili-tooltip: masquée quand un fili-panel est ouvert");
                 FiliPanel.close();
                 FiliTooltip.show(it, { title: "x" });
-                ok(FiliTooltip.target === it, "fili-tooltip: de nouveau permise panneau fermé");
-                ok(FiliTooltip.delayMs > FiliTooltip.baseDelay + 500, "fili-tooltip: répit juste après la fermeture d'un panneau", FiliTooltip.delayMs);
-                FiliTooltip.hide();
+                ok(FiliTooltip.target === null, "fili-tooltip: aucune fiche juste après la fermeture d'un panneau");
                 FiliShell.panelClosedAt = Date.now() - 5000;
                 FiliTooltip.show(it, { title: "x" });
-                ok(FiliTooltip.delayMs === FiliTooltip.baseDelay, "fili-tooltip: délai normal longtemps après la fermeture", FiliTooltip.delayMs);
+                ok(FiliTooltip.target === it, "fili-tooltip: de nouveau permise après le répit");
                 FiliTooltip.hide();
             },
             // Interrupteurs à droite du titre (Wi-Fi, Bluetooth): présents, Bluetooth grisé sans adaptateur
