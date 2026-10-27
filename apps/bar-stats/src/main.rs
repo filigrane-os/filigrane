@@ -112,8 +112,16 @@ fn mem(every: Duration, page_kb: u64) {
     }
 }
 
-// Première sonde disponible: hwmon*/temp1_input puis thermal_zone*/temp (ordre du glob shell); rien dans une VM
+// Sonde du CPU: hwmon coretemp (Intel), k10temp/zenpower (AMD) ou cpu_thermal (ARM), puis zone x86_pkg_temp; à défaut la
+// première sonde disponible (hwmon*/temp1_input puis thermal_zone*/temp); rien dans une VM. Le premier hwmon est souvent le NVMe.
 fn temp_path() -> Option<String> {
+    for dir in fs::read_dir("/sys/class/hwmon").into_iter().flatten().flatten() {
+        let name = fs::read_to_string(dir.path().join("name")).unwrap_or_default();
+        let p = dir.path().join("temp1_input");
+        if matches!(name.trim(), "coretemp" | "k10temp" | "zenpower" | "cpu_thermal") && fs::metadata(&p).is_ok() {
+            return p.to_str().map(String::from);
+        }
+    }
     for (dir, prefix, file) in [("/sys/class/hwmon", "hwmon", "temp1_input"), ("/sys/class/thermal", "thermal_zone", "temp")] {
         let mut names: Vec<String> = fs::read_dir(dir)
             .into_iter()
