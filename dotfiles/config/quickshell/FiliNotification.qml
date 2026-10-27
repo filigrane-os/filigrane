@@ -294,25 +294,6 @@ Singleton {
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
                     }
                 }
-                // Sons (FiliSound): nouvelle notification et chargeur branché
-                Repeater {
-                    model: [["notify", "Son des notifications"], ["plug", "Son du chargeur branché"]]
-                    RowLayout {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        Text {
-                            Layout.fillWidth: true
-                            text: parent.modelData[1]
-                            color: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: 13 }
-                        }
-                        PanelSwitch {
-                            objectName: "sound-" + parent.modelData[0]
-                            checked: parent.modelData[0] === "notify" ? FiliSound.notify : FiliSound.plug
-                            onToggled: FiliSound.set(parent.modelData[0], !checked)
-                        }
-                    }
-                }
                 Text {
                     visible: notifs.history.length === 0
                     text: "Aucune notification"
@@ -380,6 +361,31 @@ Singleton {
                             anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
                             visible: hov.containsMouse || hovered
                             onClicked: notifs.history = notifs.history.filter(x => x !== parent.modelData)
+                        }
+                    }
+                }
+                // Réglages: sous les notifications, séparés d'un trait
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: FiliTheme.nuit4
+                }
+                // Sons (FiliSound): nouvelle notification et chargeur branché
+                Repeater {
+                    model: [["notify", "Son des notifications"], ["plug", "Son du chargeur branché"]]
+                    RowLayout {
+                        required property var modelData
+                        Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: parent.modelData[1]
+                            color: FiliTheme.brume
+                            font { family: FiliTheme.font; pixelSize: 13 }
+                        }
+                        PanelSwitch {
+                            objectName: "sound-" + parent.modelData[0]
+                            checked: parent.modelData[0] === "notify" ? FiliSound.notify : FiliSound.plug
+                            onToggled: FiliSound.set(parent.modelData[0], !checked)
                         }
                     }
                 }
