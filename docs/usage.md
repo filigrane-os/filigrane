@@ -1,6 +1,6 @@
 # Using the desktop
 
-`Mod` is the Super key (Command on a Mac). `Mod+Shift+/` shows every shortcut, `Mod+Shift+Space` searches them.
+`Mod` is the Super key (Command on a Mac). `Mod+K` shows every shortcut, `Mod+Shift+Space` searches them.
 
 ## Session
 

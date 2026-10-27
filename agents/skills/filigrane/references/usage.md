@@ -46,6 +46,6 @@ Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), bar/noti
 
 ## Help for the user
 
-- Keys: `Mod+Shift+/` shows them; `Mod+Space` menu (search everything), `Mod+D` apps, `Mod+Return` terminal, `Mod+Y` AI agent.
+- Keys: `Mod+K` shows them; `Mod+Space` menu (search everything), `Mod+D` apps, `Mod+Return` terminal, `Mod+Y` AI agent.
 - Resource use: `budget` (system vs user work), `budget check`.
 - Docs: `README.md` (desktop), `distro/README.md` (ISO, xbps repo), `hardware/<machine>/README.md`.

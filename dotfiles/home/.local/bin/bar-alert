@@ -24,6 +24,13 @@ case "$1" in
             cal)  exec "$HOME/.local/bin/webapp" https://calendar.proton.me ;;
             *)    exec "$HOME/.local/bin/webapp" "$(webapp_url "$2")" ;;
         esac ;;
+    drawer)  # bar-alert drawer <kind>: icône au repos, visible seulement tiroir ouvert (bar-tray) et sans alerte (sinon elle est sortie dans la barre)
+        kind="$2"
+        [ -e "${XDG_RUNTIME_DIR:-/tmp}/bar-tray-open" ] || { printf '{"text":""}\n'; exit 0; }
+        [ -n "$("$0" "$kind" | jq -r '.text // empty')" ] && { printf '{"text":""}\n'; exit 0; }
+        case "$kind" in mail) g=$''; tip="Proton Mail" ;; cal) g=$''; tip="Proton Calendar" ;; *) g=$'\U000f05a3'; tip="$kind" ;; esac
+        jq -nc --arg t "$g" --arg tip "$tip (clic: ouvrir)" '{text: $t, class: "idle", tooltip: $tip}'
+        exit 0 ;;
 esac
 
 f="$D/$1"

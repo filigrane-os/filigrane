@@ -15,7 +15,7 @@ case "$1" in
         exit 0 ;;
     toggle)
         if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi
-        "$HOME/.local/bin/fili-shell" bar refresh 20 18
+        "$HOME/.local/bin/fili-shell" bar refresh 20 18 16 17 19
         exit 0 ;;
     backup) out="$("$B/bar-backup")" ;;
     *) exit 1 ;;

@@ -191,6 +191,10 @@ PanelWindow {
                     }
                 }
             }
+            // Mail, WhatsApp, agenda au repos: rangés dans le tiroir (visibles tiroir ouvert), ils sortent dans la barre quand il y a une alerte
+            BarScript { objectName: "mail-idle"; cmd: bar.b + "/bar-alert drawer mail"; signal: 16; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open mail" }
+            BarScript { objectName: "whatsapp-idle"; cmd: bar.b + "/bar-alert drawer whatsapp"; signal: 19; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open whatsapp" }
+            BarScript { objectName: "cal-idle"; cmd: bar.b + "/bar-alert drawer cal"; signal: 17; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open cal" }
             // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
             BarScript {
                 objectName: "backup"

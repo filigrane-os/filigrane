@@ -60,6 +60,6 @@ MacBook Pro/Air 2018-2020, Mac mini 2018, iMac 2020, iMac Pro and Mac Pro 2019 n
 ## After the first boot
 
 - The session starts niri from `tty1` (`~/.zprofile`). Auto-login is on in VMs and off on physical machines (`AUTOLOGIN` in [configuration.md](configuration.md)).
-- `Mod+Shift+/` lists the keyboard shortcuts, `Mod+Space` opens the menu. See [usage.md](usage.md).
+- `Mod+K` lists the keyboard shortcuts, `Mod+Space` opens the menu. See [usage.md](usage.md).
 - `Mod+Y` starts the AI agent. Sign in on first launch, see [ai-agent.md](ai-agent.md).
 - Personal settings (keyboard layout, timezone, your own packages) go in a personal layer, see [configuration.md](configuration.md#personal-layer).
