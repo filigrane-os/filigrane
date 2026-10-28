@@ -294,7 +294,7 @@ environment {
 
 // Les programmes lancés à la demande par D-Bus (trousseau, portails, demandes de mot de passe)
 // doivent savoir sur quel écran s'afficher: la session D-Bus est créée avant niri.
-spawn-at-startup "dbus-update-activation-environment" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP" "XDG_SESSION_TYPE" "DISPLAY"
+spawn-at-startup "dbus-update-activation-environment" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP" "XDG_SESSION_TYPE" "DISPLAY" "LANG"
 spawn-at-startup "pipewire"
 // Réglages du DSP haut-parleurs (sound-tune), réappliqués quand le filtre apparaît
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/sound-tune --apply"
@@ -792,4 +792,6 @@ debug {
 // remplacent ceux d'avant.
 include optional=true "keyboard.kdl"
 include optional=true "theme.kdl"
+// Langue des applications lancées par niri (LANG), générée par fili-lang
+include optional=true "locale.kdl"
 include optional=true "local.kdl"

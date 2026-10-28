@@ -74,6 +74,10 @@ To add or fix a language:
 2. Run `scripts/check-i18n.sh`: it fails on a missing entry, on a different number of placeholders, and on an entry no script uses any more. CI runs it.
 3. Try it: `LANG=<lang>_XX.UTF-8 ./bootstrap.sh --plan`.
 
+### Switching language
+
+`fili-lang set fr|en|system` (or the LANGUAGE row of the keyboard panel, or menu › System › Language) changes the language of the session live, without root or logging out. The choice is a locale in `$XDG_STATE_HOME/filigrane/locale` (empty = the system language, `LOCALE` of `config.env`), read before `LC_ALL`/`LC_MESSAGES`/`LANG` by `lib/i18n.sh`, `FiliI18n.qml` (which follows it at once: `fili-lang` also sends `fili-shell lang`) and `bar-stats` (restarted by the shell). Apps launched afterwards by niri get `LANG` from `~/.config/niri/locale.kdl`, written by `fili-lang` when the glibc locale exists; `bootstrap.sh` generates `LOCALE` and `LOCALES` (one per shipped language). Apps already open keep their language until restarted. The languages offered are English plus each `dotfiles/config/quickshell/i18n/<lang>.json` (its `@name` key is the language's own name).
+
 ### fili-shell
 
 The desktop shell (Quickshell QML in `dotfiles/config/quickshell/`) and `bar-stats` share one catalog per language: `dotfiles/config/quickshell/i18n/<lang>.json`, a flat object `{"English text": "translation"}`. Placeholders are `%1`, `%2`... and may be reordered. The special key `@decimal` is the decimal separator. The language follows the same rule as `lib/i18n.sh`; dates (clock, calendar, notification times) use the Qt locale of that language.

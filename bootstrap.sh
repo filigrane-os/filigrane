@@ -349,9 +349,17 @@ setup_system() {
     set_rc TIMEZONE "$TIMEZONE"
     $SUDO ln -sfn "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
     echo "LANG=$LOCALE" | $SUDO tee /etc/locale.conf >/dev/null
-    if [ "$LOCALE" != "C.UTF-8" ] && [ -f /etc/default/libc-locales ]; then
-        $SUDO sed -i "s/^#\(${LOCALE//./\\.} \)/\1/" /etc/default/libc-locales
-        $SUDO xbps-reconfigure -f glibc-locales
+    # LOCALE et LOCALES (langues proposées par fili-lang) décommentées, régénérées seulement si l'une manquait
+    if [ -f /etc/default/libc-locales ]; then
+        local loc gen=0
+        for loc in $LOCALE $LOCALES; do
+            [ "$loc" = C.UTF-8 ] && continue
+            if grep -q "^#${loc//./\\.} " /etc/default/libc-locales; then
+                $SUDO sed -i "s/^#\(${loc//./\\.} \)/\1/" /etc/default/libc-locales
+                gen=1
+            fi
+        done
+        [ "$gen" = 0 ] || $SUDO xbps-reconfigure -f glibc-locales
     fi
 
     log 'User %s' "$TARGET_USER"
@@ -615,6 +623,7 @@ setup_dotfiles() {
     # Mode sombre par défaut, ou clair s'il a été choisi (fili-panel écrans): fichiers inclus par foot, niri et GTK3,
     # gsettings (portail xdg: Chromium, GTK, libadwaita; sans effet hors session D-Bus)
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'
+    run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-lang" apply || warn 'fili-lang apply failed'
     if gsettings set org.gnome.desktop.interface font-name 'Jost 10' 2>/dev/null; then
         gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
     else

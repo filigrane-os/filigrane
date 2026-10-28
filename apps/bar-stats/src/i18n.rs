@@ -1,15 +1,20 @@
 // Traductions: textes écrits en anglais dans le code (tr("Offline"), trf("Battery %1 %", &[&cap])), traduits par le
 // catalogue du fili-shell (dotfiles/config/quickshell/i18n/<langue>.json, voir FiliI18n.qml), lu une fois. Dossier du
-// catalogue: FILI_I18N (posé par FiliShell.qml), sinon ~/.config/quickshell/i18n. Langue: FILI_LANG, sinon la première
-// posée de LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX -> en). Pas de catalogue ou pas d'entrée: anglais.
+// catalogue: FILI_I18N (posé par FiliShell.qml), sinon ~/.config/quickshell/i18n. Langue: FILI_LANG, sinon le choix de
+// fili-lang ($XDG_STATE_HOME/filigrane/locale), sinon la première posée de LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX -> en). Pas de catalogue ou pas d'entrée: anglais.
 use std::{collections::HashMap, env, fmt::Display, fs, sync::OnceLock};
 
 static CATALOG: OnceLock<HashMap<String, String>> = OnceLock::new();
 
 fn lang() -> String {
-    let v = ["FILI_LANG", "LC_ALL", "LC_MESSAGES", "LANG"]
-        .iter()
-        .find_map(|k| env::var(k).ok().filter(|v| !v.is_empty()))
+    // Choix de l'utilisateur (fili-lang), après FILI_LANG; le fili-shell relance bar-stats quand il change
+    let state = env::var("XDG_STATE_HOME").unwrap_or_else(|_| format!("{}/.local/state", env::var("HOME").unwrap_or_default()));
+    let choice = fs::read_to_string(format!("{state}/filigrane/locale")).map(|s| s.trim().to_string()).unwrap_or_default();
+    let v = env::var("FILI_LANG")
+        .ok()
+        .filter(|v| !v.is_empty())
+        .or(Some(choice).filter(|v| !v.is_empty()))
+        .or_else(|| ["LC_ALL", "LC_MESSAGES", "LANG"].iter().find_map(|k| env::var(k).ok().filter(|v| !v.is_empty())))
         .unwrap_or_default();
     let l: String = v.chars().take_while(|c| !matches!(c, '_' | '.' | '@')).collect();
     if !l.is_empty() && l.chars().all(|c| c.is_ascii_lowercase()) { l } else { "en".into() }

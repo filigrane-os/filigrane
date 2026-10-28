@@ -61,6 +61,7 @@ _t_lookup() {
     'fc-cache failed') _t_fmt='fc-cache a échoué' ;;
     'gsettings: fonts not applied (no D-Bus session)') _t_fmt='gsettings: polices non appliquées (pas de session D-Bus)' ;;
     'fili-theme apply failed') _t_fmt='fili-theme apply a échoué' ;;
+    'fili-lang apply failed') _t_fmt='fili-lang apply a échoué' ;;
     'fili-shell (symlinks to %s)') _t_fmt='fili-shell (liens symboliques vers %s)' ;;
     'Thunar: Space = quick look (quicklook)') _t_fmt='Thunar: Espace = aperçu rapide (quicklook)' ;;
     'Mac T2: Speaker route volume set to 1.0 (restart wireplumber to apply)') _t_fmt='Mac T2: volume de la route Speaker à 1.0 (relancer wireplumber pour l'\''appliquer)' ;;
@@ -392,5 +393,11 @@ _t_lookup() {
     'Run an Application') _t_fmt='Lancer une application' ;;
     'Audio (wiremix)') _t_fmt='Audio (wiremix)' ;;
     'Bluetooth (bluetui)') _t_fmt='Bluetooth (bluetui)' ;;
+    'Filigrane is translated; dates and other apps stay in the system language until ./bootstrap.sh generates %s.') _t_fmt='Filigrane est traduit; les dates et les autres applications restent dans la langue du système tant que ./bootstrap.sh n'\''a pas généré %s.' ;;
+    'New windows use it; restart open apps to switch them.') _t_fmt='Les nouvelles fenêtres l'\''utilisent; relancer les applications ouvertes pour les basculer.' ;;
+    'Language: %s') _t_fmt='Langue: %s' ;;
+    'Language') _t_fmt='Langue' ;;
+    'System: Language') _t_fmt='Système: Langue' ;;
+    'Language › ') _t_fmt='Langue › ' ;;
     esac
 }

@@ -6,6 +6,7 @@ pragma Singleton
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
 //   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
+//   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
 //   reload
 // Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
 //   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), voir BarScript
@@ -103,5 +104,14 @@ Singleton {
         id: again
         interval: 1000
         onTriggered: reader.running = true
+    }
+    // Changement de langue (fili-lang): bar-stats relancé (il lit la langue au démarrage), modules des scripts relus
+    Connections {
+        target: FiliI18n
+        function onLangChanged() {
+            reader.running = false;
+            for (let n = 1; n <= 30; n++)
+                shell.refresh(n);
+        }
     }
 }

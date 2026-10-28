@@ -22,7 +22,7 @@ Paths are relative to `$FILIGRANE_DIR`. `<layer>` is `users/<login>/` from `.use
 | Variable | Role |
 |---|---|
 | `KEYMAP`, `XKB_LAYOUT`, `XKB_VARIANT`, `XKB_OPTIONS` | console keymap, niri keyboard (generated `~/.config/niri/keyboard.kdl`) |
-| `TIMEZONE`, `LOCALE` | time zone, language |
+| `TIMEZONE`, `LOCALE`, `LOCALES` | time zone, system language, glibc locales generated for `fili-lang` (switch the session language live: `fili-lang set fr\|en\|system`) |
 | `AUTOLOGIN` | `1`/`0`/`auto` (auto = VM only) |
 | `USER_GROUPS` | groups added to the user |
 | `FILI_AI`, `FILI_AI_MODEL`, `FILI_AI_WORKDIR`, `FILI_AI_ARGS` | AI agent (below) |

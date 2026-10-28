@@ -1,5 +1,5 @@
-// fili-panel clavier: dispositions xkb de la session niri (Niri.layouts), choix direct ou retour à la précédente,
-// visualiseur de clavier (clic = frappe via wtype) et sélecteur d'emoji (clic = copie dans le presse-papiers et frappe)
+// fili-panel clavier: dispositions xkb de la session niri (Niri.layouts), choix direct ou retour à la précédente, langue
+// de la session (fili-lang), visualiseur de clavier (clic = frappe via wtype) et sélecteur d'emoji (clic = copie dans le presse-papiers et frappe)
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -154,6 +154,44 @@ ColumnLayout {
         text: FiliI18n.tr("No layout found")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+    }
+    // Langue de la session (fili-lang): le shell, la barre, le menu et les scripts basculent tout de suite
+    property var languages: []
+    Process {
+        id: langs
+        running: true
+        command: [FiliTheme.bin + "/fili-lang", "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    view.languages = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    Connections {
+        target: FiliI18n
+        function onLangChanged() {
+            langs.running = true;
+        }
+    }
+    readonly property var language: languages.find(l => l.code === FiliI18n.lang) ?? null
+    PanelSection { visible: view.page === "layouts" && view.languages.length > 1; text: FiliI18n.tr("LANGUAGE") }
+    PanelChips {
+        objectName: "language"
+        visible: view.page === "layouts" && view.languages.length > 1
+        model: view.languages.map(l => ({ label: l.name, value: l.code }))
+        current: FiliI18n.lang
+        onPicked: v => FiliTheme.run(FiliTheme.bin + "/fili-lang set " + v)
+    }
+    Text {
+        visible: view.page === "layouts" && view.language !== null && !view.language.available
+        Layout.fillWidth: true
+        Layout.maximumWidth: 300
+        wrapMode: Text.Wrap
+        text: FiliI18n.tr("Dates and other apps: run ./bootstrap.sh to install this language")
+        color: FiliTheme.ardoise
+        font { family: FiliTheme.font; pixelSize: 12 }
     }
     PanelSection { visible: view.page === "layouts"; text: FiliI18n.tr("TOOLS") }
     PanelButton {

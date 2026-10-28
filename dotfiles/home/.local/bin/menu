@@ -4,7 +4,7 @@
 # Le script n'existe que le temps du menu; l'affichage (et le flou du fond) est fait par le shell déjà résident.
 #
 #   menu                  catégories à vide; en tapant, recherche floue sur tout
-#   menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|custom
+#   menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|language|custom
 #                         ouvre directement une section (raccourcis clavier)
 #
 # Entrées perso: ~/.config/menu/entries (Libellé | mode | commande).
@@ -305,14 +305,22 @@ menu_usb() {
     return 0
 }
 
+# Langue de la session (fili-lang): noms des langues dans leur propre langue, langue en cours marquée
+menu_language() {
+    sel="$("$HOME/.local/bin/fili-lang" list | jq -r '.[] | "\(if .current then "●" else " " end) \(.name)\t\(.code)"' | COLS=1 pick "$(t 'Language › ')" 6)"
+    [ -n "$sel" ] || { cancel; return $BACK; }
+    "$HOME/.local/bin/fili-lang" set "$sel" >/dev/null
+}
+
 menu_system() {
     arg="$1"
     while :; do
-        act="${arg:-$(choose 'System › ' 7 'Lock' 'Sleep' 'USB drives' 'About' 'Log out' 'Reboot' 'Power off')}"
+        act="${arg:-$(choose 'System › ' 8 'Lock' 'Sleep' 'USB drives' 'Language' 'About' 'Log out' 'Reboot' 'Power off')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             Lock) exec "$HOME/.local/bin/lock" ;;
             "USB drives") menu_usb; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
+            Language) menu_language; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
             About) "$HOME/.local/bin/fili-shell" about; return 0 ;;
             Sleep) sudo -n zzz; return 0 ;;
             "Log out") confirm "$(t 'Log out')" && exec niri msg action quit --skip-confirmation ;;
@@ -582,6 +590,7 @@ item() { printf '%s %s\n' "$2" "$1"; }
 actions_list() {
     item 'System: Lock' "$I_LOCK"
     item 'System: Sleep' "$I_SLEEP"
+    item 'System: Language' "$I_GLOBE"
     item 'System: About' "$I_INFO"
     item 'System: Log out' "$I_LOGOUT"
     item 'System: Reboot' "$I_REBOOT"
@@ -836,9 +845,10 @@ case "${1:-}" in
     packages) menu_packages ;;
     capture) menu_capture ;;
     ai) menu_ai ;;
+    language) menu_language ;;
     custom) menu_custom ;;
     "") menu_main ;;
-    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|ai|custom]" >&2; exit 1 ;;
+    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|ai|language|custom]" >&2; exit 1 ;;
 esac
 rc=$?
 [ "$rc" -eq "$BACK" ] && exit 0 # section lancée directement et annulée: sortie propre

@@ -63,7 +63,7 @@ for cat in sorted(glob.glob("dotfiles/config/quickshell/i18n/*.json")):
             print(f"{lang}.json: missing: {k}"); bad = True
         elif ph(k) != ph(c[k]):
             print(f"{lang}.json: placeholders differ: {k}"); bad = True
-    for k in sorted(set(c) - keys - {"@decimal"}):
+    for k in sorted(k for k in set(c) - keys if not k.startswith("@")):
         print(f"{lang}.json: unused entry: {k}"); bad = True
 sys.exit(1 if bad else 0)
 PY

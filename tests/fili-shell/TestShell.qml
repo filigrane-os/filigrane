@@ -646,7 +646,7 @@ ShellRoot {
                 FiliShell.popupOpened("panel");
                 ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
             },
-            // FiliI18n: tests en anglais (FILI_LANG=en, run.sh); catalogue français chargé à la main
+            // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main
             () => {
                 ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3" && FiliI18n.num(1.5, 1) === "1.5", "FiliI18n: anglais sans catalogue, %1 remplacé", FiliI18n.lang);
                 const saved = FiliI18n.catalog;
@@ -654,6 +654,22 @@ ShellRoot {
                 ok(FiliI18n.tr("Workspace %1", 3) === "Espace 3" && FiliI18n.num(1.5, 1) === "1,5" && FiliI18n.tr("not in catalog") === "not in catalog", "FiliI18n: catalogue fr.json (traduction, séparateur décimal, repli anglais)", FiliI18n.tr("Workspace %1", 3));
                 FiliI18n.catalog = saved;
             },
+            // fili-lang: changement de langue en direct (état dans $XDG_STATE_HOME, locale.kdl de niri dans un dossier de test)
+            wait(() => t.shell('XDG_CONFIG_HOME="$XDG_STATE_HOME/cfg" "$0" set fr && cat "$XDG_STATE_HOME/filigrane/locale" "$XDG_STATE_HOME/cfg/niri/locale.kdl"'.replace('"$0"', t.bin + "/fili-lang")), () => t.shellOut !== null),
+            () => ok(t.shellOut.code === 0 && t.shellOut.out.indexOf("fr_") >= 0 && t.shellOut.out.indexOf("Généré par fili-lang") >= 0, "fili-lang set fr: choix enregistré, locale.kdl de niri écrit", t.shellOut.out),
+            wait(() => {}, () => FiliI18n.lang === "fr", 5000),
+            () => ok(FiliI18n.lang === "fr" && FiliI18n.tr("Workspace %1", 3) === "Espace 3", "FiliI18n: suit fili-lang en direct (fr)", FiliI18n.lang),
+            wait(() => t.shell(t.bin + "/fili-lang list"), () => t.shellOut !== null),
+            () => {
+                let l = [];
+                try {
+                    l = JSON.parse(t.shellOut.out);
+                } catch (e) {}
+                ok(l.some(x => x.code === "en") && l.some(x => x.code === "fr" && x.current && x.name === "Français"), "fili-lang list: en et fr, fr en cours", t.shellOut.out);
+            },
+            wait(() => t.shell('XDG_CONFIG_HOME="$XDG_STATE_HOME/cfg" ' + t.bin + "/fili-lang set system"), () => t.shellOut !== null),
+            wait(() => {}, () => FiliI18n.lang === "en", 5000),
+            () => ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3", "fili-lang set system: retour à la langue du système (en)", FiliI18n.lang),
             wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {
                 let n = null;
