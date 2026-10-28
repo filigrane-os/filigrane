@@ -30,6 +30,8 @@ ShellRoot {
                 FiliPanel.summon(action);
             else if (target === "hotkeys")
                 FiliHotkeys.toggle();
+            else if (target === "about")
+                FiliAbout.toggle();
             else if (target === "reload")
                 Quickshell.reload(false);
         }

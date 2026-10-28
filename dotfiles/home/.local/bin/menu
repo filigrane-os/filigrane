@@ -48,6 +48,7 @@ I_COLS="$(printf '\357\203\233')"  # U+F0DB columns
 I_CAM="$(printf '\357\200\260')"  # U+F030 camera
 I_WIN="$(printf '\357\213\220')"  # U+F2D0 window-maximize
 I_AI="$(printf '\357\203\253')"  # U+F0EB lightbulb-o
+I_INFO="$(printf '\357\201\232')"  # U+F05A info-circle
 
 # Maj+Retour arrière = code de sortie 10 du fili-launcher: remonte d'un niveau.
 # Échap = sortie vide, code 1: quitte tout le menu.
@@ -296,11 +297,12 @@ menu_usb() {
 menu_system() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Lock\nSleep\nUSB drives\nLog out\nReboot\nPower off\n' | pick "System › " 6)}"
+        act="${arg:-$(printf 'Lock\nSleep\nUSB drives\nAbout\nLog out\nReboot\nPower off\n' | pick "System › " 7)}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             Lock) exec "$HOME/.local/bin/lock" ;;
             "USB drives") menu_usb; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
+            About) "$HOME/.local/bin/fili-shell" about; return 0 ;;
             Sleep) sudo -n zzz; return 0 ;;
             "Log out") confirm "Log out" && exec niri msg action quit --skip-confirmation ;;
             Reboot) confirm "Reboot" && { sudo -n reboot; return 0; } ;;
@@ -562,6 +564,7 @@ actions_list() {
     cat <<EOF
 $I_LOCK System: Lock
 $I_SLEEP System: Sleep
+$I_INFO System: About
 $I_LOGOUT System: Log out
 $I_REBOOT System: Reboot
 $I_SYS System: Power off

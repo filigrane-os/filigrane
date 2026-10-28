@@ -16,6 +16,7 @@
 #       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
 #   fili-shell launcher close                             ferme le fili-launcher s'il est ouvert (code 0), sinon code 1
 #   fili-shell hotkeys                                ouvre/ferme la fenêtre des raccourcis clavier (fili-hotkeys)
+#   fili-shell about                                  ouvre/ferme la fenêtre « À propos » (fili-about: Filigrane, système, machine)
 #   fili-shell reload                                 recharge la config
 D="${XDG_RUNTIME_DIR:-/tmp}"
 F="$D/fili-shell"
@@ -33,7 +34,7 @@ request() {
     cat "$r"
     rm -f "$r"
 }
-usage() { sed -n '6,19p' "$0" >&2; exit 2; }
+usage() { sed -n '6,20p' "$0" >&2; exit 2; }
 
 case "$1 $2" in
     "bar refresh") shift 2; send "bar refresh $*"; exit 0 ;;
@@ -44,6 +45,7 @@ case "$1 $2" in
     "notification history") request "notification history"; exit ;;
     "launcher close") [ "$(request "launcher close")" = 1 ]; exit ;;
     "hotkeys "*) send "hotkeys toggle"; exit 0 ;;
+    "about "*) send "about toggle"; exit 0 ;;
     "reload "*) send reload; exit 0 ;;
     "launcher "*) shift ;;
     *) usage ;;

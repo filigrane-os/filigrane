@@ -3,7 +3,7 @@
 // "not ok N - ...", puis "# fin: X échec(s)".
 // Couvre: clics de chaque module de la fili-bar, canal fili-shell (bar refresh, notification, launcher),
 // fili-launcher (découpe des lignes, filtre, réponses), fili-notification (bulles, croix, historique),
-// fili-tooltip et FiliInfo.
+// fili-tooltip, FiliInfo et fili-about.
 //@ pragma Env QT_QUICK_BACKEND=software
 import QtQuick
 import Quickshell
@@ -619,6 +619,25 @@ ShellRoot {
                 FiliNotification.centerOpen = true;
                 FiliNotification.copy({ summary: "test copie", body: "" });
                 ok(FiliTheme.ran[0] === "wl-copy test copie" && !FiliNotification.centerOpen, "clavier: Entrée sur une notification du centre = copie et fermeture", JSON.stringify(FiliTheme.ran));
+            },
+            // fili-about: clic milieu du logo, fiche lue par fili-about, copie en texte, canal `about toggle`
+            () => {
+                act("logo", Qt.MiddleButton);
+                ok(FiliAbout.open, "fili-bar logo, clic milieu -> fenêtre À propos");
+            },
+            wait(() => {}, () => FiliAbout.card.sections.length > 0, 10000),
+            () => {
+                const c = FiliAbout.card;
+                const names = c.sections.map(s => s.name);
+                ok(typeof c.host === "string" && ["Filigrane", "Système", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections Filigrane/Système/Machine }", JSON.stringify(names));
+                ok(c.sections.every(s => s.rows.every(r => r.length === 2 && r[1] !== "")), "fili-about: lignes [libellé, valeur] non vides");
+                FiliTheme.ran = [];
+                FiliAbout.copy();
+                ok(FiliTheme.ran[0]?.startsWith("wl-copy Filigrane · ") && FiliTheme.ran[0].indexOf("Noyau: ") > 0 && !FiliAbout.open, "fili-about: C copie la fiche en texte et ferme", JSON.stringify(FiliTheme.ran));
+                FiliAbout.toggle();
+                ok(FiliAbout.open, "fili-about: toggle rouvre");
+                FiliShell.popupOpened("panel");
+                ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
             },
             wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {

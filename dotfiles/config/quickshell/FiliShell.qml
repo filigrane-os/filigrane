@@ -5,6 +5,7 @@ pragma Singleton
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
+//   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
 //   reload
 // Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
 //   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), voir BarScript

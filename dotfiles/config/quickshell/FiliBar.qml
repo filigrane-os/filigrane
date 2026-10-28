@@ -58,7 +58,7 @@ PanelWindow {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
 
-        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
+        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu, clic milieu: À propos
         Item {
             Layout.leftMargin: 10
             implicitWidth: 44
@@ -72,9 +72,10 @@ PanelWindow {
             BarHover {
                 objectName: "logo"
                 anchors.fill: parent
-                tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal" })
+                tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal · clic milieu: à propos" })
                 click: "setsid -f " + bar.b + "/menu"
                 rclick: "setsid -f foot"
+                onMiddleClicked: FiliAbout.show()
             }
         }
 

@@ -1,0 +1,59 @@
+#!/bin/sh
+# Fiche « À propos » (fili-about, FiliAbout.qml): Filigrane, système et machine, en JSON
+# {"host": "...", "sections": [{"name": "Système", "rows": [["Noyau", "6.18.59_1"], ...]}]}.
+# Lancé seulement à l'ouverture de la fenêtre; une ligne absente (outil ou fichier manquant) est omise.
+repo="$(cd "$(dirname "$(readlink -f "$0")")/../../../.." 2>/dev/null && pwd)"
+
+# Taille lisible en Go (1 décimale sous 10 Go)
+gb() { awk -v b="$1" 'BEGIN { g = b / 1073741824; printf (g < 10 ? "%.1f Go" : "%.0f Go"), g }' | tr . ,; }
+
+version="$(git -C "$repo" describe --tags --always --dirty 2>/dev/null)"
+[ -n "$version" ] && version="$version ($(git -C "$repo" branch --show-current 2>/dev/null), $(git -C "$repo" log -1 --format=%cs 2>/dev/null))"
+ai="$(sed -n 's/^FILI_AI=//p' "${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/ai.env" 2>/dev/null)"
+layer="$(cat "$repo/.user-layer" 2>/dev/null)"
+[ "$layer" = none ] && layer=""
+
+os="$(. /etc/os-release 2>/dev/null; printf '%s' "${PRETTY_NAME:-Linux}")"
+libc="glibc"; ldd --version 2>&1 | grep -qi musl && libc="musl"
+pkgs="$(xbps-query -l 2>/dev/null | wc -l)"
+[ "$pkgs" -gt 0 ] 2>/dev/null && pkgs="$pkgs (xbps)" || pkgs=""
+niri="$(niri --version 2>/dev/null | awk '{print $2}')"
+qs="$(qs --version 2>/dev/null | awk 'NR==1 {print $2}')"
+up="$(awk '{ s = int($1); d = int(s / 86400); h = int(s % 86400 / 3600); m = int(s % 3600 / 60)
+    if (d) printf "%d j %d h", d, h; else if (h) printf "%d h %d min", h, m; else printf "%d min", m }' /proc/uptime)"
+
+dmi=/sys/class/dmi/id
+model="$(cat $dmi/sys_vendor $dmi/product_name 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')"
+cpu="$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -1 | sed 's/(R)//g; s/(TM)//g; s/ CPU//; s/  */ /g')"
+cpu="${cpu:+$cpu, $(nproc) fils}"
+gpu="$(lspci 2>/dev/null | sed -n 's/^[^ ]* \(VGA compatible controller\|3D controller\|Display controller\): //p' |
+    sed 's/ (rev [0-9a-f]*)//; s/ Corporation//' | paste -sd '/' | sed 's|/| · |g')"
+mem="$(awk '/^MemTotal:/ {t = $2} /^MemAvailable:/ {a = $2} END {print t * 1024, (t - a) * 1024}' /proc/meminfo)"
+mem="$(gb "${mem% *}"), $(gb "${mem#* }") utilisés"
+disk="$(df -B1 --output=size,avail / 2>/dev/null | awk 'NR==2 {print $1, $2}')"
+[ -n "$disk" ] && disk="$(gb "${disk% *}"), $(gb "${disk#* }") libres"
+screens="$(niri msg -j outputs 2>/dev/null | jq -r '[.[] | (.modes[.current_mode // 0] // {}) as $m
+    | "\(.name) \($m.width)×\($m.height)"] | join(" · ")' 2>/dev/null)"
+bat="$(for b in /sys/class/power_supply/BAT*; do
+    [ -r "$b/capacity" ] && printf '%s %%, %s' "$(cat "$b/capacity")" "$(cat "$b/status" | sed 's/Charging/en charge/; s/Discharging/sur batterie/; s/Full/pleine/; s/Not charging/branchée/')"
+    for k in energy charge; do
+        [ -r "$b/${k}_full" ] && [ -r "$b/${k}_full_design" ] || continue
+        awk -v f="$(cat "$b/${k}_full")" -v d="$(cat "$b/${k}_full_design")" 'BEGIN { if (d > 0) printf ", santé %d %%", f * 100 / d }'
+        break
+    done
+    break
+done)"
+
+jq -n --arg host "$(cat /etc/hostname 2>/dev/null || uname -n)" \
+    --arg version "$version" --arg layer "$layer" --arg ai "$ai" \
+    --arg os "$os" --arg kernel "$(uname -r) ($(uname -m), $libc)" --arg pkgs "$pkgs" --arg niri "$niri" --arg qs "$qs" --arg up "$up" \
+    --arg model "$model" --arg cpu "$cpu" --arg gpu "$gpu" --arg mem "$mem" --arg disk "$disk" --arg screens "$screens" --arg bat "$bat" '
+    def rows: map(select(.[1] != ""));
+    {host: $host, sections: [
+        {name: "Filigrane", rows: [["Version", $version], ["Couche perso", $layer], ["Agent IA", $ai]] | rows},
+        {name: "Système", rows: [["OS", $os], ["Noyau", $kernel], ["Init", "runit"], ["Paquets", $pkgs],
+            ["Compositeur", (if $niri != "" then "niri " + $niri else "" end)],
+            ["Shell", (if $qs != "" then "Quickshell " + $qs else "" end)], ["Allumé depuis", $up]] | rows},
+        {name: "Machine", rows: [["Modèle", $model], ["Processeur", $cpu], ["Graphique", $gpu], ["Mémoire", $mem],
+            ["Disque /", $disk], ["Écrans", $screens], ["Batterie", $bat]] | rows}
+    ] | map(select(.rows != []))}'
