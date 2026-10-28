@@ -443,25 +443,25 @@ binds {
 
     // Mod-Shift-/, which is usually the same as Mod-?,
     // shows a list of important hotkeys.
-    Mod+K hotkey-overlay-title="Raccourcis clavier" { spawn-sh "$HOME/.local/bin/fili-shell hotkeys"; }
+    Mod+K hotkey-overlay-title="Keyboard shortcuts" { spawn-sh "$HOME/.local/bin/fili-shell hotkeys"; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
-    Mod+Y hotkey-overlay-title="Agent IA (fili-ai)" { spawn "foot" "-e" "bash" "-lc" "exec ~/.local/bin/fili-ai"; }
-    Mod+P hotkey-overlay-title="Écrans: panneau" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
+    Mod+Y hotkey-overlay-title="AI agent (fili-ai)" { spawn "foot" "-e" "bash" "-lc" "exec ~/.local/bin/fili-ai"; }
+    Mod+P hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     // Panneaux de la barre au clavier: ←/→ panneau voisin, ↑/↓ élément, Entrée agir, Échap fermer (FiliPanel.qml)
-    Mod+A hotkey-overlay-title="Panneaux de la barre" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }
-    Mod+Ctrl+P hotkey-overlay-title="Écrans: enregistrer le profil" { spawn-sh "$HOME/.local/bin/display-save"; }
+    Mod+A hotkey-overlay-title="Bar panels" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }
+    Mod+Ctrl+P hotkey-overlay-title="Displays: save the profile" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
-    Mod+Ctrl+E hotkey-overlay-title="Son: égaliseur haut-parleurs" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }
+    Mod+Ctrl+E hotkey-overlay-title="Sound: speaker equalizer" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }
     Mod+Ctrl+W hotkey-overlay-title="Wi-Fi (impala)" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }
     Mod+Ctrl+B hotkey-overlay-title="Bluetooth (bluetui)" { spawn-sh "$HOME/.local/bin/bar-tui bluetui"; }
-    Mod+Ctrl+D hotkey-overlay-title="Écrans: panneau" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
+    Mod+Ctrl+D hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "$HOME/.local/bin/menu apps"; }
-    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (rappuyer pour fermer)" { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
+    Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (press again to close)" { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
     // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
     Ctrl+Space hotkey-overlay-title=null { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
-    Mod+L hotkey-overlay-title="Verrouiller l'écran" { spawn-sh "$HOME/.local/bin/lock"; }
+    Mod+L hotkey-overlay-title="Lock the screen" { spawn-sh "$HOME/.local/bin/lock"; }
 
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.
     // Note: the entire command goes as a single argument. It's passed verbatim to `sh -c`.
@@ -490,10 +490,10 @@ binds {
     // Rétroéclairage clavier (Mac T2: apple::kbd_backlight); sans effet s'il n'existe pas
     XF86KbdBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "+10%"; }
     XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "10%-"; }
-    Mod+Tab hotkey-overlay-title="Fenêtres: aller à" { spawn-sh "$HOME/.local/bin/menu windows"; }
-    Mod+B hotkey-overlay-title="Notifications: activer/couper" { spawn-sh "$HOME/.local/bin/fili-shell notification dnd toggle"; }
-    Mod+Shift+B hotkey-overlay-title="Notifications: fermer toutes" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
-    Mod+Shift+Space hotkey-overlay-title="Aide des raccourcis" { spawn-sh "$HOME/.local/bin/menu keys"; }
+    Mod+Tab hotkey-overlay-title="Windows: go to" { spawn-sh "$HOME/.local/bin/menu windows"; }
+    Mod+B hotkey-overlay-title="Notifications: on/off" { spawn-sh "$HOME/.local/bin/fili-shell notification dnd toggle"; }
+    Mod+Shift+B hotkey-overlay-title="Notifications: close all" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
+    Mod+Shift+Space hotkey-overlay-title="Shortcuts help" { spawn-sh "$HOME/.local/bin/menu keys"; }
     // Écran: pas de 1%, Shift pour un pas fin de 30 unités (~0,17%, max 17777)
     XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set +1%; $HOME/.local/bin/fili-shell bar refresh 23"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set 1%-; $HOME/.local/bin/fili-shell bar refresh 23"; }

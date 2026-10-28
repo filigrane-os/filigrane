@@ -4,8 +4,9 @@
 #   scripts/check-i18n.sh
 #
 # Scripts (lib/i18n/*.sh): for every shell script that sources lib/i18n.sh, each English message passed to t, log,
-# warn, die, say or note; for every Python script with a t() helper (display-save), each t('...'). Each catalog needs
-# an entry with the same number of placeholders (%s).
+# warn, die, say, note or item, and every quoted argument of choose (menu); for every Python script with a t() helper (display-save), each t('...'). Each catalog needs
+# an entry with the same number of placeholders (%s). The niri shortcut titles (hotkey-overlay-title of
+# dotfiles/config/niri/config.kdl) too: fili-hotkeys and the menu translate them.
 # fili-shell (dotfiles/config/quickshell/i18n/*.json): each FiliI18n.tr("...") of the QML files and each tr("...") or
 # trf("...") of bar-stats (apps/bar-stats/src, tests excluded). Each catalog needs an entry with the same %1, %2...
 # Both kinds also report catalog entries nothing uses any more.
@@ -17,7 +18,9 @@ mapfile -t scripts < <(grep -rlE '(^|[[:space:]])\. "\$FILI_LIB/i18n\.sh"' --exc
 
 # English messages: the first single-quoted argument of the message functions
 mapfile -t python < <(grep -rlE '^def t\(fmt' --exclude-dir=.git --exclude-dir=target dotfiles users 2>/dev/null | sort)
-mapfile -t messages < <({ grep -ohP "(?<![\\w./-])(t|log|warn|die|say|note) '\\K[^']*(?=')" "${scripts[@]}"
+mapfile -t messages < <({ grep -ohP "(?<![\\w./-])(t|log|warn|die|say|note|item) '\\K[^']*(?=')" "${scripts[@]}"
+    grep -hP "(?<![\\w./-])choose [\"']" "${scripts[@]}" | sed 's/.*choose //' | grep -oP "'[^']*'" | sed "s/^'//; s/'\$//"
+    grep -ohP 'hotkey-overlay-title="\K[^"]*(?=")' dotfiles/config/niri/config.kdl
     [ ${#python[@]} -eq 0 ] || grep -ohP "(?<![\\w.])t\\('\\K[^']*(?=')" "${python[@]}"; } | sort -u)
 scripts+=("${python[@]}")
 echo "${#scripts[@]} scripts, ${#messages[@]} messages"

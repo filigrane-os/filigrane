@@ -9,6 +9,12 @@
 #
 # Entrées perso: ~/.config/menu/entries (Libellé | mode | commande).
 
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh). Les libellés restent anglais dans le
+# script (touches, actions, `menu system Lock`): traduits à l'affichage seulement (choose, localize)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+
 WALLPAPERS="$HOME/.local/share/wallpapers"
 EMOJIS="$HOME/.local/share/menu/emoji.txt"
 ENTRIES="${XDG_CONFIG_HOME:-$HOME/.config}/menu/entries"
@@ -58,7 +64,8 @@ trap 'rm -f "$STATE" "$BINDS"' EXIT
 DMENU="$HOME/.local/bin/fili-shell launcher"
 
 pick() { # pick INVITE [LIGNES] [LARGEUR] [POLICE]  (entrées sur stdin, sélection sur stdout; vide si annulé)
-    out="$($DMENU ${NOSORT:+--no-sort} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
+    # COLS=1: lignes "affiché<TAB>renvoyé"
+    out="$($DMENU ${NOSORT:+--no-sort} ${COLS:+--with-nth 1 --accept-nth 2} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
     if [ "$rc" -eq 10 ]; then : > "$STATE"; return 0; fi
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
@@ -90,17 +97,21 @@ cancel() {
     exit 0
 }
 notify() { command -v notify-send >/dev/null && notify-send -a menu "$@"; }
-confirm() { # Oui -> 0 ; Non -> 1 ; annulé -> cancel (quitte ou revient) puis 1
-    case "$(printf 'No
-Yes
-' | pick "$1 › " 2)" in
+# choose INVITE LIGNES ENTRÉE...: entrées et invite en anglais, affichées traduites; sortie: l'entrée anglaise choisie
+choose() {
+    _p=$1 _n=$2; shift 2
+    for _e; do t "$_e"; printf '\t%s\n' "$_e"; done | COLS=1 pick "$(t "$_p")" "$_n"
+}
+confirm() { # confirm QUESTION (traduite): Oui -> 0 ; Non -> 1 ; annulé -> cancel (quitte ou revient) puis 1
+    case "$(choose "$1 › " 2 'No' 'Yes')" in
         Yes) return 0 ;;
         No) return 1 ;;
         *) cancel; return 1 ;;
     esac
 }
 term() { # term COMMANDE : terminal gardé ouvert à la fin
-    exec foot -e sh -c "$1; echo; printf 'Press Enter to close '; read _"
+    FILI_CLOSE="$(t 'Press Enter to close ')"; export FILI_CLOSE
+    exec foot -e sh -c "$1; echo; printf '%s' \"\$FILI_CLOSE\"; read _"
 }
 trim_var() { # sans sous-processus: résultat dans $TRIMMED
     TRIMMED="${1#"${1%%[![:space:]]*}"}"
@@ -197,7 +208,7 @@ custom_run() { # custom_run LIBELLÉ : retourne 1 si le libellé n'existe pas
             term) exec foot -e sh -c "$cmd" ;;
             hold) term "$cmd" ;;
             run) setsid sh -c "$cmd" >/dev/null 2>&1 & exit 0 ;;
-            *) notify -u critical "Menu" "Unknown mode '$mode' for $label"; exit 1 ;;
+            *) notify -u critical "Menu" "$(t 'Unknown mode %s for %s' "$mode" "$label")"; exit 1 ;;
         esac
     done < "$ENTRIES"
     return 1
@@ -206,24 +217,24 @@ custom_run() { # custom_run LIBELLÉ : retourne 1 si le libellé n'existe pas
 menu_custom() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Add an entry\nEdit file\n' | pick "Custom entries › " 2)}"
+        act="${arg:-$(choose 'Custom entries › ' 2 'Add an entry' 'Edit file')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Add an entry")
-                label="$(ask "Label › ")"
+                label="$(ask "$(t 'Label › ')")"
                 if [ -z "$label" ]; then cancel
                 else
-                    case "$label" in *'|'*|'#'*) notify -u critical "Menu" "Invalid label (no | and no leading #)"; return 1 ;; esac
-                    mode="$(printf 'term  (terminal, closed at the end)\nhold  (terminal kept open)\nrun   (background, GUI app)\n' | pick "Mode › " 3)"
+                    case "$label" in *'|'*|'#'*) notify -u critical "Menu" "$(t 'Invalid label (no | and no leading #)')"; return 1 ;; esac
+                    mode="$(choose 'Mode › ' 3 'term  (terminal, closed at the end)' 'hold  (terminal kept open)' 'run   (background, GUI app)')"
                     mode="${mode%% *}"
                     if [ -z "$mode" ]; then cancel
                     else
-                        cmd="$(ask "Command › ")"
+                        cmd="$(ask "$(t 'Command › ')")"
                         if [ -z "$cmd" ]; then cancel
                         else
                             mkdir -p "$(dirname "$ENTRIES")"
                             printf '%s | %s | %s\n' "$label" "$mode" "$cmd" >> "$ENTRIES"
-                            notify "Menu" "Entry added: $label"
+                            notify "Menu" "$(t 'Entry added: %s' "$label")"
                             return 0
                         fi
                     fi
@@ -241,33 +252,33 @@ menu_custom() {
 # Une action terminée ferme le menu. Avec un argument (liste unique), l'action est directe.
 
 menu_apps() {
-    sel="$(list_apps | ranked_apps | awk -F'\t' '{ printf "%s", $1; if ($4 != "") printf "\0icon\037%s", $4; print "" }' | NOSORT=1 pick "Applications › " 10)"
+    sel="$(list_apps | ranked_apps | awk -F'\t' '{ printf "%s", $1; if ($4 != "") printf "\0icon\037%s", $4; print "" }' | NOSORT=1 pick "$(t 'Applications › ')" 10)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     run_app "$sel"
 }
 
 menu_clip() {
-    command -v cliphist >/dev/null || { notify "Clipboard" "cliphist is not installed"; return 1; }
-    sel="$(cliphist list | pick "Clipboard › " 15)"
+    command -v cliphist >/dev/null || { notify "$(t 'Clipboard')" "$(t '%s is not installed' cliphist)"; return 1; }
+    sel="$(cliphist list | pick "$(t 'Clipboard › ')" 15)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     printf '%s' "$sel" | cliphist decode | wl-copy
 }
 
 menu_emoji() {
-    sel="$(pick "Emoji › " 12 < "$EMOJIS")"
+    sel="$(pick "$(t 'Emoji › ')" 12 < "$EMOJIS")"
     [ -n "$sel" ] || { cancel; return $BACK; }
     char="${sel%% *}"
     printf '%s' "$char" | wl-copy
-    notify "Emoji copied" "$char"
+    notify "$(t 'Emoji copied')" "$char"
 }
 
 menu_calc() {
-    command -v qalc >/dev/null || { notify "Calculator" "qalculate is not installed"; return 1; }
+    command -v qalc >/dev/null || { notify "$(t 'Calculator')" "$(t '%s is not installed' qalculate)"; return 1; }
     while :; do
         expr="$(ask "= ")"
         [ -n "$expr" ] || { cancel; return $BACK; }
         res="$(qalc -t "$expr" 2>&1)"
-        sel="$(printf '%s\nNew calculation\n' "$res" | pick "$expr = " 3)"
+        sel="$( { printf '%s\t%s\n' "$res" "$res"; t 'New calculation'; printf '\tNew calculation\n'; } | COLS=1 pick "$expr = " 3)"
         case "$sel" in
             "") cancel; return $BACK ;;
             "New calculation") continue ;;
@@ -279,15 +290,15 @@ menu_calc() {
 # Volumes amovibles: choisir pour monter (udisksctl, sans root) ou démonter
 menu_usb() {
     list="$(lsblk -rpno NAME,TYPE,HOTPLUG | awk '$2=="part" && $3==1 {print $1}' | while read -r dev; do
-        printf '%s  %s  %s%s\n' "$dev" "$(lsblk -dno LABEL "$dev")" "$(lsblk -dno SIZE "$dev")" \
-            "$(lsblk -dno MOUNTPOINT "$dev" | sed 's/^./  (mounted: &)/')"
+        mp="$(lsblk -dno MOUNTPOINT "$dev")"
+        printf '%s  %s  %s%s\n' "$dev" "$(lsblk -dno LABEL "$dev")" "$(lsblk -dno SIZE "$dev")" "${mp:+  ($(t 'mounted: %s' "$mp"))}"
     done)"
-    [ -n "$list" ] || { notify-send -u low "USB" "No removable drive"; return 0; }
-    sel="$(printf '%s\n' "$list" | pick "USB drives › " 6)"
+    [ -n "$list" ] || { notify-send -u low "USB" "$(t 'No removable drive')"; return 0; }
+    sel="$(printf '%s\n' "$list" | pick "$(t 'USB drives › ')" 6)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     dev="${sel%% *}"
     if [ -n "$(lsblk -dno MOUNTPOINT "$dev")" ]; then
-        out="$(udisksctl unmount -b "$dev" 2>&1)" && notify-send -u low "USB" "Unmounted: $dev" || notify-send -u normal "USB" "$out"
+        out="$(udisksctl unmount -b "$dev" 2>&1)" && notify-send -u low "USB" "$(t 'Unmounted: %s' "$dev")" || notify-send -u normal "USB" "$out"
     else
         out="$(udisksctl mount -b "$dev" 2>&1)" && notify-send -u low "USB" "$out" || notify-send -u normal "USB" "$out"
     fi
@@ -297,16 +308,16 @@ menu_usb() {
 menu_system() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Lock\nSleep\nUSB drives\nAbout\nLog out\nReboot\nPower off\n' | pick "System › " 7)}"
+        act="${arg:-$(choose 'System › ' 7 'Lock' 'Sleep' 'USB drives' 'About' 'Log out' 'Reboot' 'Power off')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             Lock) exec "$HOME/.local/bin/lock" ;;
             "USB drives") menu_usb; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
             About) "$HOME/.local/bin/fili-shell" about; return 0 ;;
             Sleep) sudo -n zzz; return 0 ;;
-            "Log out") confirm "Log out" && exec niri msg action quit --skip-confirmation ;;
-            Reboot) confirm "Reboot" && { sudo -n reboot; return 0; } ;;
-            "Power off") confirm "Power off" && { sudo -n poweroff; return 0; } ;;
+            "Log out") confirm "$(t 'Log out')" && exec niri msg action quit --skip-confirmation ;;
+            Reboot) confirm "$(t 'Reboot')" && { sudo -n reboot; return 0; } ;;
+            "Power off") confirm "$(t 'Power off')" && { sudo -n poweroff; return 0; } ;;
         esac
         [ -n "$arg" ] && return $BACK
     done
@@ -315,7 +326,7 @@ menu_system() {
 menu_audio() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Volume +\nVolume -\nMute / unmute\nMic mute / unmute\nChoose output\n' | pick "Audio › " 5)}"
+        act="${arg:-$(choose 'Audio › ' 5 'Volume +' 'Volume -' 'Mute / unmute' 'Mic mute / unmute' 'Choose output')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Volume +") wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+; return 0 ;;
@@ -325,7 +336,7 @@ menu_audio() {
             "Choose output")
                 sinks="$(wpctl status | awk '/Sinks:/{f=1;next} /Sources:|Filters:|Streams:/{f=0} f' \
                     | sed -E -n 's/^[^0-9]*([0-9]+)\. (.*)$/\1 \2/p')"
-                sel="$(printf '%s\n' "$sinks" | pick "Audio output › " 8)"
+                sel="$(printf '%s\n' "$sinks" | pick "$(t 'Audio output › ')" 8)"
                 if [ -n "$sel" ]; then wpctl set-default "${sel%% *}"; return 0; fi
                 cancel
                 ;;
@@ -337,26 +348,26 @@ menu_audio() {
 menu_network() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Wi-Fi (impala)\nVPN (Proton)\nIP addresses\nTest connection\nPacket loss\nSpeed test\n' | pick "Network › " 6)}"
+        act="${arg:-$(choose 'Network › ' 6 'Wi-Fi (impala)' 'VPN (Proton)' 'IP addresses' 'Test connection' 'Packet loss' 'Speed test')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "IP addresses")
-                sel="$(ip -br addr | grep -v '^lo' | pick "Addresses › " 8)"
+                sel="$(ip -br addr | grep -v '^lo' | pick "$(t 'Addresses › ')" 8)"
                 if [ -n "$sel" ]; then printf '%s' "$sel" | awk '{print $3}' | wl-copy; return 0; fi
                 cancel
                 ;;
             "Wi-Fi (impala)") exec "$HOME/.local/bin/bar-tui" impala ;;
             "VPN (Proton)") exec "$HOME/.local/bin/bar-tui" vpn ;;
             "Packet loss")
-                notify "Network" "Ping running (10 packets)..."
-                notify "Network" "$(ping -c10 -i0.3 -W2 1.1.1.1 2>&1 | tail -2 | tr '\n' ' ')"
+                notify "$(t 'Network')" "$(t 'Ping running (10 packets)...')"
+                notify "$(t 'Network')" "$(ping -c10 -i0.3 -W2 1.1.1.1 2>&1 | tail -2 | tr '\n' ' ')"
                 return 0
                 ;;
             "Speed test")
-                notify "Network" "Speed test (25 MB, Cloudflare)..."
+                notify "$(t 'Network')" "$(t 'Speed test (25 MB, Cloudflare)...')"
                 bps="$(curl -fsS -m 60 -o /dev/null -w '%{speed_download}' 'https://speed.cloudflare.com/__down?bytes=25000000' 2>/dev/null)" \
-                    && notify "Network" "Download: $(awk -v b="$bps" 'BEGIN{printf "%.0f Mbit/s", b*8/1e6}')" \
-                    || notify -u critical "Network" "Speed test failed"
+                    && notify "$(t 'Network')" "$(t 'Download: %s Mbit/s' "$(awk -v b="$bps" 'BEGIN{printf "%.0f", b*8/1e6}')")" \
+                    || notify -u critical "$(t 'Network')" "$(t 'Speed test failed')"
                 return 0
                 ;;
             "Test connection") "$HOME/.local/bin/captive-portal"; return 0 ;;
@@ -368,11 +379,11 @@ menu_network() {
 menu_style() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Wallpaper\nReload shell\n' | pick "Style › " 2)}"
+        act="${arg:-$(choose 'Style › ' 2 'Wallpaper' 'Reload shell')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Wallpaper")
-                sel="$(wallpaper_entries | pick "Wallpaper › " 10)"
+                sel="$(wallpaper_entries | pick "$(t 'Wallpaper › ')" 10)"
                 if [ -n "$sel" ]; then
                     setsid "$HOME/.local/bin/wallpaper" "$WALLPAPERS/$sel" >/dev/null 2>&1 &
                     return 0
@@ -387,7 +398,7 @@ menu_style() {
 
 menu_capture() {
     arg="$1"
-    act="${arg:-$(printf 'Region\nScreen\nWindow\nColor (picker)\nScreen recording\n' | pick "Capture › " 5)}"
+    act="${arg:-$(choose 'Capture › ' 5 'Region' 'Screen' 'Window' 'Color (picker)' 'Screen recording')}"
     [ -n "$act" ] || { cancel; return $BACK; }
     sleep 0.4 # laisse le fili-launcher et son voile flouté (250 ms) disparaître avant de capturer
     case "$act" in
@@ -396,7 +407,7 @@ menu_capture() {
         Window) niri msg action screenshot-window ;;
         "Color (picker)")
             c="$(niri msg pick-color 2>/dev/null | grep -io '#[0-9a-f]\{6\}' | head -n1)"
-            [ -n "$c" ] && { printf '%s' "$c" | wl-copy; notify "Color copied" "$c"; } ;;
+            [ -n "$c" ] && { printf '%s' "$c" | wl-copy; notify "$(t 'Color copied')" "$c"; } ;;
         "Screen recording") exec "$HOME/.local/bin/bar-toggle" rec ;;
     esac
 }
@@ -407,7 +418,7 @@ menu_windows() {
 import json,sys
 for w in json.load(sys.stdin):
     print("%d\t%s  ·  %s" % (w["id"], w.get("app_id") or "?", w.get("title") or ""))
-' | cut -f2- | pick "Window › " 10)"
+' | cut -f2- | pick "$(t 'Window › ')" 10)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     id="$(niri msg -j windows | python3 -I -c '
 import json,sys
@@ -421,16 +432,16 @@ for w in json.load(sys.stdin):
 
 menu_files() {
     # Recherche de fichiers (fd) dans ~, ouverture avec l'application par défaut
-    q="$(ask "File › ")"
+    q="$(ask "$(t 'File › ')")"
     [ -n "$q" ] || { cancel; return $BACK; }
-    sel="$(fd --type f --hidden --exclude .git --exclude node_modules --exclude .cache "$q" "$HOME" 2>/dev/null | head -200 | sed "s|^$HOME/|~/|" | pick "Files › " 12)"
+    sel="$(fd --type f --hidden --exclude .git --exclude node_modules --exclude .cache "$q" "$HOME" 2>/dev/null | head -200 | sed "s|^$HOME/|~/|" | pick "$(t 'Files › ')" 12)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     setsid xdg-open "$HOME/${sel#\~/}" >/dev/null 2>&1 &
 }
 
 menu_web() {
     # Préfixes: g (Google), ddg, yt, w (Wikipédia fr), gh (GitHub), ou toute URL
-    q="$(ask "Web (g/ddg/yt/w/gh …) › ")"
+    q="$(ask "$(t 'Web (g/ddg/yt/w/gh …) › ')")"
     [ -n "$q" ] || { cancel; return $BACK; }
     enc() { printf '%s' "$1" | python3 -I -c 'import sys,urllib.parse;print(urllib.parse.quote_plus(sys.stdin.read()))'; }
     case "$q" in
@@ -453,15 +464,19 @@ menu_keys() {
         /^binds[[:space:]]*\{/ {b=1; next}
         b && /^\}/ {b=0}
         b && /^[[:space:]]*[A-Za-z0-9_+]+[[:space:]]/ && !/^[[:space:]]*\/\// {
-            key=$1; t=""
-            if (match($0, /hotkey-overlay-title="[^"]*"/)) t=substr($0, RSTART+22, RLENGTH-23)
+            key=$1; t=""; tr=0
+            if (match($0, /hotkey-overlay-title="[^"]*"/)) { t=substr($0, RSTART+22, RLENGTH-23); tr=1 }
             else {
                 a=$0; sub(/^[^{]*\{[[:space:]]*/, "", a); sub(/[[:space:];]*\}.*$/, "", a)
                 gsub(/"/, "", a); sub(/^spawn-sh /, "", a); sub(/^spawn /, "", a); gsub(/-/, " ", a)
                 t=a
             }
-            printf "%s  —  %s\n", key, t
-        }' "$cfg" | pick "Shortcuts › " 14 70)"
+            printf "%s\t%d\t%s\n", key, tr, t
+        }' "$cfg" |
+        # titres (hotkey-overlay-title) traduits, actions brutes laissées telles quelles
+        while IFS="$TAB" read -r key tr title; do
+            printf '%s  —  ' "$key"; if [ "$tr" = 1 ]; then t "$title"; else printf '%s' "$title"; fi; printf '\n'
+        done | pick "$(t 'Shortcuts › ')" 14 70)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     printf '%s' "${sel%% *}" | wl-copy
 }
@@ -469,7 +484,7 @@ menu_keys() {
 menu_toggles() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Auto lock\nAirplane mode\nPresentation mode\nNight light\nDo not disturb\nMute 1 hour\nNotification history\nNext wallpaper\n' | pick "Toggles › " 8)}"
+        act="${arg:-$(choose 'Toggles › ' 8 'Auto lock' 'Airplane mode' 'Presentation mode' 'Night light' 'Do not disturb' 'Mute 1 hour' 'Notification history' 'Next wallpaper')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Auto lock") "$HOME/.local/bin/bar-toggle" idle; return 0 ;;
@@ -480,12 +495,12 @@ menu_toggles() {
             "Mute 1 hour")
                 "$HOME/.local/bin/fili-shell" notification dnd on
                 setsid -f sh -c 'sleep 3600; "$HOME/.local/bin/fili-shell" notification dnd off' >/dev/null 2>&1
-                notify "Notifications" "Muted for 1 h"
+                notify "$(t 'Notifications')" "$(t 'Muted for 1 h')"
                 return 0 ;;
             "Notification history")
                 hist="$("$HOME/.local/bin/fili-shell" notification history)"
                 fmt='def line: "\(.app_name) · \(.summary)\(if .body then " — " + (.body | gsub("\\s+"; " ") | .[0:120]) else "" end)";'
-                sel="$(printf '%s' "$hist" | jq -j "$fmt"'.[] | line, "\u0000icon\u001f", ((.app_icon // (.app_name | ascii_downcase | gsub(" "; "-"))) | sub("^file://"; "") | gsub("%20"; " ")), "\n"' | NOSORT=1 pick "History › " 10 100)"
+                sel="$(printf '%s' "$hist" | jq -j "$fmt"'.[] | line, "\u0000icon\u001f", ((.app_icon // (.app_name | ascii_downcase | gsub(" "; "-"))) | sub("^file://"; "") | gsub("%20"; " ")), "\n"' | NOSORT=1 pick "$(t 'History › ')" 10 100)"
                 if [ -n "$sel" ]; then
                     printf '%s' "$hist" | jq -r --arg l "$sel" "$fmt"'first(.[] | select(line == $l)) | .summary + (if .body then "\n" + .body else "" end)' | wl-copy
                     return 0
@@ -505,18 +520,19 @@ menu_toggles() {
 menu_packages() {
     arg="$1"
     while :; do
-        act="${arg:-$(printf 'Search and install\nUninstall an app\nRemove\nUpdate system\nClean cache\n' | pick "Packages › " 4)}"
+        act="${arg:-$(choose 'Packages › ' 4 'Search and install' 'Uninstall an app' 'Remove' 'Update system' 'Clean cache')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             "Search and install")
-                q="$(ask "Package › ")"
+                q="$(ask "$(t 'Package › ')")"
                 if [ -z "$q" ]; then cancel
                 else
-                    sel="$(xbps-query -Rs "$q" | head -60 | sed -E 's/^\[.\] //' | pick "Results › " 15)"
+                    sel="$(xbps-query -Rs "$q" | head -60 | sed -E 's/^\[.\] //' | pick "$(t 'Results › ')" 15)"
                     if [ -z "$sel" ]; then cancel
                     else
                         pkg="$(printf '%s' "$sel" | awk '{print $1}' | sed -E 's/-[^-]+$//')"
-                        term "echo 'Resource budget: check size and dependencies before installing.'; xbps-query -R -p pkgver,installed_size $pkg; echo; sudo xbps-install -S $pkg"
+                        FILI_BUDGET="$(t 'Resource budget: check size and dependencies before installing.')"; export FILI_BUDGET
+                        term "printf '%s\n\n' \"\$FILI_BUDGET\"; xbps-query -R -p pkgver,installed_size $pkg; echo; sudo xbps-install -S $pkg"
                     fi
                 fi
                 ;;
@@ -526,17 +542,17 @@ menu_packages() {
                     [ -f "$f" ] || continue
                     awk -v f="$f" -F= '/^\[/ && NR>1 {exit} $1=="Name" && n=="" {n=$2} $1=="NoDisplay" && $2=="true" {h=1} $1=="Type" {t=$2} END {if (n!="" && !h && t=="Application") print n "\t" f}' "$f"
                 done | sort -f)"
-                sel="$(printf '%s\n' "$apps" | cut -f1 | pick "Uninstall › " 15)"
+                sel="$(printf '%s\n' "$apps" | cut -f1 | pick "$(t 'Uninstall › ')" 15)"
                 if [ -z "$sel" ]; then cancel
                 else
                     file="$(printf '%s\n' "$apps" | awk -F'\t' -v n="$sel" '$1==n {print $2; exit}')"
-                    confirm "Uninstall $sel" && term "app-uninstall '$file'"
+                    confirm "$(t 'Uninstall %s' "$sel")" && term "app-uninstall '$file'"
                 fi
                 ;;
             Remove)
-                sel="$(xbps-query -m | sed -E 's/-[^-]+$//' | pick "Remove › " 15)"
+                sel="$(xbps-query -m | sed -E 's/-[^-]+$//' | pick "$(t 'Remove › ')" 15)"
                 if [ -z "$sel" ]; then cancel
-                elif confirm "Remove $sel"; then term "sudo xbps-remove -R $sel"
+                elif confirm "$(t 'Remove %s' "$sel")"; then term "sudo xbps-remove -R $sel"
                 fi
                 ;;
             "Update system") term "sudo xbps-install -Su" ;;
@@ -548,7 +564,7 @@ menu_packages() {
 
 # Agent IA (fili-ai): lancer, choisir (claude, codex, ollama, opencode), mettre à jour
 menu_ai() {
-    act="${1:-$(printf 'Open agent\nChoose agent\nUpdate agents\n' | pick "AI › " 3)}"
+    act="${1:-$(choose 'AI › ' 3 'Open agent' 'Choose agent' 'Update agents')}"
     [ -n "$act" ] || { cancel; return $BACK; }
     case "$act" in
         "Open agent") exec foot -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
@@ -559,72 +575,71 @@ menu_ai() {
 
 # ---------------------------------------------------------------- liste unique
 
+# Ligne "GLYPHE Libellé" (libellé anglais, traduit à l'affichage par localize)
+item() { printf '%s %s\n' "$2" "$1"; }
+
 # Actions directes, libellé "Catégorie: Action" (la catégorie sert aussi à la recherche)
 actions_list() {
-    cat <<EOF
-$I_LOCK System: Lock
-$I_SLEEP System: Sleep
-$I_INFO System: About
-$I_LOGOUT System: Log out
-$I_REBOOT System: Reboot
-$I_SYS System: Power off
-$I_AUDIO Audio: Volume +
-$I_VOLDN Audio: Volume -
-$I_MUTE Audio: Mute / unmute
-$I_MIC Audio: Mic mute / unmute
-$I_PHONES Audio: Choose output
-$I_GLOBE Network: IP addresses
-$I_NET Network: Test connection
-$I_IMAGE Style: Wallpaper
-$I_RELOAD Style: Reload shell
-$I_CAM Capture: Region
-$I_CAM Capture: Screen
-$I_CAM Capture: Window
-$I_WIN Windows: Go to a window
-$I_SEARCH Files: Find a file
-$I_GLOBE Web: Search or open a URL
-$I_CODE Shortcuts: Shortcuts help
-$I_LOCK Toggles: Auto lock
-$I_NET Toggles: Airplane mode
-$I_CHART Toggles: Presentation mode
-$I_SLEEP Toggles: Night light
-$I_MUTE Toggles: Do not disturb
-$I_MUTE Toggles: Mute 1 hour
-$I_MUTE Toggles: Notification history
-$I_IMAGE Toggles: Next wallpaper
-$I_CAM Capture: Color (picker)
-$I_AI AI: Open agent
-$I_AI AI: Choose agent
-$I_AI AI: Update agents
-$I_SEARCH Packages: Search and install
-$I_TRASH Packages: Uninstall an app
-$I_TRASH Packages: Remove
-$I_DOWN Packages: Update system
-$I_BROOM Packages: Clean cache
-EOF
+    item 'System: Lock' "$I_LOCK"
+    item 'System: Sleep' "$I_SLEEP"
+    item 'System: About' "$I_INFO"
+    item 'System: Log out' "$I_LOGOUT"
+    item 'System: Reboot' "$I_REBOOT"
+    item 'System: Power off' "$I_SYS"
+    item 'Audio: Volume +' "$I_AUDIO"
+    item 'Audio: Volume -' "$I_VOLDN"
+    item 'Audio: Mute / unmute' "$I_MUTE"
+    item 'Audio: Mic mute / unmute' "$I_MIC"
+    item 'Audio: Choose output' "$I_PHONES"
+    item 'Network: IP addresses' "$I_GLOBE"
+    item 'Network: Test connection' "$I_NET"
+    item 'Style: Wallpaper' "$I_IMAGE"
+    item 'Style: Reload shell' "$I_RELOAD"
+    item 'Capture: Region' "$I_CAM"
+    item 'Capture: Screen' "$I_CAM"
+    item 'Capture: Window' "$I_CAM"
+    item 'Windows: Go to a window' "$I_WIN"
+    item 'Files: Find a file' "$I_SEARCH"
+    item 'Web: Search or open a URL' "$I_GLOBE"
+    item 'Shortcuts: Shortcuts help' "$I_CODE"
+    item 'Toggles: Auto lock' "$I_LOCK"
+    item 'Toggles: Airplane mode' "$I_NET"
+    item 'Toggles: Presentation mode' "$I_CHART"
+    item 'Toggles: Night light' "$I_SLEEP"
+    item 'Toggles: Do not disturb' "$I_MUTE"
+    item 'Toggles: Mute 1 hour' "$I_MUTE"
+    item 'Toggles: Notification history' "$I_MUTE"
+    item 'Toggles: Next wallpaper' "$I_IMAGE"
+    item 'Capture: Color (picker)' "$I_CAM"
+    item 'AI: Open agent' "$I_AI"
+    item 'AI: Choose agent' "$I_AI"
+    item 'AI: Update agents' "$I_AI"
+    item 'Packages: Search and install' "$I_SEARCH"
+    item 'Packages: Uninstall an app' "$I_TRASH"
+    item 'Packages: Remove' "$I_TRASH"
+    item 'Packages: Update system' "$I_DOWN"
+    item 'Packages: Clean cache' "$I_BROOM"
 }
 
 # Catégories: affichées en premier. Sans saisie, la liste est limitée à leur nombre de lignes
 # (on ne voit qu'elles); dès qu'on tape, la recherche floue porte sur TOUTE la liste.
 categories_list() {
-    cat <<EOF
-$I_APPS Applications ›
-$I_CLIP Clipboard ›
-$I_EMOJI Emoji ›
-$I_CALC Calculator ›
-$I_WIN Windows ›
-$I_SEARCH Files ›
-$I_GLOBE Web ›
-$I_CODE Shortcuts ›
-$I_LOCK Toggles ›
-$I_SYS System ›
-$I_AUDIO Audio ›
-$I_NET Network ›
-$I_STYLE Style ›
-$I_PKG Packages ›
-$I_AI AI ›
-$I_CUSTOM Custom entries ›
-EOF
+    item 'Applications ›' "$I_APPS"
+    item 'Clipboard ›' "$I_CLIP"
+    item 'Emoji ›' "$I_EMOJI"
+    item 'Calculator ›' "$I_CALC"
+    item 'Windows ›' "$I_WIN"
+    item 'Files ›' "$I_SEARCH"
+    item 'Web ›' "$I_GLOBE"
+    item 'Shortcuts ›' "$I_CODE"
+    item 'Toggles ›' "$I_LOCK"
+    item 'System ›' "$I_SYS"
+    item 'Audio ›' "$I_AUDIO"
+    item 'Network ›' "$I_NET"
+    item 'Style ›' "$I_STYLE"
+    item 'Packages ›' "$I_PKG"
+    item 'AI ›' "$I_AI"
+    item 'Custom entries ›' "$I_CUSTOM"
 }
 
 # ---------------------------------------------------------------- raccourcis affichés à côté des noms
@@ -678,13 +693,13 @@ action_needle() { # résultat dans $NEEDLE (vide si aucune touche)
 # Largeur en caractères = largeur du fili-launcher (36) moins les marges.
 MENU_FONT="JetBrains Mono:size=12,Symbols Nerd Font Mono:size=12"
 MENU_COLS=33
-align_hints() {
-    awk -v w="$MENU_COLS" '{
-        key = ""; line = $0
+align_hints() { # sur la 1re colonne (affichée), la 2e (renvoyée) gardée
+    awk -F'\t' -v w="$MENU_COLS" '{
+        key = ""; line = $1
         if (match(line, /  ‹[^‹›]*›$/)) { key = substr(line, RSTART + 3, RLENGTH - 4); line = substr(line, 1, RSTART - 1) }
         sub(/ /, "  ", line)
         if (key != "") { pad = w - length(line) - length(key) - 2; if (pad < 2) pad = 2; line = sprintf("%s%*s‹%s›", line, pad, "", key) }
-        print line
+        print line (NF > 1 ? "\t" $2 : "")
     }'
 }
 
@@ -715,6 +730,18 @@ add_hints() {
         }'
 }
 
+# "GLYPHE Libellé  ‹touche›" -> "GLYPHE Libellé traduit  ‹touche›<TAB>Libellé" (affiché<TAB>renvoyé, voir pick)
+localize() { # découpe par awk: dash coupe mal « ‹ » (multioctet) dans ${var%motif}
+    awk '{ g = $0; sub(/ .*/, "", g); l = substr($0, length(g) + 2); k = ""
+           if (match(l, /  ‹[^‹›]*›$/)) { k = substr(l, RSTART); l = substr(l, 1, RSTART - 1) }
+           print g "\t" l "\t" k }' |
+    while IFS="$TAB" read -r g l k; do
+        printf '%s ' "$g"; t "$l"; printf '%s\t%s\n' "$k" "$l"
+    done
+}
+# Lignes déjà dans la langue de l'utilisateur (applis, entrées perso): le libellé sans glyphe ni touche en 2e colonne
+label_col() { awk '{ l = $0; sub(/^[^ ]+ /, "", l); sub(/  ‹[^‹›]*›$/, "", l); print $0 "\t" l }'; }
+
 # Ajoute "  ‹touche›" aux lignes "GLYPHE Libellé" quand une touche existe
 with_hints() {
     while IFS= read -r line; do
@@ -739,18 +766,16 @@ glyph_apps() {
 
 menu_main() {
     bind_table
-    cats="$(categories_list | with_hints)"
+    cats="$(categories_list | with_hints | localize)"
     nb="$(printf '%s\n' "$cats" | wc -l | tr -d ' ')"
-    customs="$(custom_labels | while IFS= read -r l; do printf '%s %s\n' "$I_CUSTOM" "$l"; done)"
-    apps="$(list_apps | ranked_apps | cut -f1,2 | glyph_apps | add_hints)"
-    items="$( { printf '%s\n' "$cats"; [ -n "$customs" ] && printf '%s\n' "$customs"; [ -n "$apps" ] && printf '%s\n' "$apps"; actions_list | with_hints; } )"
+    customs="$(custom_labels | while IFS= read -r l; do printf '%s %s\n' "$I_CUSTOM" "$l"; done | label_col)"
+    apps="$(list_apps | ranked_apps | cut -f1,2 | glyph_apps | add_hints | label_col)"
+    items="$( { printf '%s\n' "$cats"; [ -n "$customs" ] && printf '%s\n' "$customs"; [ -n "$apps" ] && printf '%s\n' "$apps"; actions_list | with_hints | localize; } )"
 
     while :; do # Échap dans une section revient ici; Échap ici quitte
-        sel="$(printf '%s\n' "$items" | align_hints | NOSORT=1 pick "› " "$nb" "" "$MENU_FONT")"
+        # 2e colonne renvoyée: libellé anglais (ou nom de l'appli, de l'entrée perso), sans glyphe ni touche
+        sel="$(printf '%s\n' "$items" | align_hints | NOSORT=1 COLS=1 pick "› " "$nb" "" "$MENU_FONT")"
         [ -n "$sel" ] || exit 0
-        sel="${sel#* }" # retire le glyphe et le 1er espace
-        sel="${sel# }"  # ... et le 2e
-        sel="$(printf '%s' "$sel" | sed 's/ *‹[^‹›]*›$//')" # retire la touche affichée
 
         rc=0
         case "$sel" in

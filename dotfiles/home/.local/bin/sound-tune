@@ -4,17 +4,32 @@
 #   sound-tune --apply   réapplique ~/.config/t2-audio/tune.conf (ouverture de session niri)
 import curses, json, os, subprocess, sys, time
 
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh), via le shell; une fois par texte
+FILI_LIB = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../lib")
+_tr = {}
+
+
+def t(fmt, *args):
+    if fmt not in _tr:
+        if os.path.exists(f"{FILI_LIB}/i18n.sh"):
+            cmd = 'FILI_LIB="$1"; . "$FILI_LIB/i18n.sh"; _t_fmt=$2; _t_lookup "$2"; printf %s "$_t_fmt"'
+            _tr[fmt] = subprocess.run(["sh", "-c", cmd, "sh", FILI_LIB, fmt], capture_output=True, text=True).stdout or fmt
+        else:
+            _tr[fmt] = fmt
+    return _tr[fmt].replace("%s", "{}").format(*args) if args else _tr[fmt]
+
+
 NODE = "audio_effect.t2-speakers"
 CONF = os.path.expanduser("~/.config/t2-audio/tune.conf")
 
 # clé, libellé, min, max, pas, unité, contrôles du graphe
 PARAMS = [
-    ("bass",      "Graves (bankstown)", 0.0,   4.0,    0.1,  "",    ["bassex:amt"]),
-    ("mid_gain",  "Médiums",           -6.0,   8.0,    0.5,  "dB",  ["midl:Gain", "midr:Gain"]),
-    ("mid_freq",  "Médiums: centre",  400.0, 3000.0, 100.0,  "Hz",  ["midl:Freq", "midr:Freq"]),
-    ("treb_gain", "Aigus",             -6.0,  10.0,    0.5,  "dB",  ["trebl:Gain", "trebr:Gain"]),
-    ("treb_freq", "Aigus: à partir de", 2000.0, 10000.0, 250.0, "Hz", ["trebl:Freq", "trebr:Freq"]),
-    ("loudness",  "Loudness",           0.0,   1.0,    1.0,  "",    ["ell:enabled", "elr:enabled"]),
+    ("bass",      t('Bass (bankstown)'), 0.0,   4.0,    0.1,  "",    ["bassex:amt"]),
+    ("mid_gain",  t('Mids'), -6.0,   8.0,    0.5,  "dB",  ["midl:Gain", "midr:Gain"]),
+    ("mid_freq",  t('Mids: centre'), 400.0, 3000.0, 100.0,  "Hz",  ["midl:Freq", "midr:Freq"]),
+    ("treb_gain", t('Treble'), -6.0,  10.0,    0.5,  "dB",  ["trebl:Gain", "trebr:Gain"]),
+    ("treb_freq", t('Treble: from'), 2000.0, 10000.0, 250.0, "Hz", ["trebl:Freq", "trebr:Freq"]),
+    ("loudness",  t('Loudness'), 0.0,   1.0,    1.0,  "",    ["ell:enabled", "elr:enabled"]),
 ]
 # Valeurs Asahi d'origine (sans correction d'aigus ni de médiums)
 ORIGIN = {"bass": 1.4, "mid_gain": 0.0, "mid_freq": 1200.0, "treb_gain": 0.0, "treb_freq": 4500.0, "loudness": 1.0}
@@ -41,7 +56,7 @@ def save(vals):
     # écriture en place: le fichier est un lien vers le dépôt (hardware/mac-t2/dotfiles/config/t2-audio)
     os.makedirs(os.path.dirname(CONF), exist_ok=True)
     with open(CONF, "w") as f:
-        f.write("# Réglages du DSP haut-parleurs, écrits par sound-tune\n")
+        f.write("# Speaker DSP settings, written by sound-tune\n")
         for k, *_ in PARAMS:
             f.write(f"{k} = {vals[k]:g}\n")
 
@@ -65,7 +80,7 @@ def apply(nid, vals):
 def fmt(p, v):
     key, _, _, _, _, unit, _ = p
     if key == "loudness":
-        return "activé" if v else "désactivé"
+        return t('on') if v else t('off')
     if unit == "dB":
         return f"{v:+.1f} dB"
     return f"{v:g} {unit}".strip()
@@ -77,7 +92,7 @@ def tui(scr, nid):
     vals, saved, sel, msg = load(), load(), 0, ""
     while True:
         scr.erase()
-        scr.addstr(0, 2, "Son des haut-parleurs (DSP façon macOS)", curses.A_BOLD)
+        scr.addstr(0, 2, t('Speaker sound (macOS-style DSP)'), curses.A_BOLD)
         for i, p in enumerate(PARAMS):
             key, label, lo, hi = p[:4]
             width = 20
@@ -86,8 +101,8 @@ def tui(scr, nid):
             attr = curses.A_REVERSE if i == sel else 0
             scr.addstr(2 + i, 2, f"{label:<20}", attr)
             scr.addstr(2 + i, 23, f" {bar}  {fmt(p, vals[key])}")
-        state = "" if vals == saved else "  (non sauvegardé)"
-        scr.addstr(3 + len(PARAMS), 2, "↑↓ choisir  ←→ régler  s sauver  o origine Asahi  r recharger  q quitter")
+        state = "" if vals == saved else "  " + t('(not saved)')
+        scr.addstr(3 + len(PARAMS), 2, t('↑↓ choose  ←→ adjust  s save  o Asahi origin  r reload  q quit'))
         scr.addstr(4 + len(PARAMS), 2, (msg or "") + state, curses.A_DIM)
         msg = ""
         c = scr.getch()
@@ -105,15 +120,15 @@ def tui(scr, nid):
         elif c == ord("s"):
             save(vals)
             saved = dict(vals)
-            msg = "Sauvegardé dans " + CONF
+            msg = t('Saved to %s', CONF)
         elif c == ord("o"):
             vals = dict(ORIGIN)
             apply(nid, vals)
-            msg = "Valeurs Asahi d'origine (s pour garder)"
+            msg = t('Original Asahi values (s to keep)')
         elif c == ord("r"):
             vals = load()
             apply(nid, vals)
-            msg = "Réglages sauvegardés rechargés"
+            msg = t('Saved settings reloaded')
 
 
 def main():
@@ -128,7 +143,7 @@ def main():
         return
     nid = node_id()
     if not nid:
-        sys.exit(f"Filtre {NODE} introuvable (DSP haut-parleurs non chargé ?)")
+        sys.exit(t('Filter %s not found (speaker DSP not loaded?)', NODE))
     curses.wrapper(tui, nid)
 
 

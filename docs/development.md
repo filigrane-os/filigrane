@@ -87,7 +87,9 @@ trf("Battery %1 %", &[&cap])                  // apps/bar-stats/src/i18n.rs; tr(
 
 The bar scripts (`bar-*`, `fili-*`, notifications of `watch-*`, `captive-portal`...) use `lib/i18n.sh` like `bootstrap.sh`, with the guarded header found at the top of `bar-status`. A Python script (`display-save`) calls it through a small `t()` helper. `scripts/check-i18n.sh` checks the JSON catalogs too. To add a language to the shell, copy `fr.json` to `<lang>.json`; `tests/fili-shell/run.sh` runs in English (`FILI_LANG=en`).
 
-Not translated yet: the menu (English), `sound-tune`, the niri shortcut titles, `config.env` comments and the agent skill. Documentation is in English only.
+The menu keeps its labels in English inside the script (dispatch, key hints, `menu system Lock` from the power panel) and translates them only for display: `item 'System: Lock' "$GLYPH"` for the main list, `choose 'System › ' N 'Lock' ...` for a sub-menu. The fili-launcher shows the translated first column and returns the English second one (`--with-nth 1 --accept-nth 2`). The niri shortcut titles (`hotkey-overlay-title` in `dotfiles/config/niri/config.kdl`) are English too, translated by `fili-hotkeys` and the menu; titles of a personal `local.kdl` are shown as written.
+
+Not translated: `config.env` comments and the agent skill. Documentation is in English only.
 
 ## Rust tools
 
