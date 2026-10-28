@@ -1,13 +1,14 @@
 name: CI
 
-# Sur les pull requests vers main et sur les push vers main, develop et distro.
+# Sur les pull requests vers main et sur les push vers main et develop.
 # Rien n'installe de système: on vérifie la logique de sélection
-# (profil, machine, CPU, GPU, architecture), l'existence des paquets, la config niri et la pose des dotfiles.
+# (profil, machine, CPU, GPU, architecture), l'existence des paquets, la config niri et la pose des dotfiles,
+# puis les outils Rust (apps/) et le fili-shell (tests Quickshell dans un niri sans écran).
 on:
   pull_request:
     branches: [main]
   push:
-    branches: [main, develop, distro]
+    branches: [main, develop]
 
 permissions:
   contents: read
@@ -31,6 +32,14 @@ jobs:
             head -1 "$f" | grep -qE '^#!(/bin/|/usr/bin/env )(ba)?sh' && scripts+=("$f")
           done
           shellcheck -x -S error "${scripts[@]}"
+      - name: Syntaxe Python (scripts du dépôt et de ~/.local/bin)
+        run: |
+          files=()
+          for f in $(git ls-files '*.py') dotfiles/home/.local/bin/*; do
+            case "$f" in *.py) ;; *) head -1 "$f" | grep -q '^#!.*python' || continue ;; esac
+            files+=("$f")
+          done
+          for f in "${files[@]}"; do python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"; done
       - name: JSON valides (une erreur fait ignorer tout le fichier, sans message)
         run: |
           # hardware/*/audio: SPA-JSON de PipeWire (virgules finales admises), pas du JSON strict
@@ -56,6 +65,63 @@ jobs:
           LANG=fr_FR.UTF-8 ./bootstrap.sh $plan | grep -q '^==> Profil:'
           # shellcheck disable=SC2086
           LANG=de_DE.UTF-8 ./bootstrap.sh $plan | grep -q '^==> Profile:'
+
+  # Outils maison en Rust (apps/<nom>/Cargo.toml) avec la chaîne Rust de Void: format (apps/rustfmt.toml), clippy sans
+  # avertissement, tests, compilation; outils tiers (apps/<nom>/source) compilés au commit fixé, comme bootstrap.sh
+  apps:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/void-linux/void-glibc-full:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust (version du dépôt Void)
+        run: |
+          xbps-install -Syu xbps || true
+          xbps-install -Sy bash git cargo
+      - name: Format, clippy, tests
+        shell: bash
+        run: |
+          for m in apps/*/Cargo.toml; do
+            d="$(dirname "$m")"
+            echo "::group::$d"
+            (cd "$d" && cargo fmt --check && cargo clippy --locked --all-targets -- -D warnings && cargo test --locked && cargo build --locked --release)
+            echo "::endgroup::"
+          done
+      - name: Outils tiers (apps/*/source)
+        shell: bash
+        run: |
+          for src in apps/*/source; do
+            [ -e "$src" ] || continue
+            url="$(sed -n 's/^url=//p' "$src")"; commit="$(sed -n 's/^commit=//p' "$src")"
+            bins="$(sed -n 's/^bins=//p' "$src" | tr -d '"')"
+            d="$(mktemp -d)"
+            git -C "$d" init -q && git -C "$d" fetch -q --depth 1 "$url" "$commit" && git -C "$d" checkout -q FETCH_HEAD
+            cargo build --locked --release --manifest-path "$d/Cargo.toml"
+            for b in $bins; do test -x "$d/target/release/$b"; done
+          done
+
+  # Tests du fili-shell (tests/fili-shell/ci.sh): sway sans écran, niri imbriqué, Quickshell et la vraie config chargée
+  # avec TestShell.qml, bar-stats compilé depuis apps/; programmes appelés par la fili-bar installés comme sur le bureau
+  fili-shell:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/void-linux/void-glibc-full:latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Paquets
+        run: |
+          xbps-install -Syu xbps || true
+          xbps-install -Sy bash git cargo niri sway quickshell mesa-dri dbus jq impala bluetui wiremix htop foot brightnessctl libnotify libxkbcommon-tools python3
+      - name: Utilisateur de test (bootstrap.sh refuse root)
+        run: |
+          useradd -m fili
+          cp -r "$GITHUB_WORKSPACE" /home/fili/filigrane
+          chown -R fili /home/fili/filigrane
+      - name: Tests
+        run: |
+          su fili -c 'set -e; cd ~/filigrane
+            cargo build -q --locked --release --manifest-path apps/bar-stats/Cargo.toml --target-dir /tmp/apps
+            ./bootstrap.sh --fili-shell --profile baremetal --machine generic --cpu other --gpu none --arch x86_64
+            FILI_APPS=/tmp/apps/release tests/fili-shell/ci.sh -v'
 
   # niri validate sur la config de la distribution, puis avec la couche personnelle (local.kdl)
   niri:

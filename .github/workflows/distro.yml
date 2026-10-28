@@ -1,10 +1,10 @@
 name: Distribution
 
 # Dépôt xbps de la distribution et ISO live (distro/), puis démarrage de l'ISO dans QEMU.
-# Sur la branche distro et à la demande; l'ISO est gardée 7 jours en artefact.
+# Sur main (la distribution a quitté la branche distro) et à la demande; l'ISO est gardée 7 jours en artefact.
 on:
   push:
-    branches: [distro]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

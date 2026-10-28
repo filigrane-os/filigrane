@@ -35,23 +35,26 @@ How the repository is organised, how to test a change, and what the CI checks.
 - `niri validate` before reloading the niri configuration.
 - `scripts/check-packages.sh [arch]` checks that every listed package exists in the Void repository.
 - `shellcheck -x -S error <script>` for shell scripts.
-- `tests/fili-shell/run.sh` for the Quickshell shell (bar, notifications, launcher): an isolated instance on a private D-Bus loads the real config and checks every bar click, the `fili-shell` channel, the launcher, notifications and the `FiliInfo` cards. Needs a running Wayland session (not run by the CI).
+- In `apps/<name>/`: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test` (style in `apps/rustfmt.toml`).
+- `tests/fili-shell/run.sh` for the Quickshell shell (bar, notifications, launcher): an isolated instance on a private D-Bus loads the real config and checks every bar click, the `fili-shell` channel, the launcher, notifications and the `FiliInfo` cards. Needs a running Wayland session; `tests/fili-shell/ci.sh` provides one without a desktop (headless sway hosting a nested niri) and is what the CI runs.
 - A virtual machine is the best test bed: dotfiles there are links into a clone of the repo, so edits are live. `scripts/pull-from-vm.sh [host]` copies the configuration folders back to your working copy; read `git diff`, then commit.
 - Never run `install-void.sh` on a disk you care about.
 
 ## Continuous integration
 
-`.github/workflows/ci.yml` runs on pull requests to `main` and on pushes to `main`, `develop` and `distro`. Nothing installs a system; it checks:
+`.github/workflows/ci.yml` runs on pull requests to `main` and on pushes to `main` and `develop`. Nothing installs a system; it checks:
 
 | Job | Checks |
 |---|---|
-| `lint` | `bash -n` and `shellcheck` on scripts (including `~/.local/bin`), valid JSON, `CLAUDE.md` imports `AGENTS.md`, skills have `name` and `description` |
+| `lint` | `bash -n` and `shellcheck` on scripts (including `~/.local/bin`), Python syntax, valid JSON, translation catalogs, `CLAUDE.md` imports `AGENTS.md`, skills have `name` and `description` |
 | `plan` | `bootstrap.sh --plan` for 8 configurations (VM, Intel / AMD / NVIDIA / hybrid PCs, T2 Mac, ARM, RISC-V), invalid options rejected, the personal layer only appears with `--user-layer` |
 | `packages` | Every listed package exists in the Void repository (aarch64 is informational: some Intel or proprietary packages are missing there) |
 | `niri` | `niri validate` on the distribution config and with each personal `local.kdl` |
+| `apps` | Rust tools in `apps/`: `cargo fmt --check`, `clippy -D warnings`, tests and release build with Void's toolchain; third-party tools (`apps/<name>/source`) built at their pinned commit |
+| `fili-shell` | `tests/fili-shell/ci.sh` in a Void container: Quickshell loads the real config inside a nested niri on headless sway, with `bar-stats` built from `apps/` |
 | `dotfiles` | Dotfiles applied in a clean `HOME` for `generic` and `mac-t2`: no broken link, T2 files only on the T2 machine, agent skills linked, `fili-ai` smoke test, idempotence |
 
-`.github/workflows/distro.yml` (branch `distro`, or by hand) builds the xbps repository and the ISO in a privileged Void container, boots it in QEMU up to the login prompt, and keeps the ISO as an artifact for 7 days.
+`.github/workflows/distro.yml` (pushes to `main`, or by hand) builds the xbps repository and the ISO in a privileged Void container, boots it in QEMU up to the login prompt, and keeps the ISO as an artifact for 7 days.
 
 ## Translations
 
