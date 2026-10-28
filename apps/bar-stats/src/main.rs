@@ -110,7 +110,7 @@ impl Usage {
         let secs = self.prev_t.elapsed().as_secs_f64();
         self.prev_t = Instant::now();
         let (busy, total) = (cur_cpu.0 - self.prev_cpu.0, cur_cpu.1 - self.prev_cpu.1);
-        let usage = if total > 0 { busy * 100 / total } else { 0 };
+        let usage = (busy * 100).checked_div(total).unwrap_or(0);
         let mut top: Vec<(f64, &Proc)> = now.iter().map(|(pid, p)| (self.pct(*pid, p, secs), p)).collect();
         top.sort_by(|a, b| b.0.total_cmp(&a.0));
         self.top = top.iter().take(5).map(|(pct, p)| (clean(&p.name), *pct)).collect();
@@ -118,7 +118,11 @@ impl Usage {
             .iter()
             .take(5)
             .map(|(pct, p)| {
-                let mem = if p.rss_kb >= 1_048_576 { format!("{:.1}G", p.rss_kb as f64 / 1_048_576.0) } else { format!("{}M", p.rss_kb / 1024) };
+                let mem = if p.rss_kb >= 1_048_576 {
+                    format!("{:.1}G", p.rss_kb as f64 / 1_048_576.0)
+                } else {
+                    format!("{}M", p.rss_kb / 1024)
+                };
                 format!("{:<22} {pct:5.1}%  {mem}", clean(&p.name))
             })
             .collect();
@@ -126,7 +130,11 @@ impl Usage {
 
         let info = fs::read_to_string("/proc/meminfo").unwrap_or_default();
         let field = |k: &str| {
-            info.lines().find(|l| l.starts_with(k)).and_then(|l| l.split_whitespace().nth(1)).and_then(|v| v.parse::<u64>().ok()).unwrap_or(0)
+            info.lines()
+                .find(|l| l.starts_with(k))
+                .and_then(|l| l.split_whitespace().nth(1))
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(0)
         };
         let used = field("MemTotal:").saturating_sub(field("MemAvailable:")) as f64 / 1_048_576.0;
         // RSS cumulé par nom de processus
@@ -135,12 +143,13 @@ impl Usage {
             *by_name.entry(&p.name).or_default() += p.rss_kb;
         }
         let mut top: Vec<(&str, u64)> = by_name.into_iter().collect();
-        top.sort_by(|a, b| b.1.cmp(&a.1));
+        top.sort_by_key(|a| std::cmp::Reverse(a.1));
         let tip: Vec<String> = top
             .iter()
             .take(5)
             .map(|(n, kb)| {
-                let v = if *kb >= 1_048_576 { format!("{:.1} Go", *kb as f64 / 1_048_576.0) } else { format!("{} Mo", kb / 1024) };
+                let v =
+                    if *kb >= 1_048_576 { format!("{:.1} Go", *kb as f64 / 1_048_576.0) } else { format!("{} Mo", kb / 1024) };
                 format!("{:<22} {v}", clean(n))
             })
             .collect();
@@ -230,7 +239,15 @@ fn disk(shown: &mut bool) {
         return;
     }
     let class = if pct >= 95.0 { "critical" } else { "" };
-    stat("disk", &format!(r#"{{"text":" {pct}%","class":"{class}","tooltip":"{} / {} ({} libres)"}}"#, human(used), human(total), human(avail)));
+    stat(
+        "disk",
+        &format!(
+            r#"{{"text":" {pct}%","class":"{class}","tooltip":"{} / {} ({} libres)"}}"#,
+            human(used),
+            human(total),
+            human(avail)
+        ),
+    );
 }
 
 // Interface de la route par défaut (/proc/net/route, destination 0)
@@ -253,9 +270,16 @@ fn ipv4(iface: &str) -> Option<(Ipv4Addr, u32)> {
         let mut found = None;
         while !cur.is_null() {
             let a = &*cur;
-            if !a.ifa_addr.is_null() && i32::from((*a.ifa_addr).sa_family) == libc::AF_INET && CStr::from_ptr(a.ifa_name).to_str() == Ok(iface) {
+            if !a.ifa_addr.is_null()
+                && i32::from((*a.ifa_addr).sa_family) == libc::AF_INET
+                && CStr::from_ptr(a.ifa_name).to_str() == Ok(iface)
+            {
                 let sin = &*(a.ifa_addr as *const libc::sockaddr_in);
-                let mask = if a.ifa_netmask.is_null() { 0 } else { (*(a.ifa_netmask as *const libc::sockaddr_in)).sin_addr.s_addr.count_ones() };
+                let mask = if a.ifa_netmask.is_null() {
+                    0
+                } else {
+                    (*(a.ifa_netmask as *const libc::sockaddr_in)).sin_addr.s_addr.count_ones()
+                };
                 found = Some((Ipv4Addr::from(u32::from_be(sin.sin_addr.s_addr)), mask));
                 break;
             }
@@ -306,11 +330,22 @@ impl Net {
         } else {
             0
         };
-        let level = if !wifi { -1 } else if q >= 70 { 3 } else if q >= 45 { 2 } else if q >= 20 { 1 } else { 0 };
+        let level = if !wifi {
+            -1
+        } else if q >= 70 {
+            3
+        } else if q >= 45 {
+            2
+        } else if q >= 20 {
+            1
+        } else {
+            0
+        };
         if changed && wifi {
             let out = process::Command::new("iw").args(["dev", iface.as_deref().unwrap_or(""), "link"]).output();
             let text = out.map(|o| String::from_utf8_lossy(&o.stdout).into_owned()).unwrap_or_default();
-            let field = |k: &str| text.lines().find_map(|l| l.trim().strip_prefix(k).map(|v| v.trim().to_string())).unwrap_or_default();
+            let field =
+                |k: &str| text.lines().find_map(|l| l.trim().strip_prefix(k).map(|v| v.trim().to_string())).unwrap_or_default();
             self.ssid = field("SSID:");
             self.freq = field("freq:").split('.').next().unwrap_or("").to_string();
         }
@@ -339,7 +374,11 @@ impl Net {
                 let glyph = ['\u{F091F}', '\u{F0922}', '\u{F0925}', '\u{F0928}'][level as usize];
                 let ghz = self.freq.parse::<f64>().map(|f| format!("{:.1}", f / 1000.0)).unwrap_or_default();
                 let full = clean(&self.ssid);
-                let name = if full.chars().count() > 16 { format!("{}…", full.chars().take(15).collect::<String>()) } else { full.clone() };
+                let name = if full.chars().count() > 16 {
+                    format!("{}…", full.chars().take(15).collect::<String>())
+                } else {
+                    full.clone()
+                };
                 format!(r#"{{"text":"{glyph} {name}","class":"wifi","tooltip":"{full} ({q}%)  {ghz} GHz\n{ipt}\n{bw}"}}"#)
             }
             Some(i) => format!(r#"{{"text":" {i}","class":"ethernet","tooltip":"{i}: {ipt}\n{bw}"}}"#),
@@ -367,7 +406,11 @@ fn ssh_in() -> usize {
 
 // Mode avion: une radio bloquée par logiciel (`rfkill list` « Soft blocked: yes »)
 fn airplane() -> bool {
-    fs::read_dir("/sys/class/rfkill").into_iter().flatten().flatten().any(|e| fs::read_to_string(e.path().join("soft")).is_ok_and(|s| s.trim() == "1"))
+    fs::read_dir("/sys/class/rfkill")
+        .into_iter()
+        .flatten()
+        .flatten()
+        .any(|e| fs::read_to_string(e.path().join("soft")).is_ok_and(|s| s.trim() == "1"))
 }
 
 // Interfaces VPN levées (IFF_UP)
@@ -434,7 +477,9 @@ fn backup(dir: &str, env: &str) -> String {
     }
     let last = fs::metadata(format!("{dir}/backup.stamp")).map_or("jamais".into(), |m| local_time(m.mtime(), c"%d/%m %H:%M"));
     if fs::read_to_string(format!("{dir}/backup.status")).is_ok_and(|s| s.trim() == "fail") {
-        format!(r#"{{"text":"{g}","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: {last}). Clic: réessayer"}}"#)
+        format!(
+            r#"{{"text":"{g}","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: {last}). Clic: réessayer"}}"#
+        )
     } else {
         format!(r#"{{"text":"{g}","class":"idle","tooltip":"Sauvegarde NAS (dernière: {last}). Clic: sauvegarder maintenant"}}"#)
     }
@@ -484,13 +529,25 @@ impl Watch {
         self.put("backup", j);
         if ssh || !self.seen.contains_key("remote") {
             let n = ssh_in();
-            let j = if n > 0 { format!(r#"{{"text":"","class":"active","tooltip":"{n} session(s) SSH entrante(s)"}}"#) } else { r#"{"text":""}"#.into() };
+            let j = if n > 0 {
+                format!(r#"{{"text":"","class":"active","tooltip":"{n} session(s) SSH entrante(s)"}}"#)
+            } else {
+                r#"{"text":""}"#.into()
+            };
             self.put("remote", j);
         }
-        let j = if airplane() { r#"{"text":"","class":"active","tooltip":"Mode avion (clic: désactiver)"}"#.into() } else { r#"{"text":""}"#.into() };
+        let j = if airplane() {
+            r#"{"text":"","class":"active","tooltip":"Mode avion (clic: désactiver)"}"#.into()
+        } else {
+            r#"{"text":""}"#.into()
+        };
         self.put("air", j);
         let v = vpn();
-        let j = if v.is_empty() { r#"{"text":""}"#.into() } else { format!(r#"{{"text":" VPN","class":"active","tooltip":"VPN actif: {v}"}}"#) };
+        let j = if v.is_empty() {
+            r#"{"text":""}"#.into()
+        } else {
+            format!(r#"{{"text":" VPN","class":"active","tooltip":"VPN actif: {v}"}}"#)
+        };
         self.put("vpn", j);
     }
 
@@ -510,7 +567,8 @@ impl Watch {
         // bouge sous 10 % sur batterie, et une fois au retour (chargeur branché) pour réarmer l'alerte.
         // status interroge le matériel (~1 ms, contre quelques µs pour capacity): lu seulement sous 10 %
         let cap = fs::read_to_string(format!("{BAT}/capacity")).ok().and_then(|s| s.trim().parse::<u8>().ok()).unwrap_or(100);
-        let status = if cap <= 10 || self.low { fs::read_to_string(format!("{BAT}/status")).unwrap_or_default() } else { String::new() };
+        let status =
+            if cap <= 10 || self.low { fs::read_to_string(format!("{BAT}/status")).unwrap_or_default() } else { String::new() };
         let now_low = status.trim() == "Discharging" && cap <= 10;
         let fp = format!("{} {cap}", status.trim());
         if (now_low || self.low) && fp != self.bat_seen {
@@ -524,7 +582,11 @@ impl Watch {
 fn uevent_socket() -> Option<i32> {
     // SAFETY: appels système sur une structure initialisée à zéro; le descripteur reste ouvert jusqu'à la fin
     unsafe {
-        let fd = libc::socket(libc::AF_NETLINK, libc::SOCK_DGRAM | libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK, libc::NETLINK_KOBJECT_UEVENT);
+        let fd = libc::socket(
+            libc::AF_NETLINK,
+            libc::SOCK_DGRAM | libc::SOCK_CLOEXEC | libc::SOCK_NONBLOCK,
+            libc::NETLINK_KOBJECT_UEVENT,
+        );
         if fd < 0 {
             return None;
         }
@@ -589,7 +651,10 @@ fn info_cli(topic: &str, page_kb: u64, hz: f64) {
     let json = match topic {
         "network" => {
             let gw = default_iface().and_then(|i| info::gateway(&i));
-            let ping = gw.and_then(|g| info::ping_cmd(g).output().ok()).map(|o| info::ping_time(&String::from_utf8_lossy(&o.stdout))).unwrap_or_default();
+            let ping = gw
+                .and_then(|g| info::ping_cmd(g).output().ok())
+                .map(|o| info::ping_time(&String::from_utf8_lossy(&o.stdout)))
+                .unwrap_or_default();
             info::network(&ping)
         }
         "power" => info::power(),
@@ -674,7 +739,8 @@ fn main() {
             libc::pollfd { fd: ping_fd, events: libc::POLLIN, revents: 0 },
         ];
         // SAFETY: tableau local de pollfd valides (fd négatif ignoré par poll)
-        let r = unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, wait.as_millis().min(i32::MAX as u128) as i32 + 1) };
+        let r =
+            unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, wait.as_millis().min(i32::MAX as u128) as i32 + 1) };
         if r <= 0 {
             continue;
         }
@@ -711,7 +777,13 @@ fn main() {
                                 // Fiche tout de suite, puis de nouveau avec le ping de la passerelle
                                 if ping.is_none() {
                                     let gw = default_iface().and_then(|i| info::gateway(&i));
-                                    ping = gw.and_then(|g| info::ping_cmd(g).stdout(process::Stdio::piped()).stderr(process::Stdio::null()).spawn().ok());
+                                    ping = gw.and_then(|g| {
+                                        info::ping_cmd(g)
+                                            .stdout(process::Stdio::piped())
+                                            .stderr(process::Stdio::null())
+                                            .spawn()
+                                            .ok()
+                                    });
                                     if let Some(o) = ping.as_ref().and_then(|c| c.stdout.as_ref()) {
                                         nonblock(o.as_raw_fd());
                                     }

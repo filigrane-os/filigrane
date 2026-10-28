@@ -51,7 +51,10 @@ fn procs(page_kb: u64) -> HashMap<u32, Proc> {
             .ok()
             .and_then(|s| s.lines().find(|l| l.starts_with("Pss:")).and_then(|l| l.split_whitespace().nth(1)?.parse().ok()));
         let container = fs::read_to_string(format!("/proc/{pid}/cgroup")).is_ok_and(|c| c.contains("libpod"));
-        out.insert(pid, Proc { name: stat[a + 1..b].to_string(), ppid: n(1) as u32, ticks: n(11) + n(12), kb: pss.unwrap_or(rss), container });
+        out.insert(
+            pid,
+            Proc { name: stat[a + 1..b].to_string(), ppid: n(1) as u32, ticks: n(11) + n(12), kb: pss.unwrap_or(rss), container },
+        );
     }
     out
 }
@@ -62,7 +65,9 @@ fn ticks_of(procs: &HashMap<u32, Proc>) -> HashMap<u32, (String, u64)> {
 
 fn meminfo() -> (u64, u64, u64) {
     let info = fs::read_to_string("/proc/meminfo").unwrap_or_default();
-    let field = |k: &str| info.lines().find(|l| l.starts_with(k)).and_then(|l| l.split_whitespace().nth(1)?.parse::<u64>().ok()).unwrap_or(0);
+    let field = |k: &str| {
+        info.lines().find(|l| l.starts_with(k)).and_then(|l| l.split_whitespace().nth(1)?.parse::<u64>().ok()).unwrap_or(0)
+    };
     (field("MemTotal:"), field("MemAvailable:"), field("SwapTotal:").saturating_sub(field("SwapFree:")))
 }
 
@@ -70,7 +75,9 @@ fn meminfo() -> (u64, u64, u64) {
 // en RAM (zram, mm_stat: 3e champ en octets). Le reste non attribué: tmpfs, mémoire partagée que plus personne ne mappe.
 fn hidden_kb() -> (u64, u64) {
     let info = fs::read_to_string("/proc/meminfo").unwrap_or_default();
-    let field = |k: &str| info.lines().find(|l| l.starts_with(k)).and_then(|l| l.split_whitespace().nth(1)?.parse::<u64>().ok()).unwrap_or(0);
+    let field = |k: &str| {
+        info.lines().find(|l| l.starts_with(k)).and_then(|l| l.split_whitespace().nth(1)?.parse::<u64>().ok()).unwrap_or(0)
+    };
     let zram: u64 = fs::read_dir("/sys/block")
         .into_iter()
         .flatten()
@@ -138,7 +145,7 @@ fn limits() -> Limits {
 // budget lui-même est ignoré.
 fn app_pids(procs: &HashMap<u32, Proc>, lim: &Limits) -> Vec<u32> {
     let is_app = |p: &Proc| p.container || lim.apps.iter().any(|a| p.name.starts_with(a.as_str()));
-    let is_term = |pid: u32| procs.get(&pid).is_some_and(|p| lim.terminals.iter().any(|t| p.name == *t));
+    let is_term = |pid: u32| procs.get(&pid).is_some_and(|p| lim.terminals.contains(&p.name));
     let me = process::id();
     procs
         .keys()
@@ -203,7 +210,7 @@ fn signed(kb: i64) -> String {
 
 fn sorted(map: &HashMap<String, Group>) -> Vec<(&String, &Group)> {
     let mut v: Vec<_> = map.iter().collect();
-    v.sort_by(|a, b| b.1.kb.cmp(&a.1.kb));
+    v.sort_by_key(|a| std::cmp::Reverse(a.1.kb));
     v
 }
 
@@ -260,7 +267,7 @@ fn show(secs: u64, page_kb: u64, hz: f64) {
         println!("  {:<24} {:>8}  {:>7}", label(name, g), size(g.kb), pct_fr(pct(g.ticks)));
     }
     let mut busy: Vec<_> = snap.system.iter().filter(|(_, g)| pct(g.ticks) >= 0.5).collect();
-    busy.sort_by(|a, b| b.1.ticks.cmp(&a.1.ticks));
+    busy.sort_by_key(|a| std::cmp::Reverse(a.1.ticks));
     if !busy.is_empty() {
         println!("\nSystème actif pendant la mesure (>= 0,5 %: à surveiller s'il ne se passe rien):");
         for (name, g) in busy {
@@ -302,7 +309,11 @@ fn diff(name: &str, page_kb: u64) {
     for line in text.lines() {
         let Some((n, kb)) = line.split_once('\t') else { continue };
         let kb = kb.parse().unwrap_or(0);
-        if n == "#system" { base_sys = kb } else { base.insert(n.to_string(), kb); }
+        if n == "#system" {
+            base_sys = kb
+        } else {
+            base.insert(n.to_string(), kb);
+        }
     }
     let snap = snapshot(&procs(page_kb), &limits());
     println!("Système: {} → {} ({})", size(base_sys), size(snap.system_kb()), signed(snap.system_kb() as i64 - base_sys as i64));
@@ -319,7 +330,7 @@ fn diff(name: &str, page_kb: u64) {
         }
     }
     rows.retain(|r| r.1.unsigned_abs() >= 1024);
-    rows.sort_by(|a, b| b.1.abs().cmp(&a.1.abs()));
+    rows.sort_by_key(|a| std::cmp::Reverse(a.1.abs()));
     for (n, d, tag) in rows.iter().take(20) {
         println!("  {n:<24} {:>10}{tag}", signed(*d));
     }
