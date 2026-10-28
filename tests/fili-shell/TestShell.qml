@@ -237,10 +237,10 @@ ShellRoot {
             () => ok(BarState.timer["class"] === "done", "BarState: minuteur écoulé -> bar-timer expire", FiliTheme.ran.join(" ")),
             wait(() => t.shell('rm -f "$XDG_RUNTIME_DIR/bar-timer" "$XDG_RUNTIME_DIR/bar-tray-open"'), () => BarState.timerFile.kind === "" && !BarState.trayOpen),
             () => ok(BarState.timer["class"] === "idle" && t.find(t.bar.contentItem, "tray-handle").cls === "", "BarState: fichiers supprimés -> repos"),
-            // Bluetooth: nombre d'appareils connectés (ou OFF / SHARE), plus de ON
+            // Bluetooth: nombre d'appareils connectés (ou OFF / SHARE), plus de ON; icône seule sans adaptateur (CI)
             () => {
                 const bt = t.find(t.bar.contentItem, "bluetooth");
-                ok(bt.text === "" || / (OFF|SHARE|\d+)$/.test(bt.text), "fili-bar bluetooth: nombre d'appareils connectés", bt.text);
+                ok(/^[^ ]+( (OFF|SHARE|\d+))?$/.test(bt.text) && (bt.adapter ? bt.text.indexOf(" ") > 0 : bt.text.indexOf(" ") < 0), "fili-bar bluetooth: nombre d'appareils connectés (icône seule sans adaptateur)", bt.text);
             },
             // Sauvegarde en cours: clignote par un Timer (opacité basculée chaque seconde), pas par une animation
             () => BarState.setBackup({ text: "", class: "active", tooltip: "test" }),

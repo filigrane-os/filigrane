@@ -35,6 +35,9 @@ def char(name):
 keys = {}
 for m in re.finditer(r'key <(\w+)>\s*\{(.*?)\};', keymap, re.S):
     s = re.search(r'symbols\[%d\]\s*=\s*\[([^\]]*)\]' % (group + 1), m.group(2))
+    # Une seule disposition: xkbcli écrit `{ [ q, Q ] }`, sans symbols[1]
+    if not s and group == 0 and "symbols[" not in m.group(2):
+        s = re.match(r'\s*\[([^\]]*)\]', m.group(2))
     if s:
         syms = [x.strip() for x in s.group(1).split(",")]
         keys[m.group(1)] = (syms + ["NoSymbol"] * 4)[:4]

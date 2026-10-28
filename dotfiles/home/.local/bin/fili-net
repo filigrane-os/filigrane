@@ -2,7 +2,8 @@
 # Actions Wi-Fi du panneau réseau de la fili-shell (iwd, via iwctl). Sorties en JSON sur stdout.
 # Usage: fili-net list | scan | connect SSID [MOT_DE_PASSE] | forget SSID | power on|off | disconnect
 # Mot de passe lu aussi sur FILI_NET_PASS (évite la ligne de commande visible dans ps).
-dev="$(iwctl device list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/station/ { print $1; exit }')"
+# iwd absent ou arrêté: iwctl attend sans fin, d'où le délai (le panneau affiche alors "pas de Wi-Fi")
+dev="$(timeout 3 iwctl device list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/station/ { print $1; exit }')"
 [ -n "$dev" ] || { echo '{"device":"","powered":false,"networks":[]}'; exit 0; }
 strip() { sed 's/\x1b\[[0-9;]*m//g'; }
 
