@@ -44,6 +44,7 @@ _t_lookup() {
     'Mac with a T2 chip') _t_fmt='Mac à puce T2' ;;
     'SKIP: apps/ provided by the %s-apps package') _t_fmt='SKIP: apps/ fournies par le paquet %s-apps' ;;
     'cargo missing (packages/dev.txt): apps/ not built') _t_fmt='cargo absent (packages/dev.txt): apps/ non compilées' ;;
+    'cargo or git missing: %s not built') _t_fmt='cargo ou git absent: %s non compilé' ;;
     'Building %s (%s)') _t_fmt='Compilation de %s (%s)' ;;
     'Build of %s failed') _t_fmt='compilation de %s échouée' ;;
     'Restricted packages (xbps-src): %s') _t_fmt='Paquets restricted (xbps-src): %s' ;;
@@ -58,7 +59,9 @@ _t_lookup() {
     'Dotfiles for machine %s') _t_fmt='Dotfiles de la machine %s' ;;
     'Dotfiles for layer users/%s') _t_fmt='Dotfiles de la couche users/%s' ;;
     'fc-cache failed') _t_fmt='fc-cache a échoué' ;;
-    'gsettings: theme and fonts not applied (no D-Bus session)') _t_fmt='gsettings: thème et polices non appliqués (pas de session D-Bus)' ;;
+    'gsettings: fonts not applied (no D-Bus session)') _t_fmt='gsettings: polices non appliquées (pas de session D-Bus)' ;;
+    'fili-theme apply failed') _t_fmt='fili-theme apply a échoué' ;;
+    'fili-shell (symlinks to %s)') _t_fmt='fili-shell (liens symboliques vers %s)' ;;
     'Thunar: Space = quick look (quicklook)') _t_fmt='Thunar: Espace = aperçu rapide (quicklook)' ;;
     'Mac T2: Speaker route volume set to 1.0 (restart wireplumber to apply)') _t_fmt='Mac T2: volume de la route Speaker à 1.0 (relancer wireplumber pour l'\''appliquer)' ;;
     'Done') _t_fmt='Terminé' ;;
