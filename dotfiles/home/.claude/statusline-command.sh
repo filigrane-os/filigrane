@@ -1,7 +1,8 @@
 #!/bin/bash
 # Status line Claude Code: modèle, effort, dossier, branche git, usage du contexte.
-# Entrée: JSON sur stdin.
+# Entrée: JSON sur stdin, transmis aussi au module IA de la fili-bar (contexte, coût, limites du forfait).
 input=$(cat)
+[ -x "$HOME/.local/bin/fili-ai-session" ] && "$HOME/.local/bin/fili-ai-session" status <<<"$input" >/dev/null 2>&1
 
 model=$(jq -r '.model.display_name // "?"' <<<"$input")
 effort=$(jq -r '.effort.level // empty' <<<"$input")

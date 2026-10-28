@@ -33,7 +33,8 @@ Item {
 
     property string text: ""
     property string cls: ""
-    property string tip: ""
+    // Texte ou fiche de la fili-tooltip (voir FiliTooltip)
+    property var tip: ""
     // Ligne d'aide de la fili-tooltip (actions des clics)
     property string hint
     // Fiche lue au survol (remplace le texte du script), voir BarHover

@@ -47,7 +47,7 @@ MAP = {
     0xF1FC: "paintbrush", 0xF1B2: "package", 0xF005: "star", 0xF08B: "log-out", 0xF01E: "rotate-cw",
     0xF025: "headphones", 0xF0AC: "globe", 0xF03E: "image", 0xF1F8: "trash-2", 0xF019: "download",
     0xF12D: "eraser", 0xF120: "terminal", 0xF121: "code", 0xF080: "chart-column", 0xF0DB: "columns-2",
-    0xF030: "camera", 0xF2D0: "app-window", 0xF0EB: "lightbulb", 0xF05A: "info",
+    0xF030: "camera", 0xF2D0: "app-window", 0xF0EB: "lightbulb", 0xF05A: "info", 0xF06A9: "bot",
 }
 
 

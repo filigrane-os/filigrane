@@ -6,6 +6,7 @@ pragma Singleton
 //   tiroir    $XDG_RUNTIME_DIR/bar-tray-open          présent = ouvert (bar-tray toggle)
 //   minuteur  $XDG_RUNTIME_DIR/bar-timer              "T <fin>" | "S <début>" | "done" (bar-timer click/add/expire)
 //   sauvegarde                                         stat backup de bar-stats, gardée visible 10 s après la fin
+//   agent IA   $XDG_RUNTIME_DIR/fili-ai/state.json     sessions de Claude Code et limites du forfait (fili-ai-session)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -136,6 +137,88 @@ Singleton {
         // FileView ne voit pas naître un fichier dans un dossier absent
         if (!FiliTheme.testing)
             Quickshell.execDetached(["mkdir", "-p", alerts]);
+    }
+
+    // ───── agent IA ─────
+    // Sessions écrites par fili-ai-session (hooks et status line de Claude Code): état, fenêtre niri, contexte, coût;
+    // limites du forfait gardées après la dernière session. Fenêtre d'une session qui attend regardée: plus de mise en
+    // avant (fili-ai-session seen)
+    Watched { id: aiF; path: st.run + "/fili-ai/state.json" }
+    property var aiData: ({ sessions: [], limits: null })
+    readonly property string aiText: aiF.content
+    onAiTextChanged: {
+        try {
+            aiData = aiText.trim() ? JSON.parse(aiText) : { sessions: [], limits: null };
+        } catch (e) {
+            // Fichier en cours d'écriture: l'état précédent reste
+        }
+        aiSeen();
+    }
+    readonly property var ai: aiFor(aiData, Niri.focusedId, Niri.windows)
+    Connections {
+        target: Niri
+        function onFocusedIdChanged() {
+            st.aiSeen();
+        }
+    }
+    function aiSeen() {
+        for (const s of aiData.sessions ?? [])
+            if (s.attention && s.window !== undefined && s.window === Niri.focusedId)
+                FiliTheme.run(FiliTheme.bin + "/fili-ai-session seen " + s.id);
+    }
+    // Nom d'une session: titre de sa fenêtre (sujet donné par Claude Code, sans son indicateur d'activité ✳ ◐ ⠋...), sinon son dossier
+    function aiName(s, windows) {
+        const title = (windows?.[s.window]?.title ?? "").replace(/^[\u2000-\u2bff\s]+/, "");
+        return title || (s.cwd ?? "").split("/").filter(x => x).pop() || "~";
+    }
+    function aiLimit(l, fmt) {
+        if (!l || l.used_percentage === undefined)
+            return "";
+        const reset = l.resets_at ? " · " + FiliI18n.tr("resets %1", FiliI18n.locale.toString(new Date(l.resets_at * 1000), fmt)) : "";
+        return Math.round(l.used_percentage) + " %" + reset;
+    }
+    function aiFor(data, focused, windows) {
+        const icon = String.fromCodePoint(0xf06a9);
+        const sessions = data?.sessions ?? [];
+        // Une session regardée en ce moment n'appelle plus l'attention
+        const calls = sessions.filter(s => s.attention && s.window !== focused);
+        const rows = sessions.slice(0, 6).map(s => {
+            const state = { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s.state] ?? FiliI18n.tr("ready");
+            const parts = [state];
+            if (s.ctx !== undefined && s.ctx !== null)
+                parts.push(FiliI18n.tr("context %1 %", Math.round(s.ctx)));
+            if (s.cost)
+                parts.push(FiliI18n.num(s.cost, 2) + " $");
+            if (s.model)
+                parts.push(s.model);
+            return [aiName(s, windows), parts.join(" · ")];
+        });
+        const waitMsg = sessions.find(s => s.state === "waiting" && s.message)?.message;
+        if (waitMsg)
+            rows.push(["", waitMsg]);
+        if (sessions.length === 0)
+            rows.push([FiliI18n.tr("Sessions"), FiliI18n.tr("none")]);
+        const lim = data?.limits;
+        const five = aiLimit(lim?.five_hour, "HH:mm"), week = aiLimit(lim?.seven_day, "ddd HH:mm");
+        if (five)
+            rows.push([FiliI18n.tr("5-hour limit"), five]);
+        if (week)
+            rows.push([FiliI18n.tr("Weekly limit"), week]);
+        if ((five || week) && lim.seen && Date.now() / 1000 - lim.seen > 900)
+            rows.push(["", FiliI18n.tr("as of %1", FiliI18n.locale.toString(new Date(lim.seen * 1000), "ddd HH:mm"))]);
+        const card = {
+            title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
+            rows: rows,
+            hint: FiliI18n.tr("click: go to the session (none: start the agent) · middle click: new session · right click: choose the agent")
+        };
+        if (calls.some(s => s.state === "waiting"))
+            return { text: icon + " ASK", class: "waiting", tooltip: card };
+        if (calls.length)
+            return { text: icon + " DONE", class: "done", tooltip: card };
+        const working = sessions.filter(s => s.state === "working").length;
+        if (sessions.length)
+            return { text: icon + (sessions.length > 1 ? " " + sessions.length : ""), class: working ? "working" : "idle", tooltip: card };
+        return { text: icon, class: "off", tooltip: card };
     }
 
     // ───── minuteur / chronomètre ─────

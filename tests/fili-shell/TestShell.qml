@@ -178,6 +178,10 @@ ShellRoot {
                 expectClick("display", "down", "brightnessctl -q set 5%-");
                 expectClick("network", R, "menu network");
                 expectClick("power", R, "menu system");
+                // Agent IA: clic = session qui attend (ou fili-ai), milieu = nouvelle session, droit = choix de l'agent
+                expectClick("ai", L, "fili-ai-session focus");
+                expectClick("ai", M, "fili-ai-session new");
+                expectClick("ai", R, "fili-ai pick");
                 // Cloche: clic = fili-notification-center, clic droit = ne pas déranger (remis en l'état)
                 const was = FiliNotification.dnd;
                 act("notifications", L);
@@ -189,7 +193,7 @@ ShellRoot {
                 FiliTheme.ran = [];
             },
             // Les commandes des clics existent (scripts du dépôt)
-            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
+            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats fili-ai fili-ai-session; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts appelés par la fili-bar présents dans " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installés
@@ -228,6 +232,16 @@ ShellRoot {
                 const r = BarState.timerFor("T", now + 3700, now);
                 ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
                 ok(BarState.timerFor("T", now - 1, now)["class"] === "done" && BarState.timerFor("", 0, now)["class"] === "idle", "BarState: minuteur écoulé / au repos");
+                // Agent IA (fili-ai-session): repos, au travail, question en attente, tour fini sans être regardé
+                ok(BarState.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: agent IA sans session");
+                const lim = { five_hour: { used_percentage: 34.4, resets_at: now + 3600 }, seven_day: { used_percentage: 12 }, seen: Date.now() / 1000 };
+                const busy = BarState.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } });
+                ok(busy["class"] === "working" && busy.tooltip.rows[0][0] === "Icône IA" && busy.tooltip.rows[0][1].indexOf("context 43 %") >= 0
+                   && busy.tooltip.rows.some(r => r[0] === "5-hour limit" && r[1].startsWith("34 %")), "BarState: agent IA au travail, fiche (titre, contexte, limites)", JSON.stringify(busy));
+                const ask = BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
+                ok(ask.text.endsWith(" ASK") && ask["class"] === "waiting" && ask.tooltip.rows.some(r => r[1] === "Bash?"), "BarState: agent IA en attente (ASK)", JSON.stringify(ask));
+                ok(BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: agent IA regardé, plus mis en avant");
+                ok(BarState.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: agent IA, tour fini (DONE)");
             },
             wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
                  () => BarState.timerFile.kind === "S" && BarState.trayOpen),

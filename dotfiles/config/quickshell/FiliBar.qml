@@ -341,6 +341,18 @@ PanelWindow {
 
         // Système: sortie audio, clavier, écrans, Bluetooth, réseau, notifications
         Row {
+            // Agent IA (fili-ai-session, état lu par BarState): sable et clignotant quand une session attend une réponse,
+            // DONE quand elle a fini sans être regardée; clic = la session qui attend, sinon la dernière (encore: la
+            // suivante), aucune: fili-ai comme Mod+Y; clic milieu = nouvelle session, clic droit = choisir l'agent
+            BarScript {
+                objectName: "ai"
+                value: BarState.ai
+                colors: ({ off: FiliTheme.ardoise, idle: FiliTheme.brume2, working: FiliTheme.brume, waiting: FiliTheme.sable, done: FiliTheme.voile })
+                blinkClass: "waiting"
+                click: bar.b + "/fili-ai-session focus"
+                mclick: bar.b + "/fili-ai-session new"
+                rclick: bar.b + "/fili-ai pick"
+            }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
             BarItem {
                 objectName: "volume"

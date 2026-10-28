@@ -1,0 +1,211 @@
+#!/bin/bash
+# Sessions of the AI agent for the fili-bar (AI module): state of each Claude Code session, the niri window it runs
+# in, its context, cost and plan limits; notification and highlighted icon when the agent waits for the user.
+#
+#   fili-ai-session hook      Claude Code hook (JSON on stdin): SessionStart, UserPromptSubmit, PostToolUse,
+#                             Notification, Stop, SessionEnd (hooks of ~/.claude/settings.json)
+#   fili-ai-session status    status line data (JSON on stdin), passed on by ~/.claude/statusline-command.sh
+#   fili-ai-session focus     bar click: focus the session waiting for the user, else the latest one (again: the next
+#                             one); no session with a window: start fili-ai (as Mod+Y)
+#   fili-ai-session new       new session (as Mod+Y)
+#   fili-ai-session seen ID   the user looked at session ID (its window got the focus): no more highlight
+#
+# State in $XDG_RUNTIME_DIR/fili-ai (tmpfs): sessions/<id>.json (one per session, removed when its agent is gone),
+# limits.json (latest plan limits seen) and state.json, both together, read by the fili-bar (BarState.qml, inotify,
+# no process). States: working, waiting (permission or question), done (turn finished while the window was not
+# focused), idle. Nothing is read from the agent's credentials: the limits come from Claude Code's status line.
+# jq filters are single-quoted on purpose ($now, $s... are jq variables)
+# shellcheck disable=SC2016
+set -uo pipefail
+shopt -s nullglob
+
+RUN="${XDG_RUNTIME_DIR:-/tmp}/fili-ai"
+DIR="$RUN/sessions"
+STATE="$RUN/state.json"
+FILI_LIB="$(cd "$(dirname "$(readlink -f "$0")")/../../../.." && pwd)/lib"
+if [ -r "$FILI_LIB/i18n.sh" ]; then
+    # shellcheck source=lib/i18n.sh
+    . "$FILI_LIB/i18n.sh"
+else
+    # shellcheck disable=SC2059
+    t() { printf -- "$@"; }
+fi
+
+# PID of the agent: first ancestor named claude (hooks and the status line are its children)
+agent_pid() {
+    local p=$PPID c
+    while [ "$p" -gt 1 ]; do
+        c="$(cat "/proc/$p/comm" 2>/dev/null)" || return 0
+        [ "$c" = claude ] && { echo "$p"; return 0; }
+        p="$(awk '{print $4}' "/proc/$p/stat" 2>/dev/null)" || return 0
+    done
+}
+
+# niri window of a process: the first ancestor that owns a window (foot started by Mod+Y)
+window_of() {
+    local p="$1" wins w
+    [ -n "$p" ] || return 0
+    wins="$(niri msg -j windows 2>/dev/null | jq -r '.[] | "\(.pid) \(.id)"')" || return 0
+    while [ "$p" -gt 1 ]; do
+        w="$(awk -v p="$p" '$1 == p { print $2; exit }' <<<"$wins")"
+        [ -n "$w" ] && { echo "$w"; return 0; }
+        p="$(awk '{print $4}' "/proc/$p/stat" 2>/dev/null)" || return 0
+    done
+}
+
+focused_window() { niri msg -j focused-window 2>/dev/null | jq -r '.id // empty'; }
+
+# Rewrites state.json from the sessions still alive (only when it changes: the fili-bar rereads it at each write)
+publish() {
+    local f pid out
+    mkdir -p "$DIR"
+    for f in "$DIR"/*.json; do
+        [ -e "$f" ] || continue
+        pid="$(jq -r '.pid // empty' "$f" 2>/dev/null)"
+        [ -z "$pid" ] || kill -0 "$pid" 2>/dev/null || rm -f "$f"
+    done
+    out="$(jq -cn --slurpfile l <(cat "$RUN/limits.json" 2>/dev/null || echo null) \
+        '{sessions: ([inputs] | sort_by(-(.updated // 0))), limits: $l[0]}' "$DIR"/*.json </dev/null 2>/dev/null)" ||
+        out='{"sessions":[],"limits":null}'
+    [ "$out" = "$(cat "$STATE" 2>/dev/null)" ] || printf '%s\n' "$out" > "$STATE"
+}
+
+# update ID FILTER [jq options]: applies FILTER to the record of session ID ($now: time), fills in its agent PID and
+# window if still unknown, then publishes; one writer at a time
+update() {
+    local id="$1" filter="$2" f old rec pid win
+    shift 2
+    [ -n "$id" ] || return 0
+    f="$DIR/$id.json"
+    mkdir -p "$DIR"
+    exec 9>"$RUN/lock"
+    flock 9
+    old="$(cat "$f" 2>/dev/null)" || old='{}'
+    rec="$(jq -c --arg id "$id" --argjson now "$(date +%s)" "$@" ". + {id: \$id} | $filter" <<<"$old")" || return 0
+    if [ "$(jq -r '.pid // empty' <<<"$rec")" = "" ]; then
+        pid="$(agent_pid)"
+        rec="$(jq -c --arg p "$pid" '.pid = ($p | tonumber? // null) | .agent = "claude"' <<<"$rec")"
+    fi
+    if [ "$(jq -r '.window // empty' <<<"$rec")" = "" ]; then
+        win="$(window_of "$(jq -r '.pid // empty' <<<"$rec")")"
+        [ -z "$win" ] || rec="$(jq -c --argjson w "$win" '.window = $w' <<<"$rec")"
+    fi
+    # Unchanged (status line, tool after tool): nothing to write
+    [ "$rec" = "$old" ] && return 0
+    printf '%s\n' "$rec" > "$f.tmp" && mv "$f.tmp" "$f"
+    publish
+    exec 9>&-
+}
+
+# notify ID URGENCY SUMMARY BODY: notification; its click focuses the session's window
+notify() {
+    setsid -f sh -c 'r="$(notify-send -a fili-ai -i utilities-terminal -u "$2" -A default="$5" "$3" "$4")" &&
+        [ "$r" = default ] && exec "$0" focus "$1"' "$0" "$@" "$(t 'Open')" >/dev/null 2>&1
+}
+
+hook() {
+    local in ev id kind msg cwd focused win name
+    in="$(cat)"
+    # Separator that is not whitespace: an empty field (no notification_type) must not shift the next ones
+    IFS=$'\x1f' read -r ev id kind cwd < <(jq -r '[.hook_event_name, .session_id, .notification_type // "", .cwd // ""] | join("\u001f")' <<<"$in")
+    [ -n "${id:-}" ] || return 0
+    case "$ev" in
+        SessionStart)
+            update "$id" '.state = "idle" | .attention = false | .cwd = $cwd | .updated = $now | .started = $now' --arg cwd "$cwd" ;;
+        UserPromptSubmit)
+            update "$id" '.state = "working" | .attention = false | .message = "" | .updated = $now' ;;
+        PostToolUse)
+            # Permission granted (or not needed): working again, unchanged otherwise (no write)
+            update "$id" 'if .state == "working" then . else .state = "working" | .attention = false | .message = "" | .updated = $now end' ;;
+        Notification)
+            case "$kind" in permission_prompt|elicitation_dialog) ;; *) return 0 ;; esac
+            msg="$(jq -r '.message // ""' <<<"$in")"
+            update "$id" '.state = "waiting" | .message = $m | .updated = $now' --arg m "$msg"
+            win="$(jq -r '.window // empty' "$DIR/$id.json" 2>/dev/null)"
+            focused="$(focused_window)"
+            # The user is looking at it: the icon stays calm, no notification
+            [ -n "$win" ] && [ "$win" = "$focused" ] && return 0
+            update "$id" '.attention = true'
+            name="$(basename "${cwd:-$HOME}")"
+            notify "$id" critical "$(t 'Claude Code needs you')" "${msg:-$(t 'A question is waiting')} ($name)" ;;
+        Stop)
+            win="$(jq -r '.window // empty' "$DIR/$id.json" 2>/dev/null)"
+            focused="$(focused_window)"
+            if [ -n "$win" ] && [ "$win" = "$focused" ]; then
+                update "$id" '.state = "idle" | .attention = false | .message = "" | .updated = $now'
+            else
+                update "$id" '.state = "done" | .attention = true | .message = "" | .updated = $now'
+                name="$(basename "${cwd:-$HOME}")"
+                notify "$id" normal "$(t 'Claude Code has finished')" "$(t 'Your turn (%s)' "$name")"
+            fi ;;
+        SessionEnd)
+            exec 9>"$RUN/lock"; flock 9
+            rm -f "$DIR/$id.json"
+            publish ;;
+    esac
+}
+
+status() {
+    local in id lim
+    in="$(cat)"
+    id="$(jq -r '.session_id // empty' <<<"$in")"
+    [ -n "$id" ] || return 0
+    # Plan limits (subscription only), kept after the session for the bar's card: rewritten when they change, or
+    # every 5 min (time of the reading)
+    lim="$(jq -c --argjson now "$(date +%s)" --slurpfile o <(cat "$RUN/limits.json" 2>/dev/null || echo null) '
+        .rate_limits as $r | $o[0] as $o
+        | if $r == null then empty
+          elif $o != null and ($o | del(.seen)) == $r and $now - ($o.seen // 0) < 300 then empty
+          else $r + {seen: $now} end' <<<"$in" 2>/dev/null)"
+    if [ -n "$lim" ]; then
+        mkdir -p "$RUN"
+        printf '%s\n' "$lim" > "$RUN/limits.json"
+    fi
+    update "$id" '.model = ($s.model.display_name // .model) | .ctx = ($s.context_window.used_percentage // .ctx)
+        | .ctxSize = ($s.context_window.context_window_size // .ctxSize) | .cost = ($s.cost.total_cost_usd // .cost)
+        | .cwd = (if (.cwd // "") == "" then $s.workspace.current_dir else .cwd end) | .updated = (.updated // $now)' --argjson s "$in"
+    # New limits with an unchanged session: published here (publish writes only what changed)
+    if [ -n "$lim" ]; then
+        exec 9>"$RUN/lock"; flock 9
+        publish
+    fi
+}
+
+launch() { setsid -f foot -e bash -lc 'exec ~/.local/bin/fili-ai' >/dev/null 2>&1; }
+
+focus() {
+    local want="${1:-}" focused pick
+    mkdir -p "$DIR"
+    publish
+    focused="$(focused_window)"
+    # Sessions with a window: ID asked, else those waiting first, then the latest; the focused one passes its turn
+    pick="$(jq -r --arg want "$want" --arg f "$focused" '
+        [.sessions[] | select(.window != null)] | (map(select(.attention)) + map(select(.attention | not))) as $s
+        | if $want != "" then ($s | map(select(.id == $want)) | first)
+          elif ($s | length) == 0 then null
+          else ($s | map(.window | tostring) | index($f)) as $i
+               | if $i == null then $s[0] else $s[($i + 1) % ($s | length)] end
+          end
+        | if . then "\(.id) \(.window)" else empty end' "$STATE" 2>/dev/null)"
+    if [ -z "$pick" ]; then
+        [ -n "$want" ] || launch
+        return 0
+    fi
+    niri msg action focus-window --id "${pick#* }"
+    seen "${pick%% *}"
+}
+
+seen() {
+    [ -f "$DIR/${1:-}.json" ] || return 0
+    update "$1" '.attention = false | if .state == "done" then .state = "idle" else . end'
+}
+
+case "${1:-}" in
+    hook) hook ;;
+    status) status ;;
+    focus) focus "${2:-}" ;;
+    new) launch ;;
+    seen) seen "${2:-}" ;;
+    *) sed -n '2,/^# jq filters/{/^# jq filters/!p}' "$0"; exit 1 ;;
+esac
+exit 0
