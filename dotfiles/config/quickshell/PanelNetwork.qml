@@ -108,31 +108,46 @@ ColumnLayout {
                     }
                 }
             }
+            // Champ du mot de passe, aligné sur les libellés des réseaux; Entrée = connecter, Échap = annuler
             Rectangle {
                 visible: view.asking === modelData.ssid
                 Layout.fillWidth: true
+                Layout.leftMargin: 34
+                Layout.topMargin: 2
+                Layout.bottomMargin: 4
                 implicitHeight: 30
                 radius: 6
-                color: FiliTheme.nuit3
-                border.color: FiliTheme.voile
+                color: FiliTheme.nuit2
+                border { width: 1; color: pass.activeFocus ? FiliTheme.nuit4 : FiliTheme.nuit3 }
                 TextInput {
                     id: pass
                     objectName: "passphrase"
-                    anchors { fill: parent; leftMargin: 10; rightMargin: 10 }
+                    anchors { fill: parent; leftMargin: 10; rightMargin: 30 }
                     verticalAlignment: TextInput.AlignVCenter
                     echoMode: TextInput.Password
+                    passwordCharacter: "⦁"
                     activeFocusOnTab: true
+                    clip: true
                     onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
                     color: FiliTheme.brume
+                    selectionColor: FiliTheme.nuit4
+                    selectedTextColor: FiliTheme.brume
                     font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                     onAccepted: view.act(["connect", view.asking], "FILI_NET_PASS=" + "'" + text.replace(/'/g, "'\\''") + "' ")
                     Keys.onEscapePressed: view.asking = ""
                     Text {
-                        visible: !parent.text
-                        text: "Mot de passe, Entrée pour se connecter"
+                        visible: !pass.text
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "Mot de passe"
                         color: FiliTheme.ardoise
-                        font: parent.font
+                        font: pass.font
                     }
+                }
+                Text {
+                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    text: "↵"
+                    color: pass.text ? FiliTheme.voile : FiliTheme.nuit4
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                 }
             }
             Rectangle {
