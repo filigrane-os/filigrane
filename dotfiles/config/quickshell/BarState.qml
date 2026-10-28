@@ -171,13 +171,17 @@ Singleton {
         const title = (windows?.[s.window]?.title ?? "").replace(/^[\u2000-\u2bff\s]+/, "");
         return title || (s.cwd ?? "").split("/").filter(x => x).pop() || "~";
     }
-    function aiLimit(l, fmt) {
+    // Ligne de limite du forfait: usage, remise à zéro, jauge et repère du rythme régulier (part écoulée de la
+    // fenêtre: 5 h ou 7 jours), comme le « pace » du panneau des agents d'Omarchy
+    function aiLimit(label, l, span, fmt, now) {
         if (!l || l.used_percentage === undefined)
-            return "";
+            return null;
         const reset = l.resets_at ? " · " + FiliI18n.tr("resets %1", FiliI18n.locale.toString(new Date(l.resets_at * 1000), fmt)) : "";
-        return Math.round(l.used_percentage) + " %" + reset;
+        const mark = l.resets_at ? 1 - (l.resets_at - now) / span : -1;
+        return [label, Math.round(l.used_percentage) + " %" + reset, { value: l.used_percentage / 100, mark: mark }];
     }
-    function aiFor(data, focused, windows) {
+    // now: instant (s), l'heure courante par défaut (fixé par les tests)
+    function aiFor(data, focused, windows, now) {
         const icon = String.fromCodePoint(0xf06a9);
         const sessions = data?.sessions ?? [];
         // Une session regardée en ce moment n'appelle plus l'attention
@@ -199,12 +203,14 @@ Singleton {
         if (sessions.length === 0)
             rows.push([FiliI18n.tr("Sessions"), FiliI18n.tr("none")]);
         const lim = data?.limits;
-        const five = aiLimit(lim?.five_hour, "HH:mm"), week = aiLimit(lim?.seven_day, "ddd HH:mm");
+        now = now ?? Date.now() / 1000;
+        const five = aiLimit(FiliI18n.tr("5-hour limit"), lim?.five_hour, 5 * 3600, "HH:mm", now);
+        const week = aiLimit(FiliI18n.tr("Weekly limit"), lim?.seven_day, 7 * 86400, "ddd HH:mm", now);
         if (five)
-            rows.push([FiliI18n.tr("5-hour limit"), five]);
+            rows.push(five);
         if (week)
-            rows.push([FiliI18n.tr("Weekly limit"), week]);
-        if ((five || week) && lim.seen && Date.now() / 1000 - lim.seen > 900)
+            rows.push(week);
+        if ((five || week) && lim.seen && now - lim.seen > 900)
             rows.push(["", FiliI18n.tr("as of %1", FiliI18n.locale.toString(new Date(lim.seen * 1000), "ddd HH:mm"))]);
         const card = {
             title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),

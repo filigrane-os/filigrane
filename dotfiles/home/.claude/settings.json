@@ -89,7 +89,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ]
@@ -100,7 +100,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ]
@@ -111,7 +111,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ]
@@ -122,7 +122,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ],
@@ -134,7 +134,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ]
@@ -145,7 +145,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$HOME/.local/bin/fili-ai-session\" hook",
+            "command": "fili-ai-session hook",
             "async": true
           }
         ]
@@ -154,7 +154,7 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/bin/bash \"$HOME/.claude/statusline-command.sh\""
+    "command": "fili-ai-session statusline"
   },
   "theme": "dark",
   "skipDangerousModePermissionPrompt": true

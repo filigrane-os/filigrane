@@ -18,7 +18,7 @@ cp -r "$ROOT/dotfiles/config/quickshell" "$T/config"
 cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 # Scripts du dépôt, et binaires compilés de apps/ (bar-stats): $FILI_APPS (build en cours) sinon ~/.local/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
-for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
+for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats "${FILI_APPS:-$HOME/.local/bin}"/fili-ai-session; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
 
 FILI_TEST=1 LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1

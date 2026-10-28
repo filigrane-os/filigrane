@@ -399,10 +399,5 @@ _t_lookup() {
     'Language') _t_fmt='Langue' ;;
     'System: Language') _t_fmt='Système: Langue' ;;
     'Language › ') _t_fmt='Langue › ' ;;
-    'Claude Code needs you') _t_fmt='Claude Code a besoin de vous' ;;
-    'A question is waiting') _t_fmt='Une question attend votre réponse' ;;
-    'Claude Code has finished') _t_fmt='Claude Code a terminé' ;;
-    'Your turn (%s)') _t_fmt='À vous (%s)' ;;
-    'Open') _t_fmt='Ouvrir' ;;
     esac
 }
