@@ -2,7 +2,8 @@
 # Tests du fili-shell (Quickshell): une instance isolée charge la vraie config (dotfiles/config/quickshell) avec
 # tests/fili-shell/TestShell.qml comme shell.qml, sans toucher à la session: bus D-Bus privé (dbus-run-session, donc
 # serveur de notifications à elle), dossier d'exécution et tuyau fili-shell temporaires, fenêtres masquées et
-# commandes des clics enregistrées au lieu d'être lancées (FILI_TEST=1). Scripts du dépôt d'abord (FILI_BIN).
+# commandes des clics enregistrées au lieu d'être lancées (FILI_TEST=1). Scripts du dépôt d'abord (FILI_BIN). Textes en
+# anglais (FILI_LANG=en), quelle que soit la langue de la session.
 # Usage: tests/fili-shell/run.sh [-v]   (-v: journal complet de Quickshell). Code 0 si tout passe.
 # Il faut une session Wayland (niri) en cours: lancer depuis le bureau, pas en ssh.
 set -u
@@ -19,7 +20,7 @@ cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
 for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
 
-FILI_TEST=1 FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
+FILI_TEST=1 FILI_LANG=en FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1
 rc=$?
 

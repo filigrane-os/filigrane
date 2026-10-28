@@ -1,11 +1,16 @@
 #!/bin/sh
 # Fiche « À propos » (fili-about, FiliAbout.qml): Filigrane, système et machine, en JSON
-# {"host": "...", "sections": [{"name": "Système", "rows": [["Noyau", "6.18.59_1"], ...]}]}.
+# {"host": "...", "sections": [{"name": "System", "rows": [["Kernel", "6.18.59_1"], ...]}]}, textes traduits.
 # Lancé seulement à l'ouverture de la fenêtre; une ligne absente (outil ou fichier manquant) est omise.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 repo="$(cd "$(dirname "$(readlink -f "$0")")/../../../.." 2>/dev/null && pwd)"
 
-# Taille lisible en Go (1 décimale sous 10 Go)
-gb() { awk -v b="$1" 'BEGIN { g = b / 1073741824; printf (g < 10 ? "%.1f Go" : "%.0f Go"), g }' | tr . ,; }
+# Taille lisible en Go (1 décimale sous 10 Go), séparateur décimal de la langue
+dec="$(t '.')"
+gb() { awk -v b="$1" -v u="$(t 'GB')" 'BEGIN { g = b / 1073741824; printf (g < 10 ? "%.1f %s" : "%.0f %s"), g, u }' | tr . "$dec"; }
 
 version="$(git -C "$repo" describe --tags --always --dirty 2>/dev/null)"
 [ -n "$version" ] && version="$version ($(git -C "$repo" branch --show-current 2>/dev/null), $(git -C "$repo" log -1 --format=%cs 2>/dev/null))"
@@ -19,41 +24,49 @@ pkgs="$(xbps-query -l 2>/dev/null | wc -l)"
 [ "$pkgs" -gt 0 ] 2>/dev/null && pkgs="$pkgs (xbps)" || pkgs=""
 niri="$(niri --version 2>/dev/null | awk '{print $2}')"
 qs="$(qs --version 2>/dev/null | awk 'NR==1 {print $2}')"
-up="$(awk '{ s = int($1); d = int(s / 86400); h = int(s % 86400 / 3600); m = int(s % 3600 / 60)
-    if (d) printf "%d j %d h", d, h; else if (h) printf "%d h %d min", h, m; else printf "%d min", m }' /proc/uptime)"
+s="$(cut -d. -f1 /proc/uptime)"
+d=$((s / 86400)) h=$((s % 86400 / 3600)) m=$((s % 3600 / 60))
+if [ "$d" -gt 0 ]; then up="$(t '%s d %s h' "$d" "$h")"; elif [ "$h" -gt 0 ]; then up="$(t '%s h %s min' "$h" "$m")"; else up="$(t '%s min' "$m")"; fi
 
 dmi=/sys/class/dmi/id
 model="$(cat $dmi/sys_vendor $dmi/product_name 2>/dev/null | tr '\n' ' ' | sed 's/ *$//')"
 cpu="$(sed -n 's/^model name[[:space:]]*: //p' /proc/cpuinfo | head -1 | sed 's/(R)//g; s/(TM)//g; s/ CPU//; s/  */ /g')"
-cpu="${cpu:+$cpu, $(nproc) fils}"
+[ -n "$cpu" ] && cpu="$(t '%s, %s threads' "$cpu" "$(nproc)")"
 gpu="$(lspci 2>/dev/null | sed -n 's/^[^ ]* \(VGA compatible controller\|3D controller\|Display controller\): //p' |
     sed 's/ (rev [0-9a-f]*)//; s/ Corporation//' | paste -sd '/' | sed 's|/| · |g')"
 mem="$(awk '/^MemTotal:/ {t = $2} /^MemAvailable:/ {a = $2} END {print t * 1024, (t - a) * 1024}' /proc/meminfo)"
-mem="$(gb "${mem% *}"), $(gb "${mem#* }") utilisés"
+mem="$(t '%s, %s used' "$(gb "${mem% *}")" "$(gb "${mem#* }")")"
 disk="$(df -B1 --output=size,avail / 2>/dev/null | awk 'NR==2 {print $1, $2}')"
-[ -n "$disk" ] && disk="$(gb "${disk% *}"), $(gb "${disk#* }") libres"
+[ -n "$disk" ] && disk="$(t '%s, %s free' "$(gb "${disk% *}")" "$(gb "${disk#* }")")"
 screens="$(niri msg -j outputs 2>/dev/null | jq -r '[.[] | (.modes[.current_mode // 0] // {}) as $m
     | "\(.name) \($m.width)×\($m.height)"] | join(" · ")' 2>/dev/null)"
 bat="$(for b in /sys/class/power_supply/BAT*; do
-    [ -r "$b/capacity" ] && printf '%s %%, %s' "$(cat "$b/capacity")" "$(cat "$b/status" | sed 's/Charging/en charge/; s/Discharging/sur batterie/; s/Full/pleine/; s/Not charging/branchée/')"
+    [ -r "$b/capacity" ] || continue
+    case "$(cat "$b/status")" in
+        Charging) st="$(t 'charging')" ;; Discharging) st="$(t 'on battery')" ;; Full) st="$(t 'full')" ;; *) st="$(t 'plugged in')" ;;
+    esac
+    printf '%s %%, %s' "$(cat "$b/capacity")" "$st"
     for k in energy charge; do
         [ -r "$b/${k}_full" ] && [ -r "$b/${k}_full_design" ] || continue
-        awk -v f="$(cat "$b/${k}_full")" -v d="$(cat "$b/${k}_full_design")" 'BEGIN { if (d > 0) printf ", santé %d %%", f * 100 / d }'
+        health="$(awk -v f="$(cat "$b/${k}_full")" -v d="$(cat "$b/${k}_full_design")" 'BEGIN { if (d > 0) printf "%d", f * 100 / d }')"
+        [ -n "$health" ] && t ', health %s %%' "$health"
         break
     done
     break
 done)"
 
-jq -n --arg host "$(cat /etc/hostname 2>/dev/null || uname -n)" \
-    --arg version "$version" --arg layer "$layer" --arg ai "$ai" \
-    --arg os "$os" --arg kernel "$(uname -r) ($(uname -m), $libc)" --arg pkgs "$pkgs" --arg niri "$niri" --arg qs "$qs" --arg up "$up" \
-    --arg model "$model" --arg cpu "$cpu" --arg gpu "$gpu" --arg mem "$mem" --arg disk "$disk" --arg screens "$screens" --arg bat "$bat" '
-    def rows: map(select(.[1] != ""));
-    {host: $host, sections: [
-        {name: "Filigrane", rows: [["Version", $version], ["Couche perso", $layer], ["Agent IA", $ai]] | rows},
-        {name: "Système", rows: [["OS", $os], ["Noyau", $kernel], ["Init", "runit"], ["Paquets", $pkgs],
-            ["Compositeur", (if $niri != "" then "niri " + $niri else "" end)],
-            ["Shell", (if $qs != "" then "Quickshell " + $qs else "" end)], ["Allumé depuis", $up]] | rows},
-        {name: "Machine", rows: [["Modèle", $model], ["Processeur", $cpu], ["Graphique", $gpu], ["Mémoire", $mem],
-            ["Disque /", $disk], ["Écrans", $screens], ["Batterie", $bat]] | rows}
-    ] | map(select(.rows != []))}'
+# Sections: "# Nom" puis une ligne "libellé<TAB>valeur" par ligne de la fiche
+{
+    printf '# %s\n' "Filigrane"
+    printf '%s\t%s\n' "$(t 'Version')" "$version" "$(t 'Personal layer')" "$layer" "$(t 'AI agent')" "$ai"
+    printf '# %s\n' "$(t 'System')"
+    printf '%s\t%s\n' "OS" "$os" "$(t 'Kernel')" "$(uname -r) ($(uname -m), $libc)" "Init" "runit" "$(t 'Packages')" "$pkgs" \
+        "$(t 'Compositor')" "${niri:+niri $niri}" "Shell" "${qs:+Quickshell $qs}" "$(t 'Uptime')" "$up"
+    printf '# %s\n' "$(t 'Machine')"
+    printf '%s\t%s\n' "$(t 'Model')" "$model" "$(t 'Processor')" "$cpu" "$(t 'Graphics')" "$gpu" "$(t 'Memory')" "$mem" \
+        "$(t 'Disk /')" "$disk" "$(t 'Displays')" "$screens" "$(t 'Battery')" "$bat"
+} | jq -Rn --arg host "$(cat /etc/hostname 2>/dev/null || uname -n)" '
+    reduce (inputs | select(length > 0)) as $l ([];
+        if ($l | startswith("# ")) then . + [{name: $l[2:], rows: []}]
+        else ($l | split("\t")) as $r | if ($r[1] // "") == "" then . else .[-1].rows += [[$r[0], $r[1]]] end end)
+    | {host: $host, sections: map(select(.rows != []))}'

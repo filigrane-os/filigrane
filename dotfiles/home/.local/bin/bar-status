@@ -1,12 +1,16 @@
 #!/bin/sh
 # Indicateurs de la barre (JSON, protocole des modules custom de Waybar): mic | night | rec | idle | batwatch. Rafraîchis par signal (clic) ou par intervalle.
 # CPU, mémoire, température, disque, réseau, SSH entrant, mode avion et VPN: bar-stats (apps/bar-stats, Rust, résident).
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 case "$1" in
     mic)
         v="$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)" || { printf '{"text":""}\n'; exit 0; }
         case "$v" in
-            *MUTED*) printf '{"text":"\\uf131","class":"muted","tooltip":"Micro coupé"}\n' ;;
-            *) printf '{"text":"\\uf130","tooltip":"Micro actif: %s"}\n' "$(echo "$v" | awk '{printf "%d%%", $2*100}')" ;;
+            *MUTED*) printf '{"text":"\\uf131","class":"muted","tooltip":"%s"}\n' "$(t 'Microphone muted')" ;;
+            *) printf '{"text":"\\uf130","tooltip":"%s"}\n' "$(t 'Microphone on: %s' "$(echo "$v" | awk '{printf "%d%%", $2*100}')")" ;;
         esac ;;
     night)
         # Active seulement si l'écran est réellement réchauffé (forcé, ou auto en soirée); auto en journée = au repos.
@@ -15,25 +19,25 @@ case "$1" in
             if pgrep -f 'wlsunset .* -T 4501$' >/dev/null; then k=4500
             else k=$(awk '/^setting temperature to/ { k = $4 } END { print k }' "${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>/dev/null); fi
             if [ "${k:-6500}" -lt 6400 ]; then
-                printf '{"text":"\\uf186","class":"active","tooltip":"Veilleuse %s K (clic: couper)"}\n' "$k"
+                printf '{"text":"\\uf186","class":"active","tooltip":"%s"}\n' "$(t 'Night light %s K (click: turn off)' "$k")"
             else
-                printf '{"text":"\\uf186","class":"idle","tooltip":"Veilleuse automatique, allumée au coucher du soleil (clic: couper)"}\n'
+                printf '{"text":"\\uf186","class":"idle","tooltip":"%s"}\n' "$(t 'Automatic night light, on at sunset (click: turn off)')"
             fi
         else
-            printf '{"text":"\\uf186","class":"idle","tooltip":"Veilleuse coupée (clic: forcer 4500 K)"}\n'
+            printf '{"text":"\\uf186","class":"idle","tooltip":"%s"}\n' "$(t 'Night light off (click: force 4500 K)')"
         fi ;;
     rec)
         if pgrep -x wf-recorder >/dev/null; then
-            printf '{"text":"\\uf111","class":"active","tooltip":"Enregistrement en cours (clic: arrêter)"}\n'
+            printf '{"text":"\\uf111","class":"active","tooltip":"%s"}\n' "$(t 'Recording (click: stop)')"
         else
             printf '{"text":""}\n'
         fi ;;
     idle)
         # Caféine (comme "Stay Awake" d'Omarchy): tasse jaune = écran jamais verrouillé ni éteint
         if pgrep -x swayidle >/dev/null; then
-            printf '{"text":"\\uf0f4","class":"idle","tooltip":"Verrouillage auto actif (clic: garder éveillé)"}\n'
+            printf '{"text":"\\uf0f4","class":"idle","tooltip":"%s"}\n' "$(t 'Auto lock on (click: keep awake)')"
         else
-            printf '{"text":"\\uf0f4","class":"active","tooltip":"Gardé éveillé: pas de verrouillage auto (clic: réactiver)"}\n'
+            printf '{"text":"\\uf0f4","class":"active","tooltip":"%s"}\n' "$(t 'Kept awake: no auto lock (click: turn back on)')"
         fi ;;
     batwatch)
         # Lancé par bar-stats (sous 10 % sur batterie, puis au retour du chargeur), sortie ignorée.
@@ -43,14 +47,14 @@ case "$1" in
         b=/sys/class/power_supply/BAT0; [ -r "$b/capacity" ] || exit 0
         f="${XDG_RUNTIME_DIR:-/tmp}/battery-notified"
         if [ "$(cat "$b/status")" = "Discharging" ] && [ "$(cat "$b/capacity")" -le 10 ]; then
-            [ -e "$f" ] || { notify-send -u critical "Batterie faible" "$(cat "$b/capacity")%: brancher le chargeur"; : > "$f"; }
+            [ -e "$f" ] || { notify-send -u critical "$(t 'Low battery')" "$(t '%s%%: plug in the charger' "$(cat "$b/capacity")")"; : > "$f"; }
             if [ "$(cat "$b/capacity")" -le 1 ] && [ ! -e "$f.off" ]; then
                 : > "$f.off"
-                notify-send -u critical -t 60000 "Batterie critique: extinction dans 1 min" "Brancher le chargeur pour l'annuler"
+                notify-send -u critical -t 60000 "$(t 'Critical battery: power off in 1 min')" "$(t 'Plug in the charger to cancel')"
                 setsid -f sh -c '
                     sleep 60
                     if [ "$(cat '"$b"'/status)" = "Discharging" ]; then sync; sudo -n poweroff
-                    else rm -f '"$f.off"'; notify-send "Extinction annulée" "Chargeur branché"; fi' >/dev/null 2>&1
+                    else rm -f '"$f.off"'; notify-send "$1" "$2"; fi' sh "$(t 'Power off cancelled')" "$(t 'Charger plugged in')" >/dev/null 2>&1
             fi
         else
             rm -f "$f" "$f.off"

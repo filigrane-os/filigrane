@@ -280,14 +280,14 @@ menu_calc() {
 menu_usb() {
     list="$(lsblk -rpno NAME,TYPE,HOTPLUG | awk '$2=="part" && $3==1 {print $1}' | while read -r dev; do
         printf '%s  %s  %s%s\n' "$dev" "$(lsblk -dno LABEL "$dev")" "$(lsblk -dno SIZE "$dev")" \
-            "$(lsblk -dno MOUNTPOINT "$dev" | sed 's/^./  (monté: &)/')"
+            "$(lsblk -dno MOUNTPOINT "$dev" | sed 's/^./  (mounted: &)/')"
     done)"
-    [ -n "$list" ] || { notify-send -u low "USB" "Aucun volume amovible"; return 0; }
+    [ -n "$list" ] || { notify-send -u low "USB" "No removable drive"; return 0; }
     sel="$(printf '%s\n' "$list" | pick "USB drives › " 6)"
     [ -n "$sel" ] || { cancel; return $BACK; }
     dev="${sel%% *}"
     if [ -n "$(lsblk -dno MOUNTPOINT "$dev")" ]; then
-        out="$(udisksctl unmount -b "$dev" 2>&1)" && notify-send -u low "USB" "Démonté: $dev" || notify-send -u normal "USB" "$out"
+        out="$(udisksctl unmount -b "$dev" 2>&1)" && notify-send -u low "USB" "Unmounted: $dev" || notify-send -u normal "USB" "$out"
     else
         out="$(udisksctl mount -b "$dev" 2>&1)" && notify-send -u low "USB" "$out" || notify-send -u normal "USB" "$out"
     fi
@@ -480,7 +480,7 @@ menu_toggles() {
             "Mute 1 hour")
                 "$HOME/.local/bin/fili-shell" notification dnd on
                 setsid -f sh -c 'sleep 3600; "$HOME/.local/bin/fili-shell" notification dnd off' >/dev/null 2>&1
-                notify "Notifications" "Coupées pendant 1 h"
+                notify "Notifications" "Muted for 1 h"
                 return 0 ;;
             "Notification history")
                 hist="$("$HOME/.local/bin/fili-shell" notification history)"

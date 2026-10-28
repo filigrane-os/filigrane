@@ -181,7 +181,7 @@ Singleton {
     // Invite fuzzel ("Style › ", "Minuteur: ", "› ") -> fil d'Ariane en capitales ("STYLE", "MENU")
     readonly property string crumb: {
         const p = (req?.prompt ?? "").replace(/[›:>\s]+$/, "").trim();
-        return (p || "Menu").toUpperCase().replace(/\s*›\s*/g, "  ›  ");
+        return (p || FiliI18n.tr("Menu")).toUpperCase().replace(/\s*›\s*/g, "  ›  ");
     }
 
     // Fichiers uniques par requête (mktemp), lus à chaque changement de chemin
@@ -310,7 +310,7 @@ Singleton {
                             onTextChanged: launcher.filter()
                             Text {
                                 visible: !input.text
-                                text: box.listMode ? "Rechercher…" : "Saisir…"
+                                text: box.listMode ? FiliI18n.tr("Search…") : FiliI18n.tr("Type…")
                                 color: FiliTheme.ardoise
                                 font: input.font
                             }
@@ -466,14 +466,14 @@ Singleton {
                         spacing: 4
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Aucun résultat"
+                            text: FiliI18n.tr("No result")
                             color: FiliTheme.brume2
                             font { family: FiliTheme.font; pixelSize: 14 }
                         }
                         Text {
                             visible: input.text !== ""
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: "Entrée: utiliser « " + input.text + " »"
+                            text: FiliI18n.tr("Enter: use “%1”", input.text)
                             color: FiliTheme.ardoise
                             font { family: FiliTheme.font; pixelSize: 12 }
                         }
@@ -490,8 +490,8 @@ Singleton {
                     spacing: 16
                     Repeater {
                         model: box.listMode
-                            ? [["↑ ↓", "naviguer"], ["⏎", "choisir"], ["⇧ ⌫", "retour"], ["Échap", "fermer"]]
-                            : [["⏎", "valider"], ["⇧ ⌫", "retour"], ["Échap", "fermer"]]
+                            ? [["↑ ↓", FiliI18n.tr("navigate")], ["⏎", FiliI18n.tr("choose")], ["⇧ ⌫", FiliI18n.tr("back")], [FiliI18n.tr("Esc"), FiliI18n.tr("close")]]
+                            : [["⏎", FiliI18n.tr("confirm")], ["⇧ ⌫", FiliI18n.tr("back")], [FiliI18n.tr("Esc"), FiliI18n.tr("close")]]
                         RowLayout {
                             required property var modelData
                             spacing: 6

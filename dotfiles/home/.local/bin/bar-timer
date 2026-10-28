@@ -3,6 +3,10 @@
 # ("T <fin>" minuteur, "S <début>" chronomètre, "done" minuteur terminé), lu et décompté par la barre (BarState.qml).
 # Usage: bar-timer click (choisir / arrêter / acquitter) | add (+5 min au minuteur) | expire (minuteur écoulé, appelé par la barre)
 # Durées du minuteur: 5 (minutes), 90s, 10m, 1h.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-timer"
 kind=''; val=''
 [ -r "$f" ] && read -r kind val <"$f"
@@ -15,11 +19,12 @@ fmt() { # secondes -> [H:]MM:SS
 case "$1" in
     click)
         case "$kind" in
-            S) notify-send "Chronomètre" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; exit 0 ;;
+            S) notify-send "$(t 'Stopwatch')" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; exit 0 ;;
             T|done) rm -f "$f"; exit 0 ;;
         esac
-        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" launcher --prompt 'Minuteur: ' --lines 8)" || exit 0
-        if [ "$out" = Chronomètre ]; then
+        sw="$(t 'Stopwatch')"
+        out="$(printf '%s\n' "$sw" 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" launcher --prompt "$(t 'Timer: ')" --lines 8)" || exit 0
+        if [ "$out" = "$sw" ]; then
             echo "S $EPOCHSECONDS" >"$f"
         else
             n="${out//[!0-9]/}"; [ -n "$n" ] || exit 0
@@ -32,5 +37,5 @@ case "$1" in
     expire)
         [ "$kind" = T ] && [ "$val" -le "$EPOCHSECONDS" ] || exit 0
         echo done >"$f"
-        notify-send -u critical "Minuteur" "Terminé" ;;
+        notify-send -u critical "$(t 'Timer')" "$(t 'Done')" ;;
 esac

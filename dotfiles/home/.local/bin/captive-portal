@@ -1,6 +1,10 @@
 #!/bin/sh
 # Test de connectivité (comme Omarchy): 204 = OK; redirection = portail captif (ouvre la page de connexion);
 # IPv4 muet mais IPv6 ok = bail DHCP périmé (Wi-Fi: reconnexion iwd; filaire: `dhcpcd -n`).
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 URL=http://connectivitycheck.gstatic.com/generate_204
 notify() { notify-send -a connectivity "$@"; }
 
@@ -9,11 +13,11 @@ code="${out%% *}"
 loc="${out#* }"
 
 case "$code" in
-    204) notify "Connexion OK"; exit 0 ;;
+    204) notify "$(t 'Connection OK')"; exit 0 ;;
     000)
         if ping -6 -c1 -W2 2606:4700:4700::1111 >/dev/null 2>&1; then
             iface="$(ip route show default | awk '{print $5; exit}')"
-            notify -u critical "IPv4 mort, IPv6 ok" "Bail DHCP périmé: renouvellement de $iface"
+            notify -u critical "$(t 'IPv4 dead, IPv6 OK')" "$(t 'Stale DHCP lease: renewing %s' "$iface")"
             # Wi-Fi: iwd configure l'IP, une reconnexion refait le DHCP
             ssid="$(iwctl station "$iface" show 2>/dev/null | sed -n 's/^ *Connected network *//p' | sed 's/ *$//')"
             if [ -n "$ssid" ]; then
@@ -21,8 +25,8 @@ case "$code" in
             fi
             exec "$HOME/.local/bin/bar-tui" sh -c 'sudo dhcpcd -n "$1"; sleep 2' _ "$iface"
         fi
-        notify -u critical "Pas de connexion" "Ni IPv4 ni IPv6" ;;
+        notify -u critical "$(t 'No connection')" "$(t 'Neither IPv4 nor IPv6')" ;;
     *)
-        notify "Portail captif" "Ouverture de la page de connexion"
+        notify "$(t 'Captive portal')" "$(t 'Opening the login page')"
         setsid -f xdg-open "${loc:-$URL}" >/dev/null 2>&1 ;;
 esac

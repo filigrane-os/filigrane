@@ -85,7 +85,7 @@ ColumnLayout {
             onToggled: view.act(["power", view.wifi.powered ? "off" : "on"])
         }
     }
-    PanelSection { visible: view.wifi.networks.length > 0; text: "RÉSEAUX" }
+    PanelSection { visible: view.wifi.networks.length > 0; text: FiliI18n.tr("NETWORKS") }
     Repeater {
         model: view.wifi.powered ? view.wifi.networks : []
         ColumnLayout {
@@ -98,7 +98,7 @@ ColumnLayout {
                 glyph: view.signalGlyph(modelData.signal)
                 label: modelData.ssid
                 sel: modelData.connected
-                detail: modelData.connected ? "connecté" : modelData.known ? "connu" : modelData.security === "open" ? "ouvert" : "chiffré"
+                detail: modelData.connected ? FiliI18n.tr("connected") : modelData.known ? FiliI18n.tr("known") : modelData.security === "open" ? FiliI18n.tr("open") : FiliI18n.tr("encrypted")
                 onClicked: b => {
                     if (b === Qt.RightButton) {
                         if (modelData.known)
@@ -138,7 +138,7 @@ ColumnLayout {
                     Text {
                         visible: !pass.text
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Mot de passe"
+                        text: FiliI18n.tr("Password")
                         color: FiliTheme.ardoise
                         font: pass.font
                     }
@@ -169,12 +169,12 @@ ColumnLayout {
         Layout.maximumWidth: 300
         font { family: FiliTheme.font; pixelSize: 12 }
     }
-    PanelSection { text: "LIAISON" }
+    PanelSection { text: FiliI18n.tr("LINK") }
     PanelInfo { id: info; topic: "network" }
     PanelButton {
         Layout.topMargin: 4
         glyph: ""
-        label: "Réseaux avancés (impala)"
+        label: FiliI18n.tr("Advanced networks (impala)")
         dim: true
         onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui impala"); }
     }

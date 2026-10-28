@@ -118,7 +118,7 @@ ColumnLayout {
             }
         }
         Text {
-            text: view.page === "viewer" ? "Visualiseur de clavier" : view.page === "emoji" ? "Emoji" : "Clavier"
+            text: view.page === "viewer" ? FiliI18n.tr("Keyboard viewer") : view.page === "emoji" ? FiliI18n.tr("Emoji") : FiliI18n.tr("Keyboard")
             color: FiliTheme.voile
             font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
         }
@@ -127,7 +127,7 @@ ColumnLayout {
     // ───── dispositions ─────
     // Rétroéclairage du clavier (stat display de bar-stats, en %), -1: absent
     property real keys: (FiliShell.stats.display?.kbd ?? -1) < 0 ? -1 : FiliShell.stats.display.kbd / 100
-    PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: "DISPOSITIONS" }
+    PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: FiliI18n.tr("LAYOUTS") }
     Repeater {
         model: view.page === "layouts" ? Niri.layouts : []
         PanelButton {
@@ -145,37 +145,37 @@ ColumnLayout {
         objectName: "previous"
         visible: view.page === "layouts" && view.hasPrevious
         glyph: "↺"
-        label: "Disposition précédente"
+        label: FiliI18n.tr("Previous layout")
         detail: view.hasPrevious ? Niri.shortName(Niri.layouts[Niri.previousLayout]) : ""
         onClicked: Niri.selectLayout(Niri.previousLayout)
     }
     Text {
         visible: view.page === "layouts" && Niri.layouts.length === 0
-        text: "Aucune disposition détectée"
+        text: FiliI18n.tr("No layout found")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
-    PanelSection { visible: view.page === "layouts"; text: "OUTILS" }
+    PanelSection { visible: view.page === "layouts"; text: FiliI18n.tr("TOOLS") }
     PanelButton {
         objectName: "open-viewer"
         visible: view.page === "layouts"
         glyph: ""
-        label: "Visualiseur de clavier"
+        label: FiliI18n.tr("Keyboard viewer")
         onClicked: view.page = "viewer"
     }
     PanelButton {
         objectName: "open-emoji"
         visible: view.page === "layouts"
         glyph: ""
-        label: "Emoji"
+        label: FiliI18n.tr("Emoji")
         onClicked: view.page = "emoji"
     }
     PanelButton {
         objectName: "open-hotkeys"
         visible: view.page === "layouts"
         glyph: "\uf11c"
-        label: "Raccourcis clavier"
-        detail: "Super+Maj+/"
+        label: FiliI18n.tr("Keyboard shortcuts")
+        detail: FiliI18n.tr("Super+Shift+/")
         onClicked: {
             FiliPanel.close();
             FiliHotkeys.show();
@@ -184,7 +184,7 @@ ColumnLayout {
     Text {
         visible: view.page === "layouts" && Niri.layouts.length > 1
         Layout.topMargin: 4
-        text: "Dispositions: XKB_LAYOUT dans config.env"
+        text: FiliI18n.tr("Layouts: XKB_LAYOUT in config.env")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: 12 }
     }
@@ -234,8 +234,8 @@ ColumnLayout {
         spacing: 2
         Repeater {
             model: [
-                { id: "shift", label: "Maj", w: 2 }, { id: "altgr", label: "AltGr", w: 2 },
-                { id: "space", label: "Espace", w: 5.5 }, { id: "BackSpace", label: "⌫", w: 1.5 }, { id: "Return", label: "⏎", w: 1.5 }
+                { id: "shift", label: FiliI18n.tr("Shift"), w: 2 }, { id: "altgr", label: "AltGr", w: 2 },
+                { id: "space", label: FiliI18n.tr("Space"), w: 5.5 }, { id: "BackSpace", label: "⌫", w: 1.5 }, { id: "Return", label: "⏎", w: 1.5 }
             ]
             Rectangle {
                 required property var modelData
@@ -270,7 +270,7 @@ ColumnLayout {
     Text {
         visible: view.page === "viewer"
         Layout.topMargin: 4
-        text: "clic: tape la touche dans la fenêtre active · Maj / AltGr: niveau suivant"
+        text: FiliI18n.tr("click: types the key in the active window · Shift / AltGr: next level")
         wrapMode: Text.Wrap
         Layout.fillWidth: true
         color: FiliTheme.ardoise
@@ -300,7 +300,7 @@ ColumnLayout {
             Text {
                 visible: !search.text
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Rechercher (smile, heart, thumbs…)"
+                text: FiliI18n.tr("Search (smile, heart, thumbs…)")
                 color: FiliTheme.ardoise
                 font: search.font
             }
@@ -345,7 +345,7 @@ ColumnLayout {
     property string hovered: ""
     Text {
         visible: view.page === "emoji"
-        text: view.hovered || (view.found.length === 0 ? "Aucun résultat" : "clic: copie et tape dans la fenêtre active")
+        text: view.hovered || (view.found.length === 0 ? FiliI18n.tr("No result") : FiliI18n.tr("click: copies and types in the active window"))
         elide: Text.ElideRight
         Layout.fillWidth: true
         color: FiliTheme.ardoise
@@ -353,7 +353,7 @@ ColumnLayout {
     }
 
     // Rétroéclairage du clavier: tout en bas de la page des dispositions
-    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: "RÉTROÉCLAIRAGE" }
+    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: FiliI18n.tr("BACKLIGHT") }
     PanelSlider {
         objectName: "keys"
         visible: view.page === "layouts" && view.keys >= 0

@@ -82,6 +82,13 @@ ShellRoot {
         FiliBar {}
     }
     property var cards: ({})
+    // Catalogue français du fili-shell (test de FiliI18n)
+    property var frCatalog: ({})
+    FileView {
+        path: Quickshell.shellDir + "/i18n/fr.json"
+        blockLoading: true
+        onLoaded: t.frCatalog = JSON.parse(text())
+    }
     Connections {
         target: FiliInfo
         function onReady(topic, card) {
@@ -215,7 +222,7 @@ ShellRoot {
                 ok(c.text === " Réunion 11:00" && c.tooltip.indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
                 ok(BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n", null, now).text === "", "BarState: agenda expiré masqué");
                 const w = BarState.alert("whatsapp", "", "3\n", now);
-                ok(w.text.endsWith(" 3") && w.tooltip.indexOf("3 non lu(s)") >= 0, "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(w.text.endsWith(" 3") && w.tooltip.indexOf("3 unread") >= 0, "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
                 ok(BarState.alert("whatsapp", "x\ty\n", "0", now).text === "", "BarState: compteur à 0 masque l'alerte");
                 ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: chronomètre", BarState.timerFor("S", now - 65, now).text);
                 const r = BarState.timerFor("T", now + 3700, now);
@@ -358,7 +365,7 @@ ShellRoot {
                     const c = t.cards[topic];
                     ok(c && c.title && Array.isArray(c.rows) && c.hint, "FiliInfo " + topic + ": titre, lignes, aide", JSON.stringify(c));
                 }
-                ok(t.cards.monitor.title === "Système" && t.cards.monitor.rows.length > 4, "FiliInfo monitor: fiche", JSON.stringify(t.cards.monitor));
+                ok(t.cards.monitor.title === "System" && t.cards.monitor.rows.length > 4, "FiliInfo monitor: fiche", JSON.stringify(t.cards.monitor));
                 ok(t.cards.display.rows.length > 0, "FiliInfo display: sorties de niri", JSON.stringify(t.cards.display));
             },
 
@@ -629,15 +636,23 @@ ShellRoot {
             () => {
                 const c = FiliAbout.card;
                 const names = c.sections.map(s => s.name);
-                ok(typeof c.host === "string" && ["Filigrane", "Système", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections Filigrane/Système/Machine }", JSON.stringify(names));
+                ok(typeof c.host === "string" && ["Filigrane", "System", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections Filigrane/System/Machine }", JSON.stringify(names));
                 ok(c.sections.every(s => s.rows.every(r => r.length === 2 && r[1] !== "")), "fili-about: lignes [libellé, valeur] non vides");
                 FiliTheme.ran = [];
                 FiliAbout.copy();
-                ok(FiliTheme.ran[0]?.startsWith("wl-copy Filigrane · ") && FiliTheme.ran[0].indexOf("Noyau: ") > 0 && !FiliAbout.open, "fili-about: C copie la fiche en texte et ferme", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0]?.startsWith("wl-copy Filigrane · ") && FiliTheme.ran[0].indexOf("Kernel: ") > 0 && !FiliAbout.open, "fili-about: C copie la fiche en texte et ferme", JSON.stringify(FiliTheme.ran));
                 FiliAbout.toggle();
                 ok(FiliAbout.open, "fili-about: toggle rouvre");
                 FiliShell.popupOpened("panel");
                 ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
+            },
+            // FiliI18n: tests en anglais (FILI_LANG=en, run.sh); catalogue français chargé à la main
+            () => {
+                ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3" && FiliI18n.num(1.5, 1) === "1.5", "FiliI18n: anglais sans catalogue, %1 remplacé", FiliI18n.lang);
+                const saved = FiliI18n.catalog;
+                FiliI18n.catalog = t.frCatalog;
+                ok(FiliI18n.tr("Workspace %1", 3) === "Espace 3" && FiliI18n.num(1.5, 1) === "1,5" && FiliI18n.tr("not in catalog") === "not in catalog", "FiliI18n: catalogue fr.json (traduction, séparateur décimal, repli anglais)", FiliI18n.tr("Workspace %1", 3));
+                FiliI18n.catalog = saved;
             },
             wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {

@@ -108,7 +108,7 @@ Singleton {
                     }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "L'OS en toute discrétion" + (about.card.host ? "  ·  " + about.card.host : "")
+                        text: FiliI18n.tr("The OS that stays out of the way") + (about.card.host ? "  ·  " + about.card.host : "")
                         color: FiliTheme.brume2
                         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: Font.Light }
                     }
@@ -148,7 +148,7 @@ Singleton {
                     Text {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.topMargin: 4
-                        text: "C pour copier · Échap pour fermer"
+                        text: FiliI18n.tr("C to copy · Esc to close")
                         color: FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: 12 }
                         MouseArea {

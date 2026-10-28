@@ -72,7 +72,7 @@ PanelWindow {
             BarHover {
                 objectName: "logo"
                 anchors.fill: parent
-                tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal · clic milieu: à propos" })
+                tip: ({ title: "Filigrane", hint: FiliI18n.tr("click: menu · right click: terminal · middle click: about") })
                 click: "setsid -f " + bar.b + "/menu"
                 rclick: "setsid -f foot"
                 onMiddleClicked: FiliAbout.show()
@@ -109,9 +109,9 @@ PanelWindow {
                             const id = parent.modelData.id;
                             const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
                             return {
-                                title: "Espace " + parent.modelData.idx,
-                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", "aucune fenêtre"]],
-                                hint: "clic: y aller · molette: précédent / suivant"
+                                title: FiliI18n.tr("Workspace %1", parent.modelData.idx),
+                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
+                                hint: FiliI18n.tr("click: go there · wheel: previous / next")
                             };
                         }
                         onLeftClicked: Niri.action("focus-workspace", String(parent.modelData.idx))
@@ -131,7 +131,7 @@ PanelWindow {
                 return t.length > 60 ? t.slice(0, 59) + "…" : t;
             }
             color: FiliTheme.brume2
-            tip: Niri.focused ? { title: Niri.focused.app_id, text: Niri.focused.title, hint: "clic droit ou milieu: fermer la fenêtre" } : ""
+            tip: Niri.focused ? { title: Niri.focused.app_id, text: Niri.focused.title, hint: FiliI18n.tr("right or middle click: close the window") } : ""
             hover.onRightClicked: Niri.action("close-window")
             hover.onMiddleClicked: Niri.action("close-window")
         }
@@ -219,7 +219,7 @@ PanelWindow {
             Label {
                 id: clockText
                 anchors.centerIn: parent
-                text: clockItem.timing ? clockItem.timerState.text : Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
+                text: clockItem.timing ? clockItem.timerState.text : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
                 color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
                 // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
                 font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
@@ -313,10 +313,10 @@ PanelWindow {
             }
             tip: !player ? "" : {
                 title: player.identity,
-                rows: [["Titre", player.trackTitle], ["Artiste", player.trackArtist], ["Album", player.trackAlbum],
-                       ["État", player.isPlaying ? "lecture" : "pause"],
-                       ["Position", player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
-                hint: "clic: lecture/pause · clic milieu: suivant · molette: précédent / suivant"
+                rows: [[FiliI18n.tr("Title"), player.trackTitle], [FiliI18n.tr("Artist"), player.trackArtist], [FiliI18n.tr("Album"), player.trackAlbum],
+                       [FiliI18n.tr("State"), player.isPlaying ? FiliI18n.tr("playing") : FiliI18n.tr("paused")],
+                       [FiliI18n.tr("Position"), player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
+                hint: FiliI18n.tr("click: play/pause · middle click: next · wheel: previous / next")
             }
             hover.onLeftClicked: player.togglePlaying()
             hover.onMiddleClicked: player.next()
@@ -327,13 +327,13 @@ PanelWindow {
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
-            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur"
+            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor")
                 Component.onCompleted: FiliPanel.register("monitor", hover, bar) }
-            BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor") }
+            BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor") }
             BarScript {
                 objectName: "disk"
-                stat: "disk"; hint: "clic: moniteur"
+                stat: "disk"; hint: FiliI18n.tr("click: monitor")
                 colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar)
             }
@@ -348,13 +348,13 @@ PanelWindow {
                 readonly property int vol: audio ? Math.round(audio.volume * 100) : 0
                 readonly property string kind: FiliTheme.sinkGlyph(bar.sink?.properties)
                 text: !audio ? "" : (kind || (audio.muted ? "" : vol < 34 ? "" : vol < 67 ? "" : ""))
-                    + (audio.muted ? " muet" : " " + vol + "%")
+                    + (audio.muted ? " " + FiliI18n.tr("muted") : " " + vol + "%")
                 color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
                 tip: !audio ? "" : {
-                    title: audio.muted ? "Son coupé" : "Son",
-                    rows: [["Sortie", bar.sink.description || bar.sink.nickname || bar.sink.name], ["Volume", vol + " %"],
-                           ["Entrée", bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
-                    hint: "clic: panneau son · clic milieu: muet · molette: volume · clic droit: mixeur"
+                    title: audio.muted ? FiliI18n.tr("Sound muted") : FiliI18n.tr("Sound"),
+                    rows: [[FiliI18n.tr("Output"), bar.sink.description || bar.sink.nickname || bar.sink.name], [FiliI18n.tr("Volume"), vol + " %"],
+                           [FiliI18n.tr("Input"), bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
+                    hint: FiliI18n.tr("click: sound panel · middle click: mute · wheel: volume · right click: mixer")
                 }
                 hover.onLeftClicked: FiliPanel.toggle(hover, "audio", bar)
                 Component.onCompleted: FiliPanel.register("audio", hover, bar)
@@ -369,9 +369,9 @@ PanelWindow {
                 readonly property string name: Niri.layouts[Niri.layout] ?? ""
                 text: name ? " " + Niri.shortName(name) : ""
                 tip: ({
-                    title: "Clavier",
+                    title: FiliI18n.tr("Keyboard"),
                     rows: Niri.layouts.map((l, i) => [i === Niri.layout ? "●" : "", l]),
-                    hint: "clic: panneau clavier · clic milieu: disposition suivante"
+                    hint: FiliI18n.tr("click: keyboard panel · middle click: next layout")
                 })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "keyboard", bar)
                 Component.onCompleted: FiliPanel.register("keyboard", hover, bar)
@@ -422,12 +422,12 @@ PanelWindow {
                     return " " + connected.length;
                 }
                 color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
-                tip: !adapter ? { title: "Bluetooth", rows: [["État", "aucun adaptateur détecté"]], hint: "clic: panneau Bluetooth" } : {
+                tip: !adapter ? { title: "Bluetooth", rows: [[FiliI18n.tr("State"), FiliI18n.tr("no adapter found")]], hint: FiliI18n.tr("click: Bluetooth panel") } : {
                     title: "Bluetooth",
-                    rows: [[adapter.name, adapter.enabled ? "activé" : "désactivé"]].concat(
+                    rows: [[adapter.name, adapter.enabled ? FiliI18n.tr("on") : FiliI18n.tr("off")]].concat(
                         adapter.devices.values.filter(d => d.paired || d.connected).map(d => [d.name,
-                            (d.connected ? "connecté" : "appairé") + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
-                    hint: "clic: panneau Bluetooth (appairer, connecter, oublier)"
+                            (d.connected ? FiliI18n.tr("connected") : FiliI18n.tr("paired")) + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
+                    hint: FiliI18n.tr("click: Bluetooth panel (pair, connect, forget)")
                 }
                 hover.onLeftClicked: FiliPanel.toggle(hover, "bluetooth", bar)
             }
@@ -447,9 +447,9 @@ PanelWindow {
                 text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
                 color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
                 tip: ({
-                    title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",
-                    rows: [["Bulles", FiliNotification.dnd ? "masquées" : "affichées"], ["Historique", FiliNotification.history.length + " notification(s)"]],
-                    hint: "clic: fili-notification-center · clic droit: ne pas déranger"
+                    title: FiliNotification.dnd ? FiliI18n.tr("Do not disturb") : FiliI18n.tr("Notifications"),
+                    rows: [[FiliI18n.tr("Pop-ups"), FiliNotification.dnd ? FiliI18n.tr("hidden") : FiliI18n.tr("shown")], [FiliI18n.tr("History"), FiliI18n.tr("%1 notification(s)", FiliNotification.history.length)]],
+                    hint: FiliI18n.tr("click: fili-notification-center · right click: do not disturb")
                 })
                 hover.onLeftClicked: FiliNotification.toggleCenter()
                 Component.onCompleted: FiliPanel.register("center", hover, bar)

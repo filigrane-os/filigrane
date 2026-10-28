@@ -2,12 +2,16 @@
 # Ajoute une appli web au menu.
 #   webapp-add "WhatsApp" https://web.whatsapp.com [icône]
 # icône: nom du thème d'icônes ou fichier PNG/SVG (copié dans le dépôt). Sans icône: web-browser.
-[ -n "$1" ] && [ -n "$2" ] || { echo 'usage: webapp-add "Nom" URL [icône]' >&2; exit 1; }
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+[ -n "$1" ] && [ -n "$2" ] || { echo 'usage: webapp-add "Name" URL [icon]' >&2; exit 1; }
 name="$1" url="$2" icon="$3"
 list="${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"
-[ -f "$list" ] || { echo "liste introuvable: $list (lancer ./bootstrap.sh --dotfiles-only)" >&2; exit 1; }
+[ -f "$list" ] || { t 'list not found: %s (run ./bootstrap.sh --dotfiles-only)\n' "$list" >&2; exit 1; }
 if grep -qiE "^[[:space:]]*$(printf '%s' "$name" | sed 's/[][\.*^$/]/\\&/g')[[:space:]]*\|" "$list"; then
-    echo "déjà présent: $name" >&2; exit 1
+    t 'already there: %s\n' "$name" >&2; exit 1
 fi
 if [ -f "$icon" ]; then
     dir="$(dirname "$(readlink -f "$list")")/icons"
@@ -18,4 +22,4 @@ if [ -f "$icon" ]; then
 fi
 printf '%s | %s | %s\n' "$name" "$url" "$icon" >> "$list"
 webapp-sync
-echo "ajouté: $name (web)"
+t 'added: %s (web)\n' "$name"

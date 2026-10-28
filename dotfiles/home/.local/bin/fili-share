@@ -7,6 +7,10 @@
 #        fili-share peers PROTO                  JSON [{id, name}]
 #        fili-share send PROTO ID NOM            choisit les fichiers (yazi), les envoie, notifie
 #        fili-share receive PROTO on|off|status  status: affiche on ou off
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 OBEXD=/usr/libexec/bluetooth/obexd
 PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
 DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
@@ -14,20 +18,20 @@ LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
 export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
 export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
 
-notify() { notify-send -a fili-share "Partage" "$1" 2>/dev/null; }
+notify() { notify-send -a fili-share "$(t 'Sharing')" "$1" 2>/dev/null; }
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
 
 # Raison de l'indisponibilité d'un protocole (vide = disponible)
 why() {
     case "$1" in
     airdrop)
-        command -v omdrop >/dev/null || { echo "omdrop non installé"; return; }
-        [ -d /sys/class/net/awdl0 ] || echo "pas de radio AWDL (awdl0)" ;;
+        command -v omdrop >/dev/null || { t 'omdrop not installed'; return; }
+        [ -d /sys/class/net/awdl0 ] || t 'no AWDL radio (awdl0)' ;;
     bluetooth)
-        [ -x "$OBEXD" ] || { echo "bluez-obex non installé"; return; }
-        bluetoothctl list 2>/dev/null | grep -q Controller || echo "aucun adaptateur Bluetooth" ;;
-    localsend) command -v lsend >/dev/null && command -v localsendd >/dev/null || echo "non installé (./bootstrap.sh)" ;;
-    *) echo "protocole inconnu" ;;
+        [ -x "$OBEXD" ] || { t 'bluez-obex not installed'; return; }
+        bluetoothctl list 2>/dev/null | grep -q Controller || t 'no Bluetooth adapter' ;;
+    localsend) command -v lsend >/dev/null && command -v localsendd >/dev/null || t 'not installed (./bootstrap.sh)' ;;
+    *) t 'unknown protocol' ;;
     esac
 }
 
@@ -77,20 +81,20 @@ peers)
 send)
     proto="$2"; id="$3"; name="$4"
     r="$(why "$proto")"
-    [ -z "$r" ] || { notify "$proto indisponible: $r"; exit 1; }
+    [ -z "$r" ] || { notify "$(t '%s unavailable: %s' "$proto" "$r")"; exit 1; }
     sel="$(mktemp)"
-    foot --app-id bar-tui -T "Envoyer à $name" -e yazi --chooser-file="$sel"
+    foot --app-id bar-tui -T "$(t 'Send to %s' "$name")" -e yazi --chooser-file="$sel"
     set --
     while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
     rm -f "$sel"
     [ "$#" -gt 0 ] || exit 0
-    notify "Envoi à $name…"
+    notify "$(t 'Sending to %s…' "$name")"
     case "$proto" in
     airdrop) omdrop send "$@" "$name" ;;
     bluetooth) bt_send "$id" "$@" ;;
     localsend) lsend send "$id" "$@" ;;
     esac
-    if [ $? -eq 0 ]; then notify "Envoyé à $name"; else notify "Échec de l'envoi à $name"; exit 1; fi
+    if [ $? -eq 0 ]; then notify "$(t 'Sent to %s' "$name")"; else notify "$(t 'Sending to %s failed' "$name")"; exit 1; fi
     ;;
 receive)
     proto="$2"
@@ -134,5 +138,5 @@ receive)
     # Pastille SHARE de la fili-bar (signal 24), après le démarrage du démon
     case "$3" in on|off) setsid -f sh -c 'sleep 1; "$HOME/.local/bin/fili-shell" bar refresh 24' >/dev/null 2>&1 ;; esac
     ;;
-*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NOM | receive PROTO on|off|status" >&2; exit 2 ;;
+*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NAME | receive PROTO on|off|status" >&2; exit 2 ;;
 esac

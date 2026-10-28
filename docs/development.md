@@ -74,7 +74,20 @@ To add or fix a language:
 2. Run `scripts/check-i18n.sh`: it fails on a missing entry, on a different number of placeholders, and on an entry no script uses any more. CI runs it.
 3. Try it: `LANG=<lang>_XX.UTF-8 ./bootstrap.sh --plan`.
 
-Not translated yet: the menu, the waybar scripts, the niri shortcut titles, `config.env` comments and the agent skill. Documentation is in English only.
+### fili-shell
+
+The desktop shell (Quickshell QML in `dotfiles/config/quickshell/`) and `bar-stats` share one catalog per language: `dotfiles/config/quickshell/i18n/<lang>.json`, a flat object `{"English text": "translation"}`. Placeholders are `%1`, `%2`... and may be reordered. The special key `@decimal` is the decimal separator. The language follows the same rule as `lib/i18n.sh`; dates (clock, calendar, notification times) use the Qt locale of that language.
+
+```qml
+text: FiliI18n.tr("Battery %1 %", capacity)   // FiliI18n.qml
+```
+```rust
+trf("Battery %1 %", &[&cap])                  // apps/bar-stats/src/i18n.rs; tr("...") without arguments
+```
+
+The bar scripts (`bar-*`, `fili-*`, notifications of `watch-*`, `captive-portal`...) use `lib/i18n.sh` like `bootstrap.sh`, with the guarded header found at the top of `bar-status`. A Python script (`display-save`) calls it through a small `t()` helper. `scripts/check-i18n.sh` checks the JSON catalogs too. To add a language to the shell, copy `fr.json` to `<lang>.json`; `tests/fili-shell/run.sh` runs in English (`FILI_LANG=en`).
+
+Not translated yet: the menu (English), `sound-tune`, the niri shortcut titles, `config.env` comments and the agent skill. Documentation is in English only.
 
 ## Rust tools
 

@@ -15,7 +15,7 @@ Singleton {
     property var entries: []
     // Ouverte par le démarrage: se referme seule
     property bool auto: false
-    readonly property var caps: ({ Shift: "Maj", Space: "Espace", Slash: "/", Return: "↵", Tab: "Tab", Print: "Impr", Escape: "Échap" })
+    readonly property var caps: ({ Shift: FiliI18n.tr("Shift"), Space: FiliI18n.tr("Space"), Slash: "/", Return: "↵", Tab: "Tab", Print: FiliI18n.tr("Print"), Escape: FiliI18n.tr("Esc") })
 
     function show() {
         FiliShell.popupOpened("hotkeys");
@@ -107,13 +107,13 @@ Singleton {
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
-                            text: "Raccourcis clavier"
+                            text: FiliI18n.tr("Keyboard shortcuts")
                             color: FiliTheme.voile
                             Layout.fillWidth: true
                             font { family: FiliTheme.font; pixelSize: 18; weight: Font.Medium }
                         }
                         Text {
-                            text: "Échap pour fermer"
+                            text: FiliI18n.tr("Esc to close")
                             color: FiliTheme.ardoise
                             font { family: FiliTheme.font; pixelSize: 12 }
                         }

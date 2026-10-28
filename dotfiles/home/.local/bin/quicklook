@@ -3,6 +3,10 @@
 # Image -> imv, vidéo/audio -> mpv, PDF -> 10 premières pages en image, CSV/TSV -> pspg,
 # texte -> bat, dossier -> eza.
 # Espace, Échap ou q referme. Relancer sur le même fichier referme l'aperçu ouvert.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 
 [ $# -gt 0 ] || exit 0
 last="${XDG_RUNTIME_DIR:-/tmp}/quicklook-last"
@@ -18,7 +22,7 @@ printf '%s' "$1" > "$last"
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 f="$1"
-title="Aperçu: $(basename "$f")"
+title="$(t 'Preview: %s' "$(basename "$f")")"
 
 page() { # page COMMANDE... : sortie dans less (Espace ou q referme)
     "$@" > "$tmp/out" 2>&1

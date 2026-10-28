@@ -1,6 +1,10 @@
 #!/bin/sh
 # Sauvegarde restic immédiate depuis la barre (`bar-backup run`, watch-backup now). L'état affiché (idle, active, failed)
 # est écrit par bar-stats (apps/bar-stats, stat backup).
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 [ "$1" = run ] || { echo "usage: bar-backup run" >&2; exit 2; }
-pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
+pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "$(t 'Backup')" "$(t 'Already running')"; exit 0; }
 setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &

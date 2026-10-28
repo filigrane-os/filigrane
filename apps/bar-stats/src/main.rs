@@ -8,7 +8,11 @@
 //   toute ligne écrite dans TUYAU (client fili-shell, scripts), recopiée telle quelle
 // Événements du noyau (netlink uevent) pour le chargeur, le mode avion et les interfaces réseau: rien n'est sondé
 // pour eux. Se termine quand la barre ferme la sortie ou meurt.
+mod i18n;
 mod info;
+
+use i18n::{num, tr, trf};
+use info::js;
 
 use std::{
     collections::HashMap,
@@ -148,8 +152,11 @@ impl Usage {
             .iter()
             .take(5)
             .map(|(n, kb)| {
-                let v =
-                    if *kb >= 1_048_576 { format!("{:.1} Go", *kb as f64 / 1_048_576.0) } else { format!("{} Mo", kb / 1024) };
+                let v = if *kb >= 1_048_576 {
+                    trf("%1 GiB", &[&num(*kb as f64 / 1_048_576.0, 1)])
+                } else {
+                    trf("%1 MiB", &[&(kb / 1024)])
+                };
                 format!("{:<22} {v}", clean(n))
             })
             .collect();
@@ -199,7 +206,10 @@ impl Temp {
                 self.shown = true;
                 let c = t / 1000;
                 let class = if c >= 90 { "critical" } else { "" };
-                stat("temp", &format!(r#"{{"text":" {c}°","class":"{class}","tooltip":"Température CPU: {c}°C"}}"#));
+                stat(
+                    "temp",
+                    &format!(r#"{{"text":" {c}°","class":"{class}","tooltip":{}}}"#, js(&trf("CPU temperature: %1 °C", &[&c]))),
+                );
             }
             _ => {
                 self.shown = false;
@@ -211,14 +221,14 @@ impl Temp {
 
 // Taille lisible en octets (base 1024, comme Waybar)
 fn human(b: f64) -> String {
-    let units = ["o", "Kio", "Mio", "Gio", "Tio"];
+    let units = [tr("B"), tr("KiB"), tr("MiB"), tr("GiB"), tr("TiB")];
     let mut v = b;
     let mut i = 0;
     while v >= 1024.0 && i < units.len() - 1 {
         v /= 1024.0;
         i += 1;
     }
-    if i == 0 { format!("{v:.0} {}", units[i]) } else { format!("{v:.1} {}", units[i]) }
+    format!("{} {}", num(v, if i == 0 { 0 } else { 1 }), units[i])
 }
 
 // Espace disque de / (statvfs), comme le module disk de Waybar
@@ -242,10 +252,8 @@ fn disk(shown: &mut bool) {
     stat(
         "disk",
         &format!(
-            r#"{{"text":" {pct}%","class":"{class}","tooltip":"{} / {} ({} libres)"}}"#,
-            human(used),
-            human(total),
-            human(avail)
+            r#"{{"text":" {pct}%","class":"{class}","tooltip":{}}}"#,
+            js(&trf("%1 / %2 (%3 free)", &[&human(used), &human(total), &human(avail)]))
         ),
     );
 }
@@ -365,14 +373,18 @@ impl Net {
         self.since = Some(Instant::now());
         self.last_key = key;
         self.last_level = level;
-        let ipt = ip.map(|a| a.to_string()).unwrap_or_else(|| "pas d'IPv4".into());
+        let ipt = ip.map(|a| a.to_string()).unwrap_or_else(|| tr("no IPv4").into());
         let bw = format!("↓ {}/s  ↑ {}/s", human(self.rates.0), human(self.rates.1));
         let line = match iface.as_deref() {
-            None => r#"{"text":" hors ligne","class":"disconnected","tooltip":"Aucune connexion (clic: Wi-Fi)"}"#.to_string(),
+            None => format!(
+                r#"{{"text":{},"class":"disconnected","tooltip":{}}}"#,
+                js(&format!(" {}", tr("offline"))),
+                js(tr("No connection (click: Wi-Fi)"))
+            ),
             Some(_) if wifi => {
                 // Icône selon la qualité (codes md-wifi_strength_1..4, police Fili Icons): trait plein = bon signal
                 let glyph = ['\u{F091F}', '\u{F0922}', '\u{F0925}', '\u{F0928}'][level as usize];
-                let ghz = self.freq.parse::<f64>().map(|f| format!("{:.1}", f / 1000.0)).unwrap_or_default();
+                let ghz = self.freq.parse::<f64>().map(|f| num(f / 1000.0, 1)).unwrap_or_default();
                 let full = clean(&self.ssid);
                 let name = if full.chars().count() > 16 {
                     format!("{}…", full.chars().take(15).collect::<String>())
@@ -473,15 +485,15 @@ fn backup(dir: &str, env: &str) -> String {
     }
     let g = '\u{f0ee}';
     if locked(&format!("{dir}/backup.lock")) {
-        return format!(r#"{{"text":"{g}","class":"active","tooltip":"Sauvegarde NAS en cours..."}}"#);
+        return format!(r#"{{"text":"{g}","class":"active","tooltip":{}}}"#, js(tr("NAS backup running...")));
     }
-    let last = fs::metadata(format!("{dir}/backup.stamp")).map_or("jamais".into(), |m| local_time(m.mtime(), c"%d/%m %H:%M"));
+    let last = fs::metadata(format!("{dir}/backup.stamp")).map_or(tr("never").into(), |m| local_time(m.mtime(), c"%d/%m %H:%M"));
     if fs::read_to_string(format!("{dir}/backup.status")).is_ok_and(|s| s.trim() == "fail") {
-        format!(
-            r#"{{"text":"{g}","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: {last}). Clic: réessayer"}}"#
-        )
+        let tip = trf("Last backup failed (last success: %1). Click: retry", &[&last]);
+        format!(r#"{{"text":"{g}","class":"failed","tooltip":{}}}"#, js(&tip))
     } else {
-        format!(r#"{{"text":"{g}","class":"idle","tooltip":"Sauvegarde NAS (dernière: {last}). Clic: sauvegarder maintenant"}}"#)
+        let tip = trf("NAS backup (last: %1). Click: back up now", &[&last]);
+        format!(r#"{{"text":"{g}","class":"idle","tooltip":{}}}"#, js(&tip))
     }
 }
 
@@ -530,14 +542,14 @@ impl Watch {
         if ssh || !self.seen.contains_key("remote") {
             let n = ssh_in();
             let j = if n > 0 {
-                format!(r#"{{"text":"","class":"active","tooltip":"{n} session(s) SSH entrante(s)"}}"#)
+                format!(r#"{{"text":"","class":"active","tooltip":{}}}"#, js(&trf("%1 incoming SSH session(s)", &[&n])))
             } else {
                 r#"{"text":""}"#.into()
             };
             self.put("remote", j);
         }
         let j = if airplane() {
-            r#"{"text":"","class":"active","tooltip":"Mode avion (clic: désactiver)"}"#.into()
+            format!(r#"{{"text":"","class":"active","tooltip":{}}}"#, js(tr("Airplane mode (click: turn off)")))
         } else {
             r#"{"text":""}"#.into()
         };
@@ -546,7 +558,7 @@ impl Watch {
         let j = if v.is_empty() {
             r#"{"text":""}"#.into()
         } else {
-            format!(r#"{{"text":" VPN","class":"active","tooltip":"VPN actif: {v}"}}"#)
+            format!(r#"{{"text":" VPN","class":"active","tooltip":{}}}"#, js(&trf("VPN on: %1", &[&v])))
         };
         self.put("vpn", j);
     }
@@ -682,7 +694,7 @@ fn main() {
         return info_cli(args.get(2).map_or("", String::as_str), page_kb, hz);
     }
     let Some(fifo) = args.get(1) else {
-        eprintln!("usage: bar-stats TUYAU   (lancé par le fili-shell, voir FiliShell.qml) | bar-stats info SUJET");
+        eprintln!("usage: bar-stats FIFO   (started by the fili-shell, see FiliShell.qml) | bar-stats info TOPIC");
         process::exit(2);
     };
     // Lancé par `exec` depuis la barre: s'arrête avec elle

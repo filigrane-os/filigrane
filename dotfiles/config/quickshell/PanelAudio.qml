@@ -36,7 +36,7 @@ ColumnLayout {
     }
 
     Text {
-        text: "Son"
+        text: FiliI18n.tr("Sound")
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
     }
@@ -48,7 +48,7 @@ ColumnLayout {
         onMoved: v => { if (view.sink?.audio) view.sink.audio.volume = v; }
         onGlyphClicked: view.sink.audio.muted = !view.sink.audio.muted
     }
-    PanelSection { text: "SORTIE" }
+    PanelSection { text: FiliI18n.tr("OUTPUT") }
     Repeater {
         model: view.sinks
         PanelButton {
@@ -61,7 +61,7 @@ ColumnLayout {
             onClicked: Pipewire.preferredDefaultAudioSink = modelData
         }
     }
-    PanelSection { text: "ENTRÉE" }
+    PanelSection { text: FiliI18n.tr("INPUT") }
     PanelSlider {
         objectName: "micro"
         glyph: view.source?.audio?.muted ? "" : ""
@@ -81,7 +81,7 @@ ColumnLayout {
             onClicked: Pipewire.preferredDefaultAudioSource = modelData
         }
     }
-    PanelSection { visible: view.streams.length > 0; text: "APPLICATIONS" }
+    PanelSection { visible: view.streams.length > 0; text: FiliI18n.tr("APPLICATIONS") }
     Repeater {
         model: view.streams
         PanelSlider {
@@ -96,13 +96,13 @@ ColumnLayout {
     PanelButton {
         Layout.topMargin: 4
         glyph: ""
-        label: "Mixeur complet"
+        label: FiliI18n.tr("Full mixer")
         dim: true
         onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui wiremix"); }
     }
     PanelButton {
         glyph: ""
-        label: "Égaliseur des haut-parleurs"
+        label: FiliI18n.tr("Speaker equalizer")
         dim: true
         onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui sound-tune"); }
     }

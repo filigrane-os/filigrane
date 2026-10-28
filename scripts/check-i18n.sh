@@ -1,11 +1,14 @@
 #!/bin/bash
-# Checks the translation catalogs (lib/i18n/*.sh) against the messages in the scripts.
+# Checks the translation catalogs against the English messages in the code. Exit code 1 on any problem.
 #
 #   scripts/check-i18n.sh
 #
-# For every script that sources lib/i18n.sh, takes each English message passed to t, log, warn, die, say
-# or note, and checks that each catalog has an entry for it with the same number of placeholders (%s).
-# Also reports catalog entries no script uses any more. Exit code 1 on any problem.
+# Scripts (lib/i18n/*.sh): for every shell script that sources lib/i18n.sh, each English message passed to t, log,
+# warn, die, say or note; for every Python script with a t() helper (display-save), each t('...'). Each catalog needs
+# an entry with the same number of placeholders (%s).
+# fili-shell (dotfiles/config/quickshell/i18n/*.json): each FiliI18n.tr("...") of the QML files and each tr("...") or
+# trf("...") of bar-stats (apps/bar-stats/src, tests excluded). Each catalog needs an entry with the same %1, %2...
+# Both kinds also report catalog entries nothing uses any more.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
@@ -13,7 +16,10 @@ mapfile -t scripts < <(grep -rlE '(^|[[:space:]])\. "\$FILI_LIB/i18n\.sh"' --exc
 [ ${#scripts[@]} -gt 0 ] || { echo "no script sources lib/i18n.sh"; exit 1; }
 
 # English messages: the first single-quoted argument of the message functions
-mapfile -t messages < <(grep -ohP "(?<![\\w./-])(t|log|warn|die|say|note) '\\K[^']*(?=')" "${scripts[@]}" | sort -u)
+mapfile -t python < <(grep -rlE '^def t\(fmt' --exclude-dir=.git --exclude-dir=target dotfiles users 2>/dev/null | sort)
+mapfile -t messages < <({ grep -ohP "(?<![\\w./-])(t|log|warn|die|say|note) '\\K[^']*(?=')" "${scripts[@]}"
+    [ ${#python[@]} -eq 0 ] || grep -ohP "(?<![\\w.])t\\('\\K[^']*(?=')" "${python[@]}"; } | sort -u)
+scripts+=("${python[@]}")
 echo "${#scripts[@]} scripts, ${#messages[@]} messages"
 
 count() { local s="${1//%%/}"; s="${s//[^%]/}"; echo "${#s}"; }
@@ -34,5 +40,29 @@ for catalog in lib/i18n/*.sh; do
         printf '%s\n' "${messages[@]}" | grep -qxF -- "$key" || { echo "$lang: unused entry: $key"; rc=1; }
     done < <(sed -n "s/^    '\\(.*\\)') _t_fmt=.*/\\1/p" "$catalog")
 done
+# fili-shell: catalogues JSON partagés par le QML et bar-stats
+python3 - <<'PY' || rc=1
+import glob, json, re, sys
+keys = set()
+for f in glob.glob("dotfiles/config/quickshell/*.qml"):
+    keys |= {json.loads('"' + k + '"') for k in re.findall(r'FiliI18n\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
+for f in glob.glob("apps/bar-stats/src/*.rs"):
+    src = open(f).read().split("#[cfg(test)]")[0]
+    keys |= {json.loads('"' + k + '"') for k in re.findall(r'\btrf?\("((?:[^"\\]|\\.)*)"', src)}
+print(f"fili-shell: {len(keys)} messages")
+ph = lambda s: sorted(re.findall(r"%[1-9]", s))
+bad = False
+for cat in sorted(glob.glob("dotfiles/config/quickshell/i18n/*.json")):
+    lang = cat.rsplit("/", 1)[1][:-5]
+    c = json.load(open(cat))
+    for k in sorted(keys):
+        if k not in c:
+            print(f"{lang}.json: missing: {k}"); bad = True
+        elif ph(k) != ph(c[k]):
+            print(f"{lang}.json: placeholders differ: {k}"); bad = True
+    for k in sorted(set(c) - keys - {"@decimal"}):
+        print(f"{lang}.json: unused entry: {k}"); bad = True
+sys.exit(1 if bad else 0)
+PY
 [ "$rc" -eq 0 ] && echo "catalogs OK"
 exit "$rc"

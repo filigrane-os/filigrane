@@ -55,8 +55,8 @@ PopupWindow {
             PanelButton {
                 objectName: "timer"
                 glyph: ""
-                label: cal.timerText !== "" ? cal.timerText : "Minuteur / chronomètre"
-                detail: ({ idle: "choisir", stopwatch: "arrêter", active: "annuler · clic droit +5 min", done: "acquitter" })[cal.timerClass] ?? ""
+                label: cal.timerText !== "" ? cal.timerText : FiliI18n.tr("Timer / stopwatch")
+                detail: ({ idle: FiliI18n.tr("choose"), stopwatch: FiliI18n.tr("stop"), active: FiliI18n.tr("cancel · right click +5 min"), done: FiliI18n.tr("dismiss") })[cal.timerClass] ?? ""
                 sel: cal.timerClass !== "idle"
                 onClicked: b => {
                     if (b === Qt.RightButton) {
@@ -78,7 +78,7 @@ PopupWindow {
             }
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: Qt.locale("fr_FR").toString(cal.shown, "MMMM yyyy")
+                text: FiliI18n.locale.toString(cal.shown, "MMMM yyyy")
                 color: FiliTheme.voile
                 font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
             }
@@ -91,7 +91,7 @@ PopupWindow {
                 Item { implicitWidth: 1; implicitHeight: 1 }
                 DayOfWeekRow {
                     Layout.fillWidth: true
-                    locale: Qt.locale("fr_FR")
+                    locale: FiliI18n.locale
                     delegate: Text {
                         required property string shortName
                         text: shortName.slice(0, 2)
@@ -104,7 +104,7 @@ PopupWindow {
                     Layout.fillHeight: true
                     month: grid.month
                     year: grid.year
-                    locale: Qt.locale("fr_FR")
+                    locale: FiliI18n.locale
                     delegate: Text {
                         required property int weekNumber
                         text: weekNumber
@@ -118,7 +118,7 @@ PopupWindow {
                     id: grid
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    locale: Qt.locale("fr_FR")
+                    locale: FiliI18n.locale
                     month: cal.shown.getMonth()
                     year: cal.shown.getFullYear()
                     delegate: Rectangle {

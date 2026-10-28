@@ -311,7 +311,7 @@ Singleton {
                     Layout.fillWidth: true
                     Text {
                         Layout.fillWidth: true
-                        text: "Notifications" + (notifs.dnd ? "  ·  ne pas déranger" : "")
+                        text: FiliI18n.tr("Notifications") + (notifs.dnd ? "  ·  " + FiliI18n.tr("do not disturb") : "")
                         color: FiliTheme.voile
                         font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
                     }
@@ -327,7 +327,7 @@ Singleton {
                         FocusRing { gap: 4 }
                     }
                     Text {
-                        text: "Effacer"
+                        text: FiliI18n.tr("Clear")
                         visible: notifs.history.length > 0
                         color: FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: 13 }
@@ -340,7 +340,7 @@ Singleton {
                 }
                 Text {
                     visible: notifs.history.length === 0
-                    text: "Aucune notification"
+                    text: FiliI18n.tr("No notifications")
                     color: FiliTheme.ardoise
                     font { family: FiliTheme.font; pixelSize: 13 }
                 }
@@ -399,7 +399,7 @@ Singleton {
                                 spacing: 1
                                 Text {
                                     Layout.fillWidth: true
-                                    text: item.modelData.app + "  ·  " + Qt.formatTime(item.modelData.time, "HH:mm")
+                                    text: item.modelData.app + "  ·  " + FiliI18n.locale.toString(item.modelData.time, "HH:mm")
                                     color: FiliTheme.ardoise
                                     font { family: FiliTheme.font; pixelSize: 12 }
                                 }
@@ -450,7 +450,7 @@ Singleton {
                 }
                 // Sons (FiliSound): nouvelle notification et chargeur branché
                 Repeater {
-                    model: [["notify", "Son des notifications"], ["plug", "Son du chargeur branché"]]
+                    model: [["notify", FiliI18n.tr("Notification sound")], ["plug", FiliI18n.tr("Charger plugged in sound")]]
                     RowLayout {
                         required property var modelData
                         Layout.fillWidth: true

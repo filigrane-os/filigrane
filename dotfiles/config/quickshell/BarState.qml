@@ -75,7 +75,7 @@ Singleton {
             const n = parseInt(count);
             if (!(n > 0))
                 return empty;
-            return { text: wa + " " + n, class: "active", tooltip: (tip ? tip + "\n" : "") + n + " non lu(s) (clic: ouvrir la webapp)" };
+            return { text: wa + " " + n, class: "active", tooltip: (tip ? tip + "\n" : "") + FiliI18n.tr("%1 unread (click: open the web app)", n) };
         }
         if (r.length === 0)
             return empty;
@@ -87,23 +87,23 @@ Singleton {
             const title = live[0][2] ?? "";
             const short = title.length > 28 ? title.slice(0, 27) + "…" : title;
             return { text: " " + short + " " + (live[0][1] ?? ""), class: "active",
-                     tooltip: live.map(x => x[1] + " " + x[2]).join("\n") + "\n(clic: ouvrir Proton Calendar)" };
+                     tooltip: live.map(x => x[1] + " " + x[2]).join("\n") + "\n" + FiliI18n.tr("(click: open %1)", "Proton Calendar") };
         }
         if (kind === "mail")
-            return { text: " " + r.length, class: "active", tooltip: tip + "\n(clic: ouvrir Proton Mail)" };
-        return { text: wa + " " + r.length, class: "active", tooltip: tip + "\n(clic: ouvrir la webapp)" };
+            return { text: " " + r.length, class: "active", tooltip: tip + "\n" + FiliI18n.tr("(click: open %1)", "Proton Mail") };
+        return { text: wa + " " + r.length, class: "active", tooltip: tip + "\n" + FiliI18n.tr("(click: open the web app)") };
     }
     function drawer(kind, a) {
         if (!trayOpen || a.text !== "")
             return empty;
         const [g, name] = { mail: ["", "Proton Mail"], cal: ["", "Proton Calendar"] }[kind] ?? [String.fromCodePoint(0xf05a3), kind];
-        return { text: g, class: "idle", tooltip: name + " (clic: ouvrir)" };
+        return { text: g, class: "idle", tooltip: name + " " + FiliI18n.tr("(click: open)") };
     }
 
     // ───── tiroir ─────
     Watched { id: trayF; path: st.run + "/bar-tray-open" }
     readonly property bool trayOpen: trayF.exists
-    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: "Replier" } : { text: "", tooltip: "Afficher la sauvegarde" }
+    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: FiliI18n.tr("Fold") } : { text: "", tooltip: FiliI18n.tr("Show the backup") }
 
     // ───── sauvegarde ─────
     // Repliée, visible seulement en cours ou en échec; repassée au repos, elle reste 10 s (pour pouvoir la relancer
@@ -171,11 +171,11 @@ Singleton {
         const icon = "";
         now = Math.floor(now);
         if (kind === "")
-            return { text: icon, class: "idle", tooltip: "Minuteur / chronomètre (clic: choisir)" };
+            return { text: icon, class: "idle", tooltip: FiliI18n.tr("Timer / stopwatch (click: choose)") };
         if (kind === "S")
-            return { text: icon + " " + fmt(Math.max(0, now - val)), class: "stopwatch", tooltip: "Chronomètre (clic: arrêter)" };
+            return { text: icon + " " + fmt(Math.max(0, now - val)), class: "stopwatch", tooltip: FiliI18n.tr("Stopwatch (click: stop)") };
         if (kind === "T" && val - now > 0)
-            return { text: icon + " " + fmt(val - now), class: "active", tooltip: "Minuteur (clic: annuler, clic droit: +5 min)" };
-        return { text: icon + " 00:00", class: "done", tooltip: "Terminé (clic: acquitter)" };
+            return { text: icon + " " + fmt(val - now), class: "active", tooltip: FiliI18n.tr("Timer (click: cancel, right click: +5 min)") };
+        return { text: icon + " 00:00", class: "done", tooltip: FiliI18n.tr("Done (click: dismiss)") };
     }
 }

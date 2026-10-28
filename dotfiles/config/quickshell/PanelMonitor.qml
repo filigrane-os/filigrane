@@ -37,21 +37,21 @@ ColumnLayout {
     PanelButton {
         objectName: "test-net"
         glyph: ""
-        label: view.running === "net" ? "Test de débit en cours…" : "Test de débit réseau"
-        detail: view.results.net ? Math.round(view.results.net.down_mbps) + " ↓ " + Math.round(view.results.net.up_mbps) + " ↑ Mbit/s, ping " + view.results.net.ping_ms + " ms" : "~35 Mo"
+        label: view.running === "net" ? FiliI18n.tr("Speed test running…") : FiliI18n.tr("Network speed test")
+        detail: view.results.net ? FiliI18n.tr("%1 ↓ %2 ↑ Mbit/s, ping %3 ms", Math.round(view.results.net.down_mbps), Math.round(view.results.net.up_mbps), view.results.net.ping_ms) : FiliI18n.tr("~35 MB")
         onClicked: view.test("net")
     }
     PanelButton {
         objectName: "test-disk"
         glyph: ""
-        label: view.running === "disk" ? "Test du disque en cours…" : "Test de vitesse du disque"
-        detail: view.results.disk ? view.results.disk.write_mbps + " écr. · " + view.results.disk.read_mbps + " lect. Mo/s" : "512 Mo"
+        label: view.running === "disk" ? FiliI18n.tr("Disk test running…") : FiliI18n.tr("Disk speed test")
+        detail: view.results.disk ? FiliI18n.tr("%1 write · %2 read MB/s", view.results.disk.write_mbps, view.results.disk.read_mbps) : FiliI18n.tr("512 MB")
         onClicked: view.test("disk")
     }
     PanelButton {
         Layout.topMargin: 4
         glyph: ""
-        label: "Moniteur complet (htop)"
+        label: FiliI18n.tr("Full monitor (htop)")
         dim: true
         onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui htop"); }
     }

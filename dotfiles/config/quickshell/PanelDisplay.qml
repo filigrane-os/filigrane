@@ -199,7 +199,7 @@ ColumnLayout {
     readonly property var transforms: [["normal", "0°"], ["90", "90°"], ["180", "180°"], ["270", "270°"]].map(t => ({ label: t[1], value: t[0] }))
 
     Text {
-        text: "Écrans"
+        text: FiliI18n.tr("Displays")
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
     }
@@ -284,7 +284,7 @@ ColumnLayout {
     }
     Text {
         visible: view.outputs.length === 0
-        text: "Aucun écran détecté"
+        text: FiliI18n.tr("No display found")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
@@ -292,7 +292,7 @@ ColumnLayout {
     // Choix de l'écran quand il y en a plusieurs (ou un éteint)
     PanelChips {
         visible: view.outputs.length > 1
-        model: view.outputs.map(o => ({ label: o.name + (o.logical ? "" : " (éteint)"), value: o.name }))
+        model: view.outputs.map(o => ({ label: o.name + (o.logical ? "" : " " + FiliI18n.tr("(off)")), value: o.name }))
         current: view.sel
         onPicked: v => view.sel = v
     }
@@ -318,7 +318,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { visible: view.curMode !== null; divided: false; text: "DÉFINITION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
         visible: view.curMode !== null
@@ -326,7 +326,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.width + "x" + view.curMode.height : ""
         onPicked: v => view.setResolution(view.cur, view.resolutions.find(r => r.value === v))
     }
-    PanelSection { visible: view.refreshes.length > 1; divided: false; text: "FRÉQUENCE" }
+    PanelSection { visible: view.refreshes.length > 1; divided: false; text: FiliI18n.tr("REFRESH RATE") }
     PanelChips {
         objectName: "refresh"
         visible: view.refreshes.length > 1
@@ -334,7 +334,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.refresh_rate : 0
         onPicked: v => view.setRefresh(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: "ÉCHELLE" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("SCALE") }
     PanelChips {
         objectName: "scale"
         visible: view.curMode !== null
@@ -342,7 +342,7 @@ ColumnLayout {
         current: view.cur && view.cur.logical ? view.cur.logical.scale : 0
         onPicked: v => view.setScale(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: "ROTATION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("ROTATION") }
     PanelChips {
         objectName: "transform"
         visible: view.curMode !== null
@@ -355,7 +355,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: 4
         Text {
-            text: "Fréquence variable (VRR)"
+            text: FiliI18n.tr("Variable refresh rate (VRR)")
             color: FiliTheme.brume
             Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
@@ -379,28 +379,28 @@ ColumnLayout {
         RowLayout {
             anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
             Text {
-                text: "Garder ces réglages ? " + view.secs + " s"
+                text: FiliI18n.tr("Keep these settings? %1 s", view.secs)
                 color: FiliTheme.sable
                 Layout.fillWidth: true
                 font { family: FiliTheme.font; pixelSize: FiliTheme.size }
             }
             PanelChips {
                 Layout.fillWidth: false
-                model: [{ label: "Garder", value: "keep" }, { label: "Annuler", value: "revert" }]
+                model: [{ label: FiliI18n.tr("Keep"), value: "keep" }, { label: FiliI18n.tr("Cancel"), value: "revert" }]
                 onPicked: v => v === "keep" ? view.keep() : view.revert()
             }
         }
     }
 
-    PanelSection { divided: false; text: "PROFIL" }
+    PanelSection { divided: false; text: FiliI18n.tr("PROFILE") }
     PanelButton {
         objectName: "save"
         glyph: ""
-        label: "Enregistrer pour ces écrans"
+        label: FiliI18n.tr("Save for these displays")
         detail: "kanshi"
         onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
     }
-    PanelSection { visible: view.screen >= 0; text: "LUMINOSITÉ" }
+    PanelSection { visible: view.screen >= 0; text: FiliI18n.tr("BRIGHTNESS") }
     PanelSlider {
         objectName: "screen"
         visible: view.screen >= 0
@@ -413,10 +413,10 @@ ColumnLayout {
     }
 
     // Mode sombre (défaut) ou clair: shell, GTK, navigateur (portail), foot, niri, fond d'écran (fili-theme)
-    PanelSection { text: "APPARENCE" }
+    PanelSection { text: FiliI18n.tr("APPEARANCE") }
     PanelChips {
         objectName: "theme"
-        model: [{ label: "Sombre", value: "dark" }, { label: "Clair", value: "light" }]
+        model: [{ label: FiliI18n.tr("Dark"), value: "dark" }, { label: FiliI18n.tr("Light"), value: "light" }]
         current: FiliTheme.mode
         onPicked: v => {
             FiliTheme.mode = v;
@@ -424,11 +424,11 @@ ColumnLayout {
         }
     }
 
-    PanelSection { text: "VEILLEUSE" }
+    PanelSection { text: FiliI18n.tr("NIGHT LIGHT") }
     RowLayout {
         Layout.fillWidth: true
         Text {
-            text: "Teinte chaude (4500 K)"
+            text: FiliI18n.tr("Warm tint (4500 K)")
             color: FiliTheme.brume
             Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
