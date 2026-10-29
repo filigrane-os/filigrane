@@ -28,9 +28,20 @@ MouseArea {
     property bool early: false
     onPressed: m => down(m.button)
     onClicked: m => up(m.button)
+    // Molette: un cran de souris = 120; le pavé tactile envoie une rafale de petits deltas, cumulés pour ne pas
+    // enchaîner une action par événement (volume de 0 à 100 % en un geste)
+    property real wheelAcc: 0
     onWheel: w => {
-        if (w.angleDelta.y !== 0)
-            roll(w.angleDelta.y > 0);
+        const d = w.angleDelta.y;
+        if (d === 0)
+            return;
+        if (wheelAcc * d < 0)
+            wheelAcc = 0;
+        wheelAcc += d;
+        while (Math.abs(wheelAcc) >= 120) {
+            roll(wheelAcc > 0);
+            wheelAcc -= wheelAcc > 0 ? 120 : -120;
+        }
     }
 
     function down(button) {

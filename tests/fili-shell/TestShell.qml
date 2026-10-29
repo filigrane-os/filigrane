@@ -174,8 +174,8 @@ ShellRoot {
                 }
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
-                expectClick("display", "up", "brightnessctl -q set 5%+");
-                expectClick("display", "down", "brightnessctl -q set 5%-");
+                expectClick("display", "up", "brightnessctl -q set 3%+");
+                expectClick("display", "down", "brightnessctl -q set 3%-");
                 expectClick("network", R, "menu network");
                 expectClick("power", R, "menu system");
                 // Agent IA: clic = session qui attend (ou fili-ai), milieu = nouvelle session, droit = choix de l'agent
@@ -221,12 +221,12 @@ ShellRoot {
             () => {
                 const now = 1000000;
                 const m = BarState.alert("mail", "Alice\tBonjour\nBob\tSalut\n", null, now);
-                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.startsWith("Alice: Bonjour\nBob: Salut"), "BarState: alerte mail", JSON.stringify(m));
+                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "BarState: alerte mail", JSON.stringify(m));
                 const c = BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
-                ok(c.text === " Réunion 11:00" && c.tooltip.indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
+                ok(c.text === " Réunion 11:00" && JSON.stringify(c.tooltip).indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
                 ok(BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n", null, now).text === "", "BarState: agenda expiré masqué");
                 const w = BarState.alert("whatsapp", "", "3\n", now);
-                ok(w.text.endsWith(" 3") && w.tooltip.indexOf("3 unread") >= 0, "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(w.text.endsWith(" 3") && w.tooltip.title === "WhatsApp" && w.tooltip.rows[0][1] === "3", "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
                 ok(BarState.alert("whatsapp", "x\ty\n", "0", now).text === "", "BarState: compteur à 0 masque l'alerte");
                 ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: chronomètre", BarState.timerFor("S", now - 65, now).text);
                 const r = BarState.timerFor("T", now + 3700, now);

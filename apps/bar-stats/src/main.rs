@@ -130,7 +130,7 @@ impl Usage {
                 format!("{:<22} {pct:5.1}%  {mem}", clean(&p.name))
             })
             .collect();
-        stat("cpu", &format!(r#"{{"text":"{usage}%","tooltip":"<tt>Top CPU\n{}</tt>"}}"#, tip.join("\\n")));
+        stat("cpu", &format!(r#"{{"text":"{usage}%","tooltip":"<tt>{}</tt>"}}"#, tip.join("\\n")));
 
         let info = fs::read_to_string("/proc/meminfo").unwrap_or_default();
         let field = |k: &str| {
@@ -160,7 +160,7 @@ impl Usage {
                 format!("{:<22} {v}", clean(n))
             })
             .collect();
-        stat("mem", &format!(r#"{{"text":"{used:.1}G","tooltip":"<tt>Top RAM\n{}</tt>"}}"#, tip.join("\\n")));
+        stat("mem", &format!(r#"{{"text":"{used:.1}G","tooltip":"<tt>{}</tt>"}}"#, tip.join("\\n")));
 
         self.prev = now;
         self.prev_cpu = cur_cpu;

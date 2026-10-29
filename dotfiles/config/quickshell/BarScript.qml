@@ -37,6 +37,8 @@ Item {
     property var tip: ""
     // Ligne d'aide de la fili-tooltip (actions des clics)
     property string hint
+    // Titre de la fiche d'un tooltip en texte simple (sinon l'étiquette); standard: titre à gauche, contenu à droite
+    property string title
     // Fiche lue au survol (remplace le texte du script), voir BarHover
     property string tipInfo
     property bool pending: false
@@ -163,7 +165,12 @@ Item {
     BarHover {
         id: hov
         anchors.fill: parent
-        tip: mod.hint ? { text: mod.tip, hint: mod.hint } : mod.tip
+        tip: {
+            const name = mod.title || mod.tag;
+            if (typeof mod.tip === "string" && mod.tip && (name || mod.hint))
+                return { title: name, text: mod.tip, hint: mod.hint };
+            return mod.tip;
+        }
         tipInfo: mod.tipInfo
         click: mod.click
         rclick: mod.rclick

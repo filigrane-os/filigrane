@@ -70,13 +70,15 @@ Singleton {
     // count: contenu de <kind>.count (compteur réel de non-lus, prioritaire), null s'il n'existe pas
     function alert(kind, text, count, now) {
         const r = rows(text);
-        const tip = r.slice(-8).map(x => x[0] + ": " + (x[1] ?? "")).join("\n");
+        // Fiches au standard de la fili-tooltip: titre à gauche, lignes expéditeur / sujet à droite
+        const lines = r.slice(-8).map(x => [x[0], x[1] ?? ""]);
         const wa = String.fromCodePoint(0xf05a3);
+        const name = { mail: "Proton Mail", cal: "Proton Calendar", whatsapp: "WhatsApp" }[kind];
         if (count !== null) {
             const n = parseInt(count);
             if (!(n > 0))
                 return empty;
-            return { text: wa + " " + n, class: "active", tooltip: (tip ? tip + "\n" : "") + FiliI18n.tr("%1 unread (click: open the web app)", n) };
+            return { text: wa + " " + n, class: "active", tooltip: { title: name, rows: [[FiliI18n.tr("Unread"), String(n)]].concat(lines), hint: FiliI18n.tr("click: open the web app") } };
         }
         if (r.length === 0)
             return empty;
@@ -88,23 +90,23 @@ Singleton {
             const title = live[0][2] ?? "";
             const short = title.length > 28 ? title.slice(0, 27) + "…" : title;
             return { text: " " + short + " " + (live[0][1] ?? ""), class: "active",
-                     tooltip: live.map(x => x[1] + " " + x[2]).join("\n") + "\n" + FiliI18n.tr("(click: open %1)", "Proton Calendar") };
+                     tooltip: { title: name, rows: live.map(x => [x[1], x[2] ?? ""]), hint: FiliI18n.tr("click: open %1", name) } };
         }
         if (kind === "mail")
-            return { text: " " + r.length, class: "active", tooltip: tip + "\n" + FiliI18n.tr("(click: open %1)", "Proton Mail") };
-        return { text: wa + " " + r.length, class: "active", tooltip: tip + "\n" + FiliI18n.tr("(click: open the web app)") };
+            return { text: " " + r.length, class: "active", tooltip: { title: name, rows: lines, hint: FiliI18n.tr("click: open %1", name) } };
+        return { text: wa + " " + r.length, class: "active", tooltip: { title: name, rows: lines, hint: FiliI18n.tr("click: open the web app") } };
     }
     function drawer(kind, a) {
         if (!trayOpen || a.text !== "")
             return empty;
-        const [g, name] = { mail: ["", "Proton Mail"], cal: ["", "Proton Calendar"] }[kind] ?? [String.fromCodePoint(0xf05a3), kind];
-        return { text: g, class: "idle", tooltip: name + " " + FiliI18n.tr("(click: open)") };
+        const [g, name] = { mail: ["", "Proton Mail"], cal: ["", "Proton Calendar"] }[kind] ?? [String.fromCodePoint(0xf05a3), "WhatsApp"];
+        return { text: g, class: "idle", tooltip: { title: name, hint: FiliI18n.tr("click: open") } };
     }
 
     // ───── tiroir ─────
     Watched { id: trayF; path: st.run + "/bar-tray-open" }
     readonly property bool trayOpen: trayF.exists
-    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: FiliI18n.tr("Fold") } : { text: "", tooltip: FiliI18n.tr("Show the backup") }
+    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: fold") } } : { text: "", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: show the backup") } }
 
     // ───── sauvegarde ─────
     // Repliée, visible seulement en cours ou en échec; repassée au repos, elle reste 10 s (pour pouvoir la relancer

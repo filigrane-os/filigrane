@@ -22,25 +22,33 @@ ColumnLayout {
                 info.card = card;
         }
     }
-    Text {
-        visible: info.title && !!info.card.title
-        text: info.card.title ?? ""
-        color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
-    }
-    GridLayout {
-        columns: 2
-        columnSpacing: 16
-        rowSpacing: 3
-        Repeater {
-            model: (info.card.rows ?? []).reduce((a, r) => a.concat([{ t: r[0], key: true }, { t: r[1], key: false }]), [])
-            Text {
-                required property var modelData
-                text: modelData.t
-                color: modelData.key ? FiliTheme.ardoise : FiliTheme.brume
-                Layout.maximumWidth: modelData.key ? 130 : 200
-                elide: Text.ElideRight
-                font { family: FiliTheme.font; pixelSize: 13 }
+    // Même standard que la fili-tooltip: titre à gauche, lignes libellé / valeur à droite
+    RowLayout {
+        spacing: 18
+        Text {
+            visible: info.title && !!info.card.title
+            Layout.alignment: Qt.AlignTop
+            Layout.maximumWidth: 130
+            elide: Text.ElideRight
+            text: info.card.title ?? ""
+            color: FiliTheme.voile
+            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        }
+        GridLayout {
+            Layout.alignment: Qt.AlignTop
+            columns: 2
+            columnSpacing: 16
+            rowSpacing: 3
+            Repeater {
+                model: (info.card.rows ?? []).reduce((a, r) => a.concat([{ t: r[0], key: true }, { t: r[1], key: false }]), [])
+                Text {
+                    required property var modelData
+                    text: modelData.t
+                    color: modelData.key ? FiliTheme.ardoise : FiliTheme.brume
+                    Layout.maximumWidth: modelData.key ? 130 : 200
+                    elide: Text.ElideRight
+                    font { family: FiliTheme.font; pixelSize: 13 }
+                }
             }
         }
     }

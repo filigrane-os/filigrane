@@ -1,7 +1,7 @@
 pragma Singleton
 // fili-tooltip: fiche d'information unique de la fili-bar, sous l'élément survolé (après 400 ms), inspirée des
 // panneaux d'Omarchy mais en lecture seule: les actions restent sur les clics, rappelés par la ligne d'aide.
-// Contenu: texte (sortie des scripts, balisage Pango retiré, <tt> = chasse fixe) ou fiche
+// Standard: titre à gauche, contenu à droite (même mise en page que PanelInfo). Contenu: texte (sortie des scripts, balisage Pango retiré, <tt> = chasse fixe) ou fiche
 // { title, rows: [[libellé, valeur]...], text, hint }. Une ligne peut porter une jauge sous sa valeur:
 // [libellé, valeur, { value: 0..1, mark: 0..1 }] (mark: repère, par exemple l'usage attendu à rythme régulier).
 import QtQuick
@@ -84,70 +84,81 @@ Singleton {
                 id: body
                 anchors.centerIn: parent
                 spacing: 6
-                Text {
-                    visible: !!tip.card.title
-                    text: tip.card.title ?? ""
-                    color: FiliTheme.voile
-                    font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
-                }
-                GridLayout {
-                    visible: !!(tip.card.rows && tip.card.rows.length)
-                    columns: 2
-                    columnSpacing: 16
-                    rowSpacing: 3
-                    Repeater {
-                        model: (tip.card.rows ?? []).reduce((a, r) => a.concat([{ t: r[0], key: true }, { t: r[1], key: false, gauge: r[2] ?? null }]), [])
-                        ColumnLayout {
-                            id: cell
-                            required property var modelData
-                            spacing: 4
-                            Layout.alignment: Qt.AlignTop
-                            Text {
-                                text: cell.modelData.t
-                                color: cell.modelData.key ? FiliTheme.ardoise : FiliTheme.brume
-                                Layout.maximumWidth: cell.modelData.key ? 140 : 420
-                                elide: Text.ElideRight
-                                font { family: FiliTheme.font; pixelSize: 13 }
-                            }
-                            // Jauge: voile, sable dès 80 %, cendre dès 95 %; repère fin en brume
-                            Item {
-                                readonly property var g: cell.modelData.gauge
-                                visible: !!g
-                                Layout.fillWidth: true
-                                Layout.minimumWidth: 180
-                                Layout.bottomMargin: 2
-                                implicitHeight: 4
-                                Rectangle {
-                                    anchors.fill: parent
-                                    radius: 2
-                                    color: FiliTheme.nuit3
-                                }
-                                Rectangle {
-                                    readonly property real v: Math.max(0, Math.min(1, parent.g?.value ?? 0))
-                                    width: parent.width * v
-                                    height: parent.height
-                                    radius: 2
-                                    color: v >= 0.95 ? FiliTheme.cendre : v >= 0.8 ? FiliTheme.sable : FiliTheme.voile
-                                }
-                                Rectangle {
-                                    readonly property real m: parent.g?.mark ?? -1
-                                    visible: m >= 0 && m <= 1
-                                    x: Math.round(parent.width * m) - 1
-                                    y: -2
-                                    width: 2
-                                    height: parent.height + 4
-                                    color: FiliTheme.brume
+                // Standard des fiches: titre à gauche, contenu (lignes libellé / valeur, ou texte) à droite
+                RowLayout {
+                    spacing: 18
+                    Text {
+                        visible: !!tip.card.title
+                        Layout.alignment: Qt.AlignTop
+                        Layout.maximumWidth: 160
+                        elide: Text.ElideRight
+                        text: tip.card.title ?? ""
+                        color: FiliTheme.voile
+                        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                    }
+                    ColumnLayout {
+                        Layout.alignment: Qt.AlignTop
+                        spacing: 6
+                        GridLayout {
+                            visible: !!(tip.card.rows && tip.card.rows.length)
+                            columns: 2
+                            columnSpacing: 16
+                            rowSpacing: 3
+                            Repeater {
+                                model: (tip.card.rows ?? []).reduce((a, r) => a.concat([{ t: r[0], key: true }, { t: r[1], key: false, gauge: r[2] ?? null }]), [])
+                                ColumnLayout {
+                                    id: cell
+                                    required property var modelData
+                                    spacing: 4
+                                    Layout.alignment: Qt.AlignTop
+                                    Text {
+                                        text: cell.modelData.t
+                                        color: cell.modelData.key ? FiliTheme.ardoise : FiliTheme.brume
+                                        Layout.maximumWidth: cell.modelData.key ? 140 : 420
+                                        elide: Text.ElideRight
+                                        font { family: FiliTheme.font; pixelSize: 13 }
+                                    }
+                                    // Jauge: voile, sable dès 80 %, cendre dès 95 %; repère fin en brume
+                                    Item {
+                                        readonly property var g: cell.modelData.gauge
+                                        visible: !!g
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 180
+                                        Layout.bottomMargin: 2
+                                        implicitHeight: 4
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            radius: 2
+                                            color: FiliTheme.nuit3
+                                        }
+                                        Rectangle {
+                                            readonly property real v: Math.max(0, Math.min(1, parent.g?.value ?? 0))
+                                            width: parent.width * v
+                                            height: parent.height
+                                            radius: 2
+                                            color: v >= 0.95 ? FiliTheme.cendre : v >= 0.8 ? FiliTheme.sable : FiliTheme.voile
+                                        }
+                                        Rectangle {
+                                            readonly property real m: parent.g?.mark ?? -1
+                                            visible: m >= 0 && m <= 1
+                                            x: Math.round(parent.width * m) - 1
+                                            y: -2
+                                            width: 2
+                                            height: parent.height + 4
+                                            color: FiliTheme.brume
+                                        }
+                                    }
                                 }
                             }
                         }
+                        Text {
+                            visible: !!tip.card.text
+                            text: tip.card.text ?? ""
+                            color: FiliTheme.brume
+                            font.family: tip.card.mono ? FiliTheme.mono : FiliTheme.font
+                            font.pixelSize: tip.card.mono ? 12 : FiliTheme.size
+                        }
                     }
-                }
-                Text {
-                    visible: !!tip.card.text
-                    text: tip.card.text ?? ""
-                    color: FiliTheme.brume
-                    font.family: tip.card.mono ? FiliTheme.mono : FiliTheme.font
-                    font.pixelSize: tip.card.mono ? 12 : FiliTheme.size
                 }
                 Rectangle {
                     visible: !!tip.card.hint
