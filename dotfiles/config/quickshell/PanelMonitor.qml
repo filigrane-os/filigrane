@@ -6,7 +6,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     property string running: ""
     property var results: ({})
 
@@ -49,7 +49,7 @@ ColumnLayout {
         onClicked: view.test("disk")
     }
     PanelButton {
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         glyph: ""
         label: FiliI18n.tr("Full monitor (htop)")
         dim: true

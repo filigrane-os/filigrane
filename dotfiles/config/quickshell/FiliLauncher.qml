@@ -225,14 +225,14 @@ Singleton {
         property alias text: capText.text
         implicitWidth: capText.implicitWidth + 12
         implicitHeight: 20
-        radius: 5
+        radius: FiliTheme.radiusControl
         color: launcher.nuit2
         border { width: 1; color: FiliTheme.nuit4 }
         Text {
             id: capText
             anchors.centerIn: parent
             color: FiliTheme.brume2
-            font { family: FiliTheme.mono; pixelSize: 11 }
+            font { family: FiliTheme.mono; pixelSize: FiliTheme.sizeSmall }
         }
     }
 
@@ -268,32 +268,32 @@ Singleton {
             y: Math.round(win.height * 0.2)
             // Voile à peine translucide: le flou du bureau transparaît (brand.md, transparence)
             color: FiliTheme.alpha(FiliTheme.nuit, 0.94)
-            radius: 16
+            radius: FiliTheme.radiusWindow
             border { width: 1; color: FiliTheme.nuit4 }
             MouseArea { anchors.fill: parent }
 
             ColumnLayout {
                 id: column
                 anchors { left: parent.left; right: parent.right; top: parent.top; margins: box.pad }
-                spacing: 12
+                spacing: FiliTheme.space3
 
                 // Fil d'Ariane: étiquette Jost 500 en capitales espacées
                 Text {
                     text: launcher.crumb
                     color: FiliTheme.ardoise
-                    font { family: FiliTheme.font; pixelSize: 11; weight: Font.Medium; letterSpacing: 1.6 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: FiliTheme.weightAccent; letterSpacing: 1.6 }
                 }
 
                 // Champ de recherche
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 44
-                    radius: 10
+                    radius: FiliTheme.radiusWindow
                     color: launcher.nuit2
                     border { width: 1; color: input.activeFocus ? FiliTheme.nuit4 : "transparent" }
                     RowLayout {
-                        anchors { fill: parent; leftMargin: 14; rightMargin: 14 }
-                        spacing: 10
+                        anchors { fill: parent; leftMargin: FiliTheme.space3; rightMargin: FiliTheme.space3 }
+                        spacing: FiliTheme.space2
                         Text {
                             text: box.listMode ? "" : ""
                             color: FiliTheme.ardoise
@@ -305,7 +305,7 @@ Singleton {
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.nuit3
                             selectedTextColor: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: 18; weight: Font.Light }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle; weight: Font.Light }
                             clip: true
                             onTextChanged: launcher.filter()
                             Text {
@@ -343,7 +343,7 @@ Singleton {
                             visible: box.listMode && input.text !== ""
                             text: launcher.shown.length + " / " + launcher.entries.length
                             color: FiliTheme.ardoise
-                            font { family: FiliTheme.mono; pixelSize: 11 }
+                            font { family: FiliTheme.mono; pixelSize: FiliTheme.sizeSmall }
                         }
                     }
                 }
@@ -371,7 +371,7 @@ Singleton {
                             readonly property bool sel: index === launcher.current
                             width: list.width - (scroll.visible ? 8 : 0)
                             height: box.rowH
-                            radius: 10
+                            radius: FiliTheme.radiusWindow
                             color: sel ? FiliTheme.nuit3 : "transparent"
 
                             // Liseré voile de la sélection (comme l'espace de travail actif de la fili-bar)
@@ -380,13 +380,13 @@ Singleton {
                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                                 width: 3
                                 height: 18
-                                radius: 2
+                                radius: FiliTheme.radiusMark
                                 color: FiliTheme.voile
                             }
 
                             RowLayout {
-                                anchors { fill: parent; leftMargin: 14; rightMargin: 12 }
-                                spacing: 12
+                                anchors { fill: parent; leftMargin: FiliTheme.space3; rightMargin: FiliTheme.space3 }
+                                spacing: FiliTheme.space3
                                 // Colonne d'icône: glyphe du menu, icône du thème ou miniature
                                 Item {
                                     visible: row.e.glyph !== "" || row.e.icon !== "" || row.e.thumb !== ""
@@ -398,7 +398,7 @@ Singleton {
                                         anchors.centerIn: parent
                                         text: row.e.glyph
                                         color: row.sel ? FiliTheme.voile : FiliTheme.brume2
-                                        font { family: "Fili Icons"; pixelSize: 18 }
+                                        font { family: "Fili Icons"; pixelSize: FiliTheme.sizeTitle }
                                     }
                                     IconImage {
                                         visible: row.e.icon !== ""
@@ -422,7 +422,7 @@ Singleton {
                                     textFormat: Text.StyledText
                                     elide: Text.ElideRight
                                     color: row.sel ? FiliTheme.brume : FiliTheme.brume2
-                                    font { family: FiliTheme.font; pixelSize: 15 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                 }
                                 KeyCap {
                                     visible: row.e.key !== ""
@@ -432,7 +432,7 @@ Singleton {
                                     visible: row.e.sub
                                     text: "›"
                                     color: row.sel ? FiliTheme.voile : FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 18 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle }
                                 }
                             }
                             MouseArea {
@@ -453,7 +453,7 @@ Singleton {
                         visible: list.contentHeight > list.height + 1
                         anchors.right: parent.right
                         width: 3
-                        radius: 2
+                        radius: FiliTheme.radiusMark
                         color: FiliTheme.nuit4
                         y: list.visibleArea.yPosition * list.height
                         height: Math.max(24, list.visibleArea.heightRatio * list.height)
@@ -463,19 +463,19 @@ Singleton {
                     Column {
                         visible: launcher.shown.length === 0
                         anchors.centerIn: parent
-                        spacing: 4
+                        spacing: FiliTheme.space1
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: FiliI18n.tr("No result")
                             color: FiliTheme.brume2
-                            font { family: FiliTheme.font; pixelSize: 14 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         }
                         Text {
                             visible: input.text !== ""
                             anchors.horizontalCenter: parent.horizontalCenter
                             text: FiliI18n.tr("Enter: use “%1”", input.text)
                             color: FiliTheme.ardoise
-                            font { family: FiliTheme.font; pixelSize: 12 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }
                     }
                 }
@@ -487,19 +487,19 @@ Singleton {
                     color: FiliTheme.nuit3
                 }
                 RowLayout {
-                    spacing: 16
+                    spacing: FiliTheme.space4
                     Repeater {
                         model: box.listMode
                             ? [["↑ ↓", FiliI18n.tr("navigate")], ["⏎", FiliI18n.tr("choose")], ["⇧ ⌫", FiliI18n.tr("back")], [FiliI18n.tr("Esc"), FiliI18n.tr("close")]]
                             : [["⏎", FiliI18n.tr("confirm")], ["⇧ ⌫", FiliI18n.tr("back")], [FiliI18n.tr("Esc"), FiliI18n.tr("close")]]
                         RowLayout {
                             required property var modelData
-                            spacing: 6
+                            spacing: FiliTheme.space2
                             KeyCap { text: parent.modelData[0] }
                             Text {
                                 text: parent.modelData[1]
                                 color: FiliTheme.ardoise
-                                font { family: FiliTheme.font; pixelSize: 12 }
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                             }
                         }
                     }

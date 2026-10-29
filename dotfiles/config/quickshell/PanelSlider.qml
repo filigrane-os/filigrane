@@ -11,7 +11,7 @@ RowLayout {
     signal glyphClicked
 
     Layout.fillWidth: true
-    spacing: 8
+    spacing: FiliTheme.space2
     // Clavier: ←/→ = ±5 % (Maj+←/→ reste au fili-panel: panneau voisin), Entrée ou Espace = clic sur l'icône (muet)
     activeFocusOnTab: true
     Keys.onLeftPressed: e => s.nudge(e, -0.05)
@@ -39,19 +39,19 @@ RowLayout {
             id: track
             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter }
             height: 4
-            radius: 2
+            radius: FiliTheme.radiusMark
             color: FiliTheme.nuit3
             Rectangle {
                 width: parent.width * Math.max(0, Math.min(1, s.value))
                 height: parent.height
-                radius: 2
+                radius: FiliTheme.radiusMark
                 color: s.muted ? FiliTheme.ardoise : FiliTheme.voile
             }
         }
         Rectangle {
             x: track.width * Math.max(0, Math.min(1, s.value)) - 6
             anchors.verticalCenter: parent.verticalCenter
-            width: 12; height: 12; radius: 6
+            width: 12; height: 12; radius: FiliTheme.radiusControl
             color: s.muted ? FiliTheme.ardoise : FiliTheme.brume
         }
         MouseArea {
@@ -68,14 +68,14 @@ RowLayout {
         color: FiliTheme.ardoise
         Layout.preferredWidth: 36
         horizontalAlignment: Text.AlignRight
-        font { family: FiliTheme.mono; pixelSize: 12 }
+        font { family: FiliTheme.mono; pixelSize: FiliTheme.sizeList }
     }
     Text {
         text: s.glyph
         color: s.muted ? FiliTheme.ardoise : FiliTheme.brume
         Layout.preferredWidth: 22
         horizontalAlignment: Text.AlignHCenter
-        font { family: FiliTheme.font; pixelSize: 15 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
         MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: s.glyphClicked() }
     }
 }

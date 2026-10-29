@@ -24,7 +24,7 @@ ColumnLayout {
     }
     // Même standard que la fili-tooltip: titre à gauche, lignes libellé / valeur à droite
     RowLayout {
-        spacing: 18
+        spacing: FiliTheme.space4
         Text {
             visible: info.title && !!info.card.title
             Layout.alignment: Qt.AlignTop
@@ -32,7 +32,7 @@ ColumnLayout {
             elide: Text.ElideRight
             text: info.card.title ?? ""
             color: FiliTheme.voile
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         GridLayout {
             Layout.alignment: Qt.AlignTop
@@ -47,7 +47,7 @@ ColumnLayout {
                     color: modelData.key ? FiliTheme.ardoise : FiliTheme.brume
                     Layout.maximumWidth: modelData.key ? 130 : 200
                     elide: Text.ElideRight
-                    font { family: FiliTheme.font; pixelSize: 13 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                 }
             }
         }

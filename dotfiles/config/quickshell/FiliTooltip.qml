@@ -78,15 +78,15 @@ Singleton {
             color: FiliTheme.nuit
             border.color: FiliTheme.nuit4
             border.width: 1
-            radius: 10
+            radius: FiliTheme.radiusWindow
 
             ColumnLayout {
                 id: body
                 anchors.centerIn: parent
-                spacing: 6
+                spacing: FiliTheme.space2
                 // Standard des fiches: titre à gauche, contenu (lignes libellé / valeur, ou texte) à droite
                 RowLayout {
-                    spacing: 18
+                    spacing: FiliTheme.space4
                     Text {
                         visible: !!tip.card.title
                         Layout.alignment: Qt.AlignTop
@@ -94,11 +94,11 @@ Singleton {
                         elide: Text.ElideRight
                         text: tip.card.title ?? ""
                         color: FiliTheme.voile
-                        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                     }
                     ColumnLayout {
                         Layout.alignment: Qt.AlignTop
-                        spacing: 6
+                        spacing: FiliTheme.space2
                         GridLayout {
                             visible: !!(tip.card.rows && tip.card.rows.length)
                             columns: 2
@@ -109,14 +109,14 @@ Singleton {
                                 ColumnLayout {
                                     id: cell
                                     required property var modelData
-                                    spacing: 4
+                                    spacing: FiliTheme.space1
                                     Layout.alignment: Qt.AlignTop
                                     Text {
                                         text: cell.modelData.t
                                         color: cell.modelData.key ? FiliTheme.ardoise : FiliTheme.brume
                                         Layout.maximumWidth: cell.modelData.key ? 140 : 420
                                         elide: Text.ElideRight
-                                        font { family: FiliTheme.font; pixelSize: 13 }
+                                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                     }
                                     // Jauge: voile, sable dès 80 %, cendre dès 95 %; repère fin en brume
                                     Item {
@@ -128,14 +128,14 @@ Singleton {
                                         implicitHeight: 4
                                         Rectangle {
                                             anchors.fill: parent
-                                            radius: 2
+                                            radius: FiliTheme.radiusMark
                                             color: FiliTheme.nuit3
                                         }
                                         Rectangle {
                                             readonly property real v: Math.max(0, Math.min(1, parent.g?.value ?? 0))
                                             width: parent.width * v
                                             height: parent.height
-                                            radius: 2
+                                            radius: FiliTheme.radiusMark
                                             color: v >= 0.95 ? FiliTheme.cendre : v >= 0.8 ? FiliTheme.sable : FiliTheme.voile
                                         }
                                         Rectangle {
@@ -156,7 +156,7 @@ Singleton {
                             text: tip.card.text ?? ""
                             color: FiliTheme.brume
                             font.family: tip.card.mono ? FiliTheme.mono : FiliTheme.font
-                            font.pixelSize: tip.card.mono ? 12 : FiliTheme.size
+                            font.pixelSize: tip.card.mono ? FiliTheme.sizeList : FiliTheme.size
                         }
                     }
                 }
@@ -171,7 +171,7 @@ Singleton {
                     visible: !!tip.card.hint
                     text: tip.card.hint ?? ""
                     color: FiliTheme.ardoise
-                    font { family: FiliTheme.font; pixelSize: 12 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                 }
             }
         }

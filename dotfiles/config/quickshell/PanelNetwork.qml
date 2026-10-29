@@ -6,7 +6,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     property var wifi: ({ device: "", powered: false, networks: [] })
     property string asking: ""
     property string message: ""
@@ -75,7 +75,7 @@ ColumnLayout {
         Text {
             text: "Wi-Fi"
             color: FiliTheme.voile
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         Item { Layout.fillWidth: true }
         PanelSwitch {
@@ -114,15 +114,15 @@ ColumnLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 34
                 Layout.topMargin: 2
-                Layout.bottomMargin: 4
+                Layout.bottomMargin: FiliTheme.space1
                 implicitHeight: 30
-                radius: 6
+                radius: FiliTheme.radiusControl
                 color: FiliTheme.nuit2
                 border { width: 1; color: pass.activeFocus ? FiliTheme.nuit4 : FiliTheme.nuit3 }
                 TextInput {
                     id: pass
                     objectName: "passphrase"
-                    anchors { fill: parent; leftMargin: 10; rightMargin: 30 }
+                    anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: 30 }
                     verticalAlignment: TextInput.AlignVCenter
                     echoMode: TextInput.Password
                     passwordCharacter: "⦁"
@@ -144,7 +144,7 @@ ColumnLayout {
                     }
                 }
                 Text {
-                    anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                    anchors { right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                     text: "↵"
                     color: pass.text ? FiliTheme.voile : FiliTheme.nuit4
                     font { family: FiliTheme.font; pixelSize: FiliTheme.size }
@@ -153,7 +153,7 @@ ColumnLayout {
             Rectangle {
                 visible: modelData.connected && index < view.wifi.networks.length - 1
                 Layout.fillWidth: true
-                Layout.topMargin: 4
+                Layout.topMargin: FiliTheme.space1
                 Layout.bottomMargin: 2
                 implicitHeight: 1
                 color: FiliTheme.nuit3
@@ -167,12 +167,12 @@ ColumnLayout {
         wrapMode: Text.Wrap
         Layout.fillWidth: true
         Layout.maximumWidth: 300
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     PanelSection { text: FiliI18n.tr("LINK") }
     PanelInfo { id: info; topic: "network" }
     PanelButton {
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         glyph: ""
         label: FiliI18n.tr("Advanced networks (impala)")
         dim: true

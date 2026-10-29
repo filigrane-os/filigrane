@@ -10,7 +10,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     // Sorties triées par nom (niri msg -j outputs); logical = null pour une sortie éteinte
     property var outputs: []
     property string sel: ""
@@ -201,7 +201,7 @@ ColumnLayout {
     Text {
         text: FiliI18n.tr("Displays")
         color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
 
     // Canvas: sorties allumées à l'échelle, glisser pour déplacer
@@ -227,7 +227,7 @@ ColumnLayout {
 
         Rectangle {
             anchors.fill: parent
-            radius: 6
+            radius: FiliTheme.radiusControl
             color: FiliTheme.nuit3
             opacity: 0.4
         }
@@ -242,7 +242,7 @@ ColumnLayout {
                 y: canvas.offY + (r.y - canvas.box.y) * canvas.k
                 width: r.w * canvas.k
                 height: r.h * canvas.k
-                radius: 3
+                radius: FiliTheme.radiusMark
                 color: picked ? FiliTheme.nuit4 : FiliTheme.nuit
                 border.color: picked ? FiliTheme.voile : FiliTheme.ardoise
                 border.width: 1
@@ -253,7 +253,7 @@ ColumnLayout {
                     elide: Text.ElideRight
                     text: tile.modelData.name
                     color: tile.picked ? FiliTheme.voile : FiliTheme.brume2
-                    font { family: FiliTheme.font; pixelSize: 11 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
                 }
                 MouseArea {
                     anchors.fill: parent
@@ -301,13 +301,13 @@ ColumnLayout {
     RowLayout {
         visible: view.cur !== null
         Layout.fillWidth: true
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         Text {
             text: view.cur ? ((view.cur.make ?? "") + " " + (view.cur.model ?? "")).trim() || view.cur.name : ""
             color: FiliTheme.brume
             Layout.fillWidth: true
             elide: Text.ElideRight
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         PanelSwitch {
             objectName: "power"
@@ -353,7 +353,7 @@ ColumnLayout {
     RowLayout {
         visible: view.cur !== null && view.cur.vrr_supported && view.cur.logical !== null
         Layout.fillWidth: true
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         Text {
             text: FiliI18n.tr("Variable refresh rate (VRR)")
             color: FiliTheme.brume
@@ -372,12 +372,12 @@ ColumnLayout {
         objectName: "confirm"
         visible: view.snap !== null
         Layout.fillWidth: true
-        Layout.topMargin: 6
+        Layout.topMargin: FiliTheme.space2
         implicitHeight: 34
-        radius: 6
+        radius: FiliTheme.radiusControl
         color: FiliTheme.nuit3
         RowLayout {
-            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+            anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
             Text {
                 text: FiliI18n.tr("Keep these settings? %1 s", view.secs)
                 color: FiliTheme.sable

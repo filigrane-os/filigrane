@@ -7,7 +7,7 @@ Rectangle {
     property bool shown: target.activeFocus
     property real gap: 2
     anchors { fill: target; margins: -gap }
-    radius: (target.radius ?? 6) + gap
+    radius: (target.radius ?? FiliTheme.radiusControl) + gap
     color: "transparent"
     border.width: 1
     border.color: FiliTheme.voile

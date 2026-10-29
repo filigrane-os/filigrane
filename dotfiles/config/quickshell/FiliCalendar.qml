@@ -44,18 +44,18 @@ PopupWindow {
         color: FiliTheme.nuit
         border.color: FiliTheme.nuit4
         border.width: 1
-        radius: 10
+        radius: FiliTheme.radiusWindow
         HoverHandler { id: hover }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 12
-            spacing: 4
+            anchors.margins: FiliTheme.space3
+            spacing: FiliTheme.space1
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: FiliI18n.locale.toString(cal.shown, "MMMM yyyy")
                 color: FiliTheme.voile
-                font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
             }
             GridLayout {
                 columns: 2
@@ -72,7 +72,7 @@ PopupWindow {
                         text: shortName.slice(0, 2)
                         color: FiliTheme.ardoise
                         horizontalAlignment: Text.AlignHCenter
-                        font { family: FiliTheme.font; pixelSize: 12 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                     }
                 }
                 WeekNumberColumn {
@@ -86,7 +86,7 @@ PopupWindow {
                         color: FiliTheme.ardoise
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
-                        font { family: FiliTheme.mono; pixelSize: 11 }
+                        font { family: FiliTheme.mono; pixelSize: FiliTheme.sizeSmall }
                     }
                 }
                 MonthGrid {
@@ -100,12 +100,12 @@ PopupWindow {
                         required property var model
                         readonly property bool isToday: model.today
                         color: isToday ? FiliTheme.nuit3 : "transparent"
-                        radius: 6
+                        radius: FiliTheme.radiusControl
                         Text {
                             anchors.centerIn: parent
                             text: parent.model.day
                             color: parent.isToday ? FiliTheme.voile : parent.model.month === grid.month ? FiliTheme.brume : FiliTheme.nuit4
-                            font { family: FiliTheme.font; pixelSize: 13; weight: parent.isToday ? Font.Medium : Font.Normal }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: parent.isToday ? FiliTheme.weightAccent : Font.Normal }
                         }
                     }
                 }

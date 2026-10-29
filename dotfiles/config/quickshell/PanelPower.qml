@@ -6,7 +6,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     // Caféine: verrouillage automatique coupé (swayidle arrêté, voir bar-toggle idle)
     property bool caffeine: false
 
@@ -21,10 +21,10 @@ ColumnLayout {
     PanelSection { text: FiliI18n.tr("CAFFEINE") }
     RowLayout {
         Layout.fillWidth: true
-        Layout.topMargin: 4
-        Layout.leftMargin: 8
-        Layout.rightMargin: 8
-        spacing: 8
+        Layout.topMargin: FiliTheme.space1
+        Layout.leftMargin: FiliTheme.space2
+        Layout.rightMargin: FiliTheme.space2
+        spacing: FiliTheme.space2
         Text {
             text: ""
             color: view.caffeine ? FiliTheme.sable : FiliTheme.brume

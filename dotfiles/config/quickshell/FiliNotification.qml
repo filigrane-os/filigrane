@@ -135,7 +135,7 @@ Singleton {
         ColumnLayout {
             id: stack
             width: 360
-            spacing: 8
+            spacing: FiliTheme.space2
             Repeater {
                 model: notifs.popups.slice(-4).reverse()
                 Card {
@@ -155,7 +155,7 @@ Singleton {
         readonly property string img: notifs.icon(n)
         implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56))
         color: FiliTheme.nuit
-        radius: 12
+        radius: FiliTheme.radiusWindow
         border.width: 1
         border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.nuit4
         clip: true
@@ -167,8 +167,8 @@ Singleton {
         }
         RowLayout {
             id: row
-            anchors { fill: parent; margins: 14; rightMargin: 34 }
-            spacing: 12
+            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: 34 }
+            spacing: FiliTheme.space3
             IconImage {
                 visible: card.img !== ""
                 source: card.img
@@ -184,7 +184,7 @@ Singleton {
                     text: card.n.summary
                     elide: Text.ElideRight
                     color: card.low ? FiliTheme.brume2 : FiliTheme.brume
-                    font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                 }
                 Text {
                     Layout.fillWidth: true
@@ -196,21 +196,21 @@ Singleton {
                     elide: Text.ElideRight
                     color: card.low ? FiliTheme.brume2 : FiliTheme.brume
                     linkColor: FiliTheme.voile
-                    font { family: FiliTheme.font; pixelSize: 14 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                     onLinkActivated: l => Qt.openUrlExternally(l)
                 }
                 // Barre de progression (indice "value")
                 Rectangle {
                     visible: card.n.hints.value !== undefined
                     Layout.fillWidth: true
-                    Layout.topMargin: 4
+                    Layout.topMargin: FiliTheme.space1
                     implicitHeight: 4
-                    radius: 2
+                    radius: FiliTheme.radiusMark
                     color: FiliTheme.nuit3
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(100, card.n.hints.value ?? 0)) / 100
                         height: parent.height
-                        radius: 2
+                        radius: FiliTheme.radiusMark
                         color: FiliTheme.voile
                     }
                 }
@@ -225,7 +225,7 @@ Singleton {
         }
         CloseCross {
             id: closeBtn
-            anchors { top: parent.top; right: parent.right; margins: 8 }
+            anchors { top: parent.top; right: parent.right; margins: FiliTheme.space2 }
             onClicked: notifs.close(card.n, "dismiss")
         }
     }
@@ -237,13 +237,13 @@ Singleton {
         readonly property bool hovered: crossArea.containsMouse
         width: 22
         height: 22
-        radius: 6
+        radius: FiliTheme.radiusControl
         color: hovered ? FiliTheme.nuit3 : "transparent"
         Text {
             anchors.centerIn: parent
             text: "\u2715"
             color: cross.hovered ? FiliTheme.brume : FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: 12 }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
         }
         MouseArea {
             id: crossArea
@@ -276,7 +276,7 @@ Singleton {
             width: 380
             height: Math.min((centerWin.screen?.height ?? 800) - FiliTheme.barHeight - 24, col.implicitHeight + 28)
             color: FiliTheme.nuit
-            radius: 12
+            radius: FiliTheme.radiusWindow
             border { width: 1; color: FiliTheme.nuit4 }
             focus: true
             Keys.onEscapePressed: notifs.centerOpen = false
@@ -305,20 +305,20 @@ Singleton {
 
             ColumnLayout {
                 id: col
-                anchors { fill: parent; margins: 14 }
-                spacing: 8
+                anchors { fill: parent; margins: FiliTheme.space5 }
+                spacing: FiliTheme.space2
                 RowLayout {
                     Layout.fillWidth: true
                     Text {
                         Layout.fillWidth: true
                         text: FiliI18n.tr("Notifications") + (notifs.dnd ? "  ·  " + FiliI18n.tr("do not disturb") : "")
                         color: FiliTheme.voile
-                        font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                     }
                     Text {
                         text: notifs.dnd ? "" : ""
                         color: notifs.dnd ? FiliTheme.sable : FiliTheme.ardoise
-                        font { family: FiliTheme.font; pixelSize: 15 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         MouseArea { anchors.fill: parent; onClicked: notifs.dnd = !notifs.dnd }
                         objectName: "center-dnd"
                         activeFocusOnTab: true
@@ -330,7 +330,7 @@ Singleton {
                         text: FiliI18n.tr("Clear")
                         visible: notifs.history.length > 0
                         color: FiliTheme.ardoise
-                        font { family: FiliTheme.font; pixelSize: 13 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
                         activeFocusOnTab: true
                         Keys.onReturnPressed: notifs.history = []
@@ -342,14 +342,14 @@ Singleton {
                     visible: notifs.history.length === 0
                     text: FiliI18n.tr("No notifications")
                     color: FiliTheme.ardoise
-                    font { family: FiliTheme.font; pixelSize: 13 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                 }
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     implicitHeight: contentHeight
                     clip: true
-                    spacing: 6
+                    spacing: FiliTheme.space2
                     boundsBehavior: Flickable.StopAtBounds
                     model: notifs.history
                     KineticScroll {}
@@ -359,7 +359,7 @@ Singleton {
                         required property int index
                         width: ListView.view.width
                         implicitHeight: Math.max(entry.implicitHeight, 32) + 16
-                        radius: 9
+                        radius: FiliTheme.radiusControl
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
                         // Clavier: Entrée ou Espace = copier (comme le clic), Suppr = retirer; la liste suit le focus
                         objectName: "center-item"
@@ -370,8 +370,8 @@ Singleton {
                         Keys.onDeletePressed: notifs.history = notifs.history.filter(x => x !== item.modelData)
                         FocusRing {}
                         RowLayout {
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8; rightMargin: 32 }
-                            spacing: 10
+                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: FiliTheme.space2; rightMargin: 32 }
+                            spacing: FiliTheme.space2
                             // Icône de l'appli ou de l'image de la notification (vide: un carré discret garde l'alignement)
                             IconImage {
                                 implicitSize: 32
@@ -384,13 +384,13 @@ Singleton {
                                 implicitWidth: 32
                                 implicitHeight: 32
                                 Layout.alignment: Qt.AlignTop
-                                radius: 8
+                                radius: FiliTheme.radiusControl
                                 color: FiliTheme.nuit3
                                 Text {
                                     anchors.centerIn: parent
                                     text: ""
                                     color: FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 15 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                 }
                             }
                             ColumnLayout {
@@ -401,14 +401,14 @@ Singleton {
                                     Layout.fillWidth: true
                                     text: item.modelData.app + "  ·  " + FiliI18n.locale.toString(item.modelData.time, "HH:mm")
                                     color: FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 12 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                                 }
                                 Text {
                                     Layout.fillWidth: true
                                     text: item.modelData.summary
                                     elide: Text.ElideRight
                                     color: FiliTheme.brume
-                                    font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                                 }
                                 Text {
                                     Layout.fillWidth: true
@@ -418,7 +418,7 @@ Singleton {
                                     maximumLineCount: 2
                                     elide: Text.ElideRight
                                     color: FiliTheme.brume2
-                                    font { family: FiliTheme.font; pixelSize: 13 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                 }
                             }
                         }
@@ -436,7 +436,7 @@ Singleton {
                             }
                         }
                         CloseCross {
-                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: FiliTheme.space2 }
                             visible: hov.containsMouse || hovered
                             onClicked: notifs.history = notifs.history.filter(x => x !== parent.modelData)
                         }
@@ -458,7 +458,7 @@ Singleton {
                             Layout.fillWidth: true
                             text: parent.modelData[1]
                             color: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: 13 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         }
                         PanelSwitch {
                             objectName: "sound-" + parent.modelData[0]

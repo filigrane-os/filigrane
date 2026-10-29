@@ -92,13 +92,13 @@ Singleton {
                 height: Math.min(parent.height - 48, content.implicitHeight + 48)
                 color: FiliTheme.nuit
                 border { color: FiliTheme.nuit4; width: 1 }
-                radius: 12
+                radius: FiliTheme.radiusWindow
                 clip: true
                 MouseArea { anchors.fill: parent }
                 ColumnLayout {
                     id: content
-                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: 24 }
-                    spacing: 14
+                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space6 }
+                    spacing: FiliTheme.space3
                     // Logo empilé (brand/, lié dans ~/.local/share/filigrane), version claire ou sombre
                     Image {
                         Layout.alignment: Qt.AlignHCenter
@@ -118,12 +118,12 @@ Singleton {
                             id: section
                             required property var modelData
                             Layout.fillWidth: true
-                            spacing: 4
-                            Rectangle { Layout.fillWidth: true; Layout.bottomMargin: 6; implicitHeight: 1; color: FiliTheme.nuit4 }
+                            spacing: FiliTheme.space1
+                            Rectangle { Layout.fillWidth: true; Layout.bottomMargin: FiliTheme.space2; implicitHeight: 1; color: FiliTheme.nuit4 }
                             Text {
                                 text: section.modelData.name.toUpperCase()
                                 color: FiliTheme.ardoise
-                                font { family: FiliTheme.font; pixelSize: 11; weight: Font.Medium; letterSpacing: 1.6 }
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: FiliTheme.weightAccent; letterSpacing: 1.6 }
                             }
                             GridLayout {
                                 Layout.fillWidth: true
@@ -147,10 +147,10 @@ Singleton {
                     }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.topMargin: 4
+                        Layout.topMargin: FiliTheme.space1
                         text: FiliI18n.tr("C to copy · Esc to close")
                         color: FiliTheme.ardoise
-                        font { family: FiliTheme.font; pixelSize: 12 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor

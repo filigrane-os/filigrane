@@ -9,7 +9,7 @@ Rectangle {
 
     implicitWidth: 34
     implicitHeight: 18
-    radius: 9
+    radius: height / 2
     opacity: switchable ? 1 : 0.4
     // Clavier: Entrée ou Espace = bascule
     activeFocusOnTab: switchable
@@ -25,7 +25,7 @@ Rectangle {
     Rectangle {
         x: sw.checked ? parent.width - width - 2 : 2
         anchors.verticalCenter: parent.verticalCenter
-        width: 14; height: 14; radius: 7
+        width: 14; height: 14; radius: width / 2
         color: sw.checked ? FiliTheme.nuit : FiliTheme.brume2
     }
     MouseArea {

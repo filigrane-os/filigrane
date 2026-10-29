@@ -8,7 +8,7 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 
 | Rôle | Taille | Poids | Usage |
 |---|---:|---|---|
-| Système | 13 | Regular 400 | texte courant, menus, contrôles, contenu des fiches, valeurs de la fili-bar (`FiliTheme.size`) |
+| Système | 13 | Regular 400 | texte courant, menus, contrôles, contenu des fiches, valeurs de la fili-bar (`FiliTheme.size`; échelle : `size`, `sizeList`, `sizeSmall`, `sizeLabel`, `sizeTitle`, accent `weightAccent`) |
 | Système accentué | 13 | SemiBold 600 | message d'une alerte, avec parcimonie |
 | Vue | 12 | Regular 400 | lignes des listes et tableaux (menu, notifications, historique) |
 | Petit | 11 | Regular 400 | texte secondaire, en-têtes de colonnes, infobulles, petits contrôles, précisions sous un réglage |
@@ -19,9 +19,10 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 - Intertitres de section des fili-panel et étiquettes : capitales espacées (0,12-0,16 em), 11 px, couleur ardoise (`PanelSection`). **[Filigrane]**
 - Grands titres et nom (fili-about, écran d'accueil, ≥ 18 px) : Jost Light 300. Le Light ne descend pas sous 18 px. **[Filigrane]**
 - Ne jamais réduire une taille pour faire tenir du texte : couper, tronquer avec infobulle, ou élargir. **[Apple]**
-- À aligner : le shell utilise encore 14, 15, 16 et Medium 500 pour l'accent (titres de fiche, calendrier, boutons choisis) : à ramener à l'échelle ci-dessus.
 
 ## Espacement
+
+Jetons `FiliTheme.space1` à `space6` (valeurs ci-dessous) ; rayons `radiusMark`, `radiusControl`, `radiusWindow`.
 
 | Token | Valeur | Usage | Provenance |
 |---|---:|---|---|
@@ -39,7 +40,7 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 
 ## Formes
 
-- Rayons **[Filigrane]**, trois valeurs : 2 (repères, jauges, petites marques), 6 (contrôles, champs, lignes sélectionnées, fiches), 10 (fenêtres de couche : fili-panel, fili-tooltip, fili-launcher, notifications). Le `FocusRing` ajoute son écart (2) au rayon de sa cible. Aujourd'hui le shell en emploie onze (2 à 16).
+- Rayons **[Filigrane]**, trois valeurs : 2 (repères, jauges, petites marques), 6 (contrôles, champs, lignes sélectionnées, fiches), 10 (fenêtres de couche : fili-panel, fili-tooltip, fili-launcher, notifications). Le `FocusRing` ajoute son écart (2) au rayon de sa cible. Cercles (interrupteur, poignée de curseur) : moitié de leur côté.
 - Bordures : 1 px, `nuit4` ; séparateurs 1 px, seulement entre groupes réellement distincts. **[Filigrane]**
 - Ombres : aucune dans le shell ; la profondeur vient de la teinte (`nuitProfond` < `nuit` < `nuit2`). Flou : seulement derrière le fili-launcher. **[Filigrane]**
 - Contour de focus niri : 1 px. **[Filigrane]**

@@ -14,7 +14,7 @@ Rectangle {
 
     Layout.fillWidth: true
     implicitHeight: 30
-    radius: 6
+    radius: FiliTheme.radiusControl
     color: area.containsMouse ? FiliTheme.nuit3 : "transparent"
     // Clavier: Entrée ou Espace = clic, Maj+Entrée = clic droit
     activeFocusOnTab: true
@@ -28,8 +28,8 @@ Rectangle {
     FocusRing {}
 
     RowLayout {
-        anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
-        spacing: 8
+        anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
+        spacing: FiliTheme.space2
         Text {
             visible: btn.glyph !== ""
             text: btn.glyph
@@ -43,13 +43,13 @@ Rectangle {
             color: btn.tint
             Layout.fillWidth: true
             elide: Text.ElideRight
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: btn.sel ? Font.Medium : Font.Normal }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: btn.sel ? FiliTheme.weightAccent : Font.Normal }
         }
         Text {
             visible: btn.detail !== ""
             text: btn.detail
             color: FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: 12 }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
         }
     }
     MouseArea {

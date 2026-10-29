@@ -7,7 +7,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var devices: adapter ? adapter.devices.values.filter(d => d.name && (d.paired || d.connected || adapter.discovering)) : []
 
@@ -16,7 +16,7 @@ ColumnLayout {
         Text {
             text: "Bluetooth"
             color: FiliTheme.voile
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         Item { Layout.fillWidth: true }
         PanelSwitch {
@@ -71,10 +71,10 @@ ColumnLayout {
     }
     Text {
         visible: view.devices.length > 0
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         text: FiliI18n.tr("click: connect / disconnect · right click: forget")
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
     // ───── partage de fichiers (fili-share) ─────
@@ -147,7 +147,7 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        Layout.topMargin: 6
+        Layout.topMargin: FiliTheme.space2
         implicitHeight: 1
         color: FiliTheme.nuit4
     }
@@ -158,7 +158,7 @@ ColumnLayout {
             text: FiliI18n.tr("Sharing")
             color: FiliTheme.voile
             Layout.fillWidth: true
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         PanelSwitch {
             objectName: "share-receive"
@@ -170,7 +170,7 @@ ColumnLayout {
     Text {
         text: FiliI18n.tr("Receive: visible to nearby devices")
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     PanelChips {
         objectName: "share-protocols"
@@ -186,7 +186,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.maximumWidth: 300
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     PanelButton {
         objectName: "share-refresh"

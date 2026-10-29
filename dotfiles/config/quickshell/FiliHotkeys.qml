@@ -98,24 +98,24 @@ Singleton {
                 height: Math.min(parent.height - 48, content.implicitHeight + 40)
                 color: FiliTheme.nuit
                 border { color: FiliTheme.nuit4; width: 1 }
-                radius: 12
+                radius: FiliTheme.radiusWindow
                 MouseArea { anchors.fill: parent }
                 ColumnLayout {
                     id: content
-                    anchors { fill: parent; margins: 20 }
-                    spacing: 14
+                    anchors { fill: parent; margins: FiliTheme.space5 }
+                    spacing: FiliTheme.space3
                     RowLayout {
                         Layout.fillWidth: true
                         Text {
                             text: FiliI18n.tr("Keyboard shortcuts")
                             color: FiliTheme.voile
                             Layout.fillWidth: true
-                            font { family: FiliTheme.font; pixelSize: 18; weight: Font.Medium }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle; weight: FiliTheme.weightAccent }
                         }
                         Text {
                             text: FiliI18n.tr("Esc to close")
                             color: FiliTheme.ardoise
-                            font { family: FiliTheme.font; pixelSize: 12 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }
                     }
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
@@ -146,18 +146,18 @@ Singleton {
                                 Layout.preferredWidth: 1
                                 Layout.preferredHeight: 38
                                 Layout.alignment: Qt.AlignTop
-                                spacing: 10
+                                spacing: FiliTheme.space2
                                 Row {
                                     Layout.preferredWidth: 150
                                     Layout.alignment: Qt.AlignVCenter
-                                    spacing: 4
+                                    spacing: FiliTheme.space1
                                     Repeater {
                                         model: row.modelData.key.split("+").map(k => hk.caps[k] ?? k)
                                         Rectangle {
                                             required property string modelData
                                             width: cap.implicitWidth + 12
                                             height: 22
-                                            radius: 5
+                                            radius: FiliTheme.radiusControl
                                             color: FiliTheme.nuit3
                                             border { color: FiliTheme.nuit4; width: 1 }
                                             Text {
@@ -165,7 +165,7 @@ Singleton {
                                                 anchors.centerIn: parent
                                                 text: parent.modelData
                                                 color: FiliTheme.brume
-                                                font { family: FiliTheme.font; pixelSize: 12 }
+                                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                                             }
                                         }
                                     }
@@ -184,7 +184,7 @@ Singleton {
                                         visible: row.colon > 0
                                         text: row.modelData.title.slice(0, row.colon)
                                         color: FiliTheme.ardoise
-                                        font { family: FiliTheme.font; pixelSize: 11 }
+                                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
                                     }
                                 }
                             }

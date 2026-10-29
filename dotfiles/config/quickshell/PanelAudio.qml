@@ -5,7 +5,7 @@ import Quickshell.Services.Pipewire
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     readonly property var sink: Pipewire.defaultAudioSink
     readonly property var source: Pipewire.defaultAudioSource
     readonly property var nodes: Pipewire.nodes.values
@@ -38,7 +38,7 @@ ColumnLayout {
     Text {
         text: FiliI18n.tr("Sound")
         color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
     PanelSlider {
         objectName: "volume"
@@ -94,7 +94,7 @@ ColumnLayout {
         }
     }
     PanelButton {
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         glyph: ""
         label: FiliI18n.tr("Full mixer")
         dim: true

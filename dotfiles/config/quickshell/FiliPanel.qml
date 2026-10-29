@@ -165,11 +165,11 @@ Singleton {
                 color: FiliTheme.nuit
                 border.color: FiliTheme.nuit4
                 border.width: 1
-                radius: 10
+                radius: FiliTheme.radiusWindow
                 Loader {
                     id: loader
                     objectName: "panel-view"
-                    anchors { fill: parent; margins: 14 }
+                    anchors { fill: parent; margins: FiliTheme.space5 }
                     source: panel.open ? panel.views[panel.view] : ""
                     onLoaded: if (FiliShell.keyNav) Qt.callLater(() => panel.focusFirst(scope))
                 }

@@ -133,7 +133,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             text: mod.tag
             color: FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: 11; letterSpacing: 1 }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
         }
         Text {
             visible: text !== ""

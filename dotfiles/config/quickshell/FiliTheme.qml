@@ -43,7 +43,25 @@ Singleton {
 
     readonly property string font: "Jost"
     readonly property string mono: "JetBrains Mono"
+    // Échelle typographique (tokens.md): système 13, vue (listes) 12, petit (secondaire, infobulles, intertitres) 11,
+    // étiquette 10; titre ≥ 18 (seul palier où le Light est permis); accent = Jost SemiBold 600
     readonly property int size: 13
+    readonly property int sizeList: 12
+    readonly property int sizeSmall: 11
+    readonly property int sizeLabel: 10
+    readonly property int sizeTitle: 18
+    readonly property int weightAccent: Font.DemiBold
+    // Rayons: repères et jauges 2, contrôles / lignes / fiches 6, fenêtres de couche 10
+    readonly property int radiusMark: 2
+    readonly property int radiusControl: 6
+    readonly property int radiusWindow: 10
+    // Espacements: éléments liés 4, entre contrôles 8, entre groupes 12, bord d'onglet 16, marge de panneau 20, alerte 24
+    readonly property int space1: 4
+    readonly property int space2: 8
+    readonly property int space3: 12
+    readonly property int space4: 16
+    readonly property int space5: 20
+    readonly property int space6: 24
     readonly property int barHeight: 24
     // Rythme de la fili-bar, un seul pour tous les modules (pas d'écart propre aux groupes): marge de chaque module
     // (l'écart entre deux textes vaut donc 2 × pad), cellule minimale d'une icône seule (son trait fait ~10 px: de

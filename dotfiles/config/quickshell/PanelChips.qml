@@ -11,7 +11,7 @@ Flow {
     signal picked(var value)
 
     Layout.fillWidth: true
-    spacing: 4
+    spacing: FiliTheme.space1
 
     // Choix (appelé aussi par les tests)
     function pick(i) {
@@ -54,7 +54,7 @@ Flow {
             opacity: off ? 0.4 : 1
             width: label.implicitWidth + 16
             height: 24
-            radius: 6
+            radius: FiliTheme.radiusControl
             color: on ? FiliTheme.nuit4 : area.containsMouse && !off ? FiliTheme.nuit3 : "transparent"
             readonly property bool atCursor: chips.activeFocus && FiliShell.keyNav && index === chips.cursor
             border.color: on || atCursor ? FiliTheme.voile : FiliTheme.nuit3
@@ -64,7 +64,7 @@ Flow {
                 anchors.centerIn: parent
                 text: parent.modelData.label
                 color: parent.on ? FiliTheme.voile : FiliTheme.brume
-                font { family: FiliTheme.font; pixelSize: 12; weight: parent.on ? Font.Medium : Font.Normal }
+                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList; weight: parent.on ? FiliTheme.weightAccent : Font.Normal }
             }
             MouseArea {
                 id: area
