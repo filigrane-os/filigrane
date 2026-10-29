@@ -424,7 +424,9 @@ ShellRoot {
                 FiliTheme.ran = [];
                 d.move(b, 1290, 5);
                 ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-panel écrans: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
                 d.setScale(d.outputs[0], 1.5);
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-panel écrans: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
                 d.keep();
                 ok(d.snap === null, "fili-panel écrans: garder");
                 FiliPanel.close();

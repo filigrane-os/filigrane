@@ -1,7 +1,8 @@
 // fili-panel écrans (inspiré de omarchy-hyprmoncfg): les écrans en canvas (glisser pour les placer, aimantation aux
 // bords), puis pour l'écran choisi allumage, définition, fréquence, échelle, rotation et VRR. Les changements passent
-// par `niri msg output` (temporaires, appliqués tout de suite); définition, échelle, rotation et extinction sont à
-// confirmer sous 15 s, sinon retour à l'état d'avant. « Enregistrer » écrit le profil kanshi (display-save),
+// par `niri msg output` (temporaires, appliqués tout de suite); définition, rotation et extinction sont à confirmer
+// sous 15 s (ou à la fermeture du panneau), sinon retour à l'état d'avant. L'échelle s'applique sans confirmation: elle
+// ne rend jamais l'écran inutilisable et se rechoisit d'un clic. « Enregistrer » écrit le profil kanshi (display-save),
 // réappliqué à chaque branchement d'écran. En bas: luminosité de l'écran interne (lue par bar-stats, réglée par
 // brightnessctl), apparence sombre/claire (fili-theme) et veilleuse.
 import QtQuick
@@ -133,8 +134,8 @@ ColumnLayout {
             apply(o.name, "mode " + modeArg(m), true);
     }
     function setScale(o, s) {
-        apply(o.name, "scale " + s, true);
         // les voisins se recalent: la taille logique change
+        apply(o.name, "scale " + s, false);
     }
     function setTransform(o, t) {
         apply(o.name, "transform " + t, true);
