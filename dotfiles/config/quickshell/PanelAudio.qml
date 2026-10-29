@@ -11,7 +11,9 @@ ColumnLayout {
     readonly property var nodes: Pipewire.nodes.values
     readonly property var sinks: nodes.filter(n => n.audio && n.isSink && !n.isStream)
     readonly property var sources: nodes.filter(n => n.audio && !n.isSink && !n.isStream)
-    readonly property var streams: nodes.filter(n => n.audio && n.isStream && n.isSink)
+    readonly property var streams: nodes.filter(n => n.audio && n.isStream && n.isSink && !n.properties["node.link-group"])
+    readonly property var captures: nodes.filter(n => n.audio && n.isStream && !n.isSink && !n.properties["node.link-group"])
+    readonly property bool hasDsp: nodes.some(n => n.name === "audio_effect.t2-speakers")
     PwObjectTracker { objects: view.nodes }
 
     function name(n) {
@@ -48,9 +50,10 @@ ColumnLayout {
         onMoved: v => { if (view.sink?.audio) view.sink.audio.volume = v; }
         onGlyphClicked: view.sink.audio.muted = !view.sink.audio.muted
     }
-    PanelSection { text: FiliI18n.tr("OUTPUT") }
+    // Un seul périphérique: rien à choisir, la liste n'apparaît pas
+    PanelSection { visible: view.sinks.length > 1; text: FiliI18n.tr("OUTPUT") }
     Repeater {
-        model: view.sinks
+        model: view.sinks.length > 1 ? view.sinks : []
         PanelButton {
             required property var modelData
             objectName: "sink"
@@ -71,7 +74,7 @@ ColumnLayout {
         onGlyphClicked: view.source.audio.muted = !view.source.audio.muted
     }
     Repeater {
-        model: view.sources
+        model: view.sources.length > 1 ? view.sources : []
         PanelButton {
             required property var modelData
             objectName: "source"
@@ -86,24 +89,35 @@ ColumnLayout {
         model: view.streams
         PanelSlider {
             required property var modelData
-            glyph: ""
+            label: view.app(modelData)
+            glyph: ""
             value: modelData.audio.volume
             muted: modelData.audio.muted
             onMoved: v => modelData.audio.volume = v
             onGlyphClicked: modelData.audio.muted = !modelData.audio.muted
         }
     }
+    PanelSection { visible: view.captures.length > 0; text: FiliI18n.tr("RECORDING") }
+    Repeater {
+        model: view.captures
+        PanelSlider {
+            required property var modelData
+            label: view.app(modelData)
+            glyph: modelData.audio.muted ? "" : ""
+            value: modelData.audio.volume
+            muted: modelData.audio.muted
+            onMoved: v => modelData.audio.volume = v
+            onGlyphClicked: modelData.audio.muted = !modelData.audio.muted
+        }
+    }
+    // Égaliseur des haut-parleurs (DSP T2): seulement si le filtre est chargé; sound-tune garde les fréquences de coupure
+    PanelSection { visible: view.hasDsp; text: FiliI18n.tr("EQUALIZER") }
+    PanelEqualizer { visible: view.hasDsp; Layout.fillWidth: true }
     PanelButton {
         Layout.topMargin: FiliTheme.space1
         glyph: ""
         label: FiliI18n.tr("Full mixer")
         dim: true
         onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui wiremix"); }
-    }
-    PanelButton {
-        glyph: ""
-        label: FiliI18n.tr("Speaker equalizer")
-        dim: true
-        onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui sound-tune"); }
     }
 }

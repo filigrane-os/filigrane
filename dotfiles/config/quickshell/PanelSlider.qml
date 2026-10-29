@@ -1,4 +1,5 @@
-// Curseur 0..1 des fili-panel (volume, luminosité): clic ou glisser; valeur puis icône (muet) à droite
+// Curseur 0..1 des fili-panel (volume, luminosité): clic ou glisser; valeur puis icône (muet) à droite; label = nom
+// court à gauche (une application du mixeur), vide pour un curseur seul
 import QtQuick
 import QtQuick.Layouts
 
@@ -7,6 +8,7 @@ RowLayout {
     property real value: 0
     property string glyph
     property bool muted: false
+    property string label
     signal moved(real v)
     signal glyphClicked
 
@@ -30,6 +32,14 @@ RowLayout {
     function activate() {
         FiliShell.keyNav = true;
         s.glyphClicked();
+    }
+    Text {
+        visible: s.label !== ""
+        text: s.label
+        color: s.muted ? FiliTheme.ardoise : FiliTheme.brume2
+        Layout.preferredWidth: 88
+        elide: Text.ElideRight
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     Item {
         Layout.fillWidth: true

@@ -2,6 +2,8 @@
 # Réglage en direct du DSP haut-parleurs (hardware/mac-t2/audio/speakers-j293.json).
 #   sound-tune           panneau TUI (↑↓ choisir, ←→ régler, s sauver, o origine Asahi, r recharger, q quitter)
 #   sound-tune --apply   réapplique ~/.config/t2-audio/tune.conf (ouverture de session niri)
+#   sound-tune --get     réglages enregistrés et bornes, en JSON (égaliseur du fili-panel son)
+#   sound-tune --set clé=valeur... [--save]   applique en direct (et enregistre); --reset: valeurs par défaut, enregistrées
 import curses, json, os, subprocess, sys, time
 
 # Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh), via le shell; une fois par texte
@@ -131,7 +133,29 @@ def tui(scr, nid):
             msg = t('Saved settings reloaded')
 
 
+def cli(args):
+    if "--get" in args:
+        print(json.dumps({"vals": load(), "default": DEFAULT,
+                          "params": {p[0]: {"min": p[2], "max": p[3], "step": p[4]} for p in PARAMS}}))
+        return
+    vals = dict(DEFAULT) if "--reset" in args else load()
+    for a in args:
+        k, _, v = a.partition("=")
+        if k in vals and v:
+            lo, hi = next((p[2], p[3]) for p in PARAMS if p[0] == k)
+            vals[k] = round(min(hi, max(lo, float(v))), 3)
+    nid = node_id()
+    if not nid:
+        sys.exit(t('Filter %s not found (speaker DSP not loaded?)', NODE))
+    apply(nid, vals)
+    if "--save" in args or "--reset" in args:
+        save(vals)
+
+
 def main():
+    if any(a in sys.argv for a in ("--get", "--set", "--reset")):
+        cli(sys.argv[1:])
+        return
     if "--apply" in sys.argv:
         # à l'ouverture de session, le filtre apparaît quelques secondes après pipewire
         for _ in range(60):
