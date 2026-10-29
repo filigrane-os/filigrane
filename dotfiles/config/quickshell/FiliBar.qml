@@ -137,9 +137,9 @@ PanelWindow {
         }
     }
 
-    // ───────── Centre: indicateurs, tiroir ─────────
+    // ───────── Droite: indicateurs, tiroir, média, ressources, système, date, batterie ─────────
     RowLayout {
-        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
 
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
@@ -207,12 +207,6 @@ PanelWindow {
             // Chevron du tiroir: clic = afficher / replier
             BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
         }
-    }
-
-    // ───────── Droite: média, ressources, système, date, batterie ─────────
-    RowLayout {
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
-        spacing: 0
 
         // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {
