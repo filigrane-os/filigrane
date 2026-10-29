@@ -1,6 +1,6 @@
 ---
 name: filigrane
-description: Use, configure, update and troubleshoot Filigrane, this Void Linux + niri distribution (xbps, runit, niri/Quickshell bar, network, audio, boot, AI agent), and apply its visual identity (logo, colours, Jost typography, icons). Use to install or remove a package, enable or debug a service, update the system or Filigrane itself, change a setting (keyboard, timezone, autologin, AI agent or model), fix network/audio/display/boot, change the desktop (keys, menu, waybar, wallpaper), before installing anything (resource budget), and for any visual work (wallpaper, waybar/menu styling, plymouth, ISO, README, website, icons). Void + runit, not Debian/Arch/systemd.
+description: Use, configure, update and troubleshoot Filigrane, this Void Linux + niri distribution (xbps, runit, niri/Quickshell bar, network, audio, boot, AI agent), and apply its visual identity (logo, colours, Jost typography, icons). Use to install or remove a package, enable or debug a service, update the system or Filigrane itself, change a setting (keyboard, timezone, autologin, AI agent or model), fix network/audio/display/boot, change the desktop (keys, menu, waybar, wallpaper), before installing anything (resource budget), and for brand work (wallpaper, plymouth, ISO, README, website, icons; interface design is the filigrane-ui skill). Void + runit, not Debian/Arch/systemd.
 ---
 
 # Filigrane
@@ -38,4 +38,5 @@ After a durable install: `budget save avant` before, `budget diff avant` after, 
 - `references/niri.md`: niri config, keybinds, menu, Quickshell shell (bar, notifications), wallpaper.
 - `references/resources.md`: measuring, chosen light tools, home-made Rust tools in `apps/`.
 - `references/brand.md`: logo files, colours, typography, icon and greyscale rules. Read before any visual change.
+- Interface design (fili-shell modules, panels, cards, controls, sizes, spacing, colour tokens, states, keyboard): the `filigrane-ui` skill.
 - `hardware/<machine>/README.md` when the machine has one (`./bootstrap.sh --plan` prints `hardware/<machine>`). Mac T2: `hardware/mac-t2/README.md` (audio, keyboard, Touch Bar, dual boot, Limine, kernels).

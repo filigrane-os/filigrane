@@ -1,6 +1,6 @@
 # Identité Filigrane
 
-Référence de marque, à appliquer pour tout travail visuel (fond d'écran, barre, menu, plymouth, ISO, README, site, icônes). Fichiers maîtres : `brand/` à la racine du dépôt. Brandbook illustré (scènes sur toutes les plateformes, couleur et gris) : https://claude.ai/artifact/K448pohHCitnyA8rn4dyR4
+Référence de marque, à appliquer pour tout travail visuel (fond d'écran, plymouth, ISO, README, site, icônes). Interface (fili-shell, outils `fili-*`, thèmes : tailles, espacements, tokens de couleur, états, composants) : skill `filigrane-ui`. Fichiers maîtres : `brand/` à la racine du dépôt. Brandbook illustré (scènes sur toutes les plateformes, couleur et gris) : https://claude.ai/artifact/K448pohHCitnyA8rn4dyR4
 
 ## Idée
 
@@ -30,13 +30,12 @@ Interface sombre (niri, shell Quickshell, foot) : fond `nuit`, texte `brume`, ac
 
 ## Dans l'OS
 
-Teintes dérivées (entre nuit et voile) et états désaturés, communs à toutes les configs : nuit profond `#181d25`, nuit-2 `#232b36` (champs, cartes), nuit-3 `#2d3744` (sélection), nuit-4 `#3c4858` (liserés), brume-2 `#a9b8c8` (texte secondaire), sable `#d2bf92` (alerte), cendre `#c98f93` (erreur), sauge `#a3bfa8` (succès). Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par alacritty, nvim via catppuccin `color_overrides`, zellij).
-- Mode clair (optionnel, le sombre reste le défaut) : `fili-theme light|dark`, choisi dans le fili-panel écrans (APPARENCE). Fond papier `#f3f1ec`, papier profond `#f8f7f3`, papier-2 `#e9e6df`, papier-3 `#dfdbd2` (sélection), papier-4 `#cdc8bd` (liserés), texte nuit, texte secondaire `#4f5e70`, accent ardoise foncé `#3f5a78` (vif `#2f4a66`), icônes ardoise, états assombris : sable `#80662b`, cendre `#9a4f55`, sauge `#4a7354`. Valeurs dans `FiliTheme.qml`, `[colors-light]` de foot, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond `filigrane-clair.png`. Alacritty, zellij, swaylock et Plymouth restent sombres.
+Teintes dérivées, mode clair, tokens sémantiques et palette du terminal : skill `filigrane-ui`, `references/tokens.md`.
 
 - Polices : `dotfiles/home/.local/share/fonts/` (Jost, JetBrains Mono, variables, OFL). Interface en Jost, terminaux en JetBrains Mono.
 - Icônes : au trait fin, jamais pleines. Police « Fili Icons » (Lucide, ISC) générée par `scripts/fili-icons.py` sur les codes Font Awesome / Nerd Font déjà utilisés; fontconfig la place juste derrière Jost (`dotfiles/config/fontconfig/conf.d/60-fili-icons.conf`), le terminal garde les Nerd Fonts. Nouvelle icône : une ligne dans `MAP` du script, le relancer.
 - Son : le bruit du papier et de l'écriture, jamais une cloche; sourd, discret, sans aigus stridents (bruit filtré, petits chocs graves, écho aérien, volume bas). `brand/sound/notification.wav` (notification: deux frappes de machine à écrire) généré par `brand/sound/make-sounds.py`, joué par la fili-shell (`FiliSound.qml`). Nouveau son: une entrée dans `SOUNDS` du script.
-- Barre (fili-bar): chaque module est « icône ou étiquette en ardoise → valeur en brume » (son 85 %, clavier fr, écran 65 %, Bluetooth 2 (appareils connectés)/SHARE/OFF, notifications 3 (nombre)/MUTE, CPU/RAM). Règle appliquée par `BarItem`/`BarScript` (`FiliTheme.glyph/value/iconColor`); un état (sable, cendre, voile) colore tout le module. États en majuscules.
+- Barre, fiches et panneaux : règles dans le skill `filigrane-ui` (`references/hig.md`).
 - Logo : `brand/` lié dans `~/.local/share/filigrane` (bouton menu de la barre : `filigrane-sombre.svg`).
 - Fond d'écran `filigrane.png` (défaut après installation) et images Plymouth : générés par `scripts/brand-assets.sh` (relancer si `brand/` change).
 - Autres fonds livrés (`dotfiles/home/.local/share/wallpapers/voile-*.jpg`, 2560×1600) : photos de brume en couches, tons nuit/voile/brume, toutes CC0 (Unsplash via Wikimedia Commons) : `voile-brume-bleue` (Blue haze over wooded slopes), `voile-crepuscule` (Blue dusk in the mountains), `voile-foret-brouillard` (Dense fog in the woods), `voile-mer-de-nuages` (Sea of clouds), `voile-montagne-brumeuse` (Misty Mountains zR40wedS1aQ). Tout nouveau fond : licence libre vérifiée (CC0 ou domaine public), source notée ici.
@@ -46,7 +45,8 @@ Teintes dérivées (entre nuit et voile) et états désaturés, communs à toute
 
 - **Jost** (linéale géométrique, OFL), pas d'empattement : c'est la police de l'interface et du nom.
 - Nom dans le logo : Jost Light 300, CAPITALES, espacement 0,4 em (`F I L I G R A N E`). Dans les SVG, les lettres sont des tracés : aucune police requise.
-- Titres Jost 300, sous-titres 400, texte 300-400, étiquettes 500 en capitales espacées 0,12-0,16 em. Code : JetBrains Mono.
+- Supports de marque (site, README, ISO, brandbook) : titres Jost 300, sous-titres 400, texte 300-400, étiquettes 500 en capitales espacées 0,12-0,16 em. Code : JetBrains Mono.
+- Interface de l'OS : échelle des polices système d'Apple (13 px Regular, gras pour l'accent), Light seulement ≥ 18 px : skill `filigrane-ui`, `references/tokens.md`.
 - Pas de paquet Void : fichiers dans `dotfiles/home/.local/share/fonts/` (liés dans `~/.local/share/fonts/`), Google Fonts pour le web (`family=Jost:wght@300;400;500`).
 
 ## Fichiers (`brand/`)

@@ -2,7 +2,7 @@
 
 Ce dépôt décrit la machine (paquets, services, dotfiles) et la distribution Filigrane. L'agent IA choisi (Claude Code, Codex, opencode: `FILI_AI`) se lance avec `fili-ai` (Mod+Y) et lit ce fichier quand il travaille ici (`CLAUDE.md` l'importe). Les conversations portent sur cette machine: config, paquets, services, niri, dépannage. Les dotfiles de `~` et `~/.config` sont des liens vers `dotfiles/` (`bootstrap.sh`).
 
-La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` et `~/.agents/skills`) contient le détail (usage, mises à jour, système, niri, ressources, identité visuelle). Ce fichier ne garde que les règles toujours actives. Tout travail visuel suit `agents/skills/filigrane/references/brand.md` (fichiers maîtres dans `brand/`).
+La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` et `~/.agents/skills`) contient le détail (usage, mises à jour, système, niri, ressources, identité visuelle). Ce fichier ne garde que les règles toujours actives. Tout travail visuel suit `agents/skills/filigrane/references/brand.md` (fichiers maîtres dans `brand/`), et toute interface (fili-shell, outils `fili-*`, thèmes) le skill `filigrane-ui` (`agents/skills/filigrane-ui/`, HIG inspirée du Mac OS X classique).
 
 ## Règles dures
 
