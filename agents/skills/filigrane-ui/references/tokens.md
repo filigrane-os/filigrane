@@ -19,6 +19,7 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 - Intertitres de section des fili-panel et étiquettes : capitales espacées (0,12-0,16 em), 11 px, couleur ardoise (`PanelSection`). **[Filigrane]**
 - Grands titres et nom (fili-about, écran d'accueil, ≥ 18 px) : Jost Light 300. Le Light ne descend pas sous 18 px. **[Filigrane]**
 - Terminaux (foot, alacritty) : JetBrains Mono 12 px (9 pt), pas 13. À taille égale JetBrains Mono paraît plus grand que Jost (hauteur d'x 0,55 em contre 0,46, capitales 0,73 contre 0,70) : à 12 px sa hauteur d'x vaut 6,6 px et ses capitales 8,8 px, contre 6,0 et 9,1 pour Jost 13. Les polices en points (`size=` de foot, `size` d'alacritty, `gtk-font-name`) valent 4/3 px : Jost 10 pt de GTK = 13,3 px, déjà l'échelle système ; foot s'écrit en `pixelsize=` pour rester en pixels. **[Filigrane]**
+- Police du système (`fontconfig/conf.d/61-fili-sans.conf`) : `sans-serif` et `system-ui` donnent Jost, `monospace` donne JetBrains Mono, pour que les applications tierces (Chrome, GTK, Qt) restent dans la seule police d'interface. Une application qui demande une police précise la garde ; le texte des pages web reste celui du site. **[Filigrane]**
 - Ne jamais réduire une taille pour faire tenir du texte : couper, tronquer avec infobulle, ou élargir. **[Apple]**
 
 ## Échelle de l'écran
