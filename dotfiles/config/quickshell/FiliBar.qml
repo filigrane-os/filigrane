@@ -384,15 +384,24 @@ PanelWindow {
         // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
         Item {
             id: clockItem
-            implicitWidth: clockText.implicitWidth + 2 * FiliTheme.pad
+            implicitWidth: clockText.implicitWidth + (clockIcon.visible ? clockIcon.implicitWidth + FiliTheme.labelGap : 0) + 2 * FiliTheme.pad
             implicitHeight: FiliTheme.barHeight
             SystemClock { id: clock; precision: SystemClock.Minutes }
             // Minuteur ou chronomètre en cours (bar-timer, état lu par BarState): remplace la date
             readonly property var timerState: BarState.timer
             readonly property bool timing: timerState["class"] !== "idle"
+            // Icône agenda devant la date, comme les autres modules (le minuteur porte la sienne)
+            Label {
+                id: clockIcon
+                visible: !clockItem.timing
+                anchors { verticalCenter: parent.verticalCenter; right: clockText.left; rightMargin: FiliTheme.labelGap }
+                text: String.fromCodePoint(0xf073)
+                color: FiliTheme.ardoise
+            }
             Label {
                 id: clockText
                 anchors.centerIn: parent
+                anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0
                 text: clockItem.timing ? clockItem.timerState.text : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
                 color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
                 // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
