@@ -30,7 +30,7 @@ Les questions de la section 23 de la source ont leur réponse :
 | Raccourcis | `Mod+…` pour niri (bépo main droite, flèches aussi), liste `Mod+K` ; Esc / Entrée / Tab / flèches dans le shell |
 | Langue | anglais dans le code, `FiliI18n.tr()`, catalogue `i18n/<lang>.json` |
 
-Reste **[À valider]** : l'échelle des rayons, la taille minimale des cibles, la prise en charge des technologies d'assistance (le shell n'expose pas encore d'accessibilité AT-SPI), une préférence de réduction des animations.
+Reste **[À valider]** : la taille minimale des cibles, la prise en charge des technologies d'assistance (le shell n'expose pas encore d'accessibilité AT-SPI), une préférence de réduction des animations.
 
 ## 3. Principes
 
@@ -91,7 +91,7 @@ Reste **[À valider]** : l'échelle des rayons, la taille minimale des cibles, l
 
 ## 10. Typographie
 
-- Échelle d'Apple transposée à Jost (`tokens.md`) : 13 Regular pour le texte et les contrôles, 12 pour les listes, 11 pour le secondaire, 10 pour les étiquettes ; gras seulement pour l'accent rare. **[Apple]**
+- Échelle d'Apple transposée à Jost (`tokens.md`) : 13 Regular pour le texte et les contrôles, 12 pour les listes, 11 pour le secondaire, 10 pour les étiquettes ; gras (Jost 600) seulement pour l'accent rare. **[Apple]**
 - Hiérarchie par la taille, le poids et l'espacement ; une seule police d'interface. Light réservé aux grands titres (≥ 18 px). **[Filigrane]**
 - Pas de taille minuscule pour faire tenir plus. Textes longs à largeur confortable. Dates, nombres, unités selon la langue (`FiliI18n`). Tester accents, textes longs (allemand), troncature avec infobulle. **[Apple]**
 

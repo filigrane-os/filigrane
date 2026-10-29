@@ -46,7 +46,7 @@ Teintes dérivées, mode clair, tokens sémantiques et palette du terminal : ski
 - **Jost** (linéale géométrique, OFL), pas d'empattement : c'est la police de l'interface et du nom.
 - Nom dans le logo : Jost Light 300, CAPITALES, espacement 0,4 em (`F I L I G R A N E`). Dans les SVG, les lettres sont des tracés : aucune police requise.
 - Supports de marque (site, README, ISO, brandbook) : titres Jost 300, sous-titres 400, texte 300-400, étiquettes 500 en capitales espacées 0,12-0,16 em. Code : JetBrains Mono.
-- Interface de l'OS : échelle des polices système d'Apple (13 px Regular, gras pour l'accent), Light seulement ≥ 18 px : skill `filigrane-ui`, `references/tokens.md`.
+- Interface de l'OS : échelle des polices système d'Apple (13 px Regular, accent en Jost 600), Light seulement ≥ 18 px : skill `filigrane-ui`, `references/tokens.md`.
 - Pas de paquet Void : fichiers dans `dotfiles/home/.local/share/fonts/` (liés dans `~/.local/share/fonts/`), Google Fonts pour le web (`family=Jost:wght@300;400;500`).
 
 ## Fichiers (`brand/`)
