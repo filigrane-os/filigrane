@@ -1,4 +1,4 @@
-// fili-calendar: minuteur / chronomètre puis calendrier sous l'horloge de la fili-bar (semaines ISO à gauche): survol = affiché
+// fili-calendar: calendrier puis minuteur / chronomètre sous l'horloge de la fili-bar (semaines ISO à gauche): survol = affiché
 // (reste ouvert tant que la souris est dessus), clic droit = épinglé, molette = mois ±1
 import QtQuick
 import QtQuick.Layouts
@@ -51,31 +51,6 @@ PopupWindow {
             anchors.fill: parent
             anchors.margins: 12
             spacing: 4
-            // Minuteur / chronomètre: clic = choisir, arrêter ou acquitter, clic droit = +5 min au minuteur
-            PanelButton {
-                objectName: "timer"
-                glyph: ""
-                label: cal.timerText !== "" ? cal.timerText : FiliI18n.tr("Timer / stopwatch")
-                detail: ({ idle: FiliI18n.tr("choose"), stopwatch: FiliI18n.tr("stop"), active: FiliI18n.tr("cancel · right click +5 min"), done: FiliI18n.tr("dismiss") })[cal.timerClass] ?? ""
-                sel: cal.timerClass !== "idle"
-                onClicked: b => {
-                    if (b === Qt.RightButton) {
-                        FiliTheme.run(FiliTheme.bin + "/bar-timer add");
-                    } else {
-                        // Le choix de durée s'ouvre dans le fili-launcher: refermer le calendrier d'abord
-                        cal.pinned = false;
-                        cal.visible = false;
-                        FiliTheme.run(FiliTheme.bin + "/bar-timer click");
-                    }
-                }
-            }
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.topMargin: 2
-                Layout.bottomMargin: 2
-                implicitHeight: 1
-                color: FiliTheme.nuit3
-            }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: FiliI18n.locale.toString(cal.shown, "MMMM yyyy")
@@ -132,6 +107,31 @@ PopupWindow {
                             color: parent.isToday ? FiliTheme.voile : parent.model.month === grid.month ? FiliTheme.brume : FiliTheme.nuit4
                             font { family: FiliTheme.font; pixelSize: 13; weight: parent.isToday ? Font.Medium : Font.Normal }
                         }
+                    }
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.topMargin: 2
+                Layout.bottomMargin: 2
+                implicitHeight: 1
+                color: FiliTheme.nuit3
+            }
+            // Minuteur / chronomètre: clic = choisir, arrêter ou acquitter, clic droit = +5 min au minuteur
+            PanelButton {
+                objectName: "timer"
+                glyph: ""
+                label: cal.timerText !== "" ? cal.timerText : FiliI18n.tr("Timer / stopwatch")
+                detail: ({ idle: FiliI18n.tr("choose"), stopwatch: FiliI18n.tr("stop"), active: FiliI18n.tr("cancel · right click +5 min"), done: FiliI18n.tr("dismiss") })[cal.timerClass] ?? ""
+                sel: cal.timerClass !== "idle"
+                onClicked: b => {
+                    if (b === Qt.RightButton) {
+                        FiliTheme.run(FiliTheme.bin + "/bar-timer add");
+                    } else {
+                        // Le choix de durée s'ouvre dans le fili-launcher: refermer le calendrier d'abord
+                        cal.pinned = false;
+                        cal.visible = false;
+                        FiliTheme.run(FiliTheme.bin + "/bar-timer click");
                     }
                 }
             }
