@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.filigrane
+Exec=/bin/sh -c "exec $HOME/.local/bin/fili-file --portal"

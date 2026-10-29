@@ -414,6 +414,14 @@ window-rule {
 }
 
 
+// Sélecteur de fichiers de fili-file (portail FileChooser): flottant
+window-rule {
+    match app-id=r#"^fili-file-picker$"#
+    open-floating true
+    default-column-width { fixed 900; }
+    default-window-height { fixed 600; }
+}
+
 // TUI lancées depuis la barre (bar-tui): fenêtre flottante
 window-rule {
     match app-id=r#"^bar-tui$"#

@@ -322,5 +322,17 @@
  "%1, %2": "%1, %2",
  "Add to Favorites": "Ajouter aux favoris",
  "Remove from Favorites": "Retirer des favoris",
- "Copy Full Path": "Copier le chemin complet"
+ "Copy Full Path": "Copier le chemin complet",
+ "Replace “%1”?": "Remplacer « %1 » ?",
+ "A file with this name already exists. Replacing it overwrites its content.": "Un fichier de ce nom existe déjà. Le remplacer écrase son contenu.",
+ "Replace": "Remplacer",
+ "Save": "Enregistrer",
+ "Choose": "Choisir",
+ "Kind": "Type",
+ "Created": "Création",
+ "Permissions": "Droits",
+ "Owner": "Propriétaire",
+ "Folder": "Dossier",
+ "File": "Fichier",
+ "%1 file": "Fichier %1"
 }
