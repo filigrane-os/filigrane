@@ -200,7 +200,7 @@
  "click: open": "clic: ouvrir",
  "click: open %1": "clic: ouvrir %1",
  "click: open the web app": "clic: ouvrir la webapp",
- "click: play/pause · middle click: next · wheel: previous / next": "clic: lecture/pause · clic milieu: suivant · molette: précédent / suivant",
+ "click: play/pause · right click: player window · middle click: next · wheel: previous / next": "clic: lecture/pause · clic droit: fenêtre du lecteur · clic milieu: suivant · molette: précédent / suivant",
  "click: power panel · right click: system menu": "clic: panneau alimentation · clic droit: menu système",
  "click: show the backup": "clic: afficher la sauvegarde",
  "click: sound panel · middle click: mute · wheel: volume · right click: mixer": "clic: panneau son · clic milieu: muet · molette: volume · clic droit: mixeur",

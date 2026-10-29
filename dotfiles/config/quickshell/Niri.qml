@@ -24,6 +24,21 @@ Singleton {
             Quickshell.execDetached(["niri", "msg", "action", ...args]);
     }
 
+    // Fenêtre d'un lecteur MPRIS (id niri, ou null): les navigateurs publient "…instance<pid>" (le pid de la fenêtre),
+    // les autres lecteurs se retrouvent par leur entrée de bureau (desktopEntry = app_id); s'il reste plusieurs
+    // fenêtres (onglets, PWA), celle dont le titre contient la piste, sinon la première
+    function playerWindow(wins, dbusName, desktopEntry, track) {
+        const pid = /\.instance(\d+)$/.exec(dbusName ?? "");
+        const entry = (desktopEntry ?? "").toLowerCase();
+        let c = Object.values(wins).filter(w => pid ? w.pid === Number(pid[1]) : entry !== "" && (w.app_id ?? "").toLowerCase() === entry);
+        if (c.length > 1 && track) {
+            const t = c.filter(w => (w.title ?? "").indexOf(track) >= 0);
+            if (t.length > 0)
+                c = t;
+        }
+        return c.length > 0 ? c[0].id : null;
+    }
+
     // Code court d'une disposition pour la barre: « French (BEPO, AFNOR) » -> fr, « English (Australia) » -> au
     function shortName(name) {
         const m = name.match(/\((Australian|Australia|US|UK)/);

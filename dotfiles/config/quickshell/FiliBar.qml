@@ -208,7 +208,7 @@ PanelWindow {
             BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
         }
 
-        // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
+        // Clic = lecture/pause, clic droit = fenêtre du lecteur, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {
             objectName: "media"
             readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
@@ -228,10 +228,15 @@ PanelWindow {
                 rows: [[FiliI18n.tr("Title"), player.trackTitle], [FiliI18n.tr("Artist"), player.trackArtist], [FiliI18n.tr("Album"), player.trackAlbum],
                        [FiliI18n.tr("State"), player.isPlaying ? FiliI18n.tr("playing") : FiliI18n.tr("paused")],
                        [FiliI18n.tr("Position"), player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
-                hint: FiliI18n.tr("click: play/pause · middle click: next · wheel: previous / next")
+                hint: FiliI18n.tr("click: play/pause · right click: player window · middle click: next · wheel: previous / next")
             }
             hover.onLeftClicked: player.togglePlaying()
             hover.onMiddleClicked: player.next()
+            hover.onRightClicked: {
+                const id = player ? Niri.playerWindow(Niri.windows, player.dbusName, player.desktopEntry, player.trackTitle) : null;
+                if (id !== null)
+                    Niri.action("focus-window", "--id", String(id));
+            }
             hover.onWheelUp: player.previous()
             hover.onWheelDown: player.next()
         }
