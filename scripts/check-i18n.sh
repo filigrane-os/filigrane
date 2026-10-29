@@ -8,7 +8,7 @@
 # an entry with the same number of placeholders (%s). The niri shortcut titles (hotkey-overlay-title of
 # dotfiles/config/niri/config.kdl) too: fili-hotkeys and the menu translate them.
 # fili-shell (dotfiles/config/quickshell/i18n/*.json): each FiliI18n.tr("...") of the QML files and each tr("...") or
-# trf("...") of bar-stats and fili-ai-session (apps/*/src, tests excluded). Each catalog needs an entry with the same %1, %2...
+# trf("...") of bar-stats, fili-ai-session and fili-file (apps/*/src, tests excluded; Fili.tr("...") of its QML). Each catalog needs an entry with the same %1, %2...
 # Both kinds also report catalog entries nothing uses any more.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -47,9 +47,9 @@ done
 python3 - <<'PY' || rc=1
 import glob, json, re, sys
 keys = set()
-for f in glob.glob("dotfiles/config/quickshell/*.qml"):
-    keys |= {json.loads('"' + k + '"') for k in re.findall(r'FiliI18n\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
-for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs"):
+for f in glob.glob("dotfiles/config/quickshell/*.qml") + glob.glob("apps/fili-file/qml/*.qml"):
+    keys |= {json.loads('"' + k + '"') for k in re.findall(r'\bFili(?:I18n)?\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
+for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs") + glob.glob("apps/fili-file/src/*.rs"):
     src = open(f).read().split("#[cfg(test)]")[0]
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\btrf?\("((?:[^"\\]|\\.)*)"', src)}
 print(f"fili-shell: {len(keys)} messages")

@@ -38,11 +38,13 @@ dest="$WORK/apps"
 mkdir -p "$dest/usr/bin"
 for manifest in "$ROOT"/apps/*/Cargo.toml; do
     name="$(basename "$(dirname "$manifest")")"
-    CARGO_TARGET_DIR="$WORK/target" cargo build -q --release --locked --manifest-path "$manifest"
+    (cd "$(dirname "$manifest")" && CARGO_TARGET_DIR="$WORK/target" cargo build -q --release --locked --manifest-path "$manifest")
     install -m 755 "$WORK/target/release/$name" "$dest/usr/bin/$name"
 done
-create "$DISTRO-apps" "$ARCH" "Outils natifs de $DISTRO (barre, flou du menu, budget ressources)" \
-    "glibc>=2.39_1 libgcc>=0" "$dest" --shlib-requires "libc.so.6 libgcc_s.so.1"
+# fili-file: Qt Quick (déjà là pour Quickshell), qt6-svg pour les icônes
+create "$DISTRO-apps" "$ARCH" "Outils natifs de $DISTRO (barre, flou du menu, budget ressources, explorateur)" \
+    "glibc>=2.39_1 libgcc>=0 qt6-declarative>=0 qt6-svg>=0" "$dest" \
+    --shlib-requires "libc.so.6 libgcc_s.so.1 libstdc++.so.6 libQt6Core.so.6 libQt6Gui.so.6 libQt6Qml.so.6"
 
 echo "==> Méta-paquets (packages/*.txt)"
 empty="$WORK/empty"

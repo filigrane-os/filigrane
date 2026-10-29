@@ -1,4 +1,4 @@
-// Traductions: textes écrits en anglais dans le code (tr("Offline"), trf("Battery %1 %", &[&cap])), traduits par le
+// Traductions (partagé avec fili-file: apps/fili-file/src/main.rs): textes écrits en anglais dans le code (tr("Offline"), trf("Battery %1 %", &[&cap])), traduits par le
 // catalogue du fili-shell (dotfiles/config/quickshell/i18n/<langue>.json, voir FiliI18n.qml), lu une fois. Dossier du
 // catalogue: FILI_I18N (posé par FiliShell.qml), sinon ~/.config/quickshell/i18n. Langue: FILI_LANG, sinon le choix de
 // fili-lang ($XDG_STATE_HOME/filigrane/locale), sinon la première posée de LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX -> en). Pas de catalogue ou pas d'entrée: anglais.
@@ -70,12 +70,12 @@ fn parse(text: &str) -> HashMap<String, String> {
     out
 }
 
-pub fn tr(s: &'static str) -> &'static str {
+pub fn tr(s: &str) -> &str {
     catalog().get(s).map(String::as_str).unwrap_or(s)
 }
 
 // Texte traduit, %1, %2... remplacés par les arguments
-pub fn trf(s: &'static str, args: &[&dyn Display]) -> String {
+pub fn trf(s: &str, args: &[&dyn Display]) -> String {
     let t = tr(s);
     let mut out = String::with_capacity(t.len() + 16);
     let mut chars = t.chars().peekable();

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Files
+Name[fr]=Fichiers
+Comment=Browse and open files
+Comment[fr]=Parcourir et ouvrir les fichiers
+Exec=fili-file %U
+Icon=system-file-manager
+Categories=System;FileManager;
+MimeType=inode/directory;
+Terminal=false
+StartupWMClass=fili-file

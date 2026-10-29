@@ -10,6 +10,8 @@ ripgrep
 zoxide
 mise  # versions Ruby/Rust/Node par projet; binaire seul, aucun démon (118 Mo disque)
 cargo  # compile les outils maison de apps/ (bootstrap.sh, setup_apps)
+qt6-base-devel  # fili-file (Rust + QML via cxx-qt): en-têtes et qmake de Qt 6, compilation seulement (rien de résident)
+qt6-declarative-devel
 fonttools  # génère la police d'icônes Fili Icons (scripts/fili-icons.py), 4 Mo, bibliothèque Python sans démon
 bat
 lazygit
