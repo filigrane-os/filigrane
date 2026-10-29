@@ -20,6 +20,12 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 - Grands titres et nom (fili-about, écran d'accueil, ≥ 18 px) : Jost Light 300. Le Light ne descend pas sous 18 px. **[Filigrane]**
 - Ne jamais réduire une taille pour faire tenir du texte : couper, tronquer avec infobulle, ou élargir. **[Apple]**
 
+## Échelle de l'écran
+
+- Tout est en pixels logiques : niri applique l'échelle de l'écran (1, 1,25, 1,5, 1,75, 2, 3), le shell n'en tient jamais compte. Jamais de taille en pixels physiques, jamais de division ni de multiplication par l'échelle. **[Filigrane]**
+- Les jetons de ce fichier valent donc à toutes les échelles. Vérifié au 2026-10-29 à 1,25, 1 et 1,75 (barre, fili-panel écrans) : proportions et alignements conservés.
+- Les traits de 1 px (bordures, séparateurs) peuvent tomber entre deux pixels physiques à une échelle fractionnaire : les garder à 1, ne pas les compenser. **[Filigrane]**
+
 ## Espacement
 
 Jetons `FiliTheme.space1` à `space6` (valeurs ci-dessous) ; rayons `radiusMark`, `radiusControl`, `radiusWindow`.
