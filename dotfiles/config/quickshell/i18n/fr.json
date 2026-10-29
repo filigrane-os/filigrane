@@ -294,5 +294,9 @@
  "copy": "copie",
  "restored": "remis en place",
  "untitled folder": "dossier sans titre",
- "“%1” already exists": "« %1 » existe déjà"
+ "“%1” already exists": "« %1 » existe déjà",
+ "%1 volume": "Volume de %1",
+ "Cannot mount “%1”: %2": "Impossible de monter « %1 »: %2",
+ "Cannot eject “%1”: %2": "Impossible d'éjecter « %1 »: %2",
+ "Search": "Rechercher"
 }

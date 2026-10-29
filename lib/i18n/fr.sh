@@ -379,6 +379,7 @@ _t_lookup() {
     'Filter %s not found (speaker DSP not loaded?)') _t_fmt='Filtre %s introuvable (DSP haut-parleurs non chargé ?)' ;;
     'Keyboard shortcuts') _t_fmt='Raccourcis clavier' ;;
     'AI agent (fili-ai)') _t_fmt='Agent IA (fili-ai)' ;;
+    'Files (fili-file)') _t_fmt='Fichiers (fili-file)' ;;
     'Displays: panel') _t_fmt='Écrans: panneau' ;;
     'Bar panels') _t_fmt='Panneaux de la barre' ;;
     'Displays: save the profile') _t_fmt='Écrans: enregistrer le profil' ;;

@@ -1,5 +1,5 @@
 [Default Applications]
-inode/directory=yazi-foot.desktop
+inode/directory=fili-file.desktop
 application/pdf=ai.storyteller.pdfcraft.desktop
 text/html=chromium.desktop
 x-scheme-handler/http=chromium.desktop
