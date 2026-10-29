@@ -55,6 +55,7 @@ PanelWindow {
 
     // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
     RowLayout {
+        id: leftRow
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
 
@@ -122,14 +123,13 @@ PanelWindow {
             }
         }
 
-        // Clic milieu ou droit = fermer la fenêtre
+        // Clic milieu ou droit = fermer la fenêtre. Titre tronqué (…) avant d'atteindre le premier module de droite:
+        // largeur max = place libre entre la fin des espaces de travail et rightRow, moins l'écart entre deux textes
         BarItem {
+            id: windowItem
             objectName: "window"
-            Layout.maximumWidth: 420
-            text: {
-                const t = Niri.focused?.title ?? "";
-                return t.length > 60 ? t.slice(0, 59) + "…" : t;
-            }
+            maxWidth: Math.min(420, Math.max(0, rightRow.x - leftRow.x - windowItem.x - 2 * FiliTheme.pad))
+            text: Niri.focused?.title ?? ""
             color: FiliTheme.brume2
             tip: Niri.focused ? { title: Niri.focused.app_id, text: Niri.focused.title, hint: FiliI18n.tr("right or middle click: close the window") } : ""
             hover.onRightClicked: Niri.action("close-window")
@@ -139,6 +139,7 @@ PanelWindow {
 
     // ───────── Droite: indicateurs, tiroir, média, ressources, système, date, batterie ─────────
     RowLayout {
+        id: rightRow
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
 
