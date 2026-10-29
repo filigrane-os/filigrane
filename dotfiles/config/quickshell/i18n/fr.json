@@ -334,5 +334,9 @@
  "Owner": "Propriétaire",
  "Folder": "Dossier",
  "File": "Fichier",
- "%1 file": "Fichier %1"
+ "%1 file": "Fichier %1",
+ "View as List": "Afficher en liste",
+ "View as Icons": "Afficher en icônes",
+ "Show Hidden Files": "Afficher les fichiers cachés",
+ "Sort By": "Trier par"
 }
