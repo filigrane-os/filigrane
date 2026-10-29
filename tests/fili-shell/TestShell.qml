@@ -217,9 +217,10 @@ ShellRoot {
                 // Niri: flux d'événements lu sur le socket de niri
                 ok(Niri.workspaces.length > 0, "niri: espaces de travail reçus par le socket", Niri.workspaces.length);
                 // Fenêtre d'un lecteur MPRIS (clic droit sur le média)
-                const mw = { 1: { id: 1, pid: 50, app_id: "chrome", title: "Autre onglet" }, 2: { id: 2, pid: 50, app_id: "chrome", title: "Chanson - YouTube" }, 3: { id: 3, pid: 60, app_id: "Spotify", title: "Spotify" } };
+                const mw = { 1: { id: 1, pid: 50, app_id: "chrome", title: "Autre onglet" }, 2: { id: 2, pid: 50, app_id: "chrome", title: "Chanson - YouTube" }, 4: { id: 4, pid: 70, app_id: "chrome-mail.x__-Default", title: "Mail" }, 5: { id: 5, pid: 70, app_id: "google-chrome", title: "Page" }, 3: { id: 3, pid: 60, app_id: "Spotify", title: "Spotify" } };
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance50", "", "Chanson") === 2, "niri: lecteur navigateur -> fenêtre du pid dont le titre contient la piste");
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance50", "", "") === 1, "niri: lecteur navigateur sans piste -> première fenêtre du pid");
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance70", "", "Vidéo en fond") === 5, "niri: piste dans un onglet de fond -> fenêtre du navigateur, pas la PWA");
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.spotify", "spotify", "x") === 3, "niri: lecteur par entrée de bureau");
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.mpv", "mpv", "x") === null, "niri: lecteur sans fenêtre -> null");
             },

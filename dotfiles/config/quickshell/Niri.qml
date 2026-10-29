@@ -26,15 +26,16 @@ Singleton {
 
     // Fenêtre d'un lecteur MPRIS (id niri, ou null): les navigateurs publient "…instance<pid>" (le pid de la fenêtre),
     // les autres lecteurs se retrouvent par leur entrée de bureau (desktopEntry = app_id); s'il reste plusieurs
-    // fenêtres (onglets, PWA), celle dont le titre contient la piste, sinon la première
+    // fenêtres (onglets, PWA), celle dont le titre contient la piste; sinon (la piste joue dans un onglet de fond,
+    // dont le titre n'apparaît pas) une fenêtre du navigateur plutôt qu'une PWA (app_id "chrome-site__-Default")
     function playerWindow(wins, dbusName, desktopEntry, track) {
         const pid = /\.instance(\d+)$/.exec(dbusName ?? "");
         const entry = (desktopEntry ?? "").toLowerCase();
         let c = Object.values(wins).filter(w => pid ? w.pid === Number(pid[1]) : entry !== "" && (w.app_id ?? "").toLowerCase() === entry);
         if (c.length > 1 && track) {
             const t = c.filter(w => (w.title ?? "").indexOf(track) >= 0);
-            if (t.length > 0)
-                c = t;
+            const nonPwa = c.filter(w => (w.app_id ?? "").indexOf("__") < 0);
+            c = t.length > 0 ? t : nonPwa.length > 0 ? nonPwa : c;
         }
         return c.length > 0 ? c[0].id : null;
     }
