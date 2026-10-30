@@ -164,7 +164,10 @@ ShellRoot {
                 expectClick("update", L, "bar-update run");
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
-                expectClick("clock", L, "calendar.proton.me");
+                // Horloge: le clic épingle le calendrier, il n'ouvre plus Proton Calendar
+                const clk = act("clock", L);
+                ok(clk === "", "fili-bar clock, clic -> aucune commande (calendrier épinglé)", JSON.stringify(clk));
+                act("clock", L);
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
                                             ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {

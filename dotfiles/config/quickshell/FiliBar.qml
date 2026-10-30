@@ -387,7 +387,7 @@ PanelWindow {
             }
         }
 
-        // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
+        // Survol = calendrier, clic (gauche ou droit) = l'épingler comme panneau (molette: mois précédent/suivant, clic milieu: mois courant)
         Item {
             id: clockItem
             implicitWidth: clockText.implicitWidth + (clockIcon.visible ? clockIcon.implicitWidth + FiliTheme.labelGap : 0) + 2 * FiliTheme.pad
@@ -423,9 +423,7 @@ PanelWindow {
                 onClicked: m => press(m.button)
                 // Clic (appelé aussi par les tests)
                 function press(button) {
-                    if (button === Qt.LeftButton) {
-                        FiliTheme.run(bar.b + "/webapp https://calendar.proton.me");
-                    } else if (button === Qt.MiddleButton) {
+                    if (button === Qt.MiddleButton) {
                         cal.shift = 0;
                     } else {
                         cal.pinned = !cal.pinned;
