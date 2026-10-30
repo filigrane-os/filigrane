@@ -344,5 +344,15 @@
  "Open Terminal Here": "Ouvrir un terminal ici",
  "Alias": "Alias",
  "Where": "Emplacement",
- "OK": "OK"
+ "OK": "OK",
+ "Local time": "Heure locale",
+ "Time zone": "Fuseau horaire",
+ "Week": "Semaine",
+ "%1 · day %2 of the year": "%1 · jour %2 de l'année",
+ "Timer": "Minuteur",
+ "Agenda": "Agenda",
+ "no upcoming event": "aucun événement à venir",
+ "Today": "Aujourd'hui",
+ "Tomorrow": "Demain",
+ "click: calendar": "clic: calendrier"
 }

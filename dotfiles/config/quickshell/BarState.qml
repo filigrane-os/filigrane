@@ -39,6 +39,9 @@ Singleton {
     Watched { id: whatsappF; path: st.alerts + "/whatsapp" }
     Watched { id: whatsappC; path: st.alerts + "/whatsapp.count" }
     Watched { id: calF; path: st.alerts + "/cal" }
+    // Prochains événements de l'agenda (cal-notify, couche personnelle): null sans fichier
+    Watched { id: agendaF; path: Quickshell.env("HOME") + "/.local/state/agenda" }
+    readonly property var agenda: agendaF.exists ? rows(agendaF.content).filter(r => Number(r[0]) > minute - 60).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" })) : null
     Watched { id: calC; path: st.alerts + "/cal.count" }
 
     // Instant (s) qui fait expirer les événements de l'agenda, avancé chaque minute tant qu'il y en a
