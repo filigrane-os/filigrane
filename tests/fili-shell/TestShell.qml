@@ -351,6 +351,16 @@ ShellRoot {
                 ok(FiliTheme.ran.filter(c => c === "sound notification").length <= 2, "fili-sound: pas de son en ne pas déranger", FiliTheme.ran.filter(c => c.indexOf("sound") === 0).length);
                 FiliNotification.dnd = false;
             },
+            // Boutons d'action (notify-send -A): la réponse revient à l'appli, la bulle reste 60 s pour laisser le temps
+            wait(() => t.shell("notify-send -a test -t 30000 -A allow=Autoriser -A deny=Refuser 'Question' 'Autoriser ?'"), () => FiliNotification.popups.length === 1),
+            () => {
+                const n = FiliNotification.popups[0].n;
+                ok(FiliNotification.buttons(n).map(a => a.identifier).join() === "allow,deny", "fili-notification: deux boutons d'action", JSON.stringify(FiliNotification.buttons(n).map(a => a.identifier)));
+                ok(FiliNotification.timeout(n) === 30000, "fili-notification: une bulle à boutons reste le délai demandé (30 s)", String(FiliNotification.timeout(n)));
+                FiliNotification.answer(n, "deny");
+            },
+            wait(() => {}, () => t.shellOut !== null),
+            () => ok(t.shellOut.out.trim() === "deny" && FiliNotification.popups.length === 0, "fili-notification: la réponse revient à notify-send et ferme la bulle", JSON.stringify(t.shellOut.out)),
             // fili-sound: chargeur branché (son au branchement seulement), réglages de coupure
             () => {
                 FiliTheme.ran = [];

@@ -1,0 +1,21 @@
+#!/bin/sh
+# Hook PermissionRequest de Claude Code: la demande de permission s'affiche aussi en notification (fili-notification) avec
+# deux boutons, Autoriser / Refuser; le choix est renvoyé à Claude Code, qui n'affiche alors pas sa question dans le
+# terminal. Sans réponse dans les 30 s (bulle expirée ou fermée), le hook ne décide rien et la question du terminal
+# apparaît comme d'habitude. Entrée: JSON du hook sur stdin. Sortie: JSON de décision, ou rien.
+# Réglage (settings.json, hooks.PermissionRequest): "command": "fili-ai-ask".
+command -v notify-send >/dev/null && command -v jq >/dev/null || exit 0
+in=$(cat)
+tool=$(printf '%s' "$in" | jq -r '.tool_name // "outil"')
+detail=$(printf '%s' "$in" | jq -r '.tool_input | (.command // .file_path // .url // .pattern // tostring) | .[0:240]')
+project=$(printf '%s' "$in" | jq -r '.cwd // "" | split("/") | last')
+# Le corps est du texte balisé (bodyMarkupSupported): échapper & < >
+body=$(printf '%s' "$detail" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g')
+[ -n "$project" ] && title="Claude Code ($project): $tool" || title="Claude Code: $tool"
+choice=$(timeout 35 notify-send -a "Claude Code" -u critical -t 30000 -A allow=Autoriser -A deny=Refuser "$title" "$body" 2>/dev/null)
+case "$choice" in
+    allow) behavior=allow ;;
+    deny) behavior=deny ;;
+    *) exit 0 ;;
+esac
+jq -n --arg b "$behavior" '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: $b}}}'

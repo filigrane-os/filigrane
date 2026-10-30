@@ -150,6 +150,17 @@
           }
         ]
       }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-ask",
+            "timeout": 45
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

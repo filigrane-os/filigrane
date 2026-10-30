@@ -3,6 +3,8 @@ pragma Singleton
 // durée selon l'urgence (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées).
 // fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
 // Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); croix ou clic droit: fermer.
+// Les autres actions de la notification (notify-send -A id=Texte) sont des boutons sous le texte, trois au plus, le
+// premier mis en avant (fili-ai-ask: Autoriser / Refuser); une bulle à boutons reste 60 s, ou le délai demandé (notify-send -t), le temps de répondre.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -21,7 +23,20 @@ Singleton {
     onCenterOpenChanged: FiliShell.centerOpen = centerOpen
     property int serial: 0
 
+    // Actions proposées en boutons (hors « default », le clic sur la bulle)
+    function buttons(n) {
+        return n.actions.filter(a => a.identifier !== "default").slice(0, 3);
+    }
+    // Réponse à une action: l'appli est prévenue (ActionInvoked), la bulle se ferme
+    function answer(n, identifier) {
+        const a = n.actions.find(x => x.identifier === identifier);
+        if (a)
+            a.invoke();
+        close(n, "dismiss");
+    }
     function timeout(n) {
+        if (buttons(n).length > 0)
+            return n.expireTimeout > 0 ? n.expireTimeout : 60000;
         return n.urgency === NotificationUrgency.Critical ? 10000 : n.urgency === NotificationUrgency.Low ? 3000 : 5000;
     }
     function icon(n) {
@@ -153,7 +168,8 @@ Singleton {
         readonly property bool low: n.urgency === NotificationUrgency.Low
         readonly property bool critical: n.urgency === NotificationUrgency.Critical
         readonly property string img: notifs.icon(n)
-        implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56))
+        readonly property var btns: notifs.buttons(n)
+        implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56)) + (btns.length > 0 ? 40 : 0)
         color: FiliTheme.nuit
         radius: FiliTheme.radiusWindow
         border.width: 1
@@ -167,7 +183,8 @@ Singleton {
         }
         RowLayout {
             id: row
-            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: 34 }
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space3; rightMargin: 34 }
+            height: Math.min(140, Math.max(row.implicitHeight + 28, 56)) - 2 * FiliTheme.space3
             spacing: FiliTheme.space3
             IconImage {
                 visible: card.img !== ""
@@ -222,6 +239,40 @@ Singleton {
             hoverEnabled: true
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: m => m.button === Qt.LeftButton ? notifs.activate(card.n) : notifs.close(card.n, "dismiss")
+        }
+        // Boutons d'action (au-dessus de la zone de clic de la bulle)
+        Row {
+            z: 2
+            visible: card.btns.length > 0
+            anchors { right: parent.right; bottom: parent.bottom; margins: FiliTheme.space3 }
+            spacing: FiliTheme.space2
+            Repeater {
+                model: card.btns
+                Rectangle {
+                    id: btn
+                    required property var modelData
+                    required property int index
+                    objectName: "notif-action-" + modelData.identifier
+                    height: 24
+                    width: label.implicitWidth + 2 * FiliTheme.space3
+                    radius: FiliTheme.radiusControl
+                    color: index === 0 ? (btnArea.containsMouse ? FiliTheme.voileVif : FiliTheme.voile) : btnArea.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
+                    Text {
+                        id: label
+                        anchors.centerIn: parent
+                        text: btn.modelData.text
+                        color: btn.index === 0 ? FiliTheme.nuit : FiliTheme.brume
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList; weight: FiliTheme.weightAccent }
+                    }
+                    MouseArea {
+                        id: btnArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: notifs.answer(card.n, btn.modelData.identifier)
+                    }
+                }
+            }
         }
         CloseCross {
             id: closeBtn
