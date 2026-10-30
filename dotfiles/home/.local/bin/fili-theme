@@ -5,7 +5,8 @@
 # (absent = défaut: brume en sombre, noir en clair), relus en direct par la fili-shell et fili-file (FiliTheme.qml). "apply" (bootstrap.sh) réapplique l'état enregistré. Appliqué à:
 #   portail xdg (gsettings color-scheme): Chromium, GTK4/libadwaita (~/.config/gtk-4.0/gtk.css suit la préférence)
 #   GTK3: thème Adwaita ou Adwaita-dark, icônes Filigrane-Icons, couleurs Filigrane (~/.config/gtk-3.0/theme.css, généré)
-#   foot: fenêtres ouvertes par signal (SIGUSR1 sombre, SIGUSR2 clair), suivantes par ~/.config/foot/theme.ini (généré)
+#   foot: fenêtres ouvertes par signal (SIGUSR1 sombre, SIGUSR2 clair), suivantes par ~/.config/foot/theme.ini (généré,
+#     avec le curseur à la couleur d'accent)
 #   niri: anneau de focus, bordures, ombre, vue d'ensemble (~/.config/niri/theme.kdl, généré, relu par niri)
 #   fond d'écran Filigrane clair ou sombre (wallpaper), sauf image choisie par l'utilisateur
 set -u
@@ -46,6 +47,7 @@ mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/foot" "$cfg/niri"
 printf '%s\n' "$mode" > "$dir/theme"
 printf '%s\n' "$acc" > "$dir/accent"
 set -- $(tones "$acc") "$@"
+dark_tone=$1 light_tone=$2
 [ "$mode" = light ] && tone=$2 || tone=$1
 shift 2
 
@@ -57,7 +59,9 @@ fi
 gen="// Généré par fili-theme ($mode), ne pas modifier ici"
 
 printf '/* %s */\n@import url("filigrane-%s.css");\n' "${gen#// }" "$mode" > "$cfg/gtk-3.0/theme.css"
-printf '# %s\n[main]\ninitial-color-theme=%s\n' "${gen#// }" "$mode" > "$cfg/foot/theme.ini"
+# foot: thème initial et curseur à la couleur d'accent (les fenêtres déjà ouvertes gardent leur curseur)
+printf '# %s\n[main]\ninitial-color-theme=%s\n\n[colors-dark]\ncursor=1c222b %s\n\n[colors-light]\ncursor=f3f1ec %s\n' \
+    "${gen#// }" "$mode" "${dark_tone#\#}" "${light_tone#\#}" > "$cfg/foot/theme.ini"
 if [ "$mode" = light ]; then
     cat > "$cfg/niri/theme.kdl" <<EOF
 $gen
