@@ -4,7 +4,8 @@
 # Choisi dans le fili-panel écrans (APPARENCE). État: $XDG_STATE_HOME/filigrane/theme (absent = sombre) et .../accent
 # (absent = défaut: brume en sombre, noir en clair), relus en direct par la fili-shell et fili-file (FiliTheme.qml). "apply" (bootstrap.sh) réapplique l'état enregistré. Appliqué à:
 #   portail xdg (gsettings color-scheme): Chromium, GTK4/libadwaita (~/.config/gtk-4.0/gtk.css suit la préférence)
-#   GTK3: thème Adwaita ou Adwaita-dark, icônes Filigrane-Icons, couleurs Filigrane (~/.config/gtk-3.0/theme.css, généré)
+#   GTK3: thème Adwaita ou Adwaita-dark, icônes Filigrane-Icons, couleurs Filigrane et accent (~/.config/gtk-3.0/theme.css, généré)
+#   GTK4: accent dans ~/.config/gtk-4.0/accent.css (généré, importé par gtk.css)
 #   foot: fenêtres ouvertes par signal (SIGUSR1 sombre, SIGUSR2 clair), suivantes par ~/.config/foot/theme.ini (généré,
 #     avec le curseur à la couleur d'accent)
 #   niri: anneau de focus, bordures, ombre, vue d'ensemble (~/.config/niri/theme.kdl, généré, relu par niri)
@@ -42,7 +43,7 @@ case "${1:-get}" in
     *) echo "usage: fili-theme [get|dark|light|toggle|apply|accent [nom]]" >&2; exit 2 ;;
 esac
 
-mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/foot" "$cfg/niri"
+mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/gtk-4.0" "$cfg/foot" "$cfg/niri"
 # Écrit sur place (pas de renommage): la fili-shell suit le fichier par inotify
 printf '%s\n' "$mode" > "$dir/theme"
 printf '%s\n' "$acc" > "$dir/accent"
@@ -58,7 +59,13 @@ else
 fi
 gen="// Généré par fili-theme ($mode), ne pas modifier ici"
 
-printf '/* %s */\n@import url("filigrane-%s.css");\n' "${gen#// }" "$mode" > "$cfg/gtk-3.0/theme.css"
+# GTK: accent (sélection, liens, focus). Texte sur l'accent: nuit sur les teintes claires du mode sombre, papier sur les
+# teintes foncées du mode clair. GTK3: theme.css (après l'import, la dernière définition l'emporte); GTK4: accent.css,
+# importé par gtk.css (libadwaita: accent_color, accent_bg_color, accent_fg_color)
+[ "$mode" = light ] && on_accent="#f3f1ec" || on_accent="#1c222b"
+printf '/* %s */\n@import url("filigrane-%s.css");\n@define-color theme_selected_bg_color %s;\n@define-color theme_selected_fg_color %s;\n.thunar .sidebar row:selected { color: %s; }\n' \
+    "${gen#// }" "$mode" "$tone" "$on_accent" "$tone" > "$cfg/gtk-3.0/theme.css"
+printf '/* %s */\n@define-color fili_accent %s;\n@define-color fili_accent_fg %s;\n' "${gen#// }" "$tone" "$on_accent" > "$cfg/gtk-4.0/accent.css"
 # foot: thème initial et curseur à la couleur d'accent (les fenêtres déjà ouvertes gardent leur curseur)
 printf '# %s\n[main]\ninitial-color-theme=%s\n\n[colors-dark]\ncursor=1c222b %s\n\n[colors-light]\ncursor=f3f1ec %s\n' \
     "${gen#// }" "$mode" "${dark_tone#\#}" "${light_tone#\#}" > "$cfg/foot/theme.ini"
