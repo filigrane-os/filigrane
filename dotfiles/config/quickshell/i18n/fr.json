@@ -338,5 +338,11 @@
  "View as List": "Afficher en liste",
  "View as Icons": "Afficher en icônes",
  "Show Hidden Files": "Afficher les fichiers cachés",
- "Sort By": "Trier par"
+ "Sort By": "Trier par",
+ "Duplicate": "Dupliquer",
+ "Get Info": "Lire les informations",
+ "Open Terminal Here": "Ouvrir un terminal ici",
+ "Alias": "Alias",
+ "Where": "Emplacement",
+ "OK": "OK"
 }
