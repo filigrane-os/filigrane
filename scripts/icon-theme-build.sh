@@ -4,7 +4,7 @@
 # d'accentuation (folder-accent-<accent>.svg, folder-dark-default.svg, folder-light-default.svg, choisis par fili-file).
 # Le reste (types de fichiers, applications) vient d'Adwaita puis hicolor. Papirus n'est plus utilisé.
 # Seulement pour mettre à jour le thème: l'installation (scripts/icon-theme.sh) copie icons/Filigrane-Icons tel quel.
-# COPYING et README.md du dossier sont conservés.
+# COPYING, README.md et mimetypes/scalable/file.svg (icône des fichiers, dessin propre à Filigrane) du dossier sont conservés.
 # Usage: icon-theme.sh [dossier ou archive .tar.xz de Nordic-Slot-Dark-Icons]
 # Sans argument: ~/.local/share/icons/Nordic-Slot-Dark-Icons, sinon ~/Downloads/Nordic-Slot-Dark-Icons.tar.xz.
 # Idempotent.
@@ -25,12 +25,14 @@ fi
 [ -f "$src/places/scalable/folder-blue.svg" ] || { echo "icon-theme-build: $src n'est pas Nordic-Slot-Dark-Icons" >&2; exit 1; }
 
 mkdir -p "$dest"
+keep=
+[ -f "$dest/mimetypes/scalable/file.svg" ] && { keep=$(mktemp); cp "$dest/mimetypes/scalable/file.svg" "$keep"; }
 find "$dest" -mindepth 1 -maxdepth 1 ! -name COPYING ! -name README.md -exec rm -rf {} +
 mkdir -p "$dest/places" "$dest/mimetypes/scalable" "$dest/devices/symbolic"
 cp -a "$src/places/scalable" "$src/places/16" "$src/places/symbolic" "$dest/places/"
 cp -a "$src/mimetypes/symbolic" "$dest/mimetypes/"
-# Icône par défaut d'un fichier (file.svg) et glyphes des appareils
-cp "$src/mimetypes/scalable/application-x-generic.svg" "$dest/mimetypes/scalable/file.svg"
+# Icône par défaut d'un fichier (file.svg, celle du dépôt si elle existe, sinon application-x-generic de Nordic) et glyphes des appareils
+if [ -n "$keep" ]; then mv "$keep" "$dest/mimetypes/scalable/file.svg"; else cp "$src/mimetypes/scalable/application-x-generic.svg" "$dest/mimetypes/scalable/file.svg"; fi
 for n in computer drive-harddisk drive-removable-media; do cp "$src/devices/symbolic/$n-symbolic.svg" "$dest/devices/symbolic/"; done
 d="$dest/places/scalable"
 # Variantes de Nordic les plus proches de chaque teinte (voir FiliTheme.qml, accentTones)

@@ -15,7 +15,8 @@ disponibles à l'adresse ci-dessus.
 Thème réduit et adapté pour Filigrane, par `scripts/icon-theme-build.sh`:
 - seuls sont gardés `places/scalable`, `places/16`, `places/symbolic`, `mimetypes/symbolic`, trois symboliques de
   `devices/symbolic` (`computer`, `drive-harddisk`, `drive-removable-media`);
-- `mimetypes/scalable/file.svg` est une copie de `application-x-generic.svg`;
+- `mimetypes/scalable/file.svg` (icône des fichiers) est un dessin propre à Filigrane (2026-10-30), qui remplace la copie de
+  `application-x-generic.svg`; il n'est pas issu de Nordic;
 - `folder-accent-<accent>.svg`, `folder-dark-default.svg` et `folder-light-default.svg` sont des copies des dossiers de
   couleur voisine (`folder-brume`: `folder-blue.svg` recoloré en `#dbe7f4` et `#a9b8c8`);
 - nouvel `index.theme` (nom `Filigrane-Icons`, héritage Adwaita et hicolor).
