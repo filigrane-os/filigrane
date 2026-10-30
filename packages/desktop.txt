@@ -70,9 +70,8 @@ xarchiver
 thunar-archive-plugin
 zip
 7zip
-# Icônes du Thunar/GTK (fichiers statiques, ~100 Mo disque)
-papirus-icon-theme
-papirus-folders  # couleur des dossiers: sudo papirus-folders -C violet -t Papirus-Dark (à relancer après mise à jour des icônes)
+# Icônes: Adwaita (adwaita-icon-theme, dépendance de GTK) pour les types de fichiers; dossiers et glyphes du thème Filigrane-Icons
+# (scripts/icon-theme.sh, lancé par bootstrap.sh). Plus de Papirus.
 
 # VPN Proton via WireGuard (wg-quick, sans daemon; script dotfiles/home/.local/bin/vpn)
 wireguard-tools

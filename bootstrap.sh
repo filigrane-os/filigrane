@@ -627,6 +627,8 @@ setup_dotfiles() {
     run_as_user fc-cache -f "$TARGET_HOME/.local/share/fonts" >/dev/null || warn 'fc-cache failed'
     # .desktop des applications web (liste ~/.config/webapps/list)
     HOME="$TARGET_HOME" sh "$ROOT/dotfiles/home/.local/bin/webapp-sync"
+    # Icônes de l'OS: thème Filigrane-Icons (dossiers et glyphes de Nordic, reste d'Adwaita), avant fili-theme qui le nomme
+    run_as_user sh "$ROOT/scripts/icon-theme.sh" || warn 'icon-theme failed'
     # Mode sombre par défaut, ou clair s'il a été choisi (fili-panel écrans): fichiers inclus par foot, niri et GTK3,
     # gsettings (portail xdg: Chromium, GTK, libadwaita; sans effet hors session D-Bus)
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'

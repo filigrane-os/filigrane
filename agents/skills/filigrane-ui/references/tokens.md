@@ -77,6 +77,8 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 - Les noms gardent leur rôle d'un mode à l'autre (`nuit` = fond, `brume` = texte, `voile` = accent). Mode clair optionnel : `fili-theme light|dark`, choisi dans le fili-panel écrans (APPARENCE). Contraste des états clairs ≥ 4,8:1 sur papier.
 - Valeurs dans `dotfiles/config/quickshell/FiliTheme.qml`, `[colors-light]` de `foot.ini`, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond clair `filigrane-clair.png`. Alacritty, zellij, swaylock et Plymouth restent sombres.
 - Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par alacritty, nvim via catppuccin `color_overrides`, zellij).
+- Couleur d'accentuation (`fili-theme accent <nom>`, fili-panel écrans, état `~/.local/state/filigrane/accent`): `voile` et `voileVif` suivent `FiliTheme.accentTones`. Choix: `default` (brume en sombre, noir en clair), `voile`, `ardoise`, `sauge`, `sable`, `cendre`, `brume`. Elle colore aussi l'anneau de focus niri (`theme.kdl` généré), les dossiers et la barre latérale de fili-file. GTK et foot ne la suivent pas encore.
+- Icônes: thème `Filigrane-Icons` (`scripts/icon-theme.sh`: dossiers et glyphes de Nordic-Slot-Dark-Icons, le reste d'Adwaita en symboliques recolorés par fili-file). Pas de Papirus.
 - Un composant prend un token ; jamais une couleur littérale quand un token convient.
 
 ## États

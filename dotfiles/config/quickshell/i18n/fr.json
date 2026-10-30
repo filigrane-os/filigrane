@@ -19,6 +19,7 @@
  "@name": "Français",
  "A question is waiting": "Une question attend votre réponse",
  "AI agent": "Agent IA",
+ "ACCENT COLOR": "COULEUR D'ACCENTUATION",
  "APPEARANCE": "APPARENCE",
  "APPLICATIONS": "APPLICATIONS",
  "Advanced networks (impala)": "Réseaux avancés (impala)",
@@ -354,5 +355,12 @@
  "no upcoming event": "aucun événement à venir",
  "Today": "Aujourd'hui",
  "Tomorrow": "Demain",
- "click: calendar": "clic: calendrier"
+ "click: calendar": "clic: calendrier",
+ "Default": "Défaut",
+ "Veil": "Voile",
+ "Slate": "Ardoise",
+ "Sage": "Sauge",
+ "Sand": "Sable",
+ "Ash": "Cendre",
+ "Mist": "Brume"
 }

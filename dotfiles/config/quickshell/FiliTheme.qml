@@ -12,6 +12,8 @@ Singleton {
     // "dark" (défaut) ou "light", lu dans l'état de fili-theme et relu dès qu'il change (les tests le fixent)
     property string mode: "dark"
     readonly property bool light: mode === "light"
+    // Couleur d'accentuation (nom), lue dans l'état de fili-theme comme le mode
+    property string accent: "default"
     readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/theme"
     FileView {
         path: theme.testing ? "" : theme.stateFile
@@ -20,6 +22,14 @@ Singleton {
         onFileChanged: reload()
         onLoaded: theme.mode = text().trim() === "light" ? "light" : "dark"
         onLoadFailed: theme.mode = "dark"
+    }
+    FileView {
+        path: theme.testing ? "" : theme.stateFile.replace(/theme$/, "accent")
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: theme.accent = text().trim()
+        onLoadFailed: theme.accent = "default"
     }
     // FileView ne voit pas naître un fichier dans un dossier absent
     Component.onCompleted: if (!testing) Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")])
@@ -31,8 +41,11 @@ Singleton {
     readonly property color nuit4: light ? "#cdc8bd" : "#3c4858"
     readonly property color ardoise: "#5f7894"
     readonly property color brume2: light ? "#4f5e70" : "#a9b8c8"
-    readonly property color voile: light ? "#3f5a78" : "#9dbbd6"
-    readonly property color voileVif: light ? "#2f4a66" : "#b9d0e4"
+    // Couleur d'accentuation (fili-theme accent): [sombre, sombre vif, clair, clair vif]; défaut = brume en sombre, noir (nuit) en clair
+    readonly property var accentTones: ({ default: ["#dbe7f4", "#f3f1ec", "#1c222b", "#0f1319"], voile: ["#9dbbd6", "#b9d0e4", "#3f5a78", "#2f4a66"], ardoise: ["#7f9ab6", "#9ab2ca", "#4f6884", "#3d5470"], sauge: ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"], sable: ["#d2bf92", "#e0d1ab", "#80662b", "#654f1f"], cendre: ["#c98f93", "#d9a8ab", "#9a4f55", "#7d3c42"], brume: ["#dbe7f4", "#f3f1ec", "#4f5e70", "#1c222b"] })
+    readonly property var tone: accentTones[accent] || accentTones.default
+    readonly property color voile: light ? tone[2] : tone[0]
+    readonly property color voileVif: light ? tone[3] : tone[1]
     readonly property color brume: light ? "#1c222b" : "#dbe7f4"
     readonly property color sable: light ? "#80662b" : "#d2bf92"
     readonly property color cendre: light ? "#9a4f55" : "#c98f93"

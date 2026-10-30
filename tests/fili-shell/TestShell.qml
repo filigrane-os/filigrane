@@ -552,6 +552,27 @@ ShellRoot {
                 ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel écrans: retour au sombre", JSON.stringify(FiliTheme.ran));
                 FiliPanel.close();
             },
+            // fili-panel écrans, couleur d'accentuation: voile par défaut, le choix change l'accent du shell et lance fili-theme accent
+            () => {
+                FiliPanel.view = "display";
+                const acc = t.find(FiliPanel.loaded, "accent");
+                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#dbe7f4"), "fili-panel écrans: accent par défaut: brume en sombre", acc ? FiliTheme.accent : "introuvable");
+                FiliTheme.ran = [];
+                acc.pick("sable");
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-panel écrans: accent sable dans le shell", String(FiliTheme.voile));
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-panel écrans: fili-theme accent sable lancé", JSON.stringify(FiliTheme.ran));
+                FiliTheme.mode = "light";
+                ok(Qt.colorEqual(FiliTheme.voile, "#80662b"), "accent sable en mode clair", String(FiliTheme.voile));
+                FiliTheme.mode = "dark";
+                FiliTheme.mode = "light";
+                FiliTheme.accent = "default";
+                ok(Qt.colorEqual(FiliTheme.voile, "#1c222b"), "accent par défaut en mode clair: noir", String(FiliTheme.voile));
+                FiliTheme.mode = "dark";
+                FiliTheme.accent = "inconnu";
+                ok(Qt.colorEqual(FiliTheme.voile, "#dbe7f4"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));
+                FiliTheme.accent = "default";
+                FiliPanel.close();
+            },
             // Panneau ouvert: l'action d'un module part à l'appui (un seul clic), pas deux fois au relâchement
             () => {
                 const logo = t.find(t.bar.contentItem, "logo");

@@ -425,6 +425,62 @@ ColumnLayout {
         }
     }
 
+    // Couleur d'accentuation (fili-theme accent): focus des fenêtres niri, sélections du shell et de fili-file
+    PanelSection { text: FiliI18n.tr("ACCENT COLOR") }
+    Row {
+        id: accents
+        objectName: "accent"
+        spacing: FiliTheme.space2
+        readonly property var names: ["default", "voile", "ardoise", "sauge", "sable", "cendre", "brume"]
+        readonly property var labels: ({ default: FiliI18n.tr("Default"), voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
+        property int cursor: Math.max(0, names.indexOf(FiliTheme.accent))
+        function pick(n) {
+            FiliTheme.accent = n;
+            FiliTheme.run(FiliTheme.bin + "/fili-theme accent " + n);
+        }
+        activeFocusOnTab: true
+        Keys.onLeftPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.max(0, cursor - 1); }
+        Keys.onRightPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.min(names.length - 1, cursor + 1); }
+        Keys.onReturnPressed: pick(names[cursor])
+        Keys.onSpacePressed: pick(names[cursor])
+        Repeater {
+            model: accents.names
+            Rectangle {
+                id: dot
+                required property string modelData
+                required property int index
+                readonly property bool on: modelData === FiliTheme.accent
+                width: 22
+                height: 22
+                radius: width / 2
+                color: "transparent"
+                border.width: on ? 2 : 0
+                border.color: FiliTheme.brume
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: FiliTheme.accentTones[dot.modelData][FiliTheme.light ? 2 : 0]
+                }
+                FocusRing {
+                    shown: accents.activeFocus && accents.cursor === dot.index
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: accents.pick(dot.modelData)
+                }
+            }
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: accents.labels[FiliTheme.accent] ?? accents.labels.default
+            color: FiliTheme.brume2
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+        }
+    }
+
     PanelSection { text: FiliI18n.tr("NIGHT LIGHT") }
     RowLayout {
         Layout.fillWidth: true
