@@ -1,7 +1,6 @@
 # Bureau niri (tous profils)
 niri
-# Navigateur: l'application principale, natif Wayland (CHROME_FLAGS posé par niri), sert aussi aux webapps (webapp)
-chromium
+# Navigateur: chromium n'est installé par bootstrap.sh que si aucun navigateur par défaut n'existe (natif Wayland, CHROME_FLAGS posé par niri, sert aux webapps)
 # Shell Quickshell (dotfiles/config/quickshell): barre, notifications et sélecteur du menu (remplace Waybar, mako, fuzzel)
 quickshell
 foot

@@ -247,6 +247,11 @@ setup_system() {
     fi
     for list in $(layer_package_lists); do install_list "$list"; done
 
+    # Navigateur: Chromium seulement si aucun navigateur par défaut n'existe (ex. Chrome de la couche personnelle)
+    if [ -n "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)" ]; then
+        say 'SKIP: default browser already set (%s)' "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)"
+    else install_pkgs chromium; fi
+
     # Dépôt de la distribution embarqué (ISO: distro/out/repo, construit par distro/build-repo.sh): outils natifs
     # déjà compilés, sans passer par cargo
     if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ] && ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
