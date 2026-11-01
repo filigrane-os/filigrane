@@ -19,6 +19,7 @@ Void Linux (glibc, xbps, runit) + niri, described by a git repo that `bootstrap.
 - Diagnose read-only first, cause in one or two sentences, then fix.
 - Durable change = in the repo, in the right layer (in doubt: personal), then `./bootstrap.sh` (idempotent), then show `git diff` when the repo is a git checkout. Nothing personal (account, service URL, `/home/<login>`) in the distribution layer.
 - `niri validate` before saving niri config.
+- Changing the user's files (rename, move, delete, create, batch): `fili-tx`, never bare `mv`/`rm`/`cp`; `fili-tx undo` reverts a whole request (`references/files.md`).
 - Never: `install-void.sh`, `mkfs`, `wipefs`, `parted`, `dd` on a disk, editing `/etc/sudoers*`, `~/.ssh`, agent credentials (`~/.claude/.credentials.json`, `~/.codex/auth.json`, `~/.local/share/opencode/auth.json`).
 - Ask first: system update (`xbps-install -Su`), `sv restart/stop` of system services, `rm` outside the repo and the agent's work dir, editing `/etc`, bootloader, reboot.
 
@@ -36,6 +37,7 @@ After a durable install: `budget save avant` before, `budget diff avant` after, 
 - `references/usage.md`: everyday tasks: packages, services, settings (`config.env`), personal layer, updating the system, Filigrane and the AI agent (`fili-ai`), where to find help (keys, menu).
 - `references/system.md`: runit, logs, network (iwd), audio, session, boot, memory.
 - `references/niri.md`: niri config, keybinds, menu, Quickshell shell (bar, notifications), wallpaper.
+- `references/files.md`: `fili-tx`, transactions on files with undo/redo; how to revert quickly.
 - `references/resources.md`: measuring, chosen light tools, home-made Rust tools in `apps/`.
 - `references/brand.md`: logo files, colours, typography, icon and greyscale rules. Read before any visual change.
 - Interface design (fili-shell modules, panels, cards, controls, sizes, spacing, colour tokens, states, keyboard): the `filigrane-ui` skill.
