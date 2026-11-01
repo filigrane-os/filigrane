@@ -199,7 +199,9 @@ Singleton {
         source = "";
         pending = false;
         const w = win;
-        if (w && w.pid && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
+        // Un fichier de repli de l'application est un choix délibéré: il passe devant AT-SPI (la MenuBar de Qt Quick
+        // Controls y figure sans aucune entrée, ses menus ne sont pas exportés)
+        if (w && w.pid && (spec.menus ?? []).length === 0 && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
             pending = true;
             query.queryGen = gen;
             query.command = [FiliTheme.bin + "/fili-appmenu", "menu", String(w.pid), w.title ?? ""];
@@ -396,7 +398,8 @@ Singleton {
             return;
         close();
         if (e.exec) {
-            FiliTheme.run(e.exec);
+            // %pid: processus de la fenêtre dont on montre le menu (l'application visée par ses commandes de contrôle)
+            FiliTheme.run(e.exec.replace(/%pid/g, win ? String(win.pid ?? "") : ""));
         } else if (e.niri) {
             Niri.action(...e.niri);
         } else if (e.svc) {

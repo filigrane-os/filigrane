@@ -33,6 +33,8 @@ if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
     exit 1
 fi
+# Le menu de fili-file dans la fili-bar suit les commandes et raccourcis de l'application
+python3 -I "$ROOT/tests/fili-shell/check-fili-file-menu.py" || exit 1
 # Config live: chaque fichier QML du dépôt doit être lié dans ~/.config/quickshell (bootstrap.sh), sinon la session
 # ne charge plus le shell (type introuvable) alors que ces tests, sur une copie du dépôt, passent
 missing="$(for f in "$ROOT"/dotfiles/config/quickshell/*.qml; do [ -e "$HOME/.config/quickshell/${f##*/}" ] || printf '%s ' "${f##*/}"; done)"
