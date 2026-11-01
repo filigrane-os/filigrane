@@ -119,7 +119,9 @@ send | send-files)
         rm -f "$sel"
     else
         shift 4
-        for f in "$@"; do shift; [ -f "$f" ] && set -- "$@" "$f"; done
+        skipped=0
+        for f in "$@"; do shift; if [ -f "$f" ]; then set -- "$@" "$f"; else skipped=$((skipped + 1)); fi; done
+        [ "$skipped" -eq 0 ] || notify "$(t '%s item(s) not sent: only files can be sent, not folders' "$skipped")"
     fi
     [ "$#" -gt 0 ] || exit 0
     notify "$(t 'Sending to %s…' "$name")"

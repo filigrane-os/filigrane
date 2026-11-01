@@ -550,6 +550,7 @@
  "GB": "Go",
  "TB": "To",
  "Nearby": "À proximité",
+ "Nothing to send: drop files from a folder.": "Rien à envoyer: dépose des fichiers (pas des dossiers) depuis une fenêtre de fichiers.",
  "Drop files on a device to send them, or click a device to choose the files. LocalSend finds devices on this network; Bluetooth uses paired devices.": "Dépose des fichiers sur un appareil pour les envoyer, ou clique sur un appareil pour choisir les fichiers. LocalSend trouve les appareils de ce réseau; Bluetooth utilise les appareils appairés.",
  "No device found. LocalSend must be open on the other device, or pair it in the Bluetooth panel.": "Aucun appareil trouvé. LocalSend doit être ouvert sur l'autre appareil, ou l'appareil doit être appairé dans le panneau Bluetooth.",
  "Allow others to find this computer": "Autoriser les autres à trouver cet ordinateur",
