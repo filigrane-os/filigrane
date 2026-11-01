@@ -35,3 +35,7 @@ Sortie: un chemin créé par ligne. Un double-clic sur une archive (Casier, `xdg
 ## Dire à l'utilisateur comment revenir en arrière
 
 Après un changement, une phrase: ce qui a été fait et « `fili-tx undo` pour annuler ». Si l'utilisateur demande d'annuler, lancer `fili-tx undo` (pas de reconstruction à la main depuis la conversation), puis vérifier avec `fili-tx status`.
+
+## Recevoir des fichiers (LocalSend, Bluetooth)
+
+`fili-share receive PROTO on|off` active la réception: il lance le démon du protocole (`localsendd`, `obexd`) et `fili-receive` (`apps/fili-receive`), qui pose une notification « Accepter / Refuser » à chaque envoi (même Casier fermé), suit le transfert puis annonce « Reçu de … » avec « Afficher ». Casier: Fichier › Recevoir… (Ctrl+Shift+R) montre l'état, les interrupteurs et les derniers fichiers (journal `~/.local/state/filigrane/received.tsv`, `fili-share received`). Réglages dans `fili-file.toml`: `receive_dir`, `receive_confirm` (`ask`|`always`), `receive_minutes` (coupe la réception après ce délai). Bluetooth: agent OBEX `org.bluez.obex.Agent1` de `fili-receive`, non testé sans adaptateur.

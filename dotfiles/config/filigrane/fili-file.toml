@@ -17,3 +17,13 @@
 
 # Dossier ouvert sans argument (défaut: le dossier personnel)
 # start = "~"
+
+# Réception de fichiers (LocalSend, Bluetooth; menu Fichier > Recevoir…)
+# Dossier où ils arrivent (défaut: Téléchargements)
+# receive_dir = "~/Downloads"
+
+# "ask": une notification Accepter / Refuser à chaque envoi; "always": tout accepter tant que la réception est activée
+# receive_confirm = "ask"
+
+# Couper la réception après ce nombre de minutes (0: jusqu'à ce que tu la coupes)
+# receive_minutes = 0
