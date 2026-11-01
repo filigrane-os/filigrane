@@ -7,8 +7,8 @@ pragma Singleton
 // Ctrl+N nouvelle session, Ctrl+L liste des sessions, Ctrl+. interrompt l'agent; permission demandée par l'agent:
 // Ctrl+Retour autorise, Ctrl+Retour arrière refuse. Mod+Y note l'application active (puce de contexte au-dessus
 // de la saisie, jointe au prochain message). Pastille IA de la fili-bar: ASK (permission), DONE (réponse non lue).
-// Deux présentations: « float » (au-dessus des fenêtres, sans les toucher) ou « dock » (à droite de chaque fenêtre: le
-// tiroir réserve sa place, niri rétrécit les fenêtres). Choix par le menu Affichage (state ~/.local/state/filigrane/
+// Deux présentations: « dock » (défaut: à droite de chaque fenêtre, le tiroir réserve sa place et niri rétrécit les
+// fenêtres) ou « float » (au-dessus des fenêtres, sans les toucher). Choix par le menu Affichage (state ~/.local/state/filigrane/
 // chat-view, « MODE LARGEUR »), défauts dans ~/.config/filigrane/fili-chat.toml (mode, width).
 // Menu de la fili-bar: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml le montre quand le tiroir a le focus
 // clavier); ses commandes sont `fili-shell chat ACTION` (act() ci-dessous), tests/fili-shell/check-fili-chat-menu.py
@@ -56,7 +56,7 @@ Singleton {
     property int tries: 0
     // Le tiroir a le focus clavier (pose FocusScope): AppMenu montre alors son menu
     property bool focused: false
-    // Présentation: choix de l'utilisateur (state) sinon réglage (toml) sinon flottant
+    // Présentation: choix de l'utilisateur (state) sinon réglage (toml) sinon ancré
     property string cfgMode: ""
     property int cfgWidth: 0
     property string cfgFollow: ""
@@ -69,7 +69,7 @@ Singleton {
     property string pendingLink: ""
     property string stMode: ""
     property int stWidth: 0
-    readonly property string mode: stMode || cfgMode || "float"
+    readonly property string mode: stMode || cfgMode || "dock"
     readonly property bool dock: mode === "dock"
     readonly property int viewWidth: stWidth || cfgWidth || 440
     readonly property string viewFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/chat-view"

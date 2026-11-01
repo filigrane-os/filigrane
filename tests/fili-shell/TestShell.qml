@@ -873,25 +873,27 @@ ShellRoot {
                 FiliTheme.ran = [];
                 FiliChat.send("ceci");
                 ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"s1","key":"foot"}' && FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: le contexte part avec le message, une fois (et lie la session)", JSON.stringify(FiliTheme.ran));
+                FiliChat.setMode("float");
                 FiliShell.popupOpened("panel");
-                ok(!FiliChat.open, "fili-chat: fermé quand un panneau de la barre s'ouvre");
+                ok(!FiliChat.open, "fili-chat: flottant, fermé quand un panneau de la barre s'ouvre");
+                FiliChat.setMode("dock");
             },
             // fili-chat: présentation (flottant / ancré), largeur, renommage
             () => {
                 FiliTheme.ran = [];
-                ok(FiliChat.mode === "float" && !FiliChat.dock && FiliChat.viewWidth === 440, "fili-chat: flottant, 440 px par défaut", FiliChat.mode);
+                ok(FiliChat.mode === "dock" && FiliChat.dock && FiliChat.viewWidth === 440, "fili-chat: ancré, 440 px par défaut", FiliChat.mode);
                 FiliChat.show();
-                FiliChat.act("dock");
-                ok(FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 440", "fili-chat: menu Affichage > ancré, choix gardé", JSON.stringify(FiliTheme.ran));
-                FiliChat.act("width-wide");
-                ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[1] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
                 FiliShell.popupOpened("panel");
                 ok(FiliChat.open, "fili-chat: ancré, un panneau de la barre ne le ferme pas");
+                FiliChat.act("width-wide");
+                ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
                 FiliChat.act("float");
-                ok(!FiliChat.dock && FiliChat.viewWidth === 560, "fili-chat: menu Affichage > flottant");
+                ok(!FiliChat.dock && FiliChat.viewWidth === 560 && FiliTheme.ran[1] === "chat-view float 560", "fili-chat: menu View > flottant, choix gardé", JSON.stringify(FiliTheme.ran));
                 FiliChat.act("width-medium");
                 FiliShell.popupOpened("panel");
                 ok(!FiliChat.open, "fili-chat: flottant, un panneau de la barre le ferme");
+                FiliChat.act("dock");
+                ok(FiliChat.dock, "fili-chat: menu View > ancré");
                 FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
                 FiliChat.current = "s1";
                 FiliTheme.ran = [];
