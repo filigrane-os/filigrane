@@ -102,6 +102,8 @@ Singleton {
             const label = opts.withNth > 0 ? (cols[opts.withNth - 1] ?? text) : text;
             const p = parse(label);
             list.push({
+                // Mots-clés: colonne cherchée mais jamais affichée (Keywords des .desktop)
+                kw: opts.searchNth > 0 ? (cols[opts.searchNth - 1] ?? "").toLowerCase() : "",
                 accept: opts.acceptNth > 0 ? (cols[opts.acceptNth - 1] ?? text) : text,
                 glyph: p.glyph, text: p.text, key: p.key, sub: p.sub,
                 // Fichier image (miniature de fond d'écran, icône d'appli en chemin) ou nom d'icône du thème
@@ -120,7 +122,7 @@ Singleton {
 
     // Correspondance: chaque mot de la saisie doit apparaître (sous-chaîne, sinon lettres dans l'ordre);
     // score: début de libellé > début de mot > sous-chaîne > lettres dispersées. --no-sort garde l'ordre d'origine.
-    function match(label, words) {
+    function match(label, words, kw) {
         const l = label.toLowerCase();
         let score = 0;
         const hits = [];
@@ -130,6 +132,11 @@ Singleton {
                 score += i === 0 ? 300 : /[\s\-_./›:]/.test(l[i - 1]) ? 200 : 100;
                 for (let k = 0; k < w.length; k++)
                     hits.push(i + k);
+                continue;
+            }
+            // Mot-clé: début de mot dans les mots-clés (« file » -> Casier), derrière les correspondances du libellé
+            if (kw && (kw.startsWith(w) || kw.indexOf(" " + w) >= 0)) {
+                score += 150;
                 continue;
             }
             let p = 0;
@@ -147,7 +154,7 @@ Singleton {
         const words = input.text.toLowerCase().split(/\s+/).filter(w => w);
         let out = [];
         for (const e of entries) {
-            const m = words.length ? match(e.text, words) : { score: 0, hits: [] };
+            const m = words.length ? match(e.text, words, e.kw) : { score: 0, hits: [] };
             if (m)
                 out.push({ e: e, score: m.score, hits: m.hits });
         }

@@ -60,12 +60,12 @@ I_INFO="$(printf '\357\201\232')"  # U+F05A info-circle
 # Échap = sortie vide, code 1: quitte tout le menu.
 STATE="${XDG_RUNTIME_DIR:-/tmp}/menu-back.$$"
 BINDS="${XDG_RUNTIME_DIR:-/tmp}/menu-binds.$$"
-trap 'rm -f "$STATE" "$BINDS"' EXIT
+trap 'rm -f "$STATE" "$BINDS" "$KWFILE"' EXIT
 DMENU="$HOME/.local/bin/fili-shell launcher"
 
 pick() { # pick INVITE [LIGNES] [LARGEUR] [POLICE]  (entrées sur stdin, sélection sur stdout; vide si annulé)
     # COLS=1: lignes "affiché<TAB>renvoyé"
-    out="$($DMENU ${NOSORT:+--no-sort} ${COLS:+--with-nth 1 --accept-nth 2} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
+    out="$($DMENU ${NOSORT:+--no-sort} ${COLS:+--with-nth 1 --accept-nth 2} ${SEARCH:+--search-nth 3} --lines "${2:-12}" ${3:+--width "$3"} ${4:+--font "$4"} --prompt "$1")"; rc=$?
     if [ "$rc" -eq 10 ]; then : > "$STATE"; return 0; fi
     [ -n "$out" ] && printf '%s\n' "$out"
     return 0
@@ -121,7 +121,8 @@ trim() { printf '%s' "$1" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//'; }
 
 # ---------------------------------------------------------------- applications
 
-# Sortie: Nom<TAB>Commande<TAB>Terminal (fichiers .desktop visibles, sans doublon de nom)
+# Sortie: Nom<TAB>Commande<TAB>Terminal<TAB>Icône<TAB>Mots-clés (fichiers .desktop visibles, sans doublon de nom).
+# Mots-clés (cherchés par le lanceur, jamais affichés): Keywords, GenericName (toutes langues) et nom du programme.
 list_apps() {
     for d in /usr/share/applications "$HOME/.local/share/applications"; do
         [ -d "$d" ] && for f in "$d"/*.desktop; do [ -f "$f" ] && echo "$f"; done
@@ -130,9 +131,10 @@ list_apps() {
             if (name != "" && cmd != "" && type == "Application" && nodisplay != "true" && hidden != "true") {
                 gsub(/%c/, name, cmd)
                 gsub(/ ?%[fFuUdDnNikvm]/, "", cmd)
-                print name "\t" cmd "\t" term "\t" icon
+                prog = cmd; sub(/ .*/, "", prog); sub(/.*\//, "", prog)
+                print name "\t" cmd "\t" term "\t" icon "\t" kw " " prog
             }
-            name = ""; cmd = ""; term = "false"; type = ""; nodisplay = ""; hidden = ""; icon = ""
+            name = ""; cmd = ""; term = "false"; type = ""; nodisplay = ""; hidden = ""; icon = ""; kw = ""
         }
         FNR == 1 { flush(); ing = 0 }
         /^\[/ { ing = ($0 == "[Desktop Entry]"); next }
@@ -147,6 +149,7 @@ list_apps() {
             else if (key == "Type") type = val
             else if (key == "NoDisplay") nodisplay = val
             else if (key == "Hidden") hidden = val
+            else if (key ~ /^(Keywords|GenericName)(\[[^]]*\])?$/) { gsub(/;/, " ", val); kw = kw " " tolower(val) }
         }
         END { flush() }
     ' | sort -t "$TAB" -k1,1 -u
@@ -160,7 +163,7 @@ ranked_apps() {
     awk -F'\t' -v OFS='\t' -v cf="$APPCOUNT" '
         BEGIN { while ((getline l < cf) > 0) { n = split(l, a, "\t"); if (n == 2) c[a[2]] = a[1] } }
         { s = (tolower($1 " " $2) ~ /settings|preferences|préférences|prefs|configur|bulk|uninstall/) ? 1 : 0
-          printf "%05d\t%d\t%s\t%s\t%s\t%s\t%s\n", 99999 - c[$1], s, $1, $1, $2, $3, $4 }' |
+          printf "%05d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", 99999 - c[$1], s, $1, $1, $2, $3, $4, $5 }' |
         sort -t "$TAB" -k1,2 -k3 | cut -f4-
 }
 count_app() { # count_app NOM
@@ -773,8 +776,15 @@ glyph_apps() {
     }'
 }
 
+with_keywords() { # "affiché<TAB>nom" -> "affiché<TAB>nom<TAB>mots-clés" quand le nom est celui d'une appli
+    awk -F'\t' -v OFS='\t' -v kws="$KWFILE" 'BEGIN { while ((getline l < kws) > 0) { split(l, f, "\t"); kw[f[1]] = f[2] } }
+        { print $1, $2, ($2 in kw) ? kw[$2] : "" }'
+}
+
 menu_main() {
     bind_table
+    KWFILE="$(mktemp)"
+    list_apps | cut -f1,5 > "$KWFILE"
     cats="$(categories_list | with_hints | localize)"
     nb="$(printf '%s\n' "$cats" | wc -l | tr -d ' ')"
     customs="$(custom_labels | while IFS= read -r l; do printf '%s %s\n' "$I_CUSTOM" "$l"; done | label_col)"
@@ -783,7 +793,8 @@ menu_main() {
 
     while :; do # Échap dans une section revient ici; Échap ici quitte
         # 2e colonne renvoyée: libellé anglais (ou nom de l'appli, de l'entrée perso), sans glyphe ni touche
-        sel="$(printf '%s\n' "$items" | align_hints | NOSORT=1 COLS=1 pick "› " "$nb" "" "$MENU_FONT")"
+        # 3e colonne (cherchée, non affichée): mots-clés de l'appli, pour trouver « Casier » en tapant « file »
+        sel="$(printf '%s\n' "$items" | align_hints | with_keywords | NOSORT=1 COLS=1 SEARCH=1 pick "› " "$nb" "" "$MENU_FONT")"
         [ -n "$sel" ] || exit 0
 
         rc=0
