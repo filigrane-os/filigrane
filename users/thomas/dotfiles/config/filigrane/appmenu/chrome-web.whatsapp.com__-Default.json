@@ -1,0 +1,12 @@
+{
+  "name": "WhatsApp",
+  "menus": [
+    {
+      "label": "Go",
+      "children": [
+        { "label": "Mail", "exec": "webapp https://mail.proton.me" },
+        { "label": "Calendar", "exec": "webapp https://calendar.proton.me" }
+      ]
+    }
+  ]
+}

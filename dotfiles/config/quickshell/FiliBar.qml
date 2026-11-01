@@ -123,6 +123,12 @@ PanelWindow {
             }
         }
 
+        // Menu de l'application active (AppMenu): barre de menus AT-SPI ou menu de repli
+        BarAppMenu {
+            objectName: "appmenu"
+            bar: bar
+        }
+
         // Clic milieu ou droit = fermer la fenêtre. Titre tronqué (…) avant d'atteindre le premier module de droite:
         // largeur max = place libre entre la fin des espaces de travail et rightRow, moins l'écart entre deux textes
         BarItem {
