@@ -24,8 +24,8 @@ table = dict(re.findall(r'"([a-z-]+)":\s*(\w+)', table_src.group(1)))
 
 errors = []
 seen = set()
-for top in menu["menus"]:
-    for e in top["children"]:
+for entries in [menu.get("app", [])] + [top["children"] for top in menu["menus"]]:
+    for e in entries:
         m = re.search(r"\bctl\b.*\baction ([a-z-]+)\b", e.get("exec", ""))
         if not m:
             continue

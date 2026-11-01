@@ -273,7 +273,7 @@ ShellRoot {
             wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 6),
             () => {
                 ok(AppMenu.source === "fallback" && AppMenu.noMenu["fili-file"] === undefined, "appmenu: un fichier de repli passe devant AT-SPI (aucune requête)", AppMenu.source);
-                ok(AppMenu.menus.map(m => m.label).join() === "Files,File,Edit,View,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menus de la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
+                ok(AppMenu.menus.map(m => m.label).join() === "Casier,File,Edit,View,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menus de la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
                 const copy = AppMenu.menus[2].children[3];
                 ok(copy.label === "Copy" && copy.keys === "Ctrl+C", "appmenu: fili-file -> Copier avec son raccourci", copy.label + " " + copy.keys);
                 FiliTheme.ran = [];
