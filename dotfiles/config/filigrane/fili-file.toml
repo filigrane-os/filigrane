@@ -1,0 +1,19 @@
+# Réglages de fili-file (explorateur). Tout est facultatif: les lignes commentées montrent les défauts.
+# Lu à chaque ouverture de fenêtre. Ce que tu changes à la main dans l'application (vue, colonnes)
+# est gardé dans ~/.local/state/filigrane/ et passe devant ce fichier.
+
+# Présentation au premier lancement: "list" ou "grid"
+# view = "list"
+
+# Afficher les fichiers cachés
+# show_hidden = false
+
+# Tri: name, size, date, kind, created, permissions, owner
+# sort = "name"
+# sort_desc = false
+
+# Colonnes de la vue en liste (parmi les mêmes clés que le clic droit sur l'en-tête)
+# columns = "size,modified"
+
+# Dossier ouvert sans argument (défaut: le dossier personnel)
+# start = "~"
