@@ -6,6 +6,7 @@
 # Usage: fili-share protocols                    JSON [{id, label, available, why}]
 #        fili-share peers PROTO                  JSON [{id, name}]
 #        fili-share send PROTO ID NOM            choisit les fichiers (fili-file), les envoie, notifie
+#        fili-share send-files PROTO ID NOM F... envoie ces fichiers (Casier: Partager…), notifie
 #        fili-share receive PROTO on|off|status  status: affiche on ou off
 # Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
@@ -78,15 +79,20 @@ peers)
     *) echo '[]' ;;
     esac
     ;;
-send)
-    proto="$2"; id="$3"; name="$4"
+send | send-files)
+    cmd="$1"; proto="$2"; id="$3"; name="$4"
     r="$(why "$proto")"
     [ -z "$r" ] || { notify "$(t '%s unavailable: %s' "$proto" "$r")"; exit 1; }
-    sel="$(mktemp)"
-    fili-file --pick open --multiple --title "$(t 'Send to %s' "$name")" --out "$sel"
-    set --
-    while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
-    rm -f "$sel"
+    if [ "$cmd" = send ]; then
+        sel="$(mktemp)"
+        fili-file --pick open --multiple --title "$(t 'Send to %s' "$name")" --out "$sel"
+        set --
+        while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
+        rm -f "$sel"
+    else
+        shift 4
+        for f in "$@"; do shift; [ -f "$f" ] && set -- "$@" "$f"; done
+    fi
     [ "$#" -gt 0 ] || exit 0
     notify "$(t 'Sending to %s…' "$name")"
     case "$proto" in
@@ -138,5 +144,5 @@ receive)
     # Pastille SHARE de la fili-bar (signal 24), après le démarrage du démon
     case "$3" in on|off) setsid -f sh -c 'sleep 1; "$HOME/.local/bin/fili-shell" bar refresh 24' >/dev/null 2>&1 ;; esac
     ;;
-*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NAME | receive PROTO on|off|status" >&2; exit 2 ;;
+*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NAME | send-files PROTO ID NAME FILE... | receive PROTO on|off|status" >&2; exit 2 ;;
 esac
