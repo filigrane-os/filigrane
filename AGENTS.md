@@ -4,6 +4,8 @@ Ce dépôt décrit la machine (paquets, services, dotfiles) et la distribution F
 
 La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` et `~/.agents/skills`) contient le détail (usage, mises à jour, système, niri, ressources, identité visuelle). Ce fichier ne garde que les règles toujours actives. Tout travail visuel suit `agents/skills/filigrane/references/brand.md` (fichiers maîtres dans `brand/`), et toute interface (fili-shell, outils `fili-*`, thèmes) le skill `filigrane-ui` (`agents/skills/filigrane-ui/`, HIG inspirée du Mac OS X classique).
 
+Mod+Y note l'application active (`fili-context`, fichier `~/.local/state/filigrane/context.json`, `$FILI_CONTEXT_FILE`; Claude Code le reçoit dans son prompt système). Si l'utilisateur dit « ceci », « ces fichiers », « ici », lire ce fichier (champs `selection`, `location`, `about`) avant de demander. Les chemins se traitent avec les outils shell; corbeille avec `gio trash`.
+
 ## Règles dures
 
 - Gestionnaire de paquets: **xbps** (jamais apt, pacman, dnf, brew, nix, flatpak). Init: **runit** (jamais systemctl ni journalctl). Root via `sudo`.

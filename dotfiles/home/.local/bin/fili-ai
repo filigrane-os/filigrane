@@ -1,7 +1,8 @@
 #!/bin/bash
 # Filigrane's AI agent: starts the chosen agent in its working directory, installs it, updates it.
 #
-#   fili-ai [prompt]          start the agent (Mod+Y), in ~/work by default
+#   fili-ai [prompt]          start the agent, in ~/work by default
+#   fili-ai key               Mod+Y: notes the focused application (fili-context), then starts the agent in a terminal
 #   fili-ai use [agent]       choose the agent (a list if omitted) and install it if needed
 #   fili-ai pick              the same choice in the fili-launcher (menu > AI)
 #   fili-ai install <agent>   install or update one agent
@@ -209,6 +210,12 @@ launch() {
         ollama_up
         [ -z "$OLLAMA_PID" ] || trap 'kill "$OLLAMA_PID" 2>/dev/null' EXIT
     fi
+    # Context of the application that was focused at Mod+Y (fresh for 2 minutes): Claude Code gets it in its system prompt,
+    # the others read the file (AGENTS.md)
+    if [ -s "$STATE/context.json" ] && [ -n "$(find "$STATE/context.json" -mmin -2 2>/dev/null)" ]; then
+        export FILI_CONTEXT_FILE="$STATE/context.json"
+        [ "$agent" != claude ] || cmd+=(--append-system-prompt "Application focused when the user pressed Mod+Y (use it to resolve 'this', 'these files', 'here'; its 'about' field says how to act): $(cat "$STATE/context.json")")
+    fi
     "${cmd[@]}" || rc=$?
     # Started by Mod+Y, the terminal would close on the error before it can be read
     if [ "$rc" -ne 0 ] && [ -t 0 ]; then read -r -p "$(t '%s stopped (code %s). Press Enter to close ' "$agent" "$rc")" _ || true; fi
@@ -250,6 +257,10 @@ case "${1:-}" in
         command -v ollama >/dev/null && install_ollama
         exit 0 ;;
     status) status ;;
+    key)
+        mkdir -p "$STATE"
+        "$HOME/.local/bin/fili-context" >"$STATE/context.json" 2>/dev/null || : >"$STATE/context.json"
+        exec foot -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
     -h|--help|help) sed -n '2,/^set -e/{/^set -e/!p}' "$0" ;;
     *) launch "$@" ;;
 esac
