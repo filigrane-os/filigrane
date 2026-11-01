@@ -1,6 +1,6 @@
 // Menu de l'application active dans la fili-bar (voir AppMenu): le nom de l'application en gras, puis ses menus, autant
 // que la place libre (maxWidth, posée par la barre) en laisse voir. Les menus qui ne tiennent plus passent dans un
-// titre « More », dont la liste les ouvre en sous-menus. Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre
+// titre «…», dont la liste les ouvre en sous-menus. Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre
 // titre l'ouvre.
 import QtQuick
 
@@ -13,7 +13,7 @@ Item {
     readonly property int count: AppMenu.menus.length
     readonly property bool shown: count > 0
 
-    // Titres affichés (au moins le premier) et largeur utilisée. Tout tient: aucun « More ». Sinon « More » prend la place
+    // Titres affichés (au moins le premier) et largeur utilisée. Tout tient: aucun «…». Sinon «…» prend la place
     // des derniers titres qui ne tiennent plus avec lui. La largeur d'un titre ne dépend pas de sa visibilité.
     readonly property var layout: {
         void rep.count;
@@ -44,7 +44,7 @@ Item {
     implicitWidth: shown ? layout.width : 0
     implicitHeight: FiliTheme.barHeight
 
-    // Titre i; l'index fit est « More »
+    // Titre i; l'index fit est «…»
     function titleAt(i) {
         return i < fit ? rep.itemAt(i) : (overflow && i === fit ? moreTitle : null);
     }
@@ -106,7 +106,7 @@ Item {
             id: moreTitle
             objectName: "appmenu-more"
             visible: root.overflow
-            text: FiliI18n.tr("More")
+            text: "…"
             current: AppMenu.open && AppMenu.more
             onClicked: AppMenu.toggle(root.fit, moreTitle, root.bar, root)
             onEntered: AppMenu.hoverTitle(root.fit, moreTitle, root.bar, root)
