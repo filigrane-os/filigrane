@@ -17,6 +17,8 @@
       "Bash(wpctl status *)",
       "Bash(niri validate *)",
       "Bash(niri msg *)",
+      "Bash(fili-tx *)",
+      "Bash(fili-file ctl *)",
       "Bash(sudo xbps-remove *)",
       "Bash(rm /tmp/claude-*/*)",
       "Bash(rm -f /tmp/claude-*/*)",

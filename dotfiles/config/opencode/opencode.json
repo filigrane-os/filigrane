@@ -23,6 +23,8 @@
       "lsblk *": "allow",
       "niri validate*": "allow",
       "niri msg *": "allow",
+      "fili-tx *": "allow",
+      "fili-file ctl *": "allow",
       "budget*": "allow",
       "fili-ai status": "allow",
       "git status*": "allow",
