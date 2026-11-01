@@ -477,5 +477,8 @@
  "Group": "Groupe",
  "Others": "Autres",
  "Cannot change permissions: %1": "Impossible de changer les droits: %1",
- "Frequent": "Fréquents"
+ "Frequent": "Fréquents",
+ "New Tab": "Nouvel onglet",
+ "Show Next Tab": "Onglet suivant",
+ "Show Previous Tab": "Onglet précédent"
 }

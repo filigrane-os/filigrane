@@ -8,6 +8,7 @@
       "label": "File",
       "children": [
         { "label": "New window", "exec": "fili-file" },
+        { "label": "New Tab", "keys": "Ctrl+T", "exec": "fili-file ctl --pid %pid action new-tab" },
         { "label": "New Folder", "keys": "Ctrl+Shift+N", "exec": "fili-file ctl --pid %pid action new-folder" },
         { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
         { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },
@@ -67,7 +68,10 @@
         { "label": "Downloads", "exec": "fili-file ctl --pid %pid goto \"$HOME/Downloads\"" },
         { "label": "Pictures", "exec": "fili-file ctl --pid %pid goto \"$HOME/Pictures\"" },
         { "sep": true },
-        { "label": "Open Terminal Here", "keys": "Ctrl+Alt+T", "exec": "fili-file ctl --pid %pid action terminal" }
+        { "label": "Open Terminal Here", "keys": "Ctrl+Alt+T", "exec": "fili-file ctl --pid %pid action terminal" },
+        { "sep": true },
+        { "label": "Show Next Tab", "keys": "Ctrl+Tab", "exec": "fili-file ctl --pid %pid action next-tab" },
+        { "label": "Show Previous Tab", "keys": "Ctrl+Shift+Tab", "exec": "fili-file ctl --pid %pid action prev-tab" }
       ]
     }
   ]
