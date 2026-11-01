@@ -1,7 +1,7 @@
-// Menu de l'application active dans la fili-bar (voir AppMenu): le nom de l'application en gras, puis ses menus, tous
-// visibles (accès direct). Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre titre l'ouvre.
-// Quand les titres ne tiennent pas dans la place libre (maxWidth, posée par la barre), seul le nom de l'application
-// reste: il ouvre la liste des menus (mode compact), pour ne pas déborder sur les indicateurs de droite.
+// Menu de l'application active dans la fili-bar (voir AppMenu): le nom de l'application en gras, puis ses menus, autant
+// que la place libre (maxWidth, posée par la barre) en laisse voir. Les menus qui ne tiennent plus passent dans un
+// titre « More », dont la liste les ouvre en sous-menus. Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre
+// titre l'ouvre.
 import QtQuick
 
 Item {
@@ -10,15 +10,43 @@ Item {
     property var bar
     // Place libre dans la barre
     property real maxWidth: Infinity
-    readonly property bool shown: AppMenu.menus.length > 0
-    readonly property bool compact: inline.implicitWidth > maxWidth
+    readonly property int count: AppMenu.menus.length
+    readonly property bool shown: count > 0
+
+    // Titres affichés (au moins le premier) et largeur utilisée. Tout tient: aucun « More ». Sinon « More » prend la place
+    // des derniers titres qui ne tiennent plus avec lui. La largeur d'un titre ne dépend pas de sa visibilité.
+    readonly property var layout: {
+        void rep.count;
+        const n = count;
+        const w = [];
+        for (let i = 0; i < n; i++)
+            w.push(rep.itemAt(i)?.implicitWidth ?? 0);
+        let sum = 0;
+        let k = 0;
+        while (k < n && sum + w[k] <= maxWidth) {
+            sum += w[k];
+            k++;
+        }
+        if (k === n)
+            return { fit: n, width: sum };
+        while (k > 1 && sum + moreTitle.implicitWidth > maxWidth) {
+            k--;
+            sum -= w[k];
+        }
+        k = Math.max(1, k);
+        if (k === 1)
+            sum = w[0];
+        return { fit: k, width: sum + moreTitle.implicitWidth };
+    }
+    readonly property int fit: layout.fit
+    readonly property bool overflow: fit < count
     visible: shown
-    implicitWidth: shown ? (compact ? compactTitle.implicitWidth : inline.implicitWidth) : 0
+    implicitWidth: shown ? layout.width : 0
     implicitHeight: FiliTheme.barHeight
 
-    // Titre i (le seul, en mode compact)
+    // Titre i; l'index fit est « More »
     function titleAt(i) {
-        return compact ? compactTitle : rep.itemAt(i);
+        return i < fit ? rep.itemAt(i) : (overflow && i === fit ? moreTitle : null);
     }
     Component.onCompleted: AppMenu.register(root)
 
@@ -57,8 +85,6 @@ Item {
     }
 
     Row {
-        id: inline
-        visible: !root.compact
         Repeater {
             id: rep
             model: AppMenu.menus
@@ -67,6 +93,7 @@ Item {
                 required property var modelData
                 required property int index
                 objectName: "appmenu-" + index
+                visible: index < root.fit
                 text: FiliI18n.tr(modelData.label, AppMenu.appName)
                 bold: index === 0
                 current: AppMenu.open && AppMenu.openIndex === index
@@ -74,15 +101,15 @@ Item {
                 onEntered: AppMenu.hoverTitle(index, t, root.bar, root)
             }
         }
-    }
-    // Mode compact: nom de l'application seul
-    Title {
-        id: compactTitle
-        objectName: "appmenu-compact"
-        visible: root.compact
-        text: root.shown ? FiliI18n.tr(AppMenu.menus[0].label, AppMenu.appName) : ""
-        bold: true
-        current: AppMenu.open
-        onClicked: AppMenu.toggle(0, compactTitle, root.bar, root)
+        // Menus qui ne tiennent plus dans la barre
+        Title {
+            id: moreTitle
+            objectName: "appmenu-more"
+            visible: root.overflow
+            text: FiliI18n.tr("More")
+            current: AppMenu.open && AppMenu.more
+            onClicked: AppMenu.toggle(root.fit, moreTitle, root.bar, root)
+            onEntered: AppMenu.hoverTitle(root.fit, moreTitle, root.bar, root)
+        }
     }
 }

@@ -281,6 +281,18 @@ ShellRoot {
                 AppMenu.activate(copy);
                 ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: commande de contrôle visant le processus de la fenêtre (%pid)", FiliTheme.ran.join());
                 ok(AppMenu.menus[4].children[7].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
+                // « More »: les menus qui ne tiennent pas dans la place libre passent dans un titre, en sous-menus
+                const h = t.find(t.bar.contentItem, "appmenu");
+                h.maxWidth = 200;
+                ok(h.fit >= 1 && h.fit < 6 && h.overflow && h.titleAt(h.fit) === t.find(t.bar.contentItem, "appmenu-more"), "appmenu: place réduite -> premiers titres et « More »", "fit " + h.fit);
+                AppMenu.openAt(h.fit, h.titleAt(h.fit), t.bar, h);
+                ok(AppMenu.more && AppMenu.levels[0].length === 6 - h.fit && AppMenu.levels[0][0].label === AppMenu.menus[h.fit].label, "appmenu: « More » -> liste des menus restants", AppMenu.levels[0].length);
+                AppMenu.enter(0, AppMenu.levels[0][0], 0, 0);
+                ok(AppMenu.levels.length === 2 && AppMenu.levels[1] === AppMenu.menus[h.fit].children || AppMenu.levels[1].length === AppMenu.menus[h.fit].children.length, "appmenu: « More » -> un menu s'ouvre en sous-menu");
+                AppMenu.close();
+                ok(!AppMenu.more, "appmenu: « More » refermé");
+                h.maxWidth = 100000;
+                ok(!h.overflow && h.fit === 6 && h.titleAt(6) === null, "appmenu: place suffisante -> tous les titres, pas de « More »", "fit " + h.fit);
                 Niri.setWindows({ 9: { id: 9, pid: 0, app_id: "org.exemple.Inconnu", title: "x" } });
                 Niri.focusedId = 9;
             },
