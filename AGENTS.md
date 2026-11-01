@@ -6,6 +6,8 @@ La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` 
 
 Mod+Y note l'application active (`fili-context`, fichier `~/.local/state/filigrane/context.json`, `$FILI_CONTEXT_FILE`; Claude Code le reçoit dans son prompt système). Si l'utilisateur dit « ceci », « ces fichiers », « ici », lire ce fichier (champs `selection`, `location`, `about`) avant de demander. Les chemins se traitent avec les outils shell; corbeille avec `gio trash`.
 
+Modifier des fichiers pour l'utilisateur (renommer, déplacer, supprimer, en lot): jamais `rm`, toujours `gio trash` (récupérable); avant un lot, écrire la liste « ancien → nouveau » dans le scratchpad (`rename-<date>.tsv`) et dire comment l'inverser; pour annuler, relire cette liste, pas la mémoire de la conversation.
+
 ## Règles dures
 
 - Gestionnaire de paquets: **xbps** (jamais apt, pacman, dnf, brew, nix, flatpak). Init: **runit** (jamais systemctl ni journalctl). Root via `sudo`.
