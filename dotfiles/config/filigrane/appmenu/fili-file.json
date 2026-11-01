@@ -13,7 +13,7 @@
         { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
         { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },
         { "label": "Share…", "exec": "fili-file ctl --pid %pid action share" },
-        { "label": "Receive…", "keys": "Ctrl+Shift+R", "exec": "fili-file ctl --pid %pid action receive" },
+        { "label": "Nearby", "keys": "Ctrl+Shift+R", "exec": "fili-file ctl --pid %pid action nearby" },
         { "sep": true },
         { "label": "Move to Trash", "keys": "Delete", "exec": "fili-file ctl --pid %pid action trash" },
         { "label": "Empty Trash", "keys": "Ctrl+Shift+Delete", "exec": "fili-file ctl --pid %pid action empty-trash" },

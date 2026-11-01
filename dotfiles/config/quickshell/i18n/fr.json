@@ -529,10 +529,6 @@
  "Capitalize Words": "Majuscule à chaque mot",
  "Some new names are not valid or already exist": "Certains nouveaux noms sont invalides ou existent déjà",
  "Cannot rename: %1": "Impossible de renommer: %1",
- "Receive…": "Recevoir…",
- "Receive files": "Recevoir des fichiers",
- "Ready to receive as “%1”. Each transfer asks for your approval.": "Prêt à recevoir sous le nom « %1 ». Chaque envoi demande ton accord.",
- "Reception is off: this computer is not visible to other devices.": "Réception désactivée: cet ordinateur est invisible pour les autres appareils.",
  "On": "Activée",
  "Off": "Désactivée",
  "Turn On": "Activer",
@@ -552,5 +548,11 @@
  "kB": "Ko",
  "MB": "Mo",
  "GB": "Go",
- "TB": "To"
+ "TB": "To",
+ "Nearby": "À proximité",
+ "Drop files on a device to send them, or click a device to choose the files. LocalSend finds devices on this network; Bluetooth uses paired devices.": "Dépose des fichiers sur un appareil pour les envoyer, ou clique sur un appareil pour choisir les fichiers. LocalSend trouve les appareils de ce réseau; Bluetooth utilise les appareils appairés.",
+ "No device found. LocalSend must be open on the other device, or pair it in the Bluetooth panel.": "Aucun appareil trouvé. LocalSend doit être ouvert sur l'autre appareil, ou l'appareil doit être appairé dans le panneau Bluetooth.",
+ "Allow others to find this computer": "Autoriser les autres à trouver cet ordinateur",
+ "Visible as “%1”. Each transfer asks for your approval.": "Visible sous le nom « %1 ». Chaque envoi demande ton accord.",
+ "Off: this computer is not visible to other devices.": "Désactivé: cet ordinateur est invisible pour les autres appareils."
 }
