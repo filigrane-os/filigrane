@@ -446,5 +446,7 @@
  "Dock Beside Windows": "Ancré à droite des fenêtres",
  "Narrow": "Étroit",
  "Medium": "Moyen",
- "Wide": "Large"
+ "Wide": "Large",
+ "New Session for This Application": "Nouvelle session pour cette application",
+ "Unlink from Application": "Délier de l'application"
 }

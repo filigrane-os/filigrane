@@ -8,7 +8,7 @@ root = pathlib.Path(__file__).resolve().parents[2]
 menu = json.loads((root / "dotfiles/config/filigrane/appmenu/fili-chat.json").read_text())
 qml = (root / "dotfiles/config/quickshell/FiliChat.qml").read_text()
 cases = set(re.findall(r'case "([a-z-]+)":', qml))
-keys = {"Esc": "Keys.onEscapePressed", "F2": "Qt.Key_F2", "Ctrl+N": "Qt.Key_N", "Ctrl+L": "Qt.Key_L", "Ctrl+.": "Qt.Key_Period",
+keys = {"Ctrl+Shift+N": "Qt.ShiftModifier", "Esc": "Keys.onEscapePressed", "F2": "Qt.Key_F2", "Ctrl+N": "Qt.Key_N", "Ctrl+L": "Qt.Key_L", "Ctrl+.": "Qt.Key_Period",
         "Ctrl+Return": "Qt.Key_Return", "Ctrl+Backspace": "Qt.Key_Backspace"}
 errors = []
 

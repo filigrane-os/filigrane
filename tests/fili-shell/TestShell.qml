@@ -872,7 +872,7 @@ ShellRoot {
                 ok(FiliChat.ctxLabel === "foot · ~", "fili-chat: puce de contexte", FiliChat.ctxLabel);
                 FiliTheme.ran = [];
                 FiliChat.send("ceci");
-                ok(FiliTheme.ran[0] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: le contexte part avec le message, une fois", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"s1","key":"foot"}' && FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: le contexte part avec le message, une fois (et lie la session)", JSON.stringify(FiliTheme.ran));
                 FiliShell.popupOpened("panel");
                 ok(!FiliChat.open, "fili-chat: fermé quand un panneau de la barre s'ouvre");
             },
@@ -903,6 +903,71 @@ ShellRoot {
                 FiliChat.act("toggle");
                 ok(FiliChat.open, "fili-chat: act toggle");
                 FiliChat.act("close");
+            },
+            // fili-chat: sessions liées aux applications (follow = "app"): reprise à l'ouverture, lien à l'envoi, nouvelle session liée
+            () => {
+                FiliChat.hide();
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a2", title: "Terminal", state: "idle", updated: 2, link: "foot" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "" }] });
+                FiliChat.current = "a3";
+                FiliChat.items = Object.assign({}, FiliChat.items, { a1: [], a2: [], a3: [] });
+                ok(FiliChat.follow === "app" && FiliChat.linkKey({ window: { app_id: "foot", title: "~" } }) === "foot", "fili-chat: follow = app par défaut, clé = app_id", FiliChat.follow);
+                // Ouverture: le contexte (application active) et la liste sont là -> la session liée est reprise
+                FiliTheme.ran = [];
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "google-chrome", title: "Toyota" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: l'ouverture reprend la session liée à l'application active", FiliChat.current);
+                // Pas de reprise pendant que le tiroir est ouvert (changement de fenêtre), ni si le tour travaille
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: un changement de fenêtre tiroir ouvert ne change pas de session");
+                FiliChat.hide();
+                FiliChat.receive({ ev: "state", id: "a1", state: "working" });
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: pas de reprise pendant un tour en cours");
+                FiliChat.receive({ ev: "state", id: "a1", state: "idle" });
+                // Application sans session liée: la session courante reste
+                FiliChat.hide();
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "niri-inconnu", title: "" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: application sans session liée, la dernière reste");
+                // Lien à l'envoi: session sans lien + puce de contexte
+                FiliChat.openSession("a3");
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxOn = true;
+                FiliTheme.ran = [];
+                FiliChat.send("bonjour");
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a3","key":"foot"}' && FiliTheme.ran[1].includes('"op":"send"'), "fili-chat: envoyer avec la puce de contexte lie la session", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
+                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
+                // Déjà liée: pas de second lien; puce retirée: pas de lien
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "foot" }] });
+                FiliChat.ctxOn = true;
+                FiliTheme.ran = [];
+                FiliChat.send("encore");
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0].includes('"op":"send"'), "fili-chat: une session déjà liée ne se relie pas", JSON.stringify(FiliTheme.ran));
+                // Nouvelle session pour cette application
+                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
+                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
+                FiliChat.ctx = { window: { app_id: "fili-file", title: "Casier" } };
+                FiliTheme.ran = [];
+                FiliChat.act("new-here");
+                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pendingLink === "fili-file", "fili-chat: Nouvelle session pour cette application", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "created", id: "a4" });
+                ok(FiliTheme.ran[1] === 'chat {"op":"link","id":"a4","key":"fili-file"}' && FiliChat.pendingLink === "", "fili-chat: la session créée est liée", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                FiliChat.act("unlink");
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a4","key":""}', "fili-chat: Unlink retire le lien", JSON.stringify(FiliTheme.ran));
+                FiliChat.hide();
             },
             // fili-chat: son menu remplace celui de la fenêtre quand le tiroir a le focus clavier (sans menus Quitter/Fenêtre de niri)
             wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Chat" && AppMenu.menus.length > 0, 5000),

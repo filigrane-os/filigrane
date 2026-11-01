@@ -13,6 +13,10 @@ pragma Singleton
 // Menu de la fili-bar: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml le montre quand le tiroir a le focus
 // clavier); ses commandes sont `fili-shell chat ACTION` (act() ci-dessous), tests/fili-shell/check-fili-chat-menu.py
 // garde le menu et act() d'accord.
+// Sessions et applications (réglage follow du toml: "app" par défaut, "window", "off"): à l'ouverture seulement, jamais
+// pendant que le tiroir est ouvert, la session liée à l'application active (puce de contexte) est reprise, sinon la
+// dernière reste. Le lien se crée en envoyant un message avec la puce de contexte, ou par « New Session for This
+// Application » (Ctrl+Maj+N); « Unlink » le retire. Clé du lien: app_id ("window": app_id et titre).
 // Protocole du démon: voir apps/fili-chat/src/main.rs.
 import QtQuick
 import QtQuick.Layouts
@@ -55,6 +59,14 @@ Singleton {
     // Présentation: choix de l'utilisateur (state) sinon réglage (toml) sinon flottant
     property string cfgMode: ""
     property int cfgWidth: 0
+    property string cfgFollow: ""
+    readonly property string follow: cfgFollow || "app"
+    // Reprise de la session liée: attend le contexte (ctxRead) et la liste des sessions fraîche, une fois par ouverture
+    property bool followPending: false
+    property bool ctxReady: false
+    property bool sessionsFresh: false
+    // Clé de lien à poser sur la session qui va être créée
+    property string pendingLink: ""
     property string stMode: ""
     property int stWidth: 0
     readonly property string mode: stMode || cfgMode || "float"
@@ -68,6 +80,12 @@ Singleton {
     function show() {
         FiliShell.popupOpened("chat");
         FiliPanel.close();
+        // Fraîchement ouvert: la session de l'application active peut être reprise (tryFollow)
+        if (!open) {
+            followPending = true;
+            ctxReady = false;
+            sessionsFresh = link.connected;
+        }
         open = true;
         markRead();
         if (!FiliTheme.testing) {
@@ -75,6 +93,26 @@ Singleton {
             ctxRead.running = true;
         }
         focusInput();
+    }
+    // Clé du lien session <-> application pour un contexte ({window: {app_id, title}}); "" sans application.
+    // force: même avec follow = "off" (lien demandé à la main)
+    function linkKey(c, force) {
+        const id = c?.window?.app_id;
+        if (!id || (follow === "off" && !force))
+            return "";
+        return follow === "window" ? id + "\n" + (c.window.title ?? "") : id;
+    }
+    function tryFollow() {
+        if (!followPending || !ctxReady || !sessionsFresh)
+            return;
+        followPending = false;
+        const key = linkKey(ctx);
+        // Un tour en cours (ou une permission à donner) reste sous les yeux
+        if (!key || working)
+            return;
+        const s = sessions.find(x => x.link === key);
+        if (s && s.id !== current)
+            openSession(s.id);
     }
     function markRead() {
         if (!unread[current])
@@ -117,8 +155,9 @@ Singleton {
             chat.cfgMode = c.mode === "dock" || c.mode === "float" ? c.mode : "";
             const w = parseInt(c.width) || 0;
             chat.cfgWidth = w ? Math.min(900, Math.max(300, w)) : 0;
+            chat.cfgFollow = ["app", "window", "off"].includes(c.follow) ? c.follow : "";
         }
-        onLoadFailed: { chat.cfgMode = ""; chat.cfgWidth = 0; }
+        onLoadFailed: { chat.cfgMode = ""; chat.cfgWidth = 0; chat.cfgFollow = ""; }
     }
     FileView {
         path: chat.viewFile
@@ -171,6 +210,8 @@ Singleton {
         case "show": show(); break;
         case "close": hide(); break;
         case "new": show(); newSession(); break;
+        case "new-here": show(); pendingLink = linkKey(ctx, true); newSession(); break;
+        case "unlink": if (current) send_({ op: "link", id: current, key: "" }); break;
         case "sessions": show(); listOpen = !listOpen; break;
         case "rename": show(); startRename(); break;
         case "stop": stop(); break;
@@ -229,6 +270,8 @@ Singleton {
                 } catch (e) {}
                 chat.ctx = c && c.window && c.window.app_id ? c : null;
                 chat.ctxOn = chat.ctx !== null;
+                chat.ctxReady = true;
+                chat.tryFollow();
             }
         }
     }
@@ -266,10 +309,12 @@ Singleton {
 
     // ───── actions ─────
     function newSession() {
+        followPending = false;
         listOpen = false;
         send_({ op: "new" });
     }
     function openSession(id) {
+        followPending = false;
         listOpen = false;
         if (id === current)
             return;
@@ -286,11 +331,18 @@ Singleton {
         const t = text.trim();
         if (!t || working)
             return;
+        followPending = false;
         if (!current) {
             pending = t;
+            if (ctxOn && !pendingLink)
+                pendingLink = linkKey(ctx);
             send_({ op: "new" });
             return;
         }
+        // Première conversation avec une application: la session s'y lie
+        const cur = sessions.find(x => x.id === current);
+        if (ctxOn && cur && !cur.link && linkKey(ctx))
+            send_({ op: "link", id: current, key: linkKey(ctx) });
         const req = { op: "send", id: current, text: t };
         if (ctxOn)
             req.context = true;
@@ -345,6 +397,7 @@ Singleton {
     function receive(ev) {
         if (ev.ev === "sessions") {
             sessions = ev.sessions;
+            sessionsFresh = true;
             const m = Object.assign({}, states);
             for (const s of ev.sessions)
                 m[s.id] = s.state;
@@ -354,12 +407,17 @@ Singleton {
                 if (current && items[current] === undefined)
                     send_({ op: "open", id: current });
             }
+            tryFollow();
         } else if (ev.ev === "created") {
             const m = Object.assign({}, items);
             m[ev.id] = [];
             items = m;
             current = ev.id;
             live = "";
+            if (pendingLink) {
+                send_({ op: "link", id: ev.id, key: pendingLink });
+                pendingLink = "";
+            }
             if (pending) {
                 const t = pending;
                 pending = "";
@@ -433,7 +491,9 @@ Singleton {
                     chat.startRename();
                     e.accepted = true;
                 } else if (e.modifiers & Qt.ControlModifier) {
-                    if (e.key === Qt.Key_N)
+                    if (e.key === Qt.Key_N && (e.modifiers & Qt.ShiftModifier))
+                        chat.act("new-here");
+                    else if (e.key === Qt.Key_N)
                         chat.newSession();
                     else if (e.key === Qt.Key_L)
                         chat.listOpen = !chat.listOpen;
@@ -712,7 +772,16 @@ Singleton {
                                 height: 36
                                 color: srow.modelData.id === chat.current ? FiliTheme.nuit3 : (rowHit.containsMouse ? FiliTheme.nuit2 : "transparent")
                                 Text {
-                                    anchors { left: parent.left; leftMargin: FiliTheme.space3; right: del.left; verticalCenter: parent.verticalCenter }
+                                    id: linkLabel
+                                    anchors { right: del.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                                    width: Math.min(implicitWidth, 130)
+                                    text: (srow.modelData.link ?? "").split("\n")[0]
+                                    elide: Text.ElideRight
+                                    color: FiliTheme.ardoise
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                                }
+                                Text {
+                                    anchors { left: parent.left; leftMargin: FiliTheme.space3; right: linkLabel.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                                     text: (srow.modelData.state === "working" ? "● " : "") + (srow.modelData.title || FiliI18n.tr("New session"))
                                     elide: Text.ElideRight
                                     color: FiliTheme.brume
