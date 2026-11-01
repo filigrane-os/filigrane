@@ -20,10 +20,10 @@ Toute application avec un état utile (dossier, sélection, document ouvert, ré
 
 | Tâche | Voie |
 | --- | --- |
-| Lister, chercher, empreintes, renommer en lot, archiver | Outils système (shell), les chemins venant du contexte |
+| Lister, chercher, empreintes (lecture seule) | Outils système (shell), les chemins venant du contexte |
 | Agir sur la sélection exacte de l'utilisateur | Chemins de `selection` donnés aux outils système |
 | Montrer un résultat ou emmener l'utilisateur quelque part dans l'application | Commande de l'application (`fili-file ctl goto` / `show`) |
-| Suppression | Corbeille (`gio trash`), confirmation de l'agent |
+| Renommer, déplacer, supprimer, créer | `fili-tx` (journal, `fili-tx undo` annule toute la demande) ; jamais `mv`/`rm` seuls |
 
 ## Règles pour l'application
 
@@ -32,3 +32,7 @@ Toute application avec un état utile (dossier, sélection, document ouvert, ré
 - Le fichier de contexte ne contient pas de secret ni de contenu de fichier.
 - Rien ne tourne en plus : écrire un petit fichier, c'est tout. Pas de MCP, pas de broker résident.
 - Une nouvelle `fili-*` avec un état utile n'est pas terminée sans ce fichier et son `about`.
+
+## Annuler ce que l'IA a fait
+
+L'assistant change les fichiers par `fili-tx` (journal, transaction par demande), pas par l'application : `fili-tx undo` défait toute la demande, `fili-tx redo` la rétablit, quel que soit l'outil de départ et même après la fin de la session. fili-file se met à jour seul (inotify). Une application qui voudrait montrer cette annulation (bouton, Ctrl+Z) lit `~/.local/state/filigrane/tx/` ; elle ne réimplémente pas de journal.

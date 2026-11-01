@@ -1,0 +1,25 @@
+# Changer des fichiers pour l'utilisateur: fili-tx
+
+Tout ce qui renomme, déplace, supprime ou crée des fichiers pour l'utilisateur passe par `fili-tx` (jamais `mv`/`rm`/`cp` seuls): chaque changement est journalisé, et l'annuler ne demande aucun raisonnement. Chercher, lire, calculer restent au shell (`fd`, `rg`, `find`, `sha256sum`).
+
+## Commandes (une sortie d'une ligne: `tx ID: N changes`)
+
+| Besoin | Commande |
+| --- | --- |
+| Déplacer / renommer | `fili-tx mv SRC... DEST` (jamais d'écrasement) |
+| Lot (autant de fichiers que voulu, un seul appel) | `fili-tx mv - <<'EOF'` avec des lignes `ancien<TAB>nouveau` |
+| Supprimer | `fili-tx trash CHEMIN...` (corbeille, récupérable) |
+| Créer un dossier / copier | `fili-tx mkdir DIR...`, `fili-tx cp SRC DEST` |
+| Fichier créé par un autre outil (tar, convert...) | `fili-tx made CHEMIN...` (l'annulation le met à la corbeille) |
+| Annuler la dernière transaction | `fili-tx undo` (répéter pour remonter plus loin) |
+| Rétablir | `fili-tx redo` |
+| Voir où on en est | `fili-tx status` |
+
+- Une transaction s'ouvre toute seule au premier changement et se ferme au suivant `begin` (ou `fili-tx commit`); inutile de la gérer. Tout ce qui est fait pour une même demande tient dans la même transaction, donc un seul `fili-tx undo` défait toute la demande.
+- Une commande vérifie tout avant d'agir (sources présentes, cibles libres, pas de doublon): en cas d'erreur, rien n'a changé. Si une étape échoue en cours de route, les étapes déjà faites par cette commande sont défaites.
+- Les journaux sont dans `~/.local/state/filigrane/tx/<id>/journal` (20 transactions gardées).
+- Limites: seuls les fichiers du volume du home vont à la corbeille avec annulation; pas de tabulation ni de saut de ligne dans un chemin; pas d'échange (a→b et b→a). Un `mv`/`rm` direct échappe au journal: pas d'annulation.
+
+## Dire à l'utilisateur comment revenir en arrière
+
+Après un changement, une phrase: ce qui a été fait et « `fili-tx undo` pour annuler ». Si l'utilisateur demande d'annuler, lancer `fili-tx undo` (pas de reconstruction à la main depuis la conversation), puis vérifier avec `fili-tx status`.

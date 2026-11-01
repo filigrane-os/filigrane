@@ -6,7 +6,7 @@ La skill `filigrane` (`agents/skills/filigrane/`, liée dans `~/.claude/skills` 
 
 Mod+Y note l'application active (`fili-context`, fichier `~/.local/state/filigrane/context.json`, `$FILI_CONTEXT_FILE`; Claude Code le reçoit dans son prompt système). Si l'utilisateur dit « ceci », « ces fichiers », « ici », lire ce fichier (champs `selection`, `location`, `about`) avant de demander. Les chemins se traitent avec les outils shell; corbeille avec `gio trash`.
 
-Modifier des fichiers pour l'utilisateur (renommer, déplacer, supprimer, en lot): jamais `rm`, toujours `gio trash` (récupérable); avant un lot, écrire la liste « ancien → nouveau » dans le scratchpad (`rename-<date>.tsv`) et dire comment l'inverser; pour annuler, relire cette liste, pas la mémoire de la conversation.
+Modifier des fichiers pour l'utilisateur (renommer, déplacer, supprimer, copier, créer, en lot): `fili-tx` (`mv`, `mv -` pour un lot sur l'entrée standard, `trash`, `mkdir`, `cp`, `made`), jamais `mv`/`rm`/`cp` seuls. Une demande = une transaction: `fili-tx undo` la défait en une commande (`redo`, `status`). Après un changement, dire « `fili-tx undo` pour annuler »; pour annuler, lancer `fili-tx undo`, pas de reconstruction à la main (détail: skill `filigrane`, `references/files.md`).
 
 ## Règles dures
 
