@@ -12,6 +12,7 @@
         { "label": "New Folder", "keys": "Ctrl+Shift+N", "exec": "fili-file ctl --pid %pid action new-folder" },
         { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
         { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },
+        { "label": "Share…", "exec": "fili-file ctl --pid %pid action share" },
         { "sep": true },
         { "label": "Move to Trash", "keys": "Delete", "exec": "fili-file ctl --pid %pid action trash" },
         { "label": "Empty Trash", "keys": "Ctrl+Shift+Delete", "exec": "fili-file ctl --pid %pid action empty-trash" },
