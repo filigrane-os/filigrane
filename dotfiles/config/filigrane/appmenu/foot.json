@@ -4,7 +4,9 @@
     {
       "label": "Shell",
       "children": [
-        { "label": "New terminal", "exec": "foot" }
+        { "label": "New terminal", "exec": "foot" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/foot/foot.ini" }
       ]
     },
     {
