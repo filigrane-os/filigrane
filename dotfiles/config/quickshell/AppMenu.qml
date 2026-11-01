@@ -9,7 +9,7 @@ pragma Singleton
 //      couche personnelle comprise), qui complète _default.json.
 // Dans les deux cas: menu de l'application (nom en gras, « Quitter »), menus propres, menu Fenêtre (niri). Ils remplacent
 // le titre de la fenêtre dans la fili-bar (BarAppMenu): tous affichés, ou seulement le nom de l'application quand ils ne
-// tiennent pas (mode compact). Souris, ou clavier: `fili-shell appmenu` (Mod+F10).
+// tiennent pas (le reste passe dans un titre « More »). Souris, ou clavier: `fili-shell appmenu` (Mod+F10).
 //
 // Fichier de repli: { "name": "Chrome", "app": [ENTRÉE], "menus": [ { "label": "File", "children": [ENTRÉE] } ] }
 //   ENTRÉE = { "label", "exec": "commande shell" } ou { "label", "niri": ["action", "argument"] } ou { "sep": true }
@@ -61,9 +61,9 @@ Singleton {
     readonly property bool open: openIndex >= 0
     // Menu ouvert au clavier (fili-shell appmenu): il prend le focus clavier, sinon l'application garde le sien
     property bool keyboard: false
-    // Menu ouvert depuis un titre unique (menus trop larges pour la barre): la première colonne liste les menus
-    property bool compact: false
-    // Un widget BarAppMenu par barre (écran): titres, mode compact
+    // Menu ouvert depuis « More » (les menus qui ne tiennent plus dans la barre): la première colonne les liste
+    property bool more: false
+    // Un widget BarAppMenu par barre (écran): titres affichés (fit), titre « More » (overflow)
     property var hosts: ({})
     function register(host) {
         hosts[host.bar?.screen?.name ?? ""] = host;
@@ -254,7 +254,7 @@ Singleton {
     }
 
     // ───────── Ouverture, navigation, action ─────────
-    // Clic sur un titre (host: le BarAppMenu de la barre; seul titre en mode compact)
+    // Clic sur un titre (host: le BarAppMenu de la barre). Le titre d'index host.fit est « More » quand des menus débordent
     function toggle(index, item, bar, host) {
         if (openIndex === index)
             close();
@@ -274,13 +274,13 @@ Singleton {
         FiliShell.popupOpened("appmenu");
         anchorX = item.mapToItem(null, 0, 0).x;
         screen = bar?.screen ?? null;
-        compact = host?.compact ?? false;
+        more = host ? host.overflow && index === host.fit : false;
         openIndex = index;
-        // Mode compact: la première colonne est la liste des menus, chacun ouvre sa colonne
-        levels = [compact ? menus : m.children];
+        // « More »: la première colonne est la liste des menus restants, chacun ouvre sa colonne
+        levels = [more ? menus.slice(host.fit) : m.children];
         sel = [-1];
         levelY = [0];
-        if (!compact)
+        if (!more)
             fillIfLazy(0, m);
     }
     function close() {
@@ -289,7 +289,7 @@ Singleton {
         sel = [];
         levelY = [];
         keyboard = false;
-        compact = false;
+        more = false;
     }
 
     // ───────── Clavier (fili-shell appmenu, Mod+F10): ↑/↓ entrée, → sous-menu ou menu suivant, ← retour ou menu précédent,
@@ -366,12 +366,13 @@ Singleton {
         else
             activate(e);
     }
-    // Menu voisin de la barre (d = ±1), seulement quand les titres sont tous affichés
+    // Titre voisin de la barre (d = ±1, « More » compris, en boucle)
     function switchMenu(d) {
-        if (compact || menus.length < 2)
-            return;
         const host = hosts[screen?.name ?? ""] ?? Object.values(hosts)[0];
-        const index = (openIndex + d + menus.length) % menus.length;
+        const n = host ? host.fit + (host.overflow ? 1 : 0) : 0;
+        if (n < 2)
+            return;
+        const index = (openIndex + d + n) % n;
         const title = host?.titleAt(index);
         if (!title)
             return;
