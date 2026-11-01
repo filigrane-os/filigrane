@@ -20,6 +20,18 @@ Tout ce qui renomme, déplace, supprime ou crée des fichiers pour l'utilisateur
 - Les journaux sont dans `~/.local/state/filigrane/tx/<id>/journal` (20 transactions gardées).
 - Limites: seuls les fichiers du volume du home vont à la corbeille avec annulation; pas de tabulation ni de saut de ligne dans un chemin; pas d'échange (a→b et b→a). Un `mv`/`rm` direct échappe au journal: pas d'annulation.
 
+## Compresser et décompresser: `fili-archive`
+
+Pour une archive, `fili-archive` (jamais `zip`/`tar`/`7z` à la main): il n'écrase rien, n'écrit le résultat qu'une fois fini, et chaque appel est une transaction `fili-tx` (« `fili-tx undo` pour annuler »).
+
+| Besoin | Commande |
+| --- | --- |
+| Compresser un ou plusieurs fichiers ou dossiers | `fili-archive pack [-f zip\|7z\|tar.gz\|tar.xz\|tar.zst] [-o SORTIE] CHEMIN...` (zip par défaut, à côté des fichiers) |
+| Extraire | `fili-archive unpack [-o DOSSIER] ARCHIVE...` (dans un dossier à part, à côté de l'archive) |
+| Voir le contenu | `fili-archive list ARCHIVE` |
+
+Sortie: un chemin créé par ligne. Un double-clic sur une archive (Casier, `xdg-open`) lance `fili-archive open`. Mots de passe: pas encore pris en charge.
+
 ## Dire à l'utilisateur comment revenir en arrière
 
 Après un changement, une phrase: ce qui a été fait et « `fili-tx undo` pour annuler ». Si l'utilisateur demande d'annuler, lancer `fili-tx undo` (pas de reconstruction à la main depuis la conversation), puis vérifier avec `fili-tx status`.
