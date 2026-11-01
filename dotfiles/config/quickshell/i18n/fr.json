@@ -434,5 +434,17 @@
  "Deny": "Refuser",
  "Context": "Contexte",
  "Waiting for your answer…": "En attente de votre réponse…",
- "Chat": "Chat"
+ "Chat": "Chat",
+ "Session": "Session",
+ "Hide Chat": "Cacher le chat",
+ "New Session": "Nouvelle session",
+ "Sessions…": "Sessions…",
+ "Rename Session…": "Renommer la session…",
+ "Delete Session": "Supprimer la session",
+ "Remove Context Note": "Retirer la note de contexte",
+ "Float Above Windows": "Flottant au-dessus des fenêtres",
+ "Dock Beside Windows": "Ancré à droite des fenêtres",
+ "Narrow": "Étroit",
+ "Medium": "Moyen",
+ "Wide": "Large"
 }

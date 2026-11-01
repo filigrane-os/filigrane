@@ -7,6 +7,12 @@ pragma Singleton
 // Ctrl+N nouvelle session, Ctrl+L liste des sessions, Ctrl+. interrompt l'agent; permission demandée par l'agent:
 // Ctrl+Retour autorise, Ctrl+Retour arrière refuse. Mod+Y note l'application active (puce de contexte au-dessus
 // de la saisie, jointe au prochain message). Pastille IA de la fili-bar: ASK (permission), DONE (réponse non lue).
+// Deux présentations: « float » (au-dessus des fenêtres, sans les toucher) ou « dock » (à droite de chaque fenêtre: le
+// tiroir réserve sa place, niri rétrécit les fenêtres). Choix par le menu Affichage (state ~/.local/state/filigrane/
+// chat-view, « MODE LARGEUR »), défauts dans ~/.config/filigrane/fili-chat.toml (mode, width).
+// Menu de la fili-bar: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml le montre quand le tiroir a le focus
+// clavier); ses commandes sont `fili-shell chat ACTION` (act() ci-dessous), tests/fili-shell/check-fili-chat-menu.py
+// garde le menu et act() d'accord.
 // Protocole du démon: voir apps/fili-chat/src/main.rs.
 import QtQuick
 import QtQuick.Layouts
@@ -44,6 +50,20 @@ Singleton {
     readonly property bool linked: link.connected
     readonly property string sock: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-chat/sock"
     property int tries: 0
+    // Le tiroir a le focus clavier (pose FocusScope): AppMenu montre alors son menu
+    property bool focused: false
+    // Présentation: choix de l'utilisateur (state) sinon réglage (toml) sinon flottant
+    property string cfgMode: ""
+    property int cfgWidth: 0
+    property string stMode: ""
+    property int stWidth: 0
+    readonly property string mode: stMode || cfgMode || "float"
+    readonly property bool dock: mode === "dock"
+    readonly property int viewWidth: stWidth || cfgWidth || 440
+    readonly property string viewFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/chat-view"
+    readonly property string cfgFile: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/fili-chat.toml"
+    // Renommage de la session courante dans l'en-tête
+    property bool renaming: false
 
     function show() {
         FiliShell.popupOpened("chat");
@@ -74,6 +94,97 @@ Singleton {
             show();
     }
     signal focusInput
+
+    // ───── présentation ─────
+    // Réglages: lignes « clé = valeur » (commentaires # ignorés), valeurs entre guillemets possibles
+    function parseKV(t) {
+        const o = {};
+        for (const l of t.split("\n")) {
+            const m = l.match(/^\s*([A-Za-z_]+)\s*=\s*"?([^"#\n]*?)"?\s*(#.*)?$/);
+            if (m)
+                o[m[1]] = m[2];
+        }
+        return o;
+    }
+    FileView {
+        path: chat.cfgFile
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            const c = chat.parseKV(text());
+            chat.cfgMode = c.mode === "dock" || c.mode === "float" ? c.mode : "";
+            const w = parseInt(c.width) || 0;
+            chat.cfgWidth = w ? Math.min(900, Math.max(300, w)) : 0;
+        }
+        onLoadFailed: { chat.cfgMode = ""; chat.cfgWidth = 0; }
+    }
+    FileView {
+        path: chat.viewFile
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: {
+            const p = text().trim().split(" ");
+            chat.stMode = p[0] === "dock" || p[0] === "float" ? p[0] : "";
+            chat.stWidth = parseInt(p[1]) || 0;
+        }
+        onLoadFailed: { chat.stMode = ""; chat.stWidth = 0; }
+    }
+    function saveView() {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["chat-view " + mode + " " + viewWidth]);
+            return;
+        }
+        Quickshell.execDetached(["sh", "-c", 'mkdir -p "${1%/*}" && printf "%s %s\\n" "$2" "$3" > "$1"', "sh", viewFile, mode, String(viewWidth)]);
+    }
+    function setMode(m) {
+        stMode = m;
+        stWidth = viewWidth;
+        saveView();
+    }
+    function setWidth(w) {
+        stMode = mode;
+        stWidth = w;
+        saveView();
+    }
+    function startRename() {
+        if (!current)
+            return;
+        listOpen = false;
+        renaming = true;
+    }
+    function commitRename(t) {
+        renaming = false;
+        const title = t.trim();
+        if (title && current && title !== (sessions.find(s => s.id === current)?.title ?? ""))
+            send_({ op: "rename", id: current, title });
+        focusInput();
+    }
+
+    // Commandes du menu de la fili-bar et du canal `fili-shell chat ACTION`
+    function act(a) {
+        switch (a) {
+        case "toggle": toggle(); break;
+        case "show": show(); break;
+        case "close": hide(); break;
+        case "new": show(); newSession(); break;
+        case "sessions": show(); listOpen = !listOpen; break;
+        case "rename": show(); startRename(); break;
+        case "stop": stop(); break;
+        case "delete": removeSession(current); break;
+        case "allow": answerFirst(true); break;
+        case "deny": answerFirst(false); break;
+        case "drop-context": ctxOn = false; break;
+        case "float": setMode("float"); break;
+        case "dock": setMode("dock"); break;
+        case "width-narrow": setWidth(360); break;
+        case "width-medium": setWidth(440); break;
+        case "width-wide": setWidth(560); break;
+        }
+    }
     onWorkingChanged: if (!working) focusInput()
 
     // ───── démon ─────
@@ -292,7 +403,8 @@ Singleton {
     Connections {
         target: FiliShell
         function onPopupOpened(who) {
-            if (who !== "chat" && who !== "")
+            // Ancré, le tiroir reste (comme une barre latérale); flottant, il cède la place aux panneaux de la barre
+            if (who !== "chat" && who !== "" && !chat.dock)
                 chat.hide();
         }
     }
@@ -302,9 +414,11 @@ Singleton {
         visible: chat.open && !FiliTheme.testing
         anchors { top: true; bottom: true; right: true }
         margins.top: FiliTheme.barHeight
-        implicitWidth: 440
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.layer: WlrLayer.Overlay
+        implicitWidth: chat.viewWidth
+        // Ancré: la place est réservée (les fenêtres se rétrécissent); flottant: au-dessus, sans réserver
+        exclusionMode: chat.dock ? ExclusionMode.Normal : ExclusionMode.Ignore
+        exclusiveZone: chat.dock ? chat.viewWidth : 0
+        WlrLayershell.layer: chat.dock ? WlrLayer.Top : WlrLayer.Overlay
         WlrLayershell.namespace: "fili-chat"
         WlrLayershell.keyboardFocus: chat.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
@@ -312,9 +426,13 @@ Singleton {
         FocusScope {
             anchors.fill: parent
             focus: true
+            onActiveFocusChanged: chat.focused = activeFocus
             Keys.onEscapePressed: chat.listOpen ? chat.listOpen = false : chat.hide()
             Keys.onPressed: e => {
-                if (e.modifiers & Qt.ControlModifier) {
+                if (e.key === Qt.Key_F2) {
+                    chat.startRename();
+                    e.accepted = true;
+                } else if (e.modifiers & Qt.ControlModifier) {
                     if (e.key === Qt.Key_N)
                         chat.newSession();
                     else if (e.key === Qt.Key_L)
@@ -356,16 +474,43 @@ Singleton {
                             radius: 4
                             color: chat.working ? FiliTheme.voile : FiliTheme.ardoise
                         }
-                        Text {
+                        // Titre de la session: clic = liste des sessions, double clic ou F2 = renommer
+                        Item {
                             Layout.fillWidth: true
-                            text: chat.title + "  ▾"
-                            elide: Text.ElideRight
-                            color: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
-                            MouseArea {
+                            Layout.preferredHeight: 24
+                            Text {
                                 anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: chat.listOpen = !chat.listOpen
+                                verticalAlignment: Text.AlignVCenter
+                                visible: !chat.renaming
+                                text: chat.title + "  ▾"
+                                elide: Text.ElideRight
+                                color: FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: chat.listOpen = !chat.listOpen
+                                    onDoubleClicked: chat.startRename()
+                                }
+                            }
+                            TextInput {
+                                id: renameInput
+                                anchors.fill: parent
+                                verticalAlignment: TextInput.AlignVCenter
+                                visible: chat.renaming
+                                clip: true
+                                color: FiliTheme.brume
+                                selectionColor: FiliTheme.voile
+                                selectedTextColor: FiliTheme.nuit
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+                                onVisibleChanged: if (visible) {
+                                    text = chat.sessions.find(s => s.id === chat.current)?.title ?? "";
+                                    forceActiveFocus();
+                                    selectAll();
+                                }
+                                onAccepted: chat.commitRename(text)
+                                Keys.onEscapePressed: { chat.renaming = false; chat.focusInput(); }
+                                onActiveFocusChanged: if (!activeFocus && chat.renaming) chat.renaming = false
                             }
                         }
                         Repeater {
