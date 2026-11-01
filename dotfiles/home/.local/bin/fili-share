@@ -92,7 +92,15 @@ peers)
         # Noms répondant à `omdrop peers -n`: lignes sans entête ni « (no response) » / « (anonymous) »
         omdrop peers -n 2>/dev/null | sed 's/^ *//; s/ *$//' | grep -v -E '^\(|:$|^$' | awk '{ print $0 "\t" $0 }' | json_peers ;;
     bluetooth)
-        bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' | json_peers ;;
+        # Appareils appairés qui peuvent recevoir un fichier: téléphones, ordinateurs, ou profil Object Push (00001105)
+        # annoncé; pas les souris, casques, claviers...
+        bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' |
+            while IFS="$(printf '\t')" read -r id name; do
+                info="$(bluetoothctl info "$id" 2>/dev/null)"
+                case "$info" in
+                *"Icon: phone"* | *"Icon: computer"* | *"Icon: multimedia-player"* | *00001105-0000-1000-8000-00805f9b34fb*) printf '%s\t%s\n' "$id" "$name" ;;
+                esac
+            done | json_peers ;;
     localsend)
         # Pairs vus en multicast pendant 2 s (l'adresse IP sert d'identifiant); notre propre daemon est écarté
         lsend scan --json -d 2 2>/dev/null | jq -c --arg me "$(hostname)" '[.[] | select(.alias != $me) | { id: .ip, name: .alias }]' ;;
