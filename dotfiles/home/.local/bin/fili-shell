@@ -51,7 +51,7 @@ case "$1 $2" in
     "appmenu "*) send "appmenu ${2:-toggle}"; exit 0 ;;
     "hotkeys "*) send "hotkeys toggle"; exit 0 ;;
     "about "*) send "about toggle"; exit 0 ;;
-    "chat "*) send "chat ${2:-toggle}"; exit 0 ;;
+    "chat "*) send "chat ${2:-toggle}${3:+ $3}"; exit 0 ;;
     "lang "*) send "lang reload"; exit 0 ;;
     "reload "*) send reload; exit 0 ;;
     "launcher "*) shift ;;

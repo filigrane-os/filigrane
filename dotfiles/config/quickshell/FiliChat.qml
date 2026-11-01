@@ -253,8 +253,9 @@ Singleton {
     }
 
     // Commandes du menu de la fili-bar et du canal `fili-shell chat ACTION`
-    function act(a) {
+    function act(a, args) {
         switch (a) {
+        case "open": show(); if (args && args[0]) openSession(args[0]); break;
         case "toggle": toggle(); break;
         case "about": FiliChatAbout.show(); break;
         case "show": show(); break;
@@ -308,10 +309,11 @@ Singleton {
             link.connected = true;
         }
     }
-    // Ctrl+V: si le presse-papiers contient des fichiers (text/uri-list), les joindre; le texte se colle normalement
+    // Ctrl+V: fichiers (text/uri-list) joints; une image (capture, « copier l'image ») est enregistrée dans
+    // ~/.local/state/filigrane/chat/images puis jointe; l'agent la lit comme un fichier. Le texte se colle normalement
     Process {
         id: pasteFiles
-        command: ["sh", "-c", 'wl-paste -l 2>/dev/null | grep -qx text/uri-list && wl-paste -t text/uri-list 2>/dev/null']
+        command: ["sh", "-c", 't="$(wl-paste -l 2>/dev/null)"; if printf "%s\\n" "$t" | grep -qx text/uri-list; then wl-paste -t text/uri-list 2>/dev/null; elif m="$(printf "%s\\n" "$t" | grep -x -m1 image/png || printf "%s\\n" "$t" | grep -m1 "^image/[a-z]*$")" && [ -n "$m" ]; then d="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/chat/images"; mkdir -p "$d"; f="$d/image-$(date +%Y%m%d-%H%M%S).${m#image/}"; wl-paste -t "$m" > "$f" 2>/dev/null && [ -s "$f" ] && echo "file://$f"; fi']
         stdout: StdioCollector {
             onStreamFinished: chat.attachUrls(text.split("\n").map(l => l.trim()).filter(l => l.startsWith("file://")))
         }
@@ -469,7 +471,21 @@ Singleton {
             const u = Object.assign({}, unread);
             u[id] = true;
             unread = u;
+            notify(id, FiliI18n.tr("Rob has finished"), "normal");
+        } else if (st === "waiting" && was !== "waiting" && !(open && id === current)) {
+            notify(id, FiliI18n.tr("Rob needs you"), "critical");
         }
+    }
+    // Notification d'une session hors de la vue du tiroir; son bouton « Ouvrir » (ou un clic) montre le tiroir sur elle
+    function notify(id, summary, urgency) {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["notify " + id + " " + summary]);
+            return;
+        }
+        const title = sessions.find(s => s.id === id)?.title || "Rob";
+        Quickshell.execDetached(["setsid", "-f", "sh", "-c",
+            'r="$(notify-send -a fili-chat -i fili-chat -u "$2" -A default="$5" "$3" "$4")" && [ "$r" = default ] && exec "$0" chat open "$1"',
+            FiliTheme.bin + "/fili-shell", id, urgency, summary, title, FiliI18n.tr("Open")]);
     }
     function askItem(ev) {
         return { kind: "ask", rid: ev.rid, name: ev.tool, text: ev.summary, status: ev.status };
@@ -1021,6 +1037,34 @@ Singleton {
                             anchors { right: thread.right; top: thread.top; bottom: thread.bottom }
                             onReleased: thread.follow = thread.atYEnd
                         }
+                        // Redescendre au bas de la discussion (visible seulement quand on en est remonté)
+                        Rectangle {
+                            id: toEnd
+                            objectName: "chat-to-end"
+                            visible: chat.log.length > 0 && (!thread.atYEnd || !thread.follow)
+                            anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: FiliTheme.space3 }
+                            width: 28
+                            height: 28
+                            radius: 14
+                            color: toEndHit.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
+                            border { width: 1; color: FiliTheme.nuit4 }
+                            Text {
+                                anchors.centerIn: parent
+                                text: "↓"
+                                color: FiliTheme.voile
+                                font { family: FiliTheme.font; pixelSize: 16; weight: FiliTheme.weightAccent }
+                            }
+                            MouseArea {
+                                id: toEndHit
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    thread.follow = true;
+                                    thread.positionViewAtEnd();
+                                }
+                            }
+                        }
                     }
 
                     // Saisie, avec la puce de contexte (application active à l'ouverture)
@@ -1132,12 +1176,24 @@ Singleton {
                                 id: chip
                                 required property string modelData
                                 height: 22
-                                width: Math.min(chipName.implicitWidth + chipClose.width + 3 * FiliTheme.space2, parent.width)
+                                readonly property bool isImage: /\.(png|jpe?g|gif|webp|bmp)$/i.test(modelData)
+                                width: Math.min(chipName.implicitWidth + chipClose.width + 3 * FiliTheme.space2 + (isImage ? 20 : 0), parent.width)
                                 radius: FiliTheme.radiusControl
                                 color: FiliTheme.nuit2
+                                Image {
+                                    id: chipThumb
+                                    visible: chip.isImage
+                                    anchors { left: parent.left; leftMargin: 3; verticalCenter: parent.verticalCenter }
+                                    width: 16
+                                    height: 16
+                                    sourceSize: Qt.size(32, 32)
+                                    fillMode: Image.PreserveAspectCrop
+                                    asynchronous: true
+                                    source: chip.isImage ? "file://" + chip.modelData : ""
+                                }
                                 Text {
                                     id: chipName
-                                    anchors { left: parent.left; leftMargin: FiliTheme.space2; right: chipClose.left; verticalCenter: parent.verticalCenter }
+                                    anchors { left: chip.isImage ? chipThumb.right : parent.left; leftMargin: FiliTheme.space2; right: chipClose.left; verticalCenter: parent.verticalCenter }
                                     text: chip.modelData.split("/").pop()
                                     elide: Text.ElideMiddle
                                     color: FiliTheme.brume2
@@ -1202,9 +1258,9 @@ Singleton {
                             color: ready ? (sendHit.containsMouse ? FiliTheme.brume : FiliTheme.voile) : FiliTheme.nuit3
                             Text {
                                 anchors.centerIn: parent
-                                text: "↑"
+                                text: String.fromCodePoint(0xF06A9)
                                 color: sendBtn.ready ? FiliTheme.nuit : FiliTheme.ardoise
-                                font { family: FiliTheme.font; pixelSize: 16; weight: FiliTheme.weightAccent }
+                                font { family: "Fili Icons"; pixelSize: 18 }
                             }
                             MouseArea {
                                 id: sendHit

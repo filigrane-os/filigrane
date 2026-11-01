@@ -35,7 +35,7 @@ ShellRoot {
             else if (target === "hotkeys")
                 FiliHotkeys.toggle();
             else if (target === "chat")
-                FiliChat.act(action || "toggle");
+                FiliChat.act(action || "toggle", args);
             else if (target === "about")
                 FiliAbout.toggle();
             else if (target === "reload")

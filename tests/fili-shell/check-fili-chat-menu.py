@@ -27,7 +27,7 @@ for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["childre
     if k and (k not in keys or keys[k] not in qml):
         errors.append(f"raccourci sans touche dans FiliChat.qml: {k}")
 for a in cases:
-    if not any(e.get("exec") == f"fili-shell chat {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show"):
+    if not any(e.get("exec") == f"fili-shell chat {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show", "open"):
         errors.append(f"action de act() absente du menu: {a}")
 if errors:
     print("not ok - menu du chat:")
