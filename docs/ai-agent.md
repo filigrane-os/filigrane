@@ -6,6 +6,8 @@ Filigrane ships with a helper that starts an AI coding agent on your machine. Th
 
 With Claude Code, `Mod+Y` shows or hides a chat drawer on the right edge of the screen, above any application. The conversation stays when the drawer is hidden: a small daemon (`fili-chat`) keeps the agent and the history of each session, and runs only while the drawer is open or an agent is working (idle agents stop after 30 minutes and resume where they were). The header lists the sessions (`Ctrl+L`), `+` or `Ctrl+N` starts a new one, `Return` sends, `Shift+Return` adds a line, `Ctrl+.` interrupts, `Esc` hides. The agent starts in the repository with the rules of `AGENTS.md` and the chat prompt `agents/chat-prompt.md`; it follows `FILI_AI_MODEL` and `FILI_AI_ARGS`. Sessions and history live in `~/.local/state/filigrane/chat/`.
 
+Clicking the AI icon in the bar shows or hides the drawer too (middle click goes to a terminal session, right click chooses the agent). The icon shows `ASK` (blinking) when the agent waits for a permission and `DONE` when an answer was finished while the drawer was hidden. When the agent needs a permission it would ask for in a terminal, a card with Allow / Deny appears in the thread (`Ctrl+Return` allows, `Ctrl+Backspace` denies); with `--dangerously-skip-permissions` in `FILI_AI_ARGS` nothing is asked, except what the `guard-destructive` hook flags. `Mod+Y` also notes the active application: a context chip above the input (click × to drop it) is joined to your next message.
+
 ## Starting it in a terminal
 
 `Mod+Shift+Y` (or the menu › AI) runs `fili-ai`, which starts the chosen agent in its working directory (`~/work` by default, `FILI_AI_WORKDIR`). The repository path is exported as `FILIGRANE_DIR` and is writable by the agent.

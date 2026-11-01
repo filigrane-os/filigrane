@@ -249,7 +249,6 @@
  "click: fili-notification-center · right click: do not disturb": "clic: fili-notification-center · clic droit: ne pas déranger",
  "click: fold": "clic: replier",
  "click: go there · wheel: previous / next": "clic: y aller · molette: précédent / suivant",
- "click: go to the session (none: start the agent) · middle click: new session · right click: choose the agent": "clic: aller à la session (aucune: lancer l'agent) · clic milieu: nouvelle session · clic droit: choisir l'agent",
  "click: keyboard panel · middle click: next layout": "clic: panneau clavier · clic milieu: disposition suivante",
  "click: menu · right click: terminal · middle click: about": "clic: menu · clic droit: terminal · clic milieu: à propos",
  "click: monitor": "clic: moniteur",
@@ -425,5 +424,15 @@
  "Message Filigrane…": "Écrire à Filigrane…",
  "Ask anything about this machine or Filigrane.": "Posez une question sur cette machine ou sur Filigrane.",
  "The agent stopped": "L'agent s'est arrêté",
- "The agent is not reachable": "L'agent ne répond pas"
+ "The agent is not reachable": "L'agent ne répond pas",
+ "click: show or hide the chat · middle click: go to a terminal session · right click: choose the agent": "clic: afficher ou cacher le chat · clic milieu: aller à une session de terminal · clic droit: choisir l'agent",
+ "Allow %1?": "Autoriser %1 ?",
+ "%1 allowed": "%1 autorisé",
+ "%1 denied": "%1 refusé",
+ "%1 cancelled": "%1 annulé",
+ "Allow": "Autoriser",
+ "Deny": "Refuser",
+ "Context": "Contexte",
+ "Waiting for your answer…": "En attente de votre réponse…",
+ "Chat": "Chat"
 }
