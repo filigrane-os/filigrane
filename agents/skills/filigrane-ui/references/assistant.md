@@ -13,7 +13,8 @@ Toute application avec un état utile (dossier, sélection, document ouvert, ré
 - **Où** : `$XDG_RUNTIME_DIR/fili/context/<pid>.json`, écrit de façon atomique (fichier temporaire puis `rename`) à chaque changement (regroupés, ~150 ms), supprimé à la fermeture. Aucun daemon, aucun socket : `fili-context` lit le fichier à la demande, en retrouvant le pid de la fenêtre active par niri. Exemple : `apps/fili-file/src/context.rs`.
 - **Champs communs** : `app` (nom), `pid`, `about` (une à trois phrases en anglais : rôle de l'application, sens des champs, voie d'exécution conseillée), puis les champs métier (`location`, `selection`, `selection_count`...). Chemins absolus, listes bornées (200 éléments), contenus jamais inclus (l'IA les lit elle-même si besoin).
 - **`about` est le contrat** : il dit à l'assistant comment agir (outils shell à utiliser, ce que l'application met à jour seule, ce qu'il ne faut pas faire). Court : il part dans chaque prompt.
-- **Actions sur l'interface** (naviguer, sélectionner, afficher un aperçu) : seulement si l'effet n'est pas obtenable autrement, par une option de ligne de commande de l'application (ex. `fili-file --goto`), jamais un protocole générique.
+- **Actions sur l'interface** (aller quelque part, montrer des résultats) : une application qui a un état à montrer les expose aussi, sinon l'IA ne peut qu'agir en coulisse et l'utilisateur ne voit rien. Canal : un socket `$XDG_RUNTIME_DIR/fili/context/<pid>.sock` (mode 0600) à côté du fichier de contexte, un fil qui dort sur `accept`, une connexion = une commande (`verbe<TAB>argument`, puis un corps de chemins). Côté ligne de commande, la même application sert de client : `fili-file ctl <verbe>`. La commande vise l'instance notée par Mod+Y (`$FILI_CONTEXT_FILE`), sinon la dernière lancée, sinon en lance une, et met la fenêtre au premier plan (niri). L'`about` du contexte documente ces commandes. Exemple fili-file : `ctl goto CHEMIN` (un fichier est sélectionné dans son dossier), `ctl show 'TITRE' < chemins` (liste à la place du dossier, bandeau « Résultats : … » avec « Fermer les résultats »).
+- **Chercher, c'est le shell ; montrer, c'est l'application** : l'IA trouve avec `fd`, `rg`, `find` (rapide, sans tokens), puis envoie la liste à l'application. Une application n'implémente pas sa propre recherche pour l'IA.
 
 ## Choix de la voie d'exécution
 
@@ -21,7 +22,7 @@ Toute application avec un état utile (dossier, sélection, document ouvert, ré
 | --- | --- |
 | Lister, chercher, empreintes, renommer en lot, archiver | Outils système (shell), les chemins venant du contexte |
 | Agir sur la sélection exacte de l'utilisateur | Chemins de `selection` donnés aux outils système |
-| Effet visible dans l'interface seule (navigation, aperçu) | Commande de l'application |
+| Montrer un résultat ou emmener l'utilisateur quelque part dans l'application | Commande de l'application (`fili-file ctl goto` / `show`) |
 | Suppression | Corbeille (`gio trash`), confirmation de l'agent |
 
 ## Règles pour l'application
