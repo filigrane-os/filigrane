@@ -480,5 +480,20 @@
  "Frequent": "Fréquents",
  "New Tab": "Nouvel onglet",
  "Show Next Tab": "Onglet suivant",
- "Show Previous Tab": "Onglet précédent"
+ "Show Previous Tab": "Onglet précédent",
+ "Rename Items…": "Renommer les éléments…",
+ "Rename %1 items": "Renommer %1 éléments",
+ "Replace Text": "Remplacer du texte",
+ "Number": "Numéroter",
+ "Change Case": "Changer la casse",
+ "Find": "Chercher",
+ "Replace with": "Remplacer par",
+ "Name, with {name} and {n}": "Nom, avec {name} et {n}",
+ "Start at": "Début",
+ "Digits": "Chiffres",
+ "lowercase": "minuscules",
+ "UPPERCASE": "MAJUSCULES",
+ "Capitalize Words": "Majuscule à chaque mot",
+ "Some new names are not valid or already exist": "Certains nouveaux noms sont invalides ou existent déjà",
+ "Cannot rename: %1": "Impossible de renommer: %1"
 }
