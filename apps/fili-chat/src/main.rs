@@ -11,9 +11,10 @@
 // Socket: $XDG_RUNTIME_DIR/fili-chat/sock, une ligne JSON par message.
 //   client -> démon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
 //                    {"op":"rename","id","title"} {"op":"delete","id"} {"op":"answer","rid","allow"}
+//                    {"op":"link","id","key"} lie la session à une application (clé vide: délie; voir « follow » du tiroir)
 //                    {"op":"send",…,"context":true} joint le contexte noté par Mod+Y (context.json) au message de l'agent
 //                    {"op":"ask","id","rid","tool","input"} (serveur MCP: demande de permission, la connexion attend la réponse)
-//   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated}]} {"ev":"history","id","items":[...]}
+//   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link}]} {"ev":"history","id","items":[...]}
 //                    {"ev":"msg","id","role":"user"|"assistant","text"} {"ev":"tool","id","name","summary"}
 //                    {"ev":"delta","id","text"} (texte en cours, non gardé) {"ev":"state","id","state"}
 //                    {"ev":"note","id","code"} (interrupted, error:…)
@@ -118,6 +119,7 @@ struct Session {
     state: &'static str, // idle | working
     updated: i64,
     started: bool, // l'agent a déjà reçu un message: reprise avec --resume
+    link: String, // application (ou fenêtre) à laquelle la session est liée, "" = aucune
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     epoch: u64, // numéro du processus courant (la fin d'un ancien processus est ignorée)
@@ -174,6 +176,7 @@ impl Daemon {
                         j.set("title", s.title.as_str());
                         j.set("state", s.state);
                         j.set("updated", s.updated);
+                        j.set("link", s.link.as_str());
                         j
                     })
                     .collect(),
@@ -205,6 +208,7 @@ fn save_index(d: &Daemon) {
                 j.set("title", s.title.as_str());
                 j.set("updated", s.updated);
                 j.set("started", s.started);
+                j.set("link", s.link.as_str());
                 j
             })
             .collect(),
@@ -226,6 +230,7 @@ fn load_index() -> Vec<Session> {
                 state: "idle",
                 updated: j.get("updated").int().unwrap_or(0),
                 started: j.get("started").truthy(),
+                link: j.get("link").str().unwrap_or("").to_string(),
                 child: None,
                 stdin: None,
                 epoch: 0,
@@ -537,7 +542,7 @@ fn handle(client: u64, line: &str) {
     with(|d| match req.get("op").str().unwrap_or("") {
         "new" => {
             let id = uuid();
-            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, child: None, stdin: None, epoch: 0, asks: Vec::new() });
+            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, link: String::new(), child: None, stdin: None, epoch: 0, asks: Vec::new() });
             d.publish_sessions();
             let mut j = Json::obj();
             j.set("ev", "created");
@@ -582,6 +587,12 @@ fn handle(client: u64, line: &str) {
                 note(d, &id, "interrupted");
                 set_state(d, &id, "idle");
             }
+        }
+        "link" => {
+            if let Some(s) = d.session(&id) {
+                s.link = req.get("key").str().unwrap_or("").chars().take(200).collect();
+            }
+            d.publish_sessions();
         }
         "rename" => {
             if let Some(s) = d.session(&id) {

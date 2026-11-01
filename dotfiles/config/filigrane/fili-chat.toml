@@ -7,3 +7,8 @@
 
 # Largeur en pixels (300 à 900)
 # width = 440
+
+# Reprise de la session liée à l'application active, à l'ouverture du chat seulement.
+# app: une session par application (créée en écrivant avec la note de contexte). window: par application et titre de
+# fenêtre. off: pas de lien, le chat rouvre la dernière session.
+# follow = "app"

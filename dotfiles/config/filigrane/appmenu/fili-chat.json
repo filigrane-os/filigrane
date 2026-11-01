@@ -1,35 +1,104 @@
 {
   "name": "Chat",
   "app": [
-    { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-chat.toml" },
-    { "sep": true },
-    { "label": "Hide Chat", "keys": "Esc", "exec": "fili-shell chat close" }
+    {
+      "label": "Settings…",
+      "exec": "xdg-open ~/.config/filigrane/fili-chat.toml"
+    },
+    {
+      "sep": true
+    },
+    {
+      "label": "Hide Chat",
+      "keys": "Esc",
+      "exec": "fili-shell chat close"
+    }
   ],
   "menus": [
     {
       "label": "Session",
       "children": [
-        { "label": "New Session", "keys": "Ctrl+N", "exec": "fili-shell chat new" },
-        { "label": "Sessions…", "keys": "Ctrl+L", "exec": "fili-shell chat sessions" },
-        { "label": "Rename Session…", "keys": "F2", "exec": "fili-shell chat rename" },
-        { "label": "Delete Session", "exec": "fili-shell chat delete" },
-        { "sep": true },
-        { "label": "Stop", "keys": "Ctrl+.", "exec": "fili-shell chat stop" },
-        { "label": "Allow", "keys": "Ctrl+Return", "exec": "fili-shell chat allow" },
-        { "label": "Deny", "keys": "Ctrl+Backspace", "exec": "fili-shell chat deny" },
-        { "sep": true },
-        { "label": "Remove Context Note", "exec": "fili-shell chat drop-context" }
+        {
+          "label": "New Session",
+          "keys": "Ctrl+N",
+          "exec": "fili-shell chat new"
+        },
+        {
+          "label": "New Session for This Application",
+          "keys": "Ctrl+Shift+N",
+          "exec": "fili-shell chat new-here"
+        },
+        {
+          "label": "Sessions…",
+          "keys": "Ctrl+L",
+          "exec": "fili-shell chat sessions"
+        },
+        {
+          "label": "Rename Session…",
+          "keys": "F2",
+          "exec": "fili-shell chat rename"
+        },
+        {
+          "label": "Unlink from Application",
+          "exec": "fili-shell chat unlink"
+        },
+        {
+          "label": "Delete Session",
+          "exec": "fili-shell chat delete"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Stop",
+          "keys": "Ctrl+.",
+          "exec": "fili-shell chat stop"
+        },
+        {
+          "label": "Allow",
+          "keys": "Ctrl+Return",
+          "exec": "fili-shell chat allow"
+        },
+        {
+          "label": "Deny",
+          "keys": "Ctrl+Backspace",
+          "exec": "fili-shell chat deny"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Remove Context Note",
+          "exec": "fili-shell chat drop-context"
+        }
       ]
     },
     {
       "label": "View",
       "children": [
-        { "label": "Float Above Windows", "exec": "fili-shell chat float" },
-        { "label": "Dock Beside Windows", "exec": "fili-shell chat dock" },
-        { "sep": true },
-        { "label": "Narrow", "exec": "fili-shell chat width-narrow" },
-        { "label": "Medium", "exec": "fili-shell chat width-medium" },
-        { "label": "Wide", "exec": "fili-shell chat width-wide" }
+        {
+          "label": "Float Above Windows",
+          "exec": "fili-shell chat float"
+        },
+        {
+          "label": "Dock Beside Windows",
+          "exec": "fili-shell chat dock"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Narrow",
+          "exec": "fili-shell chat width-narrow"
+        },
+        {
+          "label": "Medium",
+          "exec": "fili-shell chat width-medium"
+        },
+        {
+          "label": "Wide",
+          "exec": "fili-shell chat width-wide"
+        }
       ]
     }
   ]
