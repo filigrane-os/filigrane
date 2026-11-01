@@ -1,5 +1,5 @@
 #!/bin/sh
-# Aperçu rapide façon QuickLook (Thunar: Espace). Fenêtre flottante app-id "quicklook" (règle niri).
+# Aperçu rapide façon QuickLook (fili-file: Espace). Fenêtre flottante app-id "quicklook" (règle niri).
 # Image -> imv, vidéo/audio -> mpv, PDF -> 10 premières pages en image, CSV/TSV -> pspg,
 # texte -> bat, dossier -> eza.
 # Espace, Échap ou q referme. Relancer sur le même fichier referme l'aperçu ouvert.

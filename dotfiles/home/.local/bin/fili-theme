@@ -63,8 +63,8 @@ gen="// Généré par fili-theme ($mode), ne pas modifier ici"
 # teintes foncées du mode clair. GTK3: theme.css (après l'import, la dernière définition l'emporte); GTK4: accent.css,
 # importé par gtk.css (libadwaita: accent_color, accent_bg_color, accent_fg_color)
 [ "$mode" = light ] && on_accent="#f3f1ec" || on_accent="#1c222b"
-printf '/* %s */\n@import url("filigrane-%s.css");\n@define-color theme_selected_bg_color %s;\n@define-color theme_selected_fg_color %s;\n.thunar .sidebar row:selected { color: %s; }\n' \
-    "${gen#// }" "$mode" "$tone" "$on_accent" "$tone" > "$cfg/gtk-3.0/theme.css"
+printf '/* %s */\n@import url("filigrane-%s.css");\n@define-color theme_selected_bg_color %s;\n@define-color theme_selected_fg_color %s;\n' \
+    "${gen#// }" "$mode" "$tone" "$on_accent" > "$cfg/gtk-3.0/theme.css"
 printf '/* %s */\n@define-color fili_accent %s;\n@define-color fili_accent_fg %s;\n' "${gen#// }" "$tone" "$on_accent" > "$cfg/gtk-4.0/accent.css"
 # foot: thème initial et curseur à la couleur d'accent (les fenêtres déjà ouvertes gardent leur curseur)
 printf '# %s\n[main]\ninitial-color-theme=%s\n\n[colors-dark]\ncursor=1c222b %s\n\n[colors-light]\ncursor=f3f1ec %s\n' \

@@ -62,6 +62,7 @@
         { "label": "Forward", "keys": "Alt+Right", "exec": "fili-file ctl --pid %pid action forward" },
         { "label": "Enclosing Folder", "keys": "Alt+Up", "exec": "fili-file ctl --pid %pid action up" },
         { "label": "Go to Folder…", "keys": "Ctrl+L", "exec": "fili-file ctl --pid %pid action path" },
+        { "label": "Connect to Server…", "keys": "Ctrl+K", "exec": "fili-file ctl --pid %pid action connect-server" },
         { "label": "Search", "keys": "Ctrl+F", "exec": "fili-file ctl --pid %pid action search" },
         { "sep": true },
         { "label": "Home", "exec": "fili-file ctl --pid %pid goto \"$HOME\"" },
