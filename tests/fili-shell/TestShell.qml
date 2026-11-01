@@ -837,7 +837,10 @@ ShellRoot {
                 ok(FiliChat.working && FiliChat.busy && FiliChat.live === "salut", "fili-chat: texte en cours et état « travaille »", FiliChat.live);
                 FiliTheme.ran = [];
                 FiliChat.send("encore");
-                ok(FiliTheme.ran.length === 0, "fili-chat: pas de second message pendant un tour");
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0] === 'chat {"op":"send","id":"s1","text":"encore"}', "fili-chat: message écrit pendant un tour: envoyé au démon, qui le met en file", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "queue", id: "s1", items: ["encore"] });
+                ok(FiliChat.queuedNow.length === 1, "fili-chat: file d'attente affichée");
+                FiliChat.receive({ ev: "queue", id: "s1", items: [] });
                 FiliChat.receive({ ev: "tool", id: "s1", name: "Bash", summary: "sv status iwd" });
                 FiliChat.receive({ ev: "msg", id: "s1", role: "assistant", text: "Salut." });
                 FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
@@ -872,6 +875,28 @@ ShellRoot {
                 ok(!FiliChat.tabsOpen && FiliChat.open, "fili-chat: Sessions… cache les onglets");
                 FiliChat.act("sessions");
                 ok(FiliChat.tabsOpen, "fili-chat: Sessions… les remontre");
+                // Suppression confirmée; les supprimées restent dans la liste complète
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                ok(FiliChat.sessions.length === 1 && FiliChat.allSessions.length === 2, "fili-chat: les supprimées sont hors des onglets mais dans la liste complète");
+                FiliChat.askArchive("s1");
+                ok(FiliChat.confirmId === "s1", "fili-chat: supprimer demande confirmation");
+                FiliChat.confirmArchive(false);
+                ok(FiliChat.confirmId === "" && FiliChat.sessions.length === 1, "fili-chat: annuler garde la session");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "", icon: 0xF2001 }] });
+                ok(FiliChat.sessions[0].icon === 0xF2001, "fili-chat: l'icône de sujet choisie par l'IA arrive avec la session");
+                FiliChat.receive({ ev: "agent", ok: false });
+                ok(!FiliChat.agentOk, "fili-chat: sans agent IA, la bannière d'installation s'affiche");
+                FiliChat.receive({ ev: "agent", ok: true });
+                ok(FiliChat.agentOk, "fili-chat: agent installé, bannière retirée");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                // 20 onglets au plus, les plus anciennes restent dans la liste complète; la courante garde son onglet
+                FiliChat.receive({ ev: "sessions", sessions: Array.from({ length: 25 }, (_, i) => ({ id: "t" + i, title: "T" + i, state: "idle", link: "", updated: 100 - i })) });
+                ok(FiliChat.tabSessions.length === 20 && FiliChat.allSessions.length === 25, "fili-chat: 20 onglets au plus, toutes les sessions dans la liste");
+                FiliChat.current = "t24";
+                ok(FiliChat.tabSessions.length === 20 && FiliChat.tabSessions.some(x => x.id === "t24"), "fili-chat: la session ouverte depuis la liste garde son onglet");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                FiliChat.askArchive("s2");
+                ok(FiliChat.confirmId === "", "fili-chat: pas de confirmation pour une session déjà supprimée");
                 // Contexte (Mod+Y): joint une fois au message
                 FiliChat.show();
                 ok(FiliChat.attention === "", "fili-chat: ouvrir le tiroir lit la réponse");

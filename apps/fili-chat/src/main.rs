@@ -10,14 +10,16 @@
 //
 // Socket: $XDG_RUNTIME_DIR/fili-chat/sock, une ligne JSON par message.
 //   client -> démon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
-//                    {"op":"rename","id","title"} {"op":"delete","id"} {"op":"answer","rid","allow"}
+//                    {"op":"rename","id","title"} {"op":"archive","id"} (garde l'historique: archived)
+//                    {"op":"restore","id"}  {"op":"agent"} (demande {"ev":"agent","ok":bool}: l'agent est-il installé) {"op":"answer","rid","allow"}
 //                    {"op":"link","id","key"} lie la session à une application (clé vide: délie; voir « follow » du tiroir)
 //                    {"op":"send",…,"context":true} joint le contexte noté par Mod+Y (context.json) au message de l'agent
 //                    {"op":"ask","id","rid","tool","input"} (serveur MCP: demande de permission, la connexion attend la réponse)
-//   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link}]} {"ev":"history","id","items":[...]}
+//   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link,archived,icon}]} {"ev":"history","id","items":[...]}
 //                    {"ev":"msg","id","role":"user"|"assistant","text"} {"ev":"tool","id","name","summary"}
 //                    {"ev":"delta","id","text"} (texte en cours, non gardé) {"ev":"state","id","state"}
 //                    {"ev":"note","id","code"} (interrupted, error:…)
+//                    {"ev":"queue","id","items":[texte]} messages écrits pendant un tour, envoyés à la fin du tour (vidés si interruption)
 //                    {"ev":"ask","id","rid","tool","summary","status":"pending"|"allowed"|"denied"|"cancelled"} permission demandée
 //                    puis tranchée (la tranchée est gardée dans l'historique); état de session: idle | working | waiting
 // Historique: ~/.local/state/filigrane/chat/<id>.jsonl (msg et tool), index sessions.json. Le contexte de l'agent
@@ -124,6 +126,10 @@ struct Session {
     stdin: Option<ChildStdin>,
     epoch: u64, // numéro du processus courant (la fin d'un ancien processus est ignorée)
     asks: Vec<Ask>,
+    icon: i64, // code du glyphe de sujet (police Fili Icons), 0 = pas encore choisi
+    naming: bool, // titre et icône en cours de demande à l'IA
+    archived: bool, // archivée: gardée avec son historique, listée à part, restaurable
+    queue: Vec<(String, bool)>, // messages écrits pendant un tour (texte, avec contexte), envoyés à la fin du tour
 }
 
 // Permission demandée par l'agent (serveur MCP), en attente de la réponse de l'utilisateur
@@ -177,6 +183,8 @@ impl Daemon {
                         j.set("state", s.state);
                         j.set("updated", s.updated);
                         j.set("link", s.link.as_str());
+                        j.set("archived", s.archived);
+                        j.set("icon", s.icon);
                         j
                     })
                     .collect(),
@@ -209,6 +217,8 @@ fn save_index(d: &Daemon) {
                 j.set("updated", s.updated);
                 j.set("started", s.started);
                 j.set("link", s.link.as_str());
+                j.set("archived", s.archived);
+                j.set("icon", s.icon);
                 j
             })
             .collect(),
@@ -235,6 +245,10 @@ fn load_index() -> Vec<Session> {
                 stdin: None,
                 epoch: 0,
                 asks: Vec::new(),
+                icon: j.get("icon").int().unwrap_or(0),
+                naming: false,
+                archived: j.get("archived").truthy() || j.get("deleted").truthy(),
+                queue: Vec::new(),
             })
         })
         .collect()
@@ -307,6 +321,35 @@ fn set_state(d: &mut Daemon, id: &str, state: &'static str) {
     d.publish_sessions();
 }
 
+// File d'attente de la session (textes), pour l'affichage
+fn queue_event(d: &mut Daemon, id: &str) {
+    let items: Vec<Json> = d.session(id).map(|s| s.queue.iter().map(|(t, _)| Json::Str(t.clone())).collect()).unwrap_or_default();
+    let mut j = Json::obj();
+    j.set("ev", "queue");
+    j.set("id", id);
+    j.set("items", Json::Arr(items));
+    let line = j.to_string();
+    d.broadcast(&line);
+}
+
+// Fin de tour: envoie le premier message en attente
+fn send_queued(d: &mut Daemon, id: &str) {
+    let next = d.session(id).filter(|s| !s.queue.is_empty()).map(|s| s.queue.remove(0));
+    if let Some((t, c)) = next {
+        queue_event(d, id);
+        op_send(d, id, &t, c);
+    }
+}
+
+fn clear_queue(d: &mut Daemon, id: &str) {
+    if d.session(id).is_some_and(|s| !s.queue.is_empty()) {
+        if let Some(s) = d.session(id) {
+            s.queue.clear();
+        }
+        queue_event(d, id);
+    }
+}
+
 fn note(d: &mut Daemon, id: &str, code: &str) {
     let mut j = Json::obj();
     j.set("ev", "note");
@@ -358,7 +401,8 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
         .env("FILI_CHAT", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .stderr(Stdio::null());
+        // stderr de l'agent gardé (<id>.err, écrasé à chaque lancement): seule trace d'un « The agent stopped »
+        .stderr(fs::File::create(chat_dir().join(format!("{id}.err"))).map(Stdio::from).unwrap_or_else(|_| Stdio::null()));
     let mut child = cmd.spawn().map_err(|e| format!("claude: {e}"))?;
     let stdout = child.stdout.take().ok_or("stdout")?;
     let stdin = child.stdin.take().ok_or("stdin")?;
@@ -433,6 +477,12 @@ fn agent_event(d: &mut Daemon, id: &str, epoch: u64, line: &str) {
                 store(d, &msg(id, "error", r));
             }
             set_state(d, id, "idle");
+            if !ev.get("is_error").truthy() {
+                start_naming(d, id);
+                send_queued(d, id);
+            } else {
+                clear_queue(d, id);
+            }
         }
         _ => {}
     }
@@ -452,6 +502,7 @@ fn agent_exit(d: &mut Daemon, id: &str, epoch: u64) {
     if working {
         store(d, &msg(id, "error", "The agent stopped"));
         set_state(d, id, "idle");
+        clear_queue(d, id);
     }
 }
 
@@ -463,6 +514,98 @@ fn kill_agent(s: &mut Session) {
         let _ = c.kill();
         let _ = c.wait();
     }
+}
+
+// ───── titre et icône par l'IA ─────
+// Icônes de sujet: noms Lucide, code 0xF2000 + position dans la police Fili Icons (scripts/fili-icons.py, TOPICS, même ordre)
+const TOPICS: [&str; 66] = [
+    "message-circle", "terminal", "code", "bug", "git-branch", "package", "wrench", "settings", "wifi", "volume-2", "monitor", "keyboard", "hard-drive", "cpu",
+    "database", "shield", "key", "globe", "mail", "calendar", "file-text", "folder", "image", "music", "video", "book-open", "palette", "printer", "download",
+    "search", "lightbulb", "rocket", "map", "shopping-cart", "graduation-cap", "calculator", "clock", "sparkles", "archive", "battery-full", "bluetooth",
+    "languages", "car", "plane", "house", "heart-pulse", "wallet", "shirt", "utensils", "trees", "sun", "dumbbell", "gamepad-2", "smartphone", "briefcase", "bike", "train-front", "paw-print", "flask-conical", "landmark", "scale", "hammer", "plug", "tv", "film", "baby",
+];
+
+fn first_line_title(text: &str) -> String {
+    text.lines().next().unwrap_or("").chars().take(48).collect()
+}
+
+// Premier échange fini et pas d'icône: une requête courte (modèle léger, sans outil) propose titre et icône du sujet
+fn start_naming(d: &mut Daemon, id: &str) {
+    let Some(s) = d.session(id) else { return };
+    if s.icon != 0 || s.naming {
+        return;
+    }
+    s.naming = true;
+    let id = id.to_string();
+    thread::spawn(move || {
+        let named = name_session(&id);
+        with(|d| {
+            if let Some(s) = d.session(&id) {
+                s.naming = false;
+                if let Some((icon, title)) = named {
+                    s.icon = icon;
+                    // Le titre ne remplace que celui qu'on avait tiré du premier message (jamais un titre choisi à la main)
+                    if let Some(t) = title {
+                        let auto = first_line_title(&first_user_text(&id));
+                        if s.title.is_empty() || s.title == auto {
+                            s.title = t;
+                        }
+                    }
+                }
+            }
+            d.publish_sessions();
+        });
+    });
+}
+
+fn first_user_text(id: &str) -> String {
+    let text = fs::read_to_string(log_path(id)).unwrap_or_default();
+    text.lines().filter_map(Json::parse).find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some("user")).and_then(|j| j.get("text").str().map(String::from)).unwrap_or_default()
+}
+
+fn name_session(id: &str) -> Option<(i64, Option<String>)> {
+    let text = fs::read_to_string(log_path(id)).unwrap_or_default();
+    let items: Vec<Json> = text.lines().filter_map(Json::parse).collect();
+    let find = |role: &str| items.iter().find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some(role)).and_then(|j| j.get("text").str().map(|t| t.chars().take(600).collect::<String>()));
+    let (user, assistant) = (find("user")?, find("assistant").unwrap_or_default());
+    let prompt = format!(
+        "Tu nommes une conversation. Réponds par UNE seule ligne, sans rien d'autre: ICONE|TITRE\n\
+         TITRE: 3 à 6 mots, dans la langue de l'utilisateur, sans guillemets ni point final.\n\
+         ICONE: un seul mot de cette liste, celui qui représente le mieux le sujet (message-circle seulement si aucun ne convient): {}.\n\n\
+         Utilisateur: {user}\n\nAssistant: {assistant}\n",
+        TOPICS.join(", ")
+    );
+    let path = format!("{}/.local/bin:{}", home(), env::var("PATH").unwrap_or_default());
+    let mut child = Command::new("timeout")
+        .args(["60", "claude", "-p", "--model", "haiku", "--no-session-persistence", "--tools", ""])
+        .current_dir(state_dir())
+        .env("PATH", path)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .ok()?;
+    child.stdin.take()?.write_all(prompt.as_bytes()).ok()?;
+    let out = child.wait_with_output().ok()?;
+    let reply = String::from_utf8_lossy(&out.stdout);
+    let line = reply.lines().find(|l| l.contains('|'))?;
+    let (name, title) = line.split_once('|')?;
+    let pos = TOPICS.iter().position(|t| *t == name.trim().trim_matches('`').to_lowercase())?;
+    let title: String = title.trim().trim_matches(|c| c == '"' || c == '«' || c == '»' || c == '.').chars().take(48).collect();
+    Some((0xF2000 + pos as i64, (!title.is_empty()).then_some(title)))
+}
+
+// L'agent (Claude Code) est-il installé ? Sinon le tiroir propose de l'installer (fili-ai install claude)
+fn agent_installed() -> bool {
+    let path = format!("{}/.local/bin:{}", home(), env::var("PATH").unwrap_or_default());
+    path.split(':').any(|d| !d.is_empty() && PathBuf::from(d).join("claude").exists())
+}
+
+fn agent_json() -> String {
+    let mut j = Json::obj();
+    j.set("ev", "agent");
+    j.set("ok", agent_installed());
+    j.to_string()
 }
 
 // ───── opérations des clients ─────
@@ -479,9 +622,18 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
         return;
     }
     if d.session(id).is_some_and(|s| s.state != "idle") {
-        return; // un tour à la fois
+        // Un tour à la fois: le message attend la fin du tour en cours
+        if let Some(s) = d.session(id) {
+            s.queue.push((text.to_string(), with_context));
+        }
+        queue_event(d, id);
+        return;
     }
     if d.session(id).is_some_and(|s| s.child.is_none()) {
+        if !agent_installed() {
+            store(d, &msg(id, "error", "No AI agent installed"));
+            return;
+        }
         if let Err(e) = spawn_agent(d, id) {
             store(d, &msg(id, "error", &e));
             return;
@@ -542,7 +694,7 @@ fn handle(client: u64, line: &str) {
     with(|d| match req.get("op").str().unwrap_or("") {
         "new" => {
             let id = uuid();
-            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, link: String::new(), child: None, stdin: None, epoch: 0, asks: Vec::new() });
+            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, link: String::new(), child: None, stdin: None, epoch: 0, asks: Vec::new(), icon: 0, naming: false, archived: false, queue: Vec::new() });
             d.publish_sessions();
             let mut j = Json::obj();
             j.set("ev", "created");
@@ -550,6 +702,7 @@ fn handle(client: u64, line: &str) {
             d.send_to(client, &j.to_string());
         }
         "open" => op_history(d, client, &id),
+        "agent" => d.send_to(client, &agent_json()),
         "send" => op_send(d, &id, req.get("text").str().unwrap_or(""), req.get("context").truthy()),
         "answer" => {
             let st = if req.get("allow").truthy() { "allowed" } else { "denied" };
@@ -586,6 +739,7 @@ fn handle(client: u64, line: &str) {
                 }
                 note(d, &id, "interrupted");
                 set_state(d, &id, "idle");
+                clear_queue(d, &id);
             }
         }
         "link" => {
@@ -600,11 +754,19 @@ fn handle(client: u64, line: &str) {
             }
             d.publish_sessions();
         }
-        "delete" => {
-            if let Some(i) = d.sessions.iter().position(|s| s.id == id) {
-                let mut s = d.sessions.remove(i);
-                kill_agent(&mut s);
-                let _ = fs::remove_file(log_path(&id));
+        "archive" | "delete" => {
+            if let Some(s) = d.session(&id) {
+                kill_agent(s);
+                s.archived = true;
+                s.state = "idle";
+                s.queue.clear();
+            }
+            d.publish_sessions();
+        }
+        "restore" => {
+            if let Some(s) = d.session(&id) {
+                s.archived = false;
+                s.updated = now();
             }
             d.publish_sessions();
         }
@@ -621,6 +783,7 @@ fn serve(stream: UnixStream) {
         d.clients.push((c, writer));
         let line = d.sessions_json().to_string();
         d.send_to(c, &line);
+        d.send_to(c, &agent_json());
         c
     });
     for line in BufReader::new(stream).lines().map_while(Result::ok) {

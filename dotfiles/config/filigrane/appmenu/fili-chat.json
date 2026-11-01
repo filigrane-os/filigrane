@@ -50,8 +50,8 @@
           "exec": "fili-shell chat unlink"
         },
         {
-          "label": "Delete Session",
-          "exec": "fili-shell chat delete"
+          "label": "Archive Session",
+          "exec": "fili-shell chat archive"
         },
         {
           "sep": true

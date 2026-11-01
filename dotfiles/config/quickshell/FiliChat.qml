@@ -4,6 +4,9 @@ pragma Singleton
 // (apps/fili-chat) qui garde l'agent et l'historique de chaque session. Le tiroir ne se connecte au démon que
 // pendant qu'il est ouvert ou qu'un agent travaille (le démon se coupe de lui-même sans client ni agent).
 // Clavier: Retour envoie, Maj+Retour nouvelle ligne, Échap cache,
+// Les onglets montrent les 20 sessions les plus récentes; les plus anciennes se retrouvent par le bouton liste du pied.
+// Archivage d'une session: confirmation (Retour archive, Échap annule); elle reste (avec son historique) dans « Toutes les sessions »,
+// bouton en bas des onglets, avec « Réglages » (fili-chat.toml dans l'éditeur par défaut).
 // Ctrl+N nouvelle session, Ctrl+L montre ou cache les onglets des sessions (colonne de gauche, pastille rouge = attend
 // une réponse, verte = fini et non lu), Ctrl+. interrompt l'agent; permission demandée par l'agent:
 // Ctrl+Retour autorise, Ctrl+Retour arrière refuse. Mod+Y note l'application active (puce de contexte au-dessus
@@ -31,6 +34,33 @@ Singleton {
     // Onglets des sessions (colonne de gauche), Ctrl+L les montre ou les cache
     property bool tabsOpen: true
     property var sessions: []
+    // Onglets: les 20 sessions les plus récentes (plus la courante si elle est plus ancienne); les autres restent
+    // dans « Toutes les sessions »
+    readonly property int maxTabs: 20
+    readonly property var tabSessions: {
+        const t = sessions.slice(0, maxTabs);
+        const cur = sessions.find(x => x.id === current);
+        if (cur && !t.includes(cur))
+            t[t.length - 1] = cur;
+        return t;
+    }
+    // Toutes les sessions, archivées comprises (liste du pied des onglets); `sessions` ne garde que les vivantes
+    property var allSessions: []
+    // Session dont la suppression attend une confirmation; liste complète ouverte
+    property string confirmId: ""
+    property bool allOpen: false
+    // L'agent (Claude Code) est installé ? Sinon une bannière propose de l'installer (fili-ai install claude)
+    property bool agentOk: true
+    function installAgent() {
+        if (!FiliTheme.testing)
+            Quickshell.execDetached(["foot", "--hold", "-e", "fili-ai", "install", "claude"]);
+    }
+    Timer {
+        interval: 2000
+        repeat: true
+        running: chat.open && !chat.agentOk && chat.linked
+        onTriggered: chat.send_({ op: "agent" })
+    }
     property string current: ""
     // Éléments de chaque session ouverte (id -> [{kind: user|assistant|tool|error|note, text, name}]); remplacé à chaque changement
     property var items: ({})
@@ -50,6 +80,25 @@ Singleton {
     // Application active notée par Mod+Y ({window: {app_id, title}, ...}) et jointe au prochain message si ctxOn
     property var ctx: null
     property bool ctxOn: false
+    // Messages écrits pendant un tour, gardés par le démon et envoyés à la fin du tour: { id: [texte] }
+    property var queued: ({})
+    readonly property var queuedNow: queued[current] ?? []
+    // Fichiers joints au prochain message (chemins absolus): glissés sur le tiroir ou collés (Ctrl+V)
+    property var attached: []
+    function attach(paths) {
+        const a = attached.slice();
+        for (const p of paths)
+            if (p && a.indexOf(p) < 0)
+                a.push(p);
+        attached = a;
+        focusInput();
+    }
+    function attachUrls(urls) {
+        attach(urls.map(u => decodeURIComponent(String(u).replace(/^file:\/\//, ""))).filter(p => p.startsWith("/")));
+    }
+    function detach(p) {
+        attached = attached.filter(x => x !== p);
+    }
     readonly property string ctxLabel: ctx ? [ctx.window?.app_id, ctx.window?.title].filter(x => x).join(" · ") : ""
     readonly property string ctxFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/context.json"
     readonly property string title: sessions.find(s => s.id === current)?.title || FiliI18n.tr("New session")
@@ -216,7 +265,7 @@ Singleton {
         case "sessions": show(); tabsOpen = !tabsOpen; break;
         case "rename": show(); startRename(); break;
         case "stop": stop(); break;
-        case "delete": removeSession(current); break;
+        case "archive": show(); askArchive(current); break;
         case "allow": answerFirst(true); break;
         case "deny": answerFirst(false); break;
         case "drop-context": ctxOn = false; break;
@@ -257,6 +306,14 @@ Singleton {
             }
             link.connected = false;
             link.connected = true;
+        }
+    }
+    // Ctrl+V: si le presse-papiers contient des fichiers (text/uri-list), les joindre; le texte se colle normalement
+    Process {
+        id: pasteFiles
+        command: ["sh", "-c", 'wl-paste -l 2>/dev/null | grep -qx text/uri-list && wl-paste -t text/uri-list 2>/dev/null']
+        stdout: StdioCollector {
+            onStreamFinished: chat.attachUrls(text.split("\n").map(l => l.trim()).filter(l => l.startsWith("file://")))
         }
     }
     // Contexte noté par `fili-chat toggle` juste avant l'ouverture
@@ -323,13 +380,43 @@ Singleton {
         send_({ op: "open", id });
         focusInput();
     }
-    function removeSession(id) {
-        send_({ op: "delete", id });
+    function archiveSession(id) {
+        send_({ op: "archive", id });
+    }
+    // Suppression: demande d'abord confirmation (la session et son historique restent dans « Toutes les sessions »)
+    function askArchive(id) {
+        if (!id || !sessions.some(s => s.id === id))
+            return;
+        allOpen = false;
+        confirmId = id;
+    }
+    function confirmArchive(yes) {
+        const id = confirmId;
+        confirmId = "";
+        if (yes && id)
+            archiveSession(id);
+        focusInput();
+    }
+    // Liste complète: une session archivée est restaurée puis ouverte
+    function pickSession(id) {
+        allOpen = false;
+        if (allSessions.find(s => s.id === id)?.archived)
+            send_({ op: "restore", id });
+        openSession(id);
+    }
+    // Réglages: le fichier de configuration dans l'éditeur par défaut
+    function openSettings() {
+        if (!FiliTheme.testing)
+            Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/.config/filigrane/fili-chat.toml"]);
     }
     function send(text) {
-        const t = text.trim();
-        if (!t || working)
+        let t = text.trim();
+        if (!t && !attached.length)
             return;
+        if (attached.length) {
+            t = (t || FiliI18n.tr("Here are some files.")) + "\n\n" + FiliI18n.tr("Attached files:") + "\n" + attached.join("\n");
+            attached = [];
+        }
         followPending = false;
         if (!current) {
             pending = t;
@@ -394,11 +481,16 @@ Singleton {
         return { kind: ev.ev === "tool" ? "tool" : ev.role, text, name: ev.name ?? "" };
     }
     function receive(ev) {
-        if (ev.ev === "sessions") {
-            sessions = ev.sessions;
+        if (ev.ev === "agent") {
+            agentOk = ev.ok === true;
+        } else if (ev.ev === "sessions") {
+            allSessions = ev.sessions;
+            sessions = ev.sessions.filter(s => !s.archived);
+            if (confirmId && !sessions.some(s => s.id === confirmId))
+                confirmId = "";
             sessionsFresh = true;
             const m = Object.assign({}, states);
-            for (const s of ev.sessions)
+            for (const s of sessions)
                 m[s.id] = s.state;
             states = m;
             if (!sessions.some(s => s.id === current)) {
@@ -426,6 +518,10 @@ Singleton {
                 ctxOn = false;
                 send_(req);
             }
+        } else if (ev.ev === "queue") {
+            const q = Object.assign({}, queued);
+            q[ev.id] = ev.items;
+            queued = q;
         } else if (ev.ev === "history") {
             const m = Object.assign({}, items);
             m[ev.id] = ev.items.map(item);
@@ -484,7 +580,7 @@ Singleton {
             anchors.fill: parent
             focus: true
             onActiveFocusChanged: chat.focused = activeFocus
-            Keys.onEscapePressed: chat.hide()
+            Keys.onEscapePressed: chat.confirmId ? chat.confirmArchive(false) : chat.allOpen ? chat.allOpen = false : chat.hide()
             Keys.onPressed: e => {
                 if (e.key === Qt.Key_F2) {
                     chat.startRename();
@@ -521,19 +617,33 @@ Singleton {
                 property string tipText: ""
                 property real tipY: 0
 
+                // Fichiers glissés depuis une application: joints au prochain message
+                DropArea {
+                    anchors.fill: parent
+                    keys: ["text/uri-list"]
+                    onDropped: d => {
+                        if (d.hasUrls)
+                            chat.attachUrls(d.urls);
+                    }
+                }
+
                 // Onglets verticaux des sessions: pastille rouge (cendre) = l'agent attend une réponse, verte (sauge) =
                 // fini, à lire, voile = travaille
                 Rectangle {
                     id: rail
                     visible: chat.tabsOpen
-                    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                    anchors { left: parent.left; top: parent.top; bottom: parent.bottom; margins: 1 }
                     width: visible ? 52 : 0
                     color: FiliTheme.nuit2
+                    // Coins de gauche arrondis comme ceux du tiroir (le bord droit reste droit)
+                    radius: FiliTheme.radiusWindow - 1
+                    Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom } width: parent.radius; color: parent.color }
                     Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom } width: 1; color: FiliTheme.nuit4 }
                     ListView {
                         id: list
-                        anchors { fill: parent; rightMargin: 1 }
-                        model: chat.sessions
+                        anchors { left: parent.left; right: parent.right; top: parent.top; bottom: foot.top; rightMargin: 1 }
+                        topMargin: FiliTheme.space2
+                        model: chat.tabSessions
                         boundsBehavior: Flickable.StopAtBounds
                         clip: true
                         delegate: Rectangle {
@@ -546,12 +656,13 @@ Singleton {
                             // Icône de l'application liée à la session; sans lien (ou sans icône): bulle de conversation
                             readonly property string appKey: (modelData.link ?? "").split("\n")[0]
                             readonly property string appIcon: appKey === "" ? "" : (Quickshell.iconPath(appKey, true) || Quickshell.iconPath(appKey.toLowerCase(), true))
+                            readonly property int topic: modelData.icon ?? 0
                             Image {
                                 id: appImg
                                 anchors.centerIn: parent
                                 width: 28
                                 height: 28
-                                visible: srow.appIcon !== ""
+                                visible: srow.topic === 0 && srow.appIcon !== ""
                                 source: srow.appIcon
                                 sourceSize: Qt.size(56, 56)
                                 fillMode: Image.PreserveAspectFit
@@ -559,8 +670,8 @@ Singleton {
                             }
                             Text {
                                 anchors.centerIn: parent
-                                visible: srow.appIcon === ""
-                                text: String.fromCodePoint(0xF05A3)
+                                visible: srow.topic !== 0 || srow.appIcon === ""
+                                text: String.fromCodePoint(srow.topic !== 0 ? srow.topic : 0xF05A3)
                                 color: modelData.id === chat.current ? FiliTheme.brume : FiliTheme.brume2
                                 font { family: "Fili Icons"; pixelSize: 24 }
                             }
@@ -612,7 +723,53 @@ Singleton {
                                     anchors.margins: -6
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: chat.removeSession(srow.modelData.id)
+                                    onClicked: chat.askArchive(srow.modelData.id)
+                                }
+                            }
+                        }
+                    }
+                    // Pied des onglets: toutes les sessions (archivées comprises) et réglages
+                    Column {
+                        id: foot
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; rightMargin: 1 }
+                        Rectangle { width: parent.width; height: 1; color: FiliTheme.nuit4 }
+                        Repeater {
+                            model: [
+                                { glyph: 0xF2F00, tip: "All sessions", act: "all" },
+                                { glyph: 0xF2F01, tip: "Settings…", act: "settings" }
+                            ]
+                            delegate: Rectangle {
+                                id: fbtn
+                                required property var modelData
+                                width: foot.width
+                                height: 40
+                                color: fHit.containsMouse || (modelData.act === "all" && chat.allOpen) ? FiliTheme.nuit3 : "transparent"
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: String.fromCodePoint(fbtn.modelData.glyph)
+                                    color: FiliTheme.brume2
+                                    font { family: "Fili Icons"; pixelSize: 22 }
+                                }
+                                MouseArea {
+                                    id: fHit
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (fbtn.modelData.act === "all") {
+                                            chat.confirmId = "";
+                                            chat.allOpen = !chat.allOpen;
+                                        } else
+                                            chat.openSettings();
+                                    }
+                                    onContainsMouseChanged: {
+                                        if (containsMouse) {
+                                            drawer.tipText = FiliI18n.tr(fbtn.modelData.tip);
+                                            drawer.tipY = fbtn.mapToItem(drawer, 0, 0).y;
+                                            drawer.tipId = "foot" + fbtn.modelData.act;
+                                        } else if (drawer.tipId === "foot" + fbtn.modelData.act)
+                                            drawer.tipId = "";
+                                    }
                                 }
                             }
                         }
@@ -868,6 +1025,56 @@ Singleton {
 
                     // Saisie, avec la puce de contexte (application active à l'ouverture)
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
+                    // Aucun agent IA: dit pourquoi le chat ne répond pas et propose de l'installer
+                    Rectangle {
+                        visible: !chat.agentOk
+                        Layout.fillWidth: true
+                        Layout.margins: FiliTheme.space3
+                        Layout.preferredHeight: noAi.implicitHeight + 2 * FiliTheme.space3
+                        radius: FiliTheme.radiusControl
+                        color: FiliTheme.nuit2
+                        border { color: FiliTheme.cendre; width: 1 }
+                        ColumnLayout {
+                            id: noAi
+                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: FiliTheme.space3 }
+                            spacing: FiliTheme.space2
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                text: FiliI18n.tr("No AI agent installed. Rob needs Claude Code to answer.")
+                                color: FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                            }
+                            Text {
+                                Layout.fillWidth: true
+                                wrapMode: Text.Wrap
+                                text: FiliI18n.tr("Install it in a terminal, then type /login in claude to sign in.")
+                                color: FiliTheme.brume2
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                            }
+                            Rectangle {
+                                Layout.preferredWidth: instLabel.implicitWidth + 2 * FiliTheme.space3
+                                Layout.preferredHeight: 28
+                                radius: FiliTheme.radiusControl
+                                color: instHit.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
+                                border { color: FiliTheme.nuit4; width: 1 }
+                                Text {
+                                    id: instLabel
+                                    anchors.centerIn: parent
+                                    text: FiliI18n.tr("Install Claude Code")
+                                    color: FiliTheme.brume
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                                }
+                                MouseArea {
+                                    id: instHit
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: chat.installAgent()
+                                }
+                            }
+                        }
+                    }
                     Rectangle {
                         visible: chat.ctxOn && chat.ctxLabel !== ""
                         Layout.fillWidth: true
@@ -898,20 +1105,75 @@ Singleton {
                             }
                         }
                     }
+                    Repeater {
+                        model: chat.queuedNow
+                        delegate: Text {
+                            required property string modelData
+                            Layout.fillWidth: true
+                            Layout.leftMargin: FiliTheme.space3
+                            Layout.rightMargin: FiliTheme.space3
+                            Layout.topMargin: FiliTheme.space1
+                            text: FiliI18n.tr("Queued") + ": " + modelData.split("\n")[0]
+                            elide: Text.ElideRight
+                            color: FiliTheme.ardoise
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                        }
+                    }
+                    Flow {
+                        visible: chat.attached.length > 0
+                        Layout.fillWidth: true
+                        Layout.leftMargin: FiliTheme.space3
+                        Layout.rightMargin: FiliTheme.space3
+                        Layout.topMargin: FiliTheme.space2
+                        spacing: FiliTheme.space1
+                        Repeater {
+                            model: chat.attached
+                            delegate: Rectangle {
+                                id: chip
+                                required property string modelData
+                                height: 22
+                                width: Math.min(chipName.implicitWidth + chipClose.width + 3 * FiliTheme.space2, parent.width)
+                                radius: FiliTheme.radiusControl
+                                color: FiliTheme.nuit2
+                                Text {
+                                    id: chipName
+                                    anchors { left: parent.left; leftMargin: FiliTheme.space2; right: chipClose.left; verticalCenter: parent.verticalCenter }
+                                    text: chip.modelData.split("/").pop()
+                                    elide: Text.ElideMiddle
+                                    color: FiliTheme.brume2
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                                }
+                                Text {
+                                    id: chipClose
+                                    anchors { right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                                    text: "×"
+                                    color: FiliTheme.ardoise
+                                    font { family: FiliTheme.font; pixelSize: 16 }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        anchors.margins: -4
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: chat.detach(chip.modelData)
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Item {
                         Layout.fillWidth: true
                         Layout.preferredHeight: Math.min(140, Math.max(44, input.implicitHeight + 2 * FiliTheme.space3))
                         TextEdit {
                             id: input
-                            anchors { fill: parent; margins: FiliTheme.space3 }
+                            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: FiliTheme.space3 + 32 }
                             wrapMode: TextEdit.Wrap
-                            enabled: !chat.working
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.voile
                             selectedTextColor: FiliTheme.nuit
                             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                             focus: true
                             Keys.onPressed: e => {
+                                if (e.key === Qt.Key_V && (e.modifiers & Qt.ControlModifier) && !FiliTheme.testing)
+                                    pasteFiles.running = true;
                                 if ((e.key === Qt.Key_Return || e.key === Qt.Key_Enter) && !(e.modifiers & Qt.ShiftModifier)) {
                                     chat.send(text);
                                     text = "";
@@ -924,9 +1186,167 @@ Singleton {
                             }
                             Text {
                                 visible: !input.text
-                                text: chat.working ? FiliI18n.tr((chat.states[chat.current] ?? "") === "waiting" ? "Waiting for your answer…" : "Working…") : FiliI18n.tr("Message Rob…")
+                                text: chat.working ? FiliI18n.tr("Write now, Rob reads it when done…") : FiliI18n.tr("Message Rob…")
                                 color: FiliTheme.ardoise
                                 font: input.font
+                            }
+                        }
+                        // Envoyer (comme Entrée); grisé tant qu'il n'y a rien à envoyer
+                        Rectangle {
+                            id: sendBtn
+                            readonly property bool ready: input.text.trim() !== "" || chat.attached.length > 0
+                            anchors { right: parent.right; rightMargin: FiliTheme.space3; bottom: parent.bottom; bottomMargin: FiliTheme.space3 }
+                            width: 26
+                            height: 26
+                            radius: 13
+                            color: ready ? (sendHit.containsMouse ? FiliTheme.brume : FiliTheme.voile) : FiliTheme.nuit3
+                            Text {
+                                anchors.centerIn: parent
+                                text: "↑"
+                                color: sendBtn.ready ? FiliTheme.nuit : FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: 16; weight: FiliTheme.weightAccent }
+                            }
+                            MouseArea {
+                                id: sendHit
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                enabled: sendBtn.ready
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    chat.send(input.text);
+                                    input.text = "";
+                                    input.forceActiveFocus();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Toutes les sessions, archivées comprises (clic = ouvrir; une archivée est restaurée)
+                Rectangle {
+                    visible: chat.allOpen
+                    anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
+                    color: FiliTheme.nuit
+                    Text {
+                        id: allTitle
+                        anchors { left: parent.left; leftMargin: FiliTheme.space3; top: parent.top; topMargin: FiliTheme.space3 }
+                        text: FiliI18n.tr("All sessions")
+                        color: FiliTheme.brume
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+                    }
+                    ListView {
+                        id: allList
+                        anchors { left: parent.left; right: parent.right; top: allTitle.bottom; bottom: parent.bottom; topMargin: FiliTheme.space2 }
+                        model: chat.allSessions
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
+                        KineticScroll {}
+                        delegate: Rectangle {
+                            id: arow
+                            required property var modelData
+                            width: allList.width
+                            height: 36
+                            color: aHit.containsMouse ? FiliTheme.nuit3 : "transparent"
+                            Text {
+                                id: aState
+                                anchors { right: parent.right; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
+                                text: arow.modelData.archived ? FiliI18n.tr("archived") : ""
+                                color: FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                            }
+                            Text {
+                                anchors { left: parent.left; leftMargin: FiliTheme.space3; right: aState.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                                text: arow.modelData.title || FiliI18n.tr("New session")
+                                elide: Text.ElideRight
+                                color: arow.modelData.archived ? FiliTheme.ardoise : FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                            }
+                            MouseArea {
+                                id: aHit
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: chat.pickSession(arow.modelData.id)
+                            }
+                        }
+                    }
+                }
+
+                // Confirmation d'archivage: Retour archive, Échap annule
+                Rectangle {
+                    id: confirm
+                    visible: chat.confirmId !== ""
+                    anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
+                    color: FiliTheme.alpha(FiliTheme.nuit, 0.85)
+                    onVisibleChanged: if (visible) confirmBox.forceActiveFocus()
+                    MouseArea { anchors.fill: parent }
+                    FocusScope {
+                        id: confirmBox
+                        anchors.centerIn: parent
+                        width: Math.min(parent.width - 2 * FiliTheme.space4, 300)
+                        height: cCol.implicitHeight + 2 * FiliTheme.space3
+                        Keys.onPressed: e => {
+                            if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)
+                                chat.confirmArchive(true);
+                            else if (e.key === Qt.Key_Escape)
+                                chat.confirmArchive(false);
+                            else
+                                return;
+                            e.accepted = true;
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: FiliTheme.radiusWindow
+                            color: FiliTheme.nuit2
+                            border { color: FiliTheme.nuit4; width: 1 }
+                        }
+                        Column {
+                            id: cCol
+                            anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space3 }
+                            spacing: FiliTheme.space2
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.Wrap
+                                text: FiliI18n.tr("Archive this session?")
+                                color: FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+                            }
+                            Text {
+                                width: parent.width
+                                wrapMode: Text.Wrap
+                                text: (chat.sessions.find(x => x.id === chat.confirmId)?.title || FiliI18n.tr("New session")) + "\n" + FiliI18n.tr("It stays in All sessions and can be restored.")
+                                color: FiliTheme.brume2
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                            }
+                            Row {
+                                spacing: FiliTheme.space2
+                                layoutDirection: Qt.RightToLeft
+                                width: parent.width
+                                Repeater {
+                                    model: [{ label: "Archive", yes: true }, { label: "Cancel", yes: false }]
+                                    delegate: Rectangle {
+                                        id: cb
+                                        required property var modelData
+                                        width: 90
+                                        height: 28
+                                        radius: FiliTheme.radiusControl
+                                        color: cbHit.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
+                                        border { color: modelData.yes ? FiliTheme.cendre : FiliTheme.nuit4; width: 1 }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: FiliI18n.tr(cb.modelData.label)
+                                            color: cb.modelData.yes ? FiliTheme.cendre : FiliTheme.brume
+                                            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                                        }
+                                        MouseArea {
+                                            id: cbHit
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: chat.confirmArchive(cb.modelData.yes)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
