@@ -416,6 +416,10 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("hook") => {
+            // Sessions du tiroir fili-chat (apps/fili-chat): le tiroir montre lui-même l'état, ni module ni notification
+            if env::var_os("FILI_CHAT").is_some() {
+                return;
+            }
             let input = stdin_json();
             let mut st = Store::open();
             let notice = apply_hook(&mut st, &input, now(), focused_window);

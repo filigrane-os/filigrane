@@ -6,6 +6,7 @@ pragma Singleton
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
 //   appmenu toggle | close               menu de l'application active au clavier (AppMenu, Mod+F10)
+//   chat toggle | show | close            tiroir fili-chat (FiliChat, Mod+Y)
 //   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
 //   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
 //   reload
