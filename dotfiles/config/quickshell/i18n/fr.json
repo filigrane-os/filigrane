@@ -472,5 +472,9 @@
  "Select Matching…": "Sélectionner selon un motif…",
  "Select Same Kind": "Sélectionner le même type",
  "Select items matching": "Sélectionner les éléments correspondant à",
- "* stands for any text, ? for one character: *.pdf, photo*, a?.txt": "* remplace n'importe quel texte, ? un caractère: *.pdf, photo*, a?.txt"
+ "* stands for any text, ? for one character: *.pdf, photo*, a?.txt": "* remplace n'importe quel texte, ? un caractère: *.pdf, photo*, a?.txt",
+ "Points to": "Pointe vers",
+ "Group": "Groupe",
+ "Others": "Autres",
+ "Cannot change permissions: %1": "Impossible de changer les droits: %1"
 }
