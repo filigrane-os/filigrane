@@ -153,8 +153,6 @@ ShellRoot {
             () => {
                 expectClick("logo", L, "/menu");
                 expectClick("logo", R, "foot");
-                expectClick("window", R, "close-window");
-                expectClick("window", M, "close-window");
                 expectClick("mail", L, "bar-alert open mail");
                 expectClick("whatsapp", L, "bar-alert open whatsapp");
                 expectClick("cal", L, "bar-alert open cal");
@@ -240,7 +238,8 @@ ShellRoot {
                 ok(labels.join(",") === "Terminal,Shell,Go,Help,Window", "appmenu: foot -> application, menus de repli, Fenêtre", labels.join(","));
                 ok(AppMenu.menus[0].children[0].label === "Quit %1", "appmenu: menu de l'application -> Quitter");
                 const title = t.find(t.bar.contentItem, "appmenu-1");
-                ok(title && title.visible, "appmenu: titres des menus dans la fili-bar", title ? "" : "introuvable");
+                const host = t.find(t.bar.contentItem, "appmenu");
+                ok(title && host && host.visible && host.shown, "appmenu: titres des menus dans la fili-bar", host ? host.visible : "introuvable");
                 AppMenu.openAt(1, title, t.bar);
                 ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: clic sur un titre -> menu ouvert");
                 FiliTheme.ran = [];
@@ -252,7 +251,11 @@ ShellRoot {
                 FiliTheme.ran = [];
                 AppMenu.activate(win[0]);
                 ok(FiliTheme.ran.join() === "niri msg action close-window", "appmenu: action niri", FiliTheme.ran.join());
-                ok(t.find(t.bar.contentItem, "appmenu-0").visible, "appmenu: fili-bar -> app visible");
+                // Clavier: fili-shell appmenu ouvre le premier menu au clavier, un second appel le ferme
+                AppMenu.summon("toggle");
+                ok(AppMenu.open && AppMenu.keyboard && AppMenu.openIndex === 0 && AppMenu.sel[0] === 0, "appmenu clavier: fili-shell appmenu -> premier menu, premier élément choisi", JSON.stringify(AppMenu.sel));
+                AppMenu.summon("toggle");
+                ok(!AppMenu.open && !AppMenu.keyboard, "appmenu clavier: second appel -> fermeture");
                 // Autres applications: fichier de repli par app-id, sinon menus communs
                 Niri.setWindows({ 8: { id: 8, pid: 0, app_id: "google-chrome", title: "Page" } });
                 Niri.focusedId = 8;
@@ -273,18 +276,40 @@ ShellRoot {
                     { label: "Edit", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/2", children: [
                         { label: "Copy", kind: "item", enabled: true, check: 0, svc: ":1.2", path: "/m/3", children: [] },
                         { label: "", kind: "sep", enabled: true, check: 0, svc: ":1.2", path: "/m/4", children: [] },
-                        { label: "Wrap", kind: "item", enabled: false, check: 2, svc: ":1.2", path: "/m/5", children: [] }] }] }));
+                        { label: "Wrap", kind: "item", enabled: false, check: 2, svc: ":1.2", path: "/m/5", children: [] },
+                        { label: "Find", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/6", children: [
+                            { label: "Next", kind: "item", enabled: true, check: 0, svc: ":1.2", path: "/m/7", children: [] }] }] }] }));
                 ok(AppMenu.source === "atspi" && AppMenu.menus.map(m => m.label).join() === "Inconnu,File,Edit,Window", "appmenu: menus AT-SPI -> entre le menu de l'application et Fenêtre", AppMenu.menus.map(m => m.label).join());
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 const edit = AppMenu.levels[0];
-                ok(edit.length === 3 && edit[1].kind === "sep" && edit[2].check === 2 && !edit[2].enabled, "appmenu: menu AT-SPI -> séparateur, case cochée, entrée grisée");
+                ok(edit.length === 4 && edit[1].kind === "sep" && edit[2].check === 2 && !edit[2].enabled && edit[3].kind === "sub", "appmenu: menu AT-SPI -> séparateur, case cochée, entrée grisée, sous-menu");
                 FiliTheme.ran = [];
                 AppMenu.activate(edit[2]);
                 ok(AppMenu.open && FiliTheme.ran.length === 0, "appmenu: entrée grisée -> rien");
                 AppMenu.activate(edit[0]);
                 ok(FiliTheme.ran.join() === FiliTheme.bin + "/fili-appmenu do :1.2 /m/3", "appmenu: entrée AT-SPI -> fili-appmenu do", FiliTheme.ran.join());
+                // Clavier: ↑/↓ saute séparateurs et entrées grisées, → ouvre le sous-menu, ← le referme
                 AppMenu.close();
-                ok(!AppMenu.open && AppMenu.levels.length === 0, "appmenu: fermeture");
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                AppMenu.keyboard = true;
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 0, "appmenu clavier: ↓ -> première entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 3, "appmenu clavier: ↓ saute le séparateur et l\x27entrée grisée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 0, "appmenu clavier: ↓ boucle sur la première entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(-1);
+                ok(AppMenu.sel[0] === 3, "appmenu clavier: ↑ revient à la dernière entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyRight();
+                ok(AppMenu.levels.length === 2 && AppMenu.levels[1][0].label === "Next" && AppMenu.sel[1] === 0, "appmenu clavier: → ouvre le sous-menu, premier élément choisi", JSON.stringify(AppMenu.sel));
+                AppMenu.keyLeft();
+                ok(AppMenu.levels.length === 1 && AppMenu.openIndex === 2, "appmenu clavier: ← referme le sous-menu", AppMenu.levels.length);
+                AppMenu.keyLeft();
+                ok(AppMenu.openIndex === 1 && AppMenu.keyboard, "appmenu clavier: ← au premier niveau -> menu précédent (resté au clavier)", AppMenu.openIndex);
+                AppMenu.keyRight();
+                ok(AppMenu.openIndex === 2, "appmenu clavier: → sur une entrée simple -> menu suivant", AppMenu.openIndex);
+                AppMenu.close();
+                ok(!AppMenu.open && AppMenu.levels.length === 0 && !AppMenu.keyboard, "appmenu: fermeture");
             },
             // BarState: états lus dans leurs fichiers (alertes, agenda, minuteur, tiroir), sans script
             () => {

@@ -460,6 +460,8 @@ binds {
     Mod+P hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     // Panneaux de la barre au clavier: ←/→ panneau voisin, ↑/↓ élément, Entrée agir, Échap fermer (FiliPanel.qml)
     Mod+A hotkey-overlay-title="Bar panels" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }
+    // Menu de l'application active au clavier (AppMenu.qml): ↑/↓ entrée, →/← sous-menu ou menu voisin, Entrée agir, Échap fermer
+    Mod+F10 hotkey-overlay-title="Application menu" { spawn-sh "$HOME/.local/bin/fili-shell appmenu"; }
     Mod+Ctrl+P hotkey-overlay-title="Displays: save the profile" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
     Mod+Ctrl+E hotkey-overlay-title="Sound: speaker equalizer" { spawn-sh "$HOME/.local/bin/bar-tui sound-tune"; }

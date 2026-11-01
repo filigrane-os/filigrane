@@ -5,6 +5,7 @@ pragma Singleton
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
+//   appmenu toggle | close               menu de l'application active au clavier (AppMenu, Mod+F10)
 //   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
 //   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
 //   reload
