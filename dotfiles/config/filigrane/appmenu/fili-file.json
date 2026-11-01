@@ -36,7 +36,10 @@
         { "label": "Copy Name Without Extension", "exec": "fili-file ctl --pid %pid action copy-stem" },
         { "label": "Copy Parent Folder", "exec": "fili-file ctl --pid %pid action copy-parent" },
         { "sep": true },
-        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-file ctl --pid %pid action select-all" }
+        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-file ctl --pid %pid action select-all" },
+        { "label": "Invert Selection", "keys": "Ctrl+Shift+I", "exec": "fili-file ctl --pid %pid action invert-selection" },
+        { "label": "Select Matching…", "keys": "Ctrl+Shift+M", "exec": "fili-file ctl --pid %pid action select-matching" },
+        { "label": "Select Same Kind", "exec": "fili-file ctl --pid %pid action select-same-kind" }
       ]
     },
     {
