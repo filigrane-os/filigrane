@@ -1,0 +1,20 @@
+{
+  "name": "Files",
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        { "label": "New window", "exec": "fili-file" }
+      ]
+    },
+    {
+      "label": "Go",
+      "children": [
+        { "label": "Home", "exec": "fili-file ctl goto \"$HOME\"" },
+        { "label": "Documents", "exec": "fili-file ctl goto \"$HOME/Documents\"" },
+        { "label": "Downloads", "exec": "fili-file ctl goto \"$HOME/Downloads\"" },
+        { "label": "Pictures", "exec": "fili-file ctl goto \"$HOME/Pictures\"" }
+      ]
+    }
+  ]
+}

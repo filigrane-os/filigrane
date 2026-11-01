@@ -267,6 +267,13 @@ ShellRoot {
             wait(() => {}, () => AppMenu.appId === "google-chrome" && AppMenu.menus.length === 6),
             () => {
                 ok(AppMenu.menus[0].label === "Chrome" && AppMenu.menus[1].children[0].exec === "google-chrome-stable --new-window", "appmenu: Chrome -> liens utiles", AppMenu.menus.map(m => m.label).join(","));
+                Niri.setWindows({ 10: { id: 10, pid: 0, app_id: "fili-file", title: "thomas" } });
+                Niri.focusedId = 10;
+            },
+            wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 4),
+            () => {
+                ok(AppMenu.menus.map(m => m.label).join() === "Files,File,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menu de repli dans la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
+                ok(AppMenu.menus[2].children[1].exec === 'fili-file ctl goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
                 Niri.setWindows({ 9: { id: 9, pid: 0, app_id: "org.exemple.Inconnu", title: "x" } });
                 Niri.focusedId = 9;
             },
