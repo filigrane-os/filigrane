@@ -31,6 +31,7 @@
         { "label": "Paste", "keys": "Ctrl+V", "exec": "fili-file ctl --pid %pid action paste" },
         { "label": "Duplicate", "keys": "Ctrl+D", "exec": "fili-file ctl --pid %pid action duplicate" },
         { "label": "Rename", "keys": "F2", "exec": "fili-file ctl --pid %pid action rename" },
+        { "label": "Rename Items…", "exec": "fili-file ctl --pid %pid action bulk-rename" },
         { "sep": true },
         { "label": "Copy Full Path", "keys": "Ctrl+Shift+C", "exec": "fili-file ctl --pid %pid action copy-path" },
         { "label": "Copy Name", "keys": "Ctrl+Alt+C", "exec": "fili-file ctl --pid %pid action copy-name" },
