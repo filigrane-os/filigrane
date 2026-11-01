@@ -2,9 +2,13 @@
 
 Filigrane ships with a helper that starts an AI coding agent on your machine. The agent can install packages, enable services, change settings and update the system, following the rules in `AGENTS.md` and the `filigrane` skill.
 
-## Starting it
+## The chat drawer (`Mod+Y`)
 
-`Mod+Y` (or the menu › AI) runs `fili-ai`, which starts the chosen agent in its working directory (`~/work` by default, `FILI_AI_WORKDIR`). The repository path is exported as `FILIGRANE_DIR` and is writable by the agent.
+With Claude Code, `Mod+Y` shows or hides a chat drawer on the right edge of the screen, above any application. The conversation stays when the drawer is hidden: a small daemon (`fili-chat`) keeps the agent and the history of each session, and runs only while the drawer is open or an agent is working (idle agents stop after 30 minutes and resume where they were). The header lists the sessions (`Ctrl+L`), `+` or `Ctrl+N` starts a new one, `Return` sends, `Shift+Return` adds a line, `Ctrl+.` interrupts, `Esc` hides. The agent starts in the repository with the rules of `AGENTS.md` and the chat prompt `agents/chat-prompt.md`; it follows `FILI_AI_MODEL` and `FILI_AI_ARGS`. Sessions and history live in `~/.local/state/filigrane/chat/`.
+
+## Starting it in a terminal
+
+`Mod+Shift+Y` (or the menu › AI) runs `fili-ai`, which starts the chosen agent in its working directory (`~/work` by default, `FILI_AI_WORKDIR`). The repository path is exported as `FILIGRANE_DIR` and is writable by the agent.
 
 ```
 fili-ai [prompt]          start the agent, optionally with a first prompt

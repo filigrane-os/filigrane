@@ -818,6 +818,38 @@ ShellRoot {
                 FiliShell.popupOpened("panel");
                 ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
             },
+            // fili-chat: tiroir, sessions, événements du démon (sans démon: les requêtes sont enregistrées)
+            () => {
+                FiliTheme.ran = [];
+                FiliChat.toggle();
+                ok(FiliChat.open, "fili-chat: toggle ouvre le tiroir");
+                FiliChat.send("bonjour");
+                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pending === "bonjour", "fili-chat: sans session, le premier message en crée une", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "sessions", sessions: [] });
+                FiliChat.receive({ ev: "created", id: "s1" });
+                ok(FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"bonjour"}' && FiliChat.current === "s1" && FiliChat.pending === "", "fili-chat: la session créée reçoit le message en attente", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "msg", id: "s1", role: "user", text: "bonjour" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "delta", id: "s1", text: "sal" });
+                FiliChat.receive({ ev: "delta", id: "s1", text: "ut" });
+                ok(FiliChat.working && FiliChat.busy && FiliChat.live === "salut", "fili-chat: texte en cours et état « travaille »", FiliChat.live);
+                FiliTheme.ran = [];
+                FiliChat.send("encore");
+                ok(FiliTheme.ran.length === 0, "fili-chat: pas de second message pendant un tour");
+                FiliChat.receive({ ev: "tool", id: "s1", name: "Bash", summary: "sv status iwd" });
+                FiliChat.receive({ ev: "msg", id: "s1", role: "assistant", text: "Salut." });
+                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
+                ok(FiliChat.log.map(i => i.kind).join() === "user,tool,assistant" && FiliChat.live === "" && !FiliChat.working && !FiliChat.busy, "fili-chat: fil (message, outil, réponse) et fin du tour", FiliChat.log.map(i => i.kind).join());
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s2", title: "Wi-Fi", state: "idle", updated: 2 }, { id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
+                ok(FiliChat.current === "s1" && FiliChat.title === "bonjour", "fili-chat: titre de la session courante", FiliChat.title);
+                FiliTheme.ran = [];
+                FiliChat.openSession("s2");
+                ok(FiliChat.current === "s2" && FiliTheme.ran[0] === 'chat {"op":"open","id":"s2"}', "fili-chat: changer de session demande son historique", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "history", id: "s2", items: [{ ev: "msg", id: "s2", role: "assistant", text: "Avant" }] });
+                ok(FiliChat.log.length === 1 && FiliChat.items["s1"].length === 3, "fili-chat: historique par session");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChat.open, "fili-chat: fermé quand un panneau de la barre s'ouvre");
+            },
             // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main
             () => {
                 ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3" && FiliI18n.num(1.5, 1) === "1.5", "FiliI18n: anglais sans catalogue, %1 remplacé", FiliI18n.lang);
