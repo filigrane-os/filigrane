@@ -1,0 +1,9 @@
+# fili-chat (le chat de la fili-bar). Tout est facultatif: les lignes commentées sont les défauts.
+# Le menu Affichage de la fili-bar (chat ouvert) change ces choix, qui passent devant ce fichier
+# (~/.local/state/filigrane/chat-view).
+
+# float: au-dessus des fenêtres, sans les toucher. dock: à droite de chaque fenêtre (elles se rétrécissent).
+# mode = "float"
+
+# Largeur en pixels (300 à 900)
+# width = 440

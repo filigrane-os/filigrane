@@ -33,8 +33,16 @@ Singleton {
             win = niriWin;
     }
     Component.onCompleted: win = niriWin
-    readonly property var winId: win ? win.id : null
-    readonly property string appId: win?.app_id ?? ""
+    // Le tiroir fili-chat a le focus clavier: son menu (appmenu/fili-chat.json) remplace celui de la fenêtre. Gardé tant
+    // qu'un menu est ouvert (un menu pris au clavier reçoit le focus à sa place)
+    property bool chatFocus: false
+    readonly property bool chatNow: FiliChat.focused
+    onChatNowChanged: {
+        if (chatNow || !open)
+            chatFocus = chatNow;
+    }
+    readonly property var winId: chatFocus ? "fili-chat" : (win ? win.id : null)
+    readonly property string appId: chatFocus ? "fili-chat" : (win?.app_id ?? "")
     readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
     readonly property string key: appId.replace(/[^A-Za-z0-9._-]/g, "_")
 
@@ -170,14 +178,15 @@ Singleton {
 
     // Menus de la barre: menu de l'application, menus propres (AT-SPI ou repli), menu Fenêtre
     function rebuild() {
-        if (!win || pending) {
+        if ((!win && !chatFocus) || pending) {
             menus = [];
             return;
         }
         const own = source === "atspi" ? appMenus : (spec.menus ?? []).map(m => norm(m));
         // Nom recalculé ici: appName (liaison) n'est pas encore à jour quand spec vient de changer
-        const app = norm({ label: spec.name ?? prettyName(appId), kind: "sub", children: [].concat(spec.app ?? [], generic.app ?? []) });
-        const w = generic.window ? [norm({ label: "Window", children: generic.window })] : [];
+        // Les menus communs (Quitter, Fenêtre) agissent sur la fenêtre active de niri: pas pour le tiroir
+        const app = norm({ label: spec.name ?? prettyName(appId), kind: "sub", children: [].concat(spec.app ?? [], chatFocus ? [] : generic.app ?? []) });
+        const w = generic.window && !chatFocus ? [norm({ label: "Window", children: generic.window })] : [];
         menus = [].concat(app.children.length > 0 ? [app] : [], own, w);
     }
     onSpecChanged: rebuild()
@@ -198,7 +207,7 @@ Singleton {
         appMenus = [];
         source = "";
         pending = false;
-        const w = win;
+        const w = chatFocus ? null : win;
         // Un fichier de repli de l'application est un choix délibéré: il passe devant AT-SPI (la MenuBar de Qt Quick
         // Controls y figure sans aucune entrée, ses menus ne sont pas exportés)
         if (w && w.pid && (spec.menus ?? []).length === 0 && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {

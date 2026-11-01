@@ -876,6 +876,44 @@ ShellRoot {
                 FiliShell.popupOpened("panel");
                 ok(!FiliChat.open, "fili-chat: fermé quand un panneau de la barre s'ouvre");
             },
+            // fili-chat: présentation (flottant / ancré), largeur, renommage
+            () => {
+                FiliTheme.ran = [];
+                ok(FiliChat.mode === "float" && !FiliChat.dock && FiliChat.viewWidth === 440, "fili-chat: flottant, 440 px par défaut", FiliChat.mode);
+                FiliChat.show();
+                FiliChat.act("dock");
+                ok(FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 440", "fili-chat: menu Affichage > ancré, choix gardé", JSON.stringify(FiliTheme.ran));
+                FiliChat.act("width-wide");
+                ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[1] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
+                FiliShell.popupOpened("panel");
+                ok(FiliChat.open, "fili-chat: ancré, un panneau de la barre ne le ferme pas");
+                FiliChat.act("float");
+                ok(!FiliChat.dock && FiliChat.viewWidth === 560, "fili-chat: menu Affichage > flottant");
+                FiliChat.act("width-medium");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChat.open, "fili-chat: flottant, un panneau de la barre le ferme");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
+                FiliChat.current = "s1";
+                FiliTheme.ran = [];
+                FiliChat.act("rename");
+                ok(FiliChat.open && FiliChat.renaming, "fili-chat: Renommer ouvre le champ de titre");
+                FiliChat.commitRename("  Wi-Fi  ");
+                ok(!FiliChat.renaming && FiliTheme.ran[0] === 'chat {"op":"rename","id":"s1","title":"Wi-Fi"}', "fili-chat: renommage envoyé au démon", JSON.stringify(FiliTheme.ran));
+                FiliChat.hide();
+                FiliChat.act("toggle");
+                ok(FiliChat.open, "fili-chat: act toggle");
+                FiliChat.act("close");
+            },
+            // fili-chat: son menu remplace celui de la fenêtre quand le tiroir a le focus clavier (sans menus Quitter/Fenêtre de niri)
+            wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Chat" && AppMenu.menus.length > 0, 5000),
+            () => {
+                const labels = AppMenu.menus.map(m => m.label);
+                ok(labels.join() === "Chat,Session,View", "fili-chat: menu de la fili-bar = Chat, Session, Affichage (ni Fenêtre ni Quitter)", labels.join());
+                const session = AppMenu.menus.find(m => m.label === "Session");
+                ok(session && session.children.some(c => c.label === "Rename Session…" && c.keys === "F2" && c.exec === "fili-shell chat rename"), "fili-chat: Session > Rename Session… (F2)");
+                FiliChat.focused = false;
+                FiliChat.hide();
+            },
             // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main
             () => {
                 ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3" && FiliI18n.num(1.5, 1) === "1.5", "FiliI18n: anglais sans catalogue, %1 remplacé", FiliI18n.lang);
