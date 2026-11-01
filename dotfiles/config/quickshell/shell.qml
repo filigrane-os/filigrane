@@ -20,6 +20,7 @@ ShellRoot {
         FiliSound.notify;
         FiliLauncher.open;
         FiliChat.open;
+        FiliChatAbout.open;
         FiliShell.fifo;
         FiliHotkeys.startup();
     }

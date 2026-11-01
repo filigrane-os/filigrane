@@ -207,6 +207,7 @@ Singleton {
     function act(a) {
         switch (a) {
         case "toggle": toggle(); break;
+        case "about": FiliChatAbout.show(); break;
         case "show": show(); break;
         case "close": hide(); break;
         case "new": show(); newSession(); break;
@@ -462,7 +463,7 @@ Singleton {
         target: FiliShell
         function onPopupOpened(who) {
             // Ancré, le tiroir reste (comme une barre latérale); flottant, il cède la place aux panneaux de la barre
-            if (who !== "chat" && who !== "" && !chat.dock)
+            if (who !== "chat" && who !== "chat-about" && who !== "" && !chat.dock)
                 chat.hide();
         }
     }
@@ -872,7 +873,7 @@ Singleton {
                             }
                             Text {
                                 visible: !input.text
-                                text: chat.working ? FiliI18n.tr((chat.states[chat.current] ?? "") === "waiting" ? "Waiting for your answer…" : "Working…") : FiliI18n.tr("Message Filigrane…")
+                                text: chat.working ? FiliI18n.tr((chat.states[chat.current] ?? "") === "waiting" ? "Waiting for your answer…" : "Working…") : FiliI18n.tr("Message Rob…")
                                 color: FiliTheme.ardoise
                                 font: input.font
                             }

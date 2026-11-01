@@ -421,7 +421,6 @@
  "Interrupted": "Interrompu",
  "Working…": "En cours…",
  "Stop": "Arrêter",
- "Message Filigrane…": "Écrire à Filigrane…",
  "Ask anything about this machine or Filigrane.": "Posez une question sur cette machine ou sur Filigrane.",
  "The agent stopped": "L'agent s'est arrêté",
  "The agent is not reachable": "L'agent ne répond pas",
@@ -448,5 +447,11 @@
  "Medium": "Moyen",
  "Wide": "Large",
  "New Session for This Application": "Nouvelle session pour cette application",
- "Unlink from Application": "Délier de l'application"
+ "Unlink from Application": "Délier de l'application",
+ "About Rob": "À propos de Rob",
+ "The assistant of Filigrane": "L'assistant de Filigrane",
+ "Agent": "Agent",
+ "default": "par défaut",
+ "Follow": "Lien",
+ "Message Rob…": "Écrire à Rob…"
 }

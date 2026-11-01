@@ -1,6 +1,13 @@
 {
-  "name": "Chat",
+  "name": "Rob",
   "app": [
+    {
+      "label": "About Rob",
+      "exec": "fili-shell chat about"
+    },
+    {
+      "sep": true
+    },
     {
       "label": "Settings…",
       "exec": "xdg-open ~/.config/filigrane/fili-chat.toml"

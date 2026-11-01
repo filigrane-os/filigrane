@@ -972,10 +972,11 @@ ShellRoot {
                 FiliChat.hide();
             },
             // fili-chat: son menu remplace celui de la fenêtre quand le tiroir a le focus clavier (sans menus Quitter/Fenêtre de niri)
-            wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Chat" && AppMenu.menus.length > 0, 5000),
+            wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Rob" && AppMenu.menus.length > 0, 5000),
             () => {
                 const labels = AppMenu.menus.map(m => m.label);
-                ok(labels.join() === "Chat,Session,View", "fili-chat: menu de la fili-bar = Chat, Session, Affichage (ni Fenêtre ni Quitter)", labels.join());
+                ok(labels.join() === "Rob,Session,View", "fili-chat: menu de la fili-bar = Rob, Session, View (ni Fenêtre ni Quitter)", labels.join());
+                ok(AppMenu.menus[0].children.some(c => c.label === "About Rob" && c.exec === "fili-shell chat about"), "fili-chat: menu Rob > About Rob");
                 const session = AppMenu.menus.find(m => m.label === "Session");
                 ok(session && session.children.some(c => c.label === "Rename Session…" && c.keys === "F2" && c.exec === "fili-shell chat rename"), "fili-chat: Session > Rename Session… (F2)");
                 // Appui sur un titre de la barre: niri rend le focus à la fenêtre précédente, le menu du chat reste
@@ -987,6 +988,20 @@ ShellRoot {
             () => {
                 ok(AppMenu.appId !== "fili-chat", "fili-chat: sans focus ni menu ouvert, la barre revient à la fenêtre active");
                 FiliChat.hide();
+            },
+            // fili-chat: fiche « À propos de Rob » (icône robot, nom Rob), fermée par un autre panneau
+            () => {
+                FiliChat.hide();
+                FiliChat.act("about");
+                ok(FiliChatAbout.open && FiliChatAbout.name === "Rob" && FiliChatAbout.icon.codePointAt(0) === 0xf06a9, "fili-chat: À propos de Rob (icône robot, nom Rob)");
+                const labels = FiliChatAbout.rows.map(r => r[0]);
+                ok(["Agent", "Version", "Model", "Sessions", "View", "Follow"].every(l => labels.includes(l)) && FiliChatAbout.rows.every(r => r[1] !== ""), "fili-chat: fiche = agent, version, modèle, sessions, présentation, lien", labels.join());
+                ok(!FiliChat.open, "fili-chat: la fiche n'ouvre pas le tiroir");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChatAbout.open, "fili-chat: fiche fermée par un autre panneau");
+                FiliChatAbout.toggle();
+                ok(FiliChatAbout.open, "fili-chat: la fiche se rouvre");
+                FiliChatAbout.close();
             },
             // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main
             () => {
