@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Rob
+GenericName=AI assistant
+GenericName[fr]=Assistant IA
+Comment=Chat with the assistant of this machine
+Comment[fr]=Discuter avec l'assistant de cette machine
+Exec=fili-chat toggle
+Icon=fili-chat
+Keywords=ai;ia;chat;assistant;agent;claude;bot;robot;conversation;
+Keywords[fr]=intelligence artificielle;discussion;
+Categories=System;Utility;
+Terminal=false
