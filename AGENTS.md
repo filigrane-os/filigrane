@@ -14,6 +14,7 @@ Modifier des fichiers pour l'utilisateur (renommer, déplacer, supprimer, copier
 - Lecture seule d'abord pour diagnostiquer, cause en une ou deux phrases, puis correction.
 - Avant de recharger la config niri: `niri validate`.
 - Après un changement du fili-shell (`dotfiles/config/quickshell/`, scripts `bar-*`, `fili-*`): `tests/fili-shell/run.sh` doit passer avant le commit.
+- Toute application `fili-*` à fenêtre (fili-file, etc.) **expose son menu** au menu global de la fili-bar: une vraie barre de menus du toolkit (`MenuBar` Qt Quick Controls, `GtkMenuBar`), lue par AT-SPI, avec toutes les commandes et leurs raccourcis, jamais seulement des boutons ou un menu contextuel. Vérifier avec `fili-appmenu menu PID` (JSON non `null`). Sans barre de menus possible, ajouter un menu de repli `dotfiles/config/filigrane/appmenu/<app_id>.json` (voir `AppMenu.qml`, skill `filigrane-ui`, `references/hig.md` §7).
 
 ## Déclaratif
 
