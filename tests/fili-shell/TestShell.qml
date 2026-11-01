@@ -995,7 +995,8 @@ ShellRoot {
                 FiliChat.act("about");
                 ok(FiliChatAbout.open && FiliChatAbout.name === "Rob" && FiliChatAbout.icon.codePointAt(0) === 0xf06a9, "fili-chat: À propos de Rob (icône robot, nom Rob)");
                 const labels = FiliChatAbout.rows.map(r => r[0]);
-                ok(["Agent", "Version", "Model", "Sessions", "View", "Follow"].every(l => labels.includes(l)) && FiliChatAbout.rows.every(r => r[1] !== ""), "fili-chat: fiche = agent, version, modèle, sessions, présentation, lien", labels.join());
+                ok(["Also known as", "Part of", "Agent", "Model", "Sessions", "View", "Follow", "Settings"].every(l => labels.includes(l)) && FiliChatAbout.rows.every(r => r[1] !== ""), "fili-chat: fiche = aka, appartenance, agent, modèle, sessions, présentation, lien, réglages", labels.join());
+                ok(FiliChatAbout.rows[0][0] === "Also known as" && FiliChatAbout.rows[0][1] === "fili-chat", "fili-chat: la fiche dit « aka fili-chat »");
                 ok(!FiliChat.open, "fili-chat: la fiche n'ouvre pas le tiroir");
                 FiliShell.popupOpened("panel");
                 ok(!FiliChatAbout.open, "fili-chat: fiche fermée par un autre panneau");
