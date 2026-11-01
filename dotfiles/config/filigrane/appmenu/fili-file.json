@@ -4,16 +4,56 @@
     {
       "label": "File",
       "children": [
-        { "label": "New window", "exec": "fili-file" }
+        { "label": "New window", "exec": "fili-file" },
+        { "label": "New Folder", "keys": "Ctrl+Shift+N", "exec": "fili-file ctl --pid %pid action new-folder" },
+        { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
+        { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },
+        { "sep": true },
+        { "label": "Move to Trash", "keys": "Delete", "exec": "fili-file ctl --pid %pid action trash" },
+        { "label": "Empty Trash", "keys": "Ctrl+Shift+Delete", "exec": "fili-file ctl --pid %pid action empty-trash" },
+        { "sep": true },
+        { "label": "Close", "keys": "Ctrl+W", "exec": "fili-file ctl --pid %pid action close" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "children": [
+        { "label": "Undo", "keys": "Ctrl+Z", "exec": "fili-file ctl --pid %pid action undo" },
+        { "sep": true },
+        { "label": "Cut", "keys": "Ctrl+X", "exec": "fili-file ctl --pid %pid action cut" },
+        { "label": "Copy", "keys": "Ctrl+C", "exec": "fili-file ctl --pid %pid action copy" },
+        { "label": "Paste", "keys": "Ctrl+V", "exec": "fili-file ctl --pid %pid action paste" },
+        { "label": "Duplicate", "keys": "Ctrl+D", "exec": "fili-file ctl --pid %pid action duplicate" },
+        { "label": "Rename", "keys": "F2", "exec": "fili-file ctl --pid %pid action rename" },
+        { "sep": true },
+        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-file ctl --pid %pid action select-all" }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        { "label": "View as List", "keys": "Ctrl+1", "exec": "fili-file ctl --pid %pid action view-list" },
+        { "label": "View as Icons", "keys": "Ctrl+2", "exec": "fili-file ctl --pid %pid action view-icons" },
+        { "label": "Show Hidden Files", "keys": "Ctrl+H", "exec": "fili-file ctl --pid %pid action toggle-hidden" },
+        { "sep": true },
+        { "label": "Reload", "keys": "F5", "exec": "fili-file ctl --pid %pid action reload" }
       ]
     },
     {
       "label": "Go",
       "children": [
-        { "label": "Home", "exec": "fili-file ctl goto \"$HOME\"" },
-        { "label": "Documents", "exec": "fili-file ctl goto \"$HOME/Documents\"" },
-        { "label": "Downloads", "exec": "fili-file ctl goto \"$HOME/Downloads\"" },
-        { "label": "Pictures", "exec": "fili-file ctl goto \"$HOME/Pictures\"" }
+        { "label": "Back", "keys": "Alt+Left", "exec": "fili-file ctl --pid %pid action back" },
+        { "label": "Forward", "keys": "Alt+Right", "exec": "fili-file ctl --pid %pid action forward" },
+        { "label": "Enclosing Folder", "keys": "Alt+Up", "exec": "fili-file ctl --pid %pid action up" },
+        { "label": "Go to Folder…", "keys": "Ctrl+L", "exec": "fili-file ctl --pid %pid action path" },
+        { "label": "Search", "keys": "Ctrl+F", "exec": "fili-file ctl --pid %pid action search" },
+        { "sep": true },
+        { "label": "Home", "exec": "fili-file ctl --pid %pid goto \"$HOME\"" },
+        { "label": "Documents", "exec": "fili-file ctl --pid %pid goto \"$HOME/Documents\"" },
+        { "label": "Downloads", "exec": "fili-file ctl --pid %pid goto \"$HOME/Downloads\"" },
+        { "label": "Pictures", "exec": "fili-file ctl --pid %pid goto \"$HOME/Pictures\"" },
+        { "sep": true },
+        { "label": "Open Terminal Here", "keys": "Ctrl+Alt+T", "exec": "fili-file ctl --pid %pid action terminal" }
       ]
     }
   ]

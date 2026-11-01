@@ -267,13 +267,20 @@ ShellRoot {
             wait(() => {}, () => AppMenu.appId === "google-chrome" && AppMenu.menus.length === 6),
             () => {
                 ok(AppMenu.menus[0].label === "Chrome" && AppMenu.menus[1].children[0].exec === "google-chrome-stable --new-window", "appmenu: Chrome -> liens utiles", AppMenu.menus.map(m => m.label).join(","));
-                Niri.setWindows({ 10: { id: 10, pid: 0, app_id: "fili-file", title: "thomas" } });
+                Niri.setWindows({ 10: { id: 10, pid: 4242, app_id: "fili-file", title: "thomas" } });
                 Niri.focusedId = 10;
             },
-            wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 4),
+            wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 6),
             () => {
-                ok(AppMenu.menus.map(m => m.label).join() === "Files,File,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menu de repli dans la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
-                ok(AppMenu.menus[2].children[1].exec === 'fili-file ctl goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
+                ok(AppMenu.source === "fallback" && AppMenu.noMenu["fili-file"] === undefined, "appmenu: un fichier de repli passe devant AT-SPI (aucune requête)", AppMenu.source);
+                ok(AppMenu.menus.map(m => m.label).join() === "Files,File,Edit,View,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menus de la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
+                const copy = AppMenu.menus[2].children[3];
+                ok(copy.label === "Copy" && copy.keys === "Ctrl+C", "appmenu: fili-file -> Copier avec son raccourci", copy.label + " " + copy.keys);
+                FiliTheme.ran = [];
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                AppMenu.activate(copy);
+                ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: commande de contrôle visant le processus de la fenêtre (%pid)", FiliTheme.ran.join());
+                ok(AppMenu.menus[4].children[7].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
                 Niri.setWindows({ 9: { id: 9, pid: 0, app_id: "org.exemple.Inconnu", title: "x" } });
                 Niri.focusedId = 9;
             },
