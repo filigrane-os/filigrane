@@ -1,0 +1,404 @@
+pragma Singleton
+// fili-appmenu: menu de l'application qui a le focus, dans la fili-bar (menu global à la Mac OS X).
+//
+// Source des menus, dans l'ordre:
+//   1. la barre de menus de l'application, lue par AT-SPI avec ~/.local/bin/fili-appmenu (apps/fili-appmenu): GTK3,
+//      Qt, Firefox... Seules les applications qui exportent leur accessibilité en ont une; chaque menu GTK3 ne se remplit
+//      qu'à l'ouverture (`expand`);
+//   2. sinon un menu de repli, écrit à la main: ~/.config/filigrane/appmenu/APP_ID.json (dotfiles/config/filigrane/appmenu/,
+//      couche personnelle comprise), qui complète _default.json.
+// Dans les deux cas: menu de l'application (nom en gras, « Quitter »), menus propres, menu Fenêtre (niri).
+//
+// Fichier de repli: { "name": "Chrome", "app": [ENTRÉE], "menus": [ { "label": "File", "children": [ENTRÉE] } ] }
+//   ENTRÉE = { "label", "exec": "commande shell" } ou { "label", "niri": ["action", "argument"] } ou { "sep": true }
+//            ou { "label", "children": [ENTRÉE] } (sous-menu). Textes en anglais, traduits par FiliI18n; %1 = nom de l'appli.
+// Aucun processus ne reste: fili-appmenu est lancé au changement de fenêtre active, une seule fois par application
+// sans menu (la réponse « rien » est retenue une minute).
+import QtQuick
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+
+Singleton {
+    id: am
+
+    readonly property var win: Niri.focused
+    readonly property var winId: win ? win.id : null
+    readonly property string appId: win?.app_id ?? ""
+    readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
+    readonly property string key: appId.replace(/[^A-Za-z0-9._-]/g, "_")
+
+    // Menus affichés dans la barre (ENTRÉE normalisées, voir norm) et leur origine: "atspi", "fallback" ou ""
+    property var menus: []
+    property string source: ""
+    // Réponse de fili-appmenu attendue: rien d'affiché en attendant
+    property bool pending: false
+    property var appMenus: []
+    property var spec: ({})
+    property var generic: ({})
+    property var noMenu: ({})
+    property int gen: 0
+    readonly property string appName: spec.name ?? prettyName(appId)
+
+    // Menu ouvert (index dans menus, -1 = fermé), colonnes de menus ouvertes, entrée choisie et ordonnée du haut de
+    // chaque colonne
+    property int openIndex: -1
+    property var levels: []
+    property var sel: []
+    property var levelY: []
+    property real anchorX: 0
+    property var screen: null
+    readonly property bool open: openIndex >= 0
+
+    function prettyName(id) {
+        if (!id)
+            return "";
+        const n = id.split(".").pop().replace(/^chrome-/, "").replace(/__.*$/, "");
+        return n.charAt(0).toUpperCase() + n.slice(1);
+    }
+
+    function parse(text) {
+        try {
+            return JSON.parse(text) ?? {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    // Entrée normalisée, qu'elle vienne d'AT-SPI ou d'un fichier de repli
+    function norm(e) {
+        if (e.sep || e.kind === "sep")
+            return { label: "", kind: "sep", enabled: false, check: 0, svc: "", path: "", exec: "", niri: null, children: [] };
+        const kids = (e.children ?? []).map(c => norm(c)).filter(c => c.kind === "sep" || c.label !== "");
+        return {
+            label: e.label ?? "",
+            kind: e.kind ?? (kids.length > 0 ? "sub" : "item"),
+            enabled: e.enabled ?? true,
+            check: e.check ?? 0,
+            svc: e.svc ?? "",
+            path: e.path ?? "",
+            exec: e.exec ?? "",
+            niri: e.niri ?? null,
+            children: kids
+        };
+    }
+
+    // Menus de la barre: menu de l'application, menus propres (AT-SPI ou repli), menu Fenêtre
+    function rebuild() {
+        if (!win || pending) {
+            menus = [];
+            return;
+        }
+        const own = source === "atspi" ? appMenus : (spec.menus ?? []).map(m => norm(m));
+        // Nom recalculé ici: appName (liaison) n'est pas encore à jour quand spec vient de changer
+        const app = norm({ label: spec.name ?? prettyName(appId), kind: "sub", children: [].concat(spec.app ?? [], generic.app ?? []) });
+        const w = generic.window ? [norm({ label: "Window", children: generic.window })] : [];
+        menus = [].concat(app.children.length > 0 ? [app] : [], own, w);
+    }
+    onSpecChanged: rebuild()
+    onGenericChanged: rebuild()
+
+    // Fenêtre active changée: menu fermé, menus relus (une fois la rafale d'événements niri passée)
+    onWinIdChanged: debounce.restart()
+    Timer {
+        id: debounce
+        interval: 100
+        onTriggered: am.refresh()
+    }
+    function refresh() {
+        gen++;
+        query.running = false;
+        expander.running = false;
+        close();
+        appMenus = [];
+        source = "";
+        pending = false;
+        const w = win;
+        if (w && w.pid && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
+            pending = true;
+            query.queryGen = gen;
+            query.command = [FiliTheme.bin + "/fili-appmenu", "menu", String(w.pid), w.title ?? ""];
+            query.running = true;
+        } else {
+            source = "fallback";
+        }
+        rebuild();
+    }
+    Process {
+        id: query
+        property int queryGen: -1
+        stdout: StdioCollector {
+            onStreamFinished: am.onMenu(query.queryGen, text)
+        }
+    }
+    function onMenu(g, text) {
+        if (g !== gen)
+            return;
+        const d = parse(text);
+        pending = false;
+        if (d.items && d.items.length > 0) {
+            appMenus = d.items.map(i => norm(i)).filter(i => i.label !== "");
+            source = "atspi";
+        } else {
+            noMenu[appId] = Date.now();
+            source = "fallback";
+        }
+        rebuild();
+    }
+
+    // Menus de repli de l'application et menus communs, relus quand le fichier change
+    FileView {
+        path: am.key !== "" ? am.dir + "/" + am.key + ".json" : ""
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: am.spec = am.parse(text())
+        onLoadFailed: am.spec = ({})
+    }
+    FileView {
+        path: am.dir + "/_default.json"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: am.generic = am.parse(text())
+        onLoadFailed: am.generic = ({})
+    }
+
+    // ───────── Ouverture, navigation, action ─────────
+    function toggle(index, item, bar) {
+        if (openIndex === index)
+            close();
+        else
+            openAt(index, item, bar);
+    }
+    // Menu ouvert: passer sur un autre titre l'ouvre à son tour
+    function hoverTitle(index, item, bar) {
+        if (open && openIndex !== index)
+            openAt(index, item, bar);
+    }
+    function openAt(index, item, bar) {
+        const m = menus[index];
+        if (!m)
+            return;
+        FiliTooltip.hide();
+        FiliShell.popupOpened("appmenu");
+        anchorX = item.mapToItem(null, 0, 0).x;
+        screen = bar?.screen ?? null;
+        openIndex = index;
+        levels = [m.children];
+        sel = [-1];
+        levelY = [0];
+        fillIfLazy(0, m);
+    }
+    function close() {
+        openIndex = -1;
+        levels = [];
+        sel = [];
+        levelY = [];
+    }
+    // Survol ou clic d'une entrée: son sous-menu s'ouvre à droite, aligné sur elle, les colonnes suivantes se ferment
+    function enter(level, entry, index, y) {
+        sel = sel.slice(0, level).concat([index]);
+        if (entry.kind === "sub") {
+            levels = levels.slice(0, level + 1).concat([entry.children]);
+            levelY = levelY.slice(0, level + 1).concat([y]);
+            sel = sel.concat([-1]);
+            fillIfLazy(level + 1, entry);
+        } else {
+            levels = levels.slice(0, level + 1);
+            levelY = levelY.slice(0, level + 1);
+        }
+    }
+    function activate(e) {
+        if (!e.enabled || e.kind !== "item")
+            return;
+        close();
+        if (e.exec) {
+            FiliTheme.run(e.exec);
+        } else if (e.niri) {
+            Niri.action(...e.niri);
+        } else if (e.svc) {
+            const cmd = [FiliTheme.bin + "/fili-appmenu", "do", e.svc, e.path];
+            if (FiliTheme.testing)
+                FiliTheme.ran = FiliTheme.ran.concat([cmd.join(" ")]);
+            else
+                Quickshell.execDetached(cmd);
+        }
+    }
+
+    // Sous-menu AT-SPI vide (GTK3, Firefox le remplissent à l'ouverture): demandé à fili-appmenu, colonne mise à jour
+    function fillIfLazy(depth, entry) {
+        if (source !== "atspi" || entry.children.length > 0 || entry.svc === "")
+            return;
+        expander.running = false;
+        expander.target = entry;
+        expander.depth = depth;
+        expander.expandGen = gen;
+        expander.command = [FiliTheme.bin + "/fili-appmenu", "expand", entry.svc, entry.path];
+        expander.running = true;
+    }
+    Process {
+        id: expander
+        property var target: null
+        property int depth: 0
+        property int expandGen: -1
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (expander.expandGen !== am.gen || !expander.target)
+                    return;
+                const d = am.parse(text);
+                const items = Array.isArray(d) ? d.map(i => am.norm(i)).filter(i => i.kind === "sep" || i.label !== "") : [];
+                expander.target.children = items;
+                // La colonne attend toujours ce sous-menu: elle prend son contenu
+                if (am.open && am.levels.length === expander.depth + 1)
+                    am.levels = am.levels.slice(0, expander.depth).concat([items]);
+            }
+        }
+    }
+
+    Connections {
+        target: FiliShell
+        function onPopupOpened(who) {
+            if (who !== "appmenu")
+                am.close();
+        }
+    }
+
+    // ───────── Fenêtres: rattrapage des clics à côté, puis les colonnes de menus ─────────
+    // Pas de focus clavier: l'application garde le sien (une action qui vise le champ actif, Coller par exemple, doit
+    // l'atteindre). Un clic en dehors du menu ferme, la barre reste cliquable (le rattrapage commence sous elle).
+    PanelWindow {
+        visible: am.open && !FiliTheme.testing
+        screen: am.screen
+        anchors { top: true; left: true; right: true; bottom: true }
+        margins.top: FiliTheme.barHeight
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Top
+        WlrLayershell.namespace: "fili-appmenu-catcher"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        color: "transparent"
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onPressed: am.close()
+        }
+    }
+
+    PanelWindow {
+        id: menuWin
+        visible: am.open && !FiliTheme.testing
+        screen: am.screen
+        anchors { top: true; left: true }
+        margins.top: FiliTheme.barHeight + 2
+        margins.left: Math.max(4, Math.min((am.screen?.width ?? 0) - implicitWidth - 4, am.anchorX))
+        implicitWidth: Math.max(1, cards.width)
+        implicitHeight: Math.max(1, cards.height)
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "fili-appmenu"
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        color: "transparent"
+
+        Item {
+            id: cards
+            readonly property int cardWidth: 244
+            width: Math.max(0, am.levels.length - 1) * (cardWidth - 4) + cardWidth
+            height: {
+                let h = 0;
+                for (let i = 0; i < repeater.count; i++) {
+                    const c = repeater.itemAt(i);
+                    if (c)
+                        h = Math.max(h, c.y + c.height);
+                }
+                return h;
+            }
+            Repeater {
+                id: repeater
+                model: am.levels.length
+                Rectangle {
+                    id: card
+                    required property int index
+                    readonly property var entries: am.levels[index] ?? []
+                    x: index * (cards.cardWidth - 4)
+                    y: am.levelY[index] ?? 0
+                    width: cards.cardWidth
+                    height: Math.min(list.contentHeight, (am.screen?.height ?? 800) - FiliTheme.barHeight - 40 - y) + 8
+                    color: FiliTheme.nuit
+                    border.color: FiliTheme.nuit4
+                    border.width: 1
+                    radius: FiliTheme.radiusControl
+                    ListView {
+                        id: list
+                        anchors { fill: parent; margins: 4 }
+                        model: card.entries
+                        clip: true
+                        interactive: contentHeight > height
+                        boundsBehavior: Flickable.StopAtBounds
+                        delegate: Item {
+                            id: row
+                            required property var modelData
+                            required property int index
+                            readonly property bool sep: modelData.kind === "sep"
+                            readonly property bool lit: !sep && modelData.enabled && (hover.hovered || am.sel[card.index] === index)
+                            width: list.width
+                            height: sep ? 9 : 22
+                            Rectangle {
+                                visible: row.sep
+                                anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: 8; rightMargin: 8 }
+                                height: 1
+                                color: FiliTheme.nuit4
+                            }
+                            Rectangle {
+                                visible: !row.sep
+                                anchors.fill: parent
+                                radius: FiliTheme.radiusMark
+                                color: row.lit ? FiliTheme.nuit3 : "transparent"
+                            }
+                            Text {
+                                visible: !row.sep && row.modelData.check === 2
+                                x: 6
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "✓"
+                                color: FiliTheme.voile
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                            }
+                            Text {
+                                visible: !row.sep
+                                x: 22
+                                width: parent.width - 22 - 22
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: FiliI18n.tr(row.modelData.label, am.appName)
+                                elide: Text.ElideRight
+                                color: !row.modelData.enabled ? FiliTheme.ardoise : row.lit ? FiliTheme.voileVif : FiliTheme.brume
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                            }
+                            Text {
+                                visible: row.modelData.kind === "sub"
+                                anchors { right: parent.right; rightMargin: 8; verticalCenter: parent.verticalCenter }
+                                text: "›"
+                                color: FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                            }
+                            HoverHandler {
+                                id: hover
+                                enabled: !row.sep
+                                onHoveredChanged: if (hovered) am.enter(card.index, row.modelData, row.index, card.y + 4 + row.y - list.contentY)
+                            }
+                            TapHandler {
+                                enabled: !row.sep
+                                onTapped: {
+                                    if (row.modelData.kind === "sub")
+                                        am.enter(card.index, row.modelData, row.index, card.y + 4 + row.y - list.contentY);
+                                    else
+                                        am.activate(row.modelData);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -75,6 +75,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 - Raccourcis affichés quand ils existent ; jamais deux actions pour un même raccourci dans un contexte. **[Apple]**
 - Menu contextuel (clic droit) : les commandes de l'élément ; aucune commande importante seulement là. **[Apple]**
 - Raccourcis Filigrane documentés dans `FiliHotkeys.qml` (Mod+K) et le skill `filigrane` (`references/niri.md`).
+- Menu global (`AppMenu.qml`, `BarAppMenu.qml`, binaire `apps/fili-appmenu`): dans la fili-bar, après les espaces de travail, le nom de l'application active en gras puis ses menus (Quitter, menus propres, Fenêtre), comme la barre de menus du Mac OS X classique. Source: la barre de menus AT-SPI de l'application (GTK3, Qt; les applications Chrome, Electron sans drapeau, foot n'en exportent pas), sinon un repli écrit à la main dans `dotfiles/config/filigrane/appmenu/APP_ID.json` (couche personnelle: `users/<login>/dotfiles/config/filigrane/appmenu/`). Le repli ne contient que des commandes réelles (liens, actions niri), jamais de frappes simulées: un menu qui ment sur ce qu'il fait est pire qu'un menu court. Menu à la souris seulement pour l'instant (pas de focus clavier, l'application garde le sien).
 
 ## 8. Champs, formulaires, réglages
 

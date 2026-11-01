@@ -229,6 +229,63 @@ ShellRoot {
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.spotify", "spotify", "x") === 3, "niri: lecteur par entrée de bureau");
                 ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.mpv", "mpv", "x") === null, "niri: lecteur sans fenêtre -> null");
             },
+            // AppMenu (menu global): repli par application (pid 0 = pas de requête AT-SPI), puis menus AT-SPI simulés
+            () => {
+                Niri.setWindows({ 7: { id: 7, pid: 0, app_id: "foot", title: "foot" } });
+                Niri.focusedId = 7;
+            },
+            wait(() => {}, () => AppMenu.appId === "foot" && AppMenu.source === "fallback" && AppMenu.menus.length === 5),
+            () => {
+                const labels = AppMenu.menus.map(m => m.label);
+                ok(labels.join(",") === "Terminal,Shell,Go,Help,Window", "appmenu: foot -> application, menus de repli, Fenêtre", labels.join(","));
+                ok(AppMenu.menus[0].children[0].label === "Quit %1", "appmenu: menu de l'application -> Quitter");
+                const title = t.find(t.bar.contentItem, "appmenu-1");
+                ok(title && title.visible, "appmenu: titres des menus dans la fili-bar", title ? "" : "introuvable");
+                AppMenu.openAt(1, title, t.bar);
+                ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: clic sur un titre -> menu ouvert");
+                FiliTheme.ran = [];
+                AppMenu.activate(AppMenu.levels[0][0]);
+                ok(!AppMenu.open && FiliTheme.ran.join() === "foot", "appmenu: entrée -> commande lancée, menu fermé", FiliTheme.ran.join());
+                AppMenu.openAt(4, title, t.bar);
+                const win = AppMenu.levels[0];
+                ok(win[0].label === "Close window" && win[1].kind === "sep", "appmenu: menu Fenêtre -> actions niri, séparateurs");
+                FiliTheme.ran = [];
+                AppMenu.activate(win[0]);
+                ok(FiliTheme.ran.join() === "niri msg action close-window", "appmenu: action niri", FiliTheme.ran.join());
+                ok(t.find(t.bar.contentItem, "appmenu-0").visible, "appmenu: fili-bar -> app visible");
+                // Autres applications: fichier de repli par app-id, sinon menus communs
+                Niri.setWindows({ 8: { id: 8, pid: 0, app_id: "google-chrome", title: "Page" } });
+                Niri.focusedId = 8;
+            },
+            wait(() => {}, () => AppMenu.appId === "google-chrome" && AppMenu.menus.length === 6),
+            () => {
+                ok(AppMenu.menus[0].label === "Chrome" && AppMenu.menus[1].children[0].exec === "google-chrome-stable --new-window", "appmenu: Chrome -> liens utiles", AppMenu.menus.map(m => m.label).join(","));
+                Niri.setWindows({ 9: { id: 9, pid: 0, app_id: "org.exemple.Inconnu", title: "x" } });
+                Niri.focusedId = 9;
+            },
+            wait(() => {}, () => AppMenu.appId === "org.exemple.Inconnu" && AppMenu.menus.length === 2),
+            () => {
+                ok(AppMenu.menus.map(m => m.label).join() === "Inconnu,Window", "appmenu: application inconnue -> nom tiré de l'app-id, menu Fenêtre", AppMenu.menus.map(m => m.label).join());
+                // Réponse de fili-appmenu: menu GTK3 paresseux, entrée AT-SPI
+                AppMenu.pending = true;
+                AppMenu.onMenu(AppMenu.gen, JSON.stringify({ items: [
+                    { label: "File", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/1", children: [] },
+                    { label: "Edit", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/2", children: [
+                        { label: "Copy", kind: "item", enabled: true, check: 0, svc: ":1.2", path: "/m/3", children: [] },
+                        { label: "", kind: "sep", enabled: true, check: 0, svc: ":1.2", path: "/m/4", children: [] },
+                        { label: "Wrap", kind: "item", enabled: false, check: 2, svc: ":1.2", path: "/m/5", children: [] }] }] }));
+                ok(AppMenu.source === "atspi" && AppMenu.menus.map(m => m.label).join() === "Inconnu,File,Edit,Window", "appmenu: menus AT-SPI -> entre le menu de l'application et Fenêtre", AppMenu.menus.map(m => m.label).join());
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                const edit = AppMenu.levels[0];
+                ok(edit.length === 3 && edit[1].kind === "sep" && edit[2].check === 2 && !edit[2].enabled, "appmenu: menu AT-SPI -> séparateur, case cochée, entrée grisée");
+                FiliTheme.ran = [];
+                AppMenu.activate(edit[2]);
+                ok(AppMenu.open && FiliTheme.ran.length === 0, "appmenu: entrée grisée -> rien");
+                AppMenu.activate(edit[0]);
+                ok(FiliTheme.ran.join() === FiliTheme.bin + "/fili-appmenu do :1.2 /m/3", "appmenu: entrée AT-SPI -> fili-appmenu do", FiliTheme.ran.join());
+                AppMenu.close();
+                ok(!AppMenu.open && AppMenu.levels.length === 0, "appmenu: fermeture");
+            },
             // BarState: états lus dans leurs fichiers (alertes, agenda, minuteur, tiroir), sans script
             () => {
                 const now = 1000000;

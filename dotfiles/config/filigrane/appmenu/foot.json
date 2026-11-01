@@ -1,0 +1,25 @@
+{
+  "name": "Terminal",
+  "menus": [
+    {
+      "label": "Shell",
+      "children": [
+        { "label": "New terminal", "exec": "foot" }
+      ]
+    },
+    {
+      "label": "Go",
+      "children": [
+        { "label": "Files", "exec": "fili-file" },
+        { "label": "System monitor", "exec": "bar-tui btop" }
+      ]
+    },
+    {
+      "label": "Help",
+      "children": [
+        { "label": "Keyboard shortcuts", "exec": "fili-hotkeys" },
+        { "label": "About Filigrane", "exec": "fili-about" }
+      ]
+    }
+  ]
+}
