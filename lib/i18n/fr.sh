@@ -63,7 +63,6 @@ _t_lookup() {
     'fili-theme apply failed') _t_fmt='fili-theme apply a échoué' ;;
     'fili-lang apply failed') _t_fmt='fili-lang apply a échoué' ;;
     'fili-shell (symlinks to %s)') _t_fmt='fili-shell (liens symboliques vers %s)' ;;
-    'Thunar: Space = quick look (quicklook)') _t_fmt='Thunar: Espace = aperçu rapide (quicklook)' ;;
     'Mac T2: Speaker route volume set to 1.0 (restart wireplumber to apply)') _t_fmt='Mac T2: volume de la route Speaker à 1.0 (relancer wireplumber pour l'\''appliquer)' ;;
     'Done') _t_fmt='Terminé' ;;
     'Local models (Codex CLI + Ollama, heavy)') _t_fmt='Modèles locaux (Codex CLI + Ollama, lourd)' ;;

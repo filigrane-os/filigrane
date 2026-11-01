@@ -638,17 +638,6 @@ setup_dotfiles() {
     else
         warn 'gsettings: fonts not applied (no D-Bus session)'
     fi
-    # Thunar: Espace lance l'aperçu rapide (action "quicklook" de uca.xml). Thunar réécrit accels.scm
-    # en quittant (un lien serait remplacé, l'ajout perdu): on le ferme puis on ajoute la ligne.
-    local acc="$TARGET_HOME/.config/Thunar/accels.scm"
-    local ql='(gtk_accel_path "<Actions>/ThunarActions/uca-action-quicklook" "space")'
-    if ! grep -qxF "$ql" "$acc" 2>/dev/null; then
-        log 'Thunar: Space = quick look (quicklook)'
-        run_as_user thunar -q 2>/dev/null || true
-        while pgrep -u "$TARGET_USER" -x Thunar >/dev/null; do sleep 0.2; done
-        run_as_user mkdir -p "${acc%/*}"
-        run_as_user sh -c 'printf "%s\n" "$1" >> "$2"' _ "$ql" "$acc"
-    fi
     # Mac T2 (MacBookPro16,2): la route ALSA "Speaker" est cachée par le DSP (hide-parent), donc plus
     # réglable, et un volume bas sur elle atténue tout le DSP. WirePlumber n'a pas de règle de volume
     # par route: on la fixe à 1.0 dans son état, le volume se règle sur le DSP.

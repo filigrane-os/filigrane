@@ -5,7 +5,7 @@
 #   localsend  LocalSend v2 (apps/localsend: lsend pour envoyer, localsendd pour recevoir), même réseau local
 # Usage: fili-share protocols                    JSON [{id, label, available, why}]
 #        fili-share peers PROTO                  JSON [{id, name}]
-#        fili-share send PROTO ID NOM            choisit les fichiers (yazi), les envoie, notifie
+#        fili-share send PROTO ID NOM            choisit les fichiers (fili-file), les envoie, notifie
 #        fili-share receive PROTO on|off|status  status: affiche on ou off
 # Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
@@ -83,7 +83,7 @@ send)
     r="$(why "$proto")"
     [ -z "$r" ] || { notify "$(t '%s unavailable: %s' "$proto" "$r")"; exit 1; }
     sel="$(mktemp)"
-    foot --app-id bar-tui -T "$(t 'Send to %s' "$name")" -e yazi --chooser-file="$sel"
+    fili-file --pick open --multiple --title "$(t 'Send to %s' "$name")" --out "$sel"
     set --
     while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
     rm -f "$sel"

@@ -108,7 +108,7 @@ ColumnLayout {
         receiving = on;
         FiliTheme.run(share + " receive " + proto + " " + (on ? "on" : "off"));
     }
-    // Choix des fichiers (yazi) puis envoi, dans une fenêtre à part
+    // Choix des fichiers (fili-file) puis envoi, dans une fenêtre à part
     function sendTo(peer) {
         // commande composée avant la fermeture: fermer le panneau libère la vue
         const cmd = share + " send " + proto + " " + shq(peer.id) + " " + shq(peer.name);

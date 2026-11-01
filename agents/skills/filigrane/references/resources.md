@@ -3,7 +3,7 @@
 The base system idles as low as possible: the browser, agents and containers keep the RAM and CPU.
 
 - **Measure** with `budget` (apps/budget, Rust, ~0.15 s): OS memory vs user work (browser, agents, containers, terminal shells), biggest system residents (PSS), CPU over 2 s. Before a durable install `budget save avant`, after `budget diff avant`, report the system delta and new residents. `budget check` exits 1 over the limits in `~/.config/budget/limits` (cron-watch runs `budget check --notify` twice a day). Also `sudo sv status /var/service/*`, `df -h /` before big installs.
-- **Chosen tools** (keep them, propose these first): podman (daemonless), neovim, yazi + Thunar on demand, imv, mpv, iwd, ripgrep/fd/fzf, swaybg, Quickshell as the only shell (bar + notifications + menu, software rendering, no animations; modules refreshed by signal, no frequently spawned scripts). Runtimes (Node, Python, JVM) on demand, never as a boot service. Prefer a Void package over source builds or curl-pipe installers.
+- **Chosen tools** (keep them, propose these first): podman (daemonless), neovim, imv, mpv, iwd, ripgrep/fd/fzf, swaybg, Quickshell as the only shell (bar + notifications + menu, software rendering, no animations; modules refreshed by signal, no frequently spawned scripts). Runtimes (Node, Python, JVM) on demand, never as a boot service. Prefer a Void package over source builds or curl-pipe installers.
 
 ## Home-made tools (`apps/`)
 

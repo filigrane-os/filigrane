@@ -430,7 +430,7 @@ window-rule {
     default-window-height { fixed 600; }
 }
 
-// Aperçu rapide de Thunar (~/.local/bin/quicklook, touche Espace): fenêtre flottante
+// Aperçu rapide de fili-file (~/.local/bin/quicklook, touche Espace): fenêtre flottante
 window-rule {
     match app-id=r#"^quicklook$"#
     open-floating true

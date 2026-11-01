@@ -280,7 +280,7 @@ ShellRoot {
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 AppMenu.activate(copy);
                 ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: commande de contrôle visant le processus de la fenêtre (%pid)", FiliTheme.ran.join());
-                ok(AppMenu.menus[4].children[7].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
+                ok(AppMenu.menus[4].children[8].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
                 // «…»: les menus qui ne tiennent pas dans la place libre passent dans un titre, en sous-menus
                 const h = t.find(t.bar.contentItem, "appmenu");
                 h.maxWidth = 200;
