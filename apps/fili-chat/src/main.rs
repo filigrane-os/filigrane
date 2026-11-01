@@ -5,14 +5,20 @@
 //   fili-chat toggle          Mod+Y: note l'application active (fili-context), puis affiche ou cache le tiroir
 //   fili-chat status          sessions en JSON (le démon doit tourner)
 //   fili-chat send ID TEXTE   message à une session, réponse affichée sur la sortie (essais en terminal)
+//   fili-chat mcp ID          serveur MCP (entrée/sortie standard) lancé par l'agent: outil « approve » de
+//                             --permission-prompt-tool, transmet chaque demande de permission au tiroir et attend la réponse
 //
 // Socket: $XDG_RUNTIME_DIR/fili-chat/sock, une ligne JSON par message.
 //   client -> démon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
-//                    {"op":"rename","id","title"} {"op":"delete","id"}
+//                    {"op":"rename","id","title"} {"op":"delete","id"} {"op":"answer","rid","allow"}
+//                    {"op":"send",…,"context":true} joint le contexte noté par Mod+Y (context.json) au message de l'agent
+//                    {"op":"ask","id","rid","tool","input"} (serveur MCP: demande de permission, la connexion attend la réponse)
 //   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated}]} {"ev":"history","id","items":[...]}
 //                    {"ev":"msg","id","role":"user"|"assistant","text"} {"ev":"tool","id","name","summary"}
 //                    {"ev":"delta","id","text"} (texte en cours, non gardé) {"ev":"state","id","state"}
 //                    {"ev":"note","id","code"} (interrupted, error:…)
+//                    {"ev":"ask","id","rid","tool","summary","status":"pending"|"allowed"|"denied"|"cancelled"} permission demandée
+//                    puis tranchée (la tranchée est gardée dans l'historique); état de session: idle | working | waiting
 // Historique: ~/.local/state/filigrane/chat/<id>.jsonl (msg et tool), index sessions.json. Le contexte de l'agent
 // est celui de Claude Code (`--resume ID`): un agent arrêté (inactif, redémarrage) reprend où il était.
 // Réglages: ~/.config/filigrane/ai.env (FILI_AI_MODEL, FILI_AI_ARGS, FILIGRANE_DIR), prompt: agents/chat-prompt.md.
@@ -115,6 +121,16 @@ struct Session {
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     epoch: u64, // numéro du processus courant (la fin d'un ancien processus est ignorée)
+    asks: Vec<Ask>,
+}
+
+// Permission demandée par l'agent (serveur MCP), en attente de la réponse de l'utilisateur
+struct Ask {
+    rid: String,
+    tool: String,
+    summary: String,
+    stream: UnixStream, // connexion du serveur MCP, qui attend la réponse
+    client: u64,
 }
 
 #[derive(Default)]
@@ -213,6 +229,7 @@ fn load_index() -> Vec<Session> {
                 child: None,
                 stdin: None,
                 epoch: 0,
+                asks: Vec::new(),
             })
         })
         .collect()
@@ -238,6 +255,37 @@ fn msg(id: &str, role: &str, text: &str) -> Json {
     j.set("role", role);
     j.set("text", text);
     j
+}
+
+fn ask_json(id: &str, rid: &str, tool: &str, summary: &str, status: &str) -> Json {
+    let mut j = Json::obj();
+    j.set("ev", "ask");
+    j.set("id", id);
+    j.set("rid", rid);
+    j.set("tool", tool);
+    j.set("summary", summary);
+    j.set("status", status);
+    j
+}
+
+// Tranche une demande: la réponse part au serveur MCP, le résultat est gardé dans l'historique
+fn resolve_ask(d: &mut Daemon, rid: &str, status: &str) {
+    let Some((sid, i)) = d.sessions.iter().find_map(|s| s.asks.iter().position(|a| a.rid == rid).map(|i| (s.id.clone(), i))) else { return };
+    let ask = d.session(&sid).map(|s| s.asks.remove(i));
+    let Some(mut ask) = ask else { return };
+    if status != "cancelled" {
+        let mut a = Json::obj();
+        a.set("ev", "answer");
+        a.set("rid", rid);
+        a.set("allow", status == "allowed");
+        let _ = writeln!(ask.stream, "{a}");
+    }
+    store(d, &ask_json(&sid, rid, &ask.tool, &ask.summary, status));
+    let more = d.session(&sid).is_some_and(|s| !s.asks.is_empty());
+    // Seule une session qui attendait repart (une demande sur une session au repos ne la fait pas travailler)
+    if d.session(&sid).is_some_and(|s| s.state == "waiting") {
+        set_state(d, &sid, if more { "waiting" } else { "working" });
+    }
 }
 
 fn set_state(d: &mut Daemon, id: &str, state: &'static str) {
@@ -277,6 +325,16 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     cmd.args(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages"]);
     cmd.args(if started { ["--resume", id] } else { ["--session-id", id] });
     cmd.arg("--add-dir").arg(&c.dir);
+    // Permissions: l'agent demande au tiroir (fili-chat mcp) quand il aurait demandé à l'utilisateur
+    let exe = env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "fili-chat".into());
+    let mut srv = Json::obj();
+    srv.set("command", exe);
+    srv.set("args", Json::Arr(vec!["mcp".into(), id.into()]));
+    let mut servers = Json::obj();
+    servers.set("fili", srv);
+    let mut mcp = Json::obj();
+    mcp.set("mcpServers", servers);
+    cmd.arg("--mcp-config").arg(mcp.to_string()).args(["--permission-prompt-tool", "mcp__fili__approve"]);
     if !c.model.is_empty() {
         cmd.args(["--model", &c.model]);
     }
@@ -382,7 +440,7 @@ fn agent_exit(d: &mut Daemon, id: &str, epoch: u64) {
                 let _ = c.wait();
             }
             s.stdin = None;
-            s.state == "working"
+            s.state != "idle"
         }
         _ => return,
     };
@@ -393,6 +451,7 @@ fn agent_exit(d: &mut Daemon, id: &str, epoch: u64) {
 }
 
 fn kill_agent(s: &mut Session) {
+    s.asks.clear(); // les serveurs MCP meurent avec l'agent
     s.stdin = None;
     s.epoch = 0;
     if let Some(mut c) = s.child.take() {
@@ -402,11 +461,19 @@ fn kill_agent(s: &mut Session) {
 }
 
 // ───── opérations des clients ─────
-fn op_send(d: &mut Daemon, id: &str, text: &str) {
+// Contexte noté par Mod+Y (fili-context): application active, sélection...
+fn context_line() -> Option<String> {
+    let t = fs::read_to_string(state_dir().join("context.json")).ok()?;
+    let j = Json::parse(t.trim())?;
+    (j.path(&["window", "app_id"]).str().is_some() || j.get("app").str().is_some())
+        .then(|| format!("[Contexte noté à l'ouverture du chat (application active): {j}]\n\n"))
+}
+
+fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     if d.session(id).is_none() || text.trim().is_empty() {
         return;
     }
-    if d.session(id).is_some_and(|s| s.state == "working") {
+    if d.session(id).is_some_and(|s| s.state != "idle") {
         return; // un tour à la fois
     }
     if d.session(id).is_some_and(|s| s.child.is_none()) {
@@ -417,7 +484,8 @@ fn op_send(d: &mut Daemon, id: &str, text: &str) {
     }
     let mut m = Json::obj();
     m.set("role", "user");
-    m.set("content", text);
+    let full = if with_context { format!("{}{text}", context_line().unwrap_or_default()) } else { text.to_string() };
+    m.set("content", full);
     let mut line = Json::obj();
     line.set("type", "user");
     line.set("message", m);
@@ -452,6 +520,10 @@ fn op_history(d: &mut Daemon, client: u64, id: &str) {
     j.set("items", Json::Arr(items));
     let state = d.session(id).map(|s| s.state).unwrap_or("idle");
     d.send_to(client, &j.to_string());
+    let asks: Vec<String> = d.session(id).map(|s| s.asks.iter().map(|a| ask_json(id, &a.rid, &a.tool, &a.summary, "pending").to_string()).collect()).unwrap_or_default();
+    for a in asks {
+        d.send_to(client, &a);
+    }
     let mut st = Json::obj();
     st.set("ev", "state");
     st.set("id", id);
@@ -465,7 +537,7 @@ fn handle(client: u64, line: &str) {
     with(|d| match req.get("op").str().unwrap_or("") {
         "new" => {
             let id = uuid();
-            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, child: None, stdin: None, epoch: 0 });
+            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, child: None, stdin: None, epoch: 0, asks: Vec::new() });
             d.publish_sessions();
             let mut j = Json::obj();
             j.set("ev", "created");
@@ -473,9 +545,37 @@ fn handle(client: u64, line: &str) {
             d.send_to(client, &j.to_string());
         }
         "open" => op_history(d, client, &id),
-        "send" => op_send(d, &id, req.get("text").str().unwrap_or("")),
+        "send" => op_send(d, &id, req.get("text").str().unwrap_or(""), req.get("context").truthy()),
+        "answer" => {
+            let st = if req.get("allow").truthy() { "allowed" } else { "denied" };
+            resolve_ask(d, req.get("rid").str().unwrap_or(""), st);
+        }
+        "ask" => {
+            // La connexion devient celle du serveur MCP: elle ne reçoit plus les diffusions, seulement sa réponse
+            let Some(pos) = d.clients.iter().position(|(c, _)| *c == client) else { return };
+            let (_, stream) = d.clients.remove(pos);
+            let input = req.get("input");
+            let (rid, tool) = (req.get("rid").str().unwrap_or("").to_string(), req.get("tool").str().unwrap_or("?").to_string());
+            let summary = tool_summary(input);
+            if d.session(&id).is_none() {
+                return;
+            }
+            let line = ask_json(&id, &rid, &tool, &summary, "pending").to_string();
+            if let Some(s) = d.session(&id) {
+                s.asks.push(Ask { rid, tool, summary, stream, client });
+            }
+            d.broadcast(&line);
+            if d.session(&id).is_some_and(|s| s.state != "idle") {
+                set_state(d, &id, "waiting");
+            }
+        }
         "stop" => {
-            if d.session(&id).is_some_and(|s| s.state == "working") {
+            if d.session(&id).is_some_and(|s| s.state != "idle") {
+                let pending: Vec<String> = d.session(&id).map(|s| s.asks.iter().map(|a| a.rid.clone()).collect()).unwrap_or_default();
+                for rid in pending {
+                    let (tool, summary) = d.session(&id).and_then(|s| s.asks.iter().find(|a| a.rid == rid).map(|a| (a.tool.clone(), a.summary.clone()))).unwrap_or_default();
+                    store(d, &ask_json(&id, &rid, &tool, &summary, "cancelled"));
+                }
                 if let Some(s) = d.session(&id) {
                     kill_agent(s);
                 }
@@ -515,7 +615,14 @@ fn serve(stream: UnixStream) {
     for line in BufReader::new(stream).lines().map_while(Result::ok) {
         handle(client, &line);
     }
-    with(|d| d.clients.retain(|(c, _)| *c != client));
+    with(|d| {
+        d.clients.retain(|(c, _)| *c != client);
+        // Serveur MCP disparu (agent arrêté): ses demandes ne sont plus attendues
+        let rids: Vec<String> = d.sessions.iter().flat_map(|s| s.asks.iter().filter(|a| a.client == client).map(|a| a.rid.clone())).collect();
+        for rid in rids {
+            resolve_ask(d, &rid, "cancelled");
+        }
+    });
 }
 
 // Arrêt des agents inactifs; le démon s'arrête quand plus rien ne le demande
@@ -564,6 +671,101 @@ fn daemon() -> Result<(), String> {
     Ok(())
 }
 
+// ───── serveur MCP (outil de permission de l'agent) ─────
+fn mcp(sid: &str) -> Result<(), String> {
+    let out = std::sync::Arc::new(Mutex::new(std::io::stdout()));
+    let reply = move |id: &Json, result: Json| {
+        let mut j = Json::obj();
+        j.set("jsonrpc", "2.0");
+        j.set("id", id);
+        j.set("result", result);
+        let mut o = out.lock().unwrap_or_else(|e| e.into_inner());
+        let _ = writeln!(o, "{j}").and_then(|_| o.flush());
+    };
+    for line in BufReader::new(std::io::stdin()).lines().map_while(Result::ok) {
+        let Some(req) = Json::parse(&line) else { continue };
+        let id = req.get("id").clone();
+        if id.is_null() {
+            continue; // notification
+        }
+        match req.get("method").str().unwrap_or("") {
+            "initialize" => {
+                let mut r = Json::obj();
+                r.set("protocolVersion", req.path(&["params", "protocolVersion"]).str().unwrap_or("2024-11-05"));
+                let mut caps = Json::obj();
+                caps.set("tools", Json::obj());
+                r.set("capabilities", caps);
+                let mut info = Json::obj();
+                info.set("name", "fili");
+                info.set("version", "1");
+                r.set("serverInfo", info);
+                reply(&id, r);
+            }
+            "tools/list" => {
+                let schema = Json::parse(r#"{"type":"object","properties":{"tool_name":{"type":"string"},"input":{"type":"object"},"tool_use_id":{"type":"string"}},"required":["tool_name","input"]}"#).unwrap_or(Json::Null);
+                let mut t = Json::obj();
+                t.set("name", "approve");
+                t.set("description", "Ask the user in the Filigrane chat drawer whether a tool call may run");
+                t.set("inputSchema", schema);
+                let mut r = Json::obj();
+                r.set("tools", Json::Arr(vec![t]));
+                reply(&id, r);
+            }
+            "tools/call" => {
+                // Une demande à la fois par thread: l'agent peut en poser plusieurs en parallèle
+                let sid = sid.to_string();
+                let reply = reply.clone();
+                let args = req.path(&["params", "arguments"]).clone();
+                thread::spawn(move || {
+                    let verdict = ask_user(&sid, &args);
+                    let mut c = Json::obj();
+                    c.set("type", "text");
+                    c.set("text", verdict.to_string());
+                    let mut r = Json::obj();
+                    r.set("content", Json::Arr(vec![c]));
+                    reply(&id, r);
+                });
+            }
+            _ => reply(&id, Json::obj()),
+        }
+    }
+    Ok(())
+}
+
+// Demande au démon et attend la réponse; sans démon ou sans réponse: refus
+fn ask_user(sid: &str, args: &Json) -> Json {
+    let deny = |m: &str| {
+        let mut v = Json::obj();
+        v.set("behavior", "deny");
+        v.set("message", m);
+        v
+    };
+    let Ok(mut s) = connect() else { return deny("fili-chat is not running") };
+    let rid = uuid();
+    let mut j = Json::obj();
+    j.set("op", "ask");
+    j.set("id", sid);
+    j.set("rid", rid.as_str());
+    j.set("tool", args.get("tool_name").str().unwrap_or("?"));
+    j.set("input", args.get("input"));
+    if writeln!(s, "{j}").is_err() {
+        return deny("fili-chat is not reachable");
+    }
+    for line in BufReader::new(s).lines().map_while(Result::ok) {
+        let Some(a) = Json::parse(&line) else { continue };
+        if a.get("ev").str() == Some("answer") && a.get("rid").str() == Some(&rid) {
+            if a.get("allow").truthy() {
+                let mut v = Json::obj();
+                v.set("behavior", "allow");
+                v.set("updatedInput", args.get("input"));
+                return v;
+            }
+            return deny("The user refused this action in the Filigrane chat");
+        }
+    }
+    deny("The request was cancelled")
+}
+
 // ───── commandes de l'utilisateur ─────
 fn connect() -> Result<UnixStream, String> {
     UnixStream::connect(sock_path()).map_err(|_| "fili-chat: le démon ne tourne pas (le tiroir le lance)".to_string())
@@ -580,6 +782,7 @@ fn main() {
             let _ = fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default());
             Command::new(format!("{}/.local/bin/fili-shell", home())).args(["chat", "toggle"]).status().map(|_| ()).map_err(|e| e.to_string())
         }
+        Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("status") => connect().and_then(|s| {
             let mut l = String::new();
             BufReader::new(s).read_line(&mut l).map_err(|e| e.to_string())?;

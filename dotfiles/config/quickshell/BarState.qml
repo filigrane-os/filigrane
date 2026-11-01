@@ -159,7 +159,25 @@ Singleton {
         }
         aiSeen();
     }
-    readonly property var ai: aiFor(aiData, Niri.focusedId, Niri.windows)
+    // Le chat (FiliChat) s'ajoute aux sessions des terminaux: permission demandée = ASK, réponse non lue = DONE
+    readonly property var ai: aiChat(aiFor(aiData, Niri.focusedId, Niri.windows), FiliChat.attention, FiliChat.busy)
+    function aiChat(base, attention, busy) {
+        const icon = String.fromCodePoint(0xf06a9);
+        const rows = base.tooltip.rows.filter(r => r[0] !== FiliI18n.tr("Sessions") || r[1] !== FiliI18n.tr("none"));
+        const chat = attention === "waiting" ? FiliI18n.tr("waiting for you") : busy ? FiliI18n.tr("working") : attention === "done" ? FiliI18n.tr("finished") : "";
+        if (chat)
+            rows.unshift([FiliI18n.tr("Chat"), chat]);
+        const card = Object.assign({}, base.tooltip, { rows: rows });
+        if (attention === "waiting")
+            return { text: icon + " ASK", class: "waiting", tooltip: card };
+        if (base.class === "waiting")
+            return Object.assign({}, base, { tooltip: card });
+        if (attention === "done")
+            return { text: icon + " DONE", class: "done", tooltip: card };
+        if (busy && (base.class === "off" || base.class === "idle"))
+            return { text: base.text, class: "working", tooltip: card };
+        return Object.assign({}, base, { tooltip: card });
+    }
     Connections {
         target: Niri
         function onFocusedIdChanged() {
@@ -220,7 +238,7 @@ Singleton {
         const card = {
             title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
             rows: rows,
-            hint: FiliI18n.tr("click: go to the session (none: start the agent) · middle click: new session · right click: choose the agent")
+            hint: FiliI18n.tr("click: show or hide the chat · middle click: go to a terminal session · right click: choose the agent")
         };
         if (calls.some(s => s.state === "waiting"))
             return { text: icon + " ASK", class: "waiting", tooltip: card };

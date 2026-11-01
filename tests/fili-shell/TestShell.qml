@@ -181,9 +181,9 @@ ShellRoot {
                 expectClick("display", "down", "brightnessctl -q set 3%-");
                 expectClick("network", R, "menu network");
                 expectClick("power", R, "menu system");
-                // Agent IA: clic = session qui attend (ou fili-ai), milieu = nouvelle session, droit = choix de l'agent
-                expectClick("ai", L, "fili-ai-session focus");
-                expectClick("ai", M, "fili-ai-session new");
+                // Agent IA: clic = tiroir du chat, milieu = session de terminal qui attend (ou fili-ai), droit = choix de l'agent
+                expectClick("ai", L, "fili-chat toggle");
+                expectClick("ai", M, "fili-ai-session focus");
                 expectClick("ai", R, "fili-ai pick");
                 // Cloche: clic = fili-notification-center, clic droit = ne pas déranger (remis en l'état)
                 const was = FiliNotification.dnd;
@@ -847,6 +847,32 @@ ShellRoot {
                 ok(FiliChat.current === "s2" && FiliTheme.ran[0] === 'chat {"op":"open","id":"s2"}', "fili-chat: changer de session demande son historique", JSON.stringify(FiliTheme.ran));
                 FiliChat.receive({ ev: "history", id: "s2", items: [{ ev: "msg", id: "s2", role: "assistant", text: "Avant" }] });
                 ok(FiliChat.log.length === 1 && FiliChat.items["s1"].length === 3, "fili-chat: historique par session");
+                // Permission demandée: carte dans le fil, état « attend », pastille ASK, réponse
+                FiliChat.openSession("s1");
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "pending" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "waiting" });
+                ok(FiliChat.log[FiliChat.log.length - 1].kind === "ask" && FiliChat.attention === "waiting" && FiliChat.working, "fili-chat: permission demandée (carte, attend, ASK)", FiliChat.attention);
+                ok(BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" ASK"), "fili-chat: pastille IA ASK");
+                FiliTheme.ran = [];
+                FiliChat.answerFirst(true);
+                ok(FiliTheme.ran[0] === 'chat {"op":"answer","rid":"r1","allow":true}', "fili-chat: Ctrl+Retour autorise la première demande", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "allowed" });
+                ok(FiliChat.log.filter(i => i.kind === "ask").length === 1 && FiliChat.log[FiliChat.log.length - 1].status === "allowed", "fili-chat: la demande tranchée remplace la carte");
+                // Réponse finie pendant que le tiroir est caché: DONE jusqu'à l'ouverture
+                FiliChat.hide();
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
+                ok(FiliChat.attention === "done" && BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" DONE"), "fili-chat: réponse non lue (DONE)", FiliChat.attention);
+                // Contexte (Mod+Y): joint une fois au message
+                FiliChat.show();
+                ok(FiliChat.attention === "", "fili-chat: ouvrir le tiroir lit la réponse");
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxOn = true;
+                ok(FiliChat.ctxLabel === "foot · ~", "fili-chat: puce de contexte", FiliChat.ctxLabel);
+                FiliTheme.ran = [];
+                FiliChat.send("ceci");
+                ok(FiliTheme.ran[0] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: le contexte part avec le message, une fois", JSON.stringify(FiliTheme.ran));
                 FiliShell.popupOpened("panel");
                 ok(!FiliChat.open, "fili-chat: fermé quand un panneau de la barre s'ouvre");
             },
