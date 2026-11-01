@@ -911,7 +911,14 @@ ShellRoot {
                 ok(labels.join() === "Chat,Session,View", "fili-chat: menu de la fili-bar = Chat, Session, Affichage (ni Fenêtre ni Quitter)", labels.join());
                 const session = AppMenu.menus.find(m => m.label === "Session");
                 ok(session && session.children.some(c => c.label === "Rename Session…" && c.keys === "F2" && c.exec === "fili-shell chat rename"), "fili-chat: Session > Rename Session… (F2)");
+                // Appui sur un titre de la barre: niri rend le focus à la fenêtre précédente, le menu du chat reste
+                AppMenu.pressTitle();
                 FiliChat.focused = false;
+                ok(AppMenu.chatFocus && AppMenu.appId === "fili-chat", "fili-chat: le menu reste pendant l'appui sur un titre (focus rendu à la fenêtre)");
+            },
+            wait(() => {}, () => !AppMenu.chatFocus, 5000),
+            () => {
+                ok(AppMenu.appId !== "fili-chat", "fili-chat: sans focus ni menu ouvert, la barre revient à la fenêtre active");
                 FiliChat.hide();
             },
             // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main

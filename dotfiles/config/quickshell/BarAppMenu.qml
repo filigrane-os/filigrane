@@ -79,6 +79,7 @@ Item {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onPressed: AppMenu.pressTitle()
             onClicked: title.clicked()
             onEntered: title.entered()
         }

@@ -34,12 +34,34 @@ Singleton {
     }
     Component.onCompleted: win = niriWin
     // Le tiroir fili-chat a le focus clavier: son menu (appmenu/fili-chat.json) remplace celui de la fenêtre. Gardé tant
-    // qu'un menu est ouvert (un menu pris au clavier reçoit le focus à sa place)
+    // qu'un menu est ouvert (un menu pris au clavier reçoit le focus à sa place) et pendant un appui sur un titre de la
+    // barre: la barre ne prend pas le clavier, niri rend alors le focus à la fenêtre précédente, et le menu changerait
+    // sous la souris avant la fin du clic
     property bool chatFocus: false
+    property bool holdChat: false
     readonly property bool chatNow: FiliChat.focused
     onChatNowChanged: {
-        if (chatNow || !open)
+        if (chatNow || !(open || holdChat))
             chatFocus = chatNow;
+    }
+    onOpenChanged: {
+        if (!open && !holdChat && !chatNow)
+            chatFocus = false;
+    }
+    function pressTitle() {
+        if (chatFocus) {
+            holdChat = true;
+            holdTimer.restart();
+        }
+    }
+    Timer {
+        id: holdTimer
+        interval: 1500
+        onTriggered: {
+            am.holdChat = false;
+            if (!am.open && !am.chatNow)
+                am.chatFocus = false;
+        }
     }
     readonly property var winId: chatFocus ? "fili-chat" : (win ? win.id : null)
     readonly property string appId: chatFocus ? "fili-chat" : (win?.app_id ?? "")
