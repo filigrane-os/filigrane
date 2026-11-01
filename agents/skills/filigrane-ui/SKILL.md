@@ -17,6 +17,7 @@ The interface follows the Filigrane desktop HIG: classic desktop conventions fro
 - Feedback is local to the action; a global notification only for what needs attention outside the current context.
 - Never: GNOME/GNOME HIG patterns, big cards for every group, large rounded radii, big buttons, uniform wide margins, cards instead of a list or table, decorative animation, a second accent colour, effects other than the blur behind the menu.
 - Never present a Filigrane value as an official Apple rule: tag new rules "Principe Apple historique", "Règle Filigrane" or "Décision à valider".
+- Assistant: every `fili-*` application with a useful state (folder, selection, open document) exposes it to the AI and says how to act (`references/assistant.md`). Applications expose context and business capabilities; the system exposes generic and specialised execution tools; the assistant picks the simplest, most efficient and safest route, without having to go through the active application. No chat and no AI engine inside an application.
 - After a change in `dotfiles/config/quickshell/`: `tests/fili-shell/run.sh`; a new QML file needs `./bootstrap.sh` (links are per file). Check the result on screen with niri's screenshot.
 
 ## Order of decision
@@ -26,6 +27,7 @@ The interface follows the Filigrane desktop HIG: classic desktop conventions fro
 ## Load only what the task needs
 
 - `references/hig.md`: the guide adapted to Filigrane (niri, fili-shell): principles, windows and panels, controls, menus, lists, forms, states and errors, notifications, motion, accessibility, and the review checklist.
+- `references/assistant.md`: the contract between `fili-*` applications and the AI assistant (context file, `about`, execution routes).
 - `references/tokens.md`: values: type scale, spacing, sizes, radii, colours (dark and light), states, and where each lives in the code.
 - `references/hig-source.md`: the original generic guide (v1.0), for provenance only; `hig.md` wins where they differ.
 - Brand (logo, brand colours, Jost, icons, sound, wallpapers): `filigrane` skill, `references/brand.md`. Shell architecture (files, scripts, tests, pipe commands): `filigrane` skill, `references/niri.md`.
