@@ -11,6 +11,13 @@
 -A INPUT -p udp --sport 67 --dport 68 -j ACCEPT
 # mDNS (découverte des Chromecast par Chromium)
 -A INPUT -p udp -d 224.0.0.251 --dport 5353 -j ACCEPT
+# LocalSend (réception de fichiers, fili-share): découverte multicast et envoi, depuis le réseau local seulement
+-A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 10.0.0.0/8 -j ACCEPT
+-A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 172.16.0.0/12 -j ACCEPT
+-A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 192.168.0.0/16 -j ACCEPT
+-A INPUT -p tcp --dport 53317 -s 10.0.0.0/8 -j ACCEPT
+-A INPUT -p tcp --dport 53317 -s 172.16.0.0/12 -j ACCEPT
+-A INPUT -p tcp --dport 53317 -s 192.168.0.0/16 -j ACCEPT
 # Ping entrant limité
 -A INPUT -p icmp --icmp-type echo-request -m limit --limit 5/second -j ACCEPT
 -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT

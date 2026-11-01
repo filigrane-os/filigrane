@@ -291,6 +291,10 @@ setup_system() {
     for svc in iptables ip6tables; do
         $SUDO ln -sfn "/etc/sv/$svc" "/etc/runit/runsvdir/default/$svc"
     done
+    # Règles actives tout de suite (le service ne les relit qu'au démarrage); restore est atomique: un fichier
+    # invalide laisse les règles en place
+    $SUDO iptables-restore /etc/iptables/iptables.rules || warn 'iptables-restore failed'
+    $SUDO ip6tables-restore /etc/iptables/ip6tables.rules || warn 'ip6tables-restore failed'
 
     if [ "$PROFILE" != vm ]; then
         log 'CPU profile on battery/mains (udev rule)'
