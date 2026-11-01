@@ -3,8 +3,9 @@ pragma Singleton
 // `fili-shell chat toggle`) l'affiche ou le cache; la conversation reste, car elle vit dans le démon fili-chat
 // (apps/fili-chat) qui garde l'agent et l'historique de chaque session. Le tiroir ne se connecte au démon que
 // pendant qu'il est ouvert ou qu'un agent travaille (le démon se coupe de lui-même sans client ni agent).
-// Clavier: Retour envoie, Maj+Retour nouvelle ligne, Échap cache (ou ferme la liste des sessions),
-// Ctrl+N nouvelle session, Ctrl+L liste des sessions, Ctrl+. interrompt l'agent; permission demandée par l'agent:
+// Clavier: Retour envoie, Maj+Retour nouvelle ligne, Échap cache,
+// Ctrl+N nouvelle session, Ctrl+L montre ou cache les onglets des sessions (colonne de gauche, pastille rouge = attend
+// une réponse, verte = fini et non lu), Ctrl+. interrompt l'agent; permission demandée par l'agent:
 // Ctrl+Retour autorise, Ctrl+Retour arrière refuse. Mod+Y note l'application active (puce de contexte au-dessus
 // de la saisie, jointe au prochain message). Pastille IA de la fili-bar: ASK (permission), DONE (réponse non lue).
 // Deux présentations: « dock » (défaut: à droite de chaque fenêtre, le tiroir réserve sa place et niri rétrécit les
@@ -27,7 +28,8 @@ import Quickshell.Wayland
 Singleton {
     id: chat
     property bool open: false
-    property bool listOpen: false
+    // Onglets des sessions (colonne de gauche), Ctrl+L les montre ou les cache
+    property bool tabsOpen: true
     property var sessions: []
     property string current: ""
     // Éléments de chaque session ouverte (id -> [{kind: user|assistant|tool|error|note, text, name}]); remplacé à chaque changement
@@ -123,7 +125,6 @@ Singleton {
     }
     function hide() {
         open = false;
-        listOpen = false;
     }
     function toggle() {
         if (open)
@@ -192,7 +193,6 @@ Singleton {
     function startRename() {
         if (!current)
             return;
-        listOpen = false;
         renaming = true;
     }
     function commitRename(t) {
@@ -213,7 +213,7 @@ Singleton {
         case "new": show(); newSession(); break;
         case "new-here": show(); pendingLink = linkKey(ctx, true); newSession(); break;
         case "unlink": if (current) send_({ op: "link", id: current, key: "" }); break;
-        case "sessions": show(); listOpen = !listOpen; break;
+        case "sessions": show(); tabsOpen = !tabsOpen; break;
         case "rename": show(); startRename(); break;
         case "stop": stop(); break;
         case "delete": removeSession(current); break;
@@ -311,12 +311,10 @@ Singleton {
     // ───── actions ─────
     function newSession() {
         followPending = false;
-        listOpen = false;
         send_({ op: "new" });
     }
     function openSession(id) {
         followPending = false;
-        listOpen = false;
         if (id === current)
             return;
         current = id;
@@ -486,7 +484,7 @@ Singleton {
             anchors.fill: parent
             focus: true
             onActiveFocusChanged: chat.focused = activeFocus
-            Keys.onEscapePressed: chat.listOpen ? chat.listOpen = false : chat.hide()
+            Keys.onEscapePressed: chat.hide()
             Keys.onPressed: e => {
                 if (e.key === Qt.Key_F2) {
                     chat.startRename();
@@ -497,7 +495,7 @@ Singleton {
                     else if (e.key === Qt.Key_N)
                         chat.newSession();
                     else if (e.key === Qt.Key_L)
-                        chat.listOpen = !chat.listOpen;
+                        chat.tabsOpen = !chat.tabsOpen;
                     else if (e.key === Qt.Key_Period)
                         chat.stop();
                     else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)
@@ -511,15 +509,118 @@ Singleton {
             }
 
             Rectangle {
+                id: drawer
                 anchors.fill: parent
                 anchors.margins: FiliTheme.space1
                 color: FiliTheme.nuit
                 border { color: FiliTheme.nuit4; width: 1 }
                 radius: FiliTheme.radiusWindow
                 clip: true
+                // Info-bulle d'un onglet de session (titre entier et application liée)
+                property string tipId: ""
+                property string tipText: ""
+                property real tipY: 0
+
+                // Onglets verticaux des sessions: pastille rouge (cendre) = l'agent attend une réponse, verte (sauge) =
+                // fini, à lire, voile = travaille
+                Rectangle {
+                    id: rail
+                    visible: chat.tabsOpen
+                    anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                    width: visible ? 52 : 0
+                    color: FiliTheme.nuit2
+                    Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom } width: 1; color: FiliTheme.nuit4 }
+                    ListView {
+                        id: list
+                        anchors { fill: parent; rightMargin: 1 }
+                        model: chat.sessions
+                        boundsBehavior: Flickable.StopAtBounds
+                        clip: true
+                        delegate: Rectangle {
+                            id: srow
+                            required property var modelData
+                            readonly property string st: chat.states[modelData.id] ?? modelData.state ?? "idle"
+                            width: list.width
+                            height: 48
+                            color: modelData.id === chat.current ? FiliTheme.nuit3 : (rowHit.containsMouse ? FiliTheme.nuit3 : "transparent")
+                            // Icône de l'application liée à la session; sans lien (ou sans icône): bulle de conversation
+                            readonly property string appKey: (modelData.link ?? "").split("\n")[0]
+                            readonly property string appIcon: appKey === "" ? "" : (Quickshell.iconPath(appKey, true) || Quickshell.iconPath(appKey.toLowerCase(), true))
+                            Image {
+                                id: appImg
+                                anchors.centerIn: parent
+                                width: 28
+                                height: 28
+                                visible: srow.appIcon !== ""
+                                source: srow.appIcon
+                                sourceSize: Qt.size(56, 56)
+                                fillMode: Image.PreserveAspectFit
+                                asynchronous: true
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: srow.appIcon === ""
+                                text: String.fromCodePoint(0xF05A3)
+                                color: modelData.id === chat.current ? FiliTheme.brume : FiliTheme.brume2
+                                font { family: "Fili Icons"; pixelSize: 24 }
+                            }
+                            // Pastille d'état au coin: rouge = attend, voile = travaille, verte = fini non lu
+                            Rectangle {
+                                id: dot
+                                anchors { right: parent.right; rightMargin: FiliTheme.space2; top: parent.top; topMargin: FiliTheme.space2 }
+                                width: 10
+                                height: 10
+                                radius: 5
+                                visible: color.a > 0
+                                color: srow.st === "waiting" ? FiliTheme.cendre : srow.st !== "idle" ? FiliTheme.voile : chat.unread[modelData.id] ? FiliTheme.sauge : "transparent"
+                                border { width: 2; color: FiliTheme.nuit2 }
+                            }
+                            MouseArea {
+                                id: rowHit
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: chat.openSession(srow.modelData.id)
+                                onContainsMouseChanged: {
+                                    if (containsMouse)
+                                        tipDelay.restart();
+                                    else {
+                                        tipDelay.stop();
+                                        if (drawer.tipId === srow.modelData.id)
+                                            drawer.tipId = "";
+                                    }
+                                }
+                            }
+                            Timer {
+                                id: tipDelay
+                                interval: 350
+                                onTriggered: {
+                                    drawer.tipText = (srow.modelData.title || FiliI18n.tr("New session")) + ((srow.modelData.link ?? "") !== "" ? "\n" + srow.modelData.link.split("\n")[0] : "");
+                                    drawer.tipY = srow.mapToItem(drawer, 0, 0).y;
+                                    drawer.tipId = srow.modelData.id;
+                                }
+                            }
+                            Text {
+                                anchors { left: parent.left; leftMargin: FiliTheme.space1 + 2; top: parent.top; topMargin: 0 }
+                                visible: rowHit.containsMouse || delHit.containsMouse
+                                text: "×"
+                                color: delHit.containsMouse ? FiliTheme.cendre : FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: 16 }
+                                MouseArea {
+                                    id: delHit
+                                    anchors.fill: parent
+                                    anchors.margins: -6
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: chat.removeSession(srow.modelData.id)
+                                }
+                            }
+                        }
+                    }
+                }
 
                 ColumnLayout {
-                    anchors.fill: parent
+                    anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
                     spacing: 0
 
                     // En-tête: session courante (liste), nouvelle session, cacher
@@ -535,7 +636,7 @@ Singleton {
                             radius: 4
                             color: chat.working ? FiliTheme.voile : FiliTheme.ardoise
                         }
-                        // Titre de la session: clic = liste des sessions, double clic ou F2 = renommer
+                        // Titre de la session: clic ou F2 = renommer (double clic)
                         Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 24
@@ -543,14 +644,14 @@ Singleton {
                                 anchors.fill: parent
                                 verticalAlignment: Text.AlignVCenter
                                 visible: !chat.renaming
-                                text: chat.title + "  ▾"
+                                text: chat.title
                                 elide: Text.ElideRight
                                 color: FiliTheme.brume
                                 font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                                 MouseArea {
                                     anchors.fill: parent
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: chat.listOpen = !chat.listOpen
+                                    onClicked: chat.tabsOpen = !chat.tabsOpen
                                     onDoubleClicked: chat.startRename()
                                 }
                             }
@@ -595,7 +696,7 @@ Singleton {
                     }
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
 
-                    // Fil de la conversation (ou liste des sessions)
+                    // Fil de la conversation
                     Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -603,7 +704,6 @@ Singleton {
                         ListView {
                             id: thread
                             anchors.fill: parent
-                            visible: !chat.listOpen
                             model: chat.log
                             spacing: FiliTheme.space3
                             topMargin: FiliTheme.space3
@@ -614,6 +714,7 @@ Singleton {
                             property bool follow: true
                             onMovementEnded: follow = atYEnd
                             onCountChanged: if (follow) Qt.callLater(positionViewAtEnd)
+                            KineticScroll {}
                             Connections {
                                 target: chat
                                 function onLiveChanged() { if (thread.follow) Qt.callLater(thread.positionViewAtEnd); }
@@ -758,60 +859,10 @@ Singleton {
                                 font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                             }
                         }
-
-                        ListView {
-                            id: list
-                            anchors.fill: parent
-                            visible: chat.listOpen
-                            model: chat.sessions
-                            boundsBehavior: Flickable.StopAtBounds
-                            clip: true
-                            delegate: Rectangle {
-                                id: srow
-                                required property var modelData
-                                width: list.width
-                                height: 36
-                                color: srow.modelData.id === chat.current ? FiliTheme.nuit3 : (rowHit.containsMouse ? FiliTheme.nuit2 : "transparent")
-                                Text {
-                                    id: linkLabel
-                                    anchors { right: del.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
-                                    width: Math.min(implicitWidth, 130)
-                                    text: (srow.modelData.link ?? "").split("\n")[0]
-                                    elide: Text.ElideRight
-                                    color: FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-                                }
-                                Text {
-                                    anchors { left: parent.left; leftMargin: FiliTheme.space3; right: linkLabel.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
-                                    text: (srow.modelData.state === "working" ? "● " : "") + (srow.modelData.title || FiliI18n.tr("New session"))
-                                    elide: Text.ElideRight
-                                    color: FiliTheme.brume
-                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
-                                }
-                                MouseArea {
-                                    id: rowHit
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: chat.openSession(srow.modelData.id)
-                                }
-                                Text {
-                                    id: del
-                                    anchors { right: parent.right; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
-                                    visible: rowHit.containsMouse || delHit.containsMouse
-                                    text: "×"
-                                    color: delHit.containsMouse ? FiliTheme.cendre : FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 18 }
-                                    MouseArea {
-                                        id: delHit
-                                        anchors.fill: parent
-                                        anchors.margins: -6
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: chat.removeSession(srow.modelData.id)
-                                    }
-                                }
-                            }
+                        FiliScrollBar {
+                            view: thread
+                            anchors { right: thread.right; top: thread.top; bottom: thread.bottom }
+                            onReleased: thread.follow = thread.atYEnd
                         }
                     }
 
@@ -878,6 +929,25 @@ Singleton {
                                 font: input.font
                             }
                         }
+                    }
+                }
+
+                Rectangle {
+                    visible: drawer.tipId !== "" && chat.tabsOpen
+                    x: rail.width + FiliTheme.space1
+                    y: Math.max(FiliTheme.space1, Math.min(drawer.height - height - FiliTheme.space1, drawer.tipY))
+                    width: Math.min(tipLabel.implicitWidth + 2 * FiliTheme.space2, drawer.width - rail.width - 2 * FiliTheme.space1)
+                    height: tipLabel.implicitHeight + 2 * FiliTheme.space1
+                    radius: FiliTheme.radiusControl
+                    color: FiliTheme.nuit3
+                    border { color: FiliTheme.nuit4; width: 1 }
+                    Text {
+                        id: tipLabel
+                        anchors { fill: parent; margins: FiliTheme.space1; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
+                        text: drawer.tipText
+                        wrapMode: Text.Wrap
+                        color: FiliTheme.brume
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                     }
                 }
             }

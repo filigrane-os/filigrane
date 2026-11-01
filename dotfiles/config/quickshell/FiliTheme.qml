@@ -49,6 +49,7 @@ Singleton {
     readonly property color brume: light ? "#1c222b" : "#dbe7f4"
     readonly property color sable: light ? "#80662b" : "#d2bf92"
     readonly property color cendre: light ? "#9a4f55" : "#c98f93"
+    readonly property color sauge: light ? "#4a7354" : "#a3bfa8"
     // Couleur c avec l'opacité a (voiles translucides)
     function alpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a);

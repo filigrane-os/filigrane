@@ -864,6 +864,12 @@ ShellRoot {
                 FiliChat.receive({ ev: "state", id: "s1", state: "working" });
                 FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
                 ok(FiliChat.attention === "done" && BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" DONE"), "fili-chat: réponse non lue (DONE)", FiliChat.attention);
+                // Onglets: rouge (attend) et vert (fini, non lu) se lisent dans states / unread de chaque session
+                ok(FiliChat.unread["s1"] === true && FiliChat.tabsOpen, "fili-chat: onglet de s1 vert (fini, non lu)");
+                FiliChat.act("sessions");
+                ok(!FiliChat.tabsOpen && FiliChat.open, "fili-chat: Sessions… cache les onglets");
+                FiliChat.act("sessions");
+                ok(FiliChat.tabsOpen, "fili-chat: Sessions… les remontre");
                 // Contexte (Mod+Y): joint une fois au message
                 FiliChat.show();
                 ok(FiliChat.attention === "", "fili-chat: ouvrir le tiroir lit la réponse");
