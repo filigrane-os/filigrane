@@ -17,8 +17,8 @@
     {
       "label": "Help",
       "children": [
-        { "label": "Keyboard shortcuts", "exec": "fili-hotkeys" },
-        { "label": "About Filigrane", "exec": "fili-about" }
+        { "label": "Keyboard shortcuts", "exec": "fili-shell hotkeys" },
+        { "label": "About Filigrane", "exec": "fili-shell about" }
       ]
     }
   ]
