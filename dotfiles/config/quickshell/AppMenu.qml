@@ -7,7 +7,9 @@ pragma Singleton
 //      qu'à l'ouverture (`expand`);
 //   2. sinon un menu de repli, écrit à la main: ~/.config/filigrane/appmenu/APP_ID.json (dotfiles/config/filigrane/appmenu/,
 //      couche personnelle comprise), qui complète _default.json.
-// Dans les deux cas: menu de l'application (nom en gras, « Quitter »), menus propres, menu Fenêtre (niri).
+// Dans les deux cas: menu de l'application (nom en gras, « Quitter »), menus propres, menu Fenêtre (niri). Ils remplacent
+// le titre de la fenêtre dans la fili-bar (BarAppMenu): tous affichés, ou seulement le nom de l'application quand ils ne
+// tiennent pas (mode compact). Souris, ou clavier: `fili-shell appmenu` (Mod+F10).
 //
 // Fichier de repli: { "name": "Chrome", "app": [ENTRÉE], "menus": [ { "label": "File", "children": [ENTRÉE] } ] }
 //   ENTRÉE = { "label", "exec": "commande shell" } ou { "label", "niri": ["action", "argument"] } ou { "sep": true }
@@ -22,7 +24,15 @@ import Quickshell.Wayland
 Singleton {
     id: am
 
-    readonly property var win: Niri.focused
+    // Fenêtre dont on montre le menu: la fenêtre active de niri, gardée tant que le menu est ouvert. Un menu pris au
+    // clavier reçoit le focus et niri n'annonce alors plus de fenêtre active (null): ce n'est pas un changement d'application.
+    readonly property var niriWin: Niri.focused
+    property var win: null
+    onNiriWinChanged: {
+        if (niriWin || !open)
+            win = niriWin;
+    }
+    Component.onCompleted: win = niriWin
     readonly property var winId: win ? win.id : null
     readonly property string appId: win?.app_id ?? ""
     readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
@@ -49,6 +59,15 @@ Singleton {
     property real anchorX: 0
     property var screen: null
     readonly property bool open: openIndex >= 0
+    // Menu ouvert au clavier (fili-shell appmenu): il prend le focus clavier, sinon l'application garde le sien
+    property bool keyboard: false
+    // Menu ouvert depuis un titre unique (menus trop larges pour la barre): la première colonne liste les menus
+    property bool compact: false
+    // Un widget BarAppMenu par barre (écran): titres, mode compact
+    property var hosts: ({})
+    function register(host) {
+        hosts[host.bar?.screen?.name ?? ""] = host;
+    }
 
     function prettyName(id) {
         if (!id)
@@ -167,18 +186,19 @@ Singleton {
     }
 
     // ───────── Ouverture, navigation, action ─────────
-    function toggle(index, item, bar) {
+    // Clic sur un titre (host: le BarAppMenu de la barre; seul titre en mode compact)
+    function toggle(index, item, bar, host) {
         if (openIndex === index)
             close();
         else
-            openAt(index, item, bar);
+            openAt(index, item, bar, host);
     }
-    // Menu ouvert: passer sur un autre titre l'ouvre à son tour
-    function hoverTitle(index, item, bar) {
-        if (open && openIndex !== index)
-            openAt(index, item, bar);
+    // Menu ouvert à la souris: passer sur un autre titre l'ouvre à son tour
+    function hoverTitle(index, item, bar, host) {
+        if (open && !keyboard && openIndex !== index)
+            openAt(index, item, bar, host);
     }
-    function openAt(index, item, bar) {
+    function openAt(index, item, bar, host) {
         const m = menus[index];
         if (!m)
             return;
@@ -186,17 +206,111 @@ Singleton {
         FiliShell.popupOpened("appmenu");
         anchorX = item.mapToItem(null, 0, 0).x;
         screen = bar?.screen ?? null;
+        compact = host?.compact ?? false;
         openIndex = index;
-        levels = [m.children];
+        // Mode compact: la première colonne est la liste des menus, chacun ouvre sa colonne
+        levels = [compact ? menus : m.children];
         sel = [-1];
         levelY = [0];
-        fillIfLazy(0, m);
+        if (!compact)
+            fillIfLazy(0, m);
     }
     function close() {
         openIndex = -1;
         levels = [];
         sel = [];
         levelY = [];
+        keyboard = false;
+        compact = false;
+    }
+
+    // ───────── Clavier (fili-shell appmenu, Mod+F10): ↑/↓ entrée, → sous-menu ou menu suivant, ← retour ou menu précédent,
+    // Entrée ou Espace agir, Échap fermer ─────────
+    // Commande `fili-shell appmenu [toggle|close]`: ouvre le premier menu de la barre de l'écran courant, au clavier
+    function summon(action) {
+        if (action === "close" || open) {
+            close();
+            return;
+        }
+        const host = hosts[Quickshell.screens[0]?.name ?? ""] ?? Object.values(hosts)[0];
+        if (!host || menus.length === 0)
+            return;
+        const first = host.titleAt(0);
+        if (!first)
+            return;
+        openAt(0, first, host.bar, host);
+        keyboard = true;
+        selectFirst(0);
+    }
+    // Premier élément choisissable d'une colonne (ni séparateur, ni grisé), -1 s'il n'y en a pas
+    function firstEnabled(entries) {
+        return entries.findIndex(e => e.kind !== "sep" && e.enabled);
+    }
+    function selectFirst(level) {
+        sel = sel.slice(0, level).concat([firstEnabled(levels[level] ?? [])]);
+    }
+    // Entrée suivante (d = 1) ou précédente (-1) de la dernière colonne, en bouclant
+    function keyMove(d) {
+        const level = levels.length - 1;
+        const es = levels[level] ?? [];
+        let i = sel[level] ?? -1;
+        if (i < 0)
+            i = d > 0 ? -1 : 0;
+        for (let n = 0; n < es.length; n++) {
+            i = (i + d + es.length) % es.length;
+            if (es[i].kind !== "sep" && es[i].enabled) {
+                sel = sel.slice(0, level).concat([i]);
+                return;
+            }
+        }
+    }
+    // Ordonnée de la ligne i de la colonne level (la colonne la calcule: défilement compris)
+    function rowY(level, i) {
+        return repeater.itemAt(level)?.rowY(i) ?? 0;
+    }
+    function keyRight() {
+        const level = levels.length - 1;
+        const e = (levels[level] ?? [])[sel[level]];
+        if (e && e.kind === "sub" && e.enabled) {
+            enter(level, e, sel[level], rowY(level, sel[level]));
+            selectFirst(level + 1);
+        } else {
+            switchMenu(1);
+        }
+    }
+    function keyLeft() {
+        const level = levels.length - 1;
+        if (level > 0) {
+            levels = levels.slice(0, level);
+            levelY = levelY.slice(0, level);
+            sel = sel.slice(0, level);
+        } else {
+            switchMenu(-1);
+        }
+    }
+    function keyActivate() {
+        const level = levels.length - 1;
+        const e = (levels[level] ?? [])[sel[level]];
+        if (!e)
+            return;
+        if (e.kind === "sub")
+            keyRight();
+        else
+            activate(e);
+    }
+    // Menu voisin de la barre (d = ±1), seulement quand les titres sont tous affichés
+    function switchMenu(d) {
+        if (compact || menus.length < 2)
+            return;
+        const host = hosts[screen?.name ?? ""] ?? Object.values(hosts)[0];
+        const index = (openIndex + d + menus.length) % menus.length;
+        const title = host?.titleAt(index);
+        if (!title)
+            return;
+        const kb = keyboard;
+        openAt(index, title, host.bar, host);
+        keyboard = kb;
+        selectFirst(0);
     }
     // Survol ou clic d'une entrée: son sous-menu s'ouvre à droite, aligné sur elle, les colonnes suivantes se ferment
     function enter(level, entry, index, y) {
@@ -252,8 +366,12 @@ Singleton {
                 const items = Array.isArray(d) ? d.map(i => am.norm(i)).filter(i => i.kind === "sep" || i.label !== "") : [];
                 expander.target.children = items;
                 // La colonne attend toujours ce sous-menu: elle prend son contenu
-                if (am.open && am.levels.length === expander.depth + 1)
+                if (am.open && am.levels.length === expander.depth + 1) {
                     am.levels = am.levels.slice(0, expander.depth).concat([items]);
+                    // Ouvert au clavier: le premier élément se choisit dès que le menu est rempli
+                    if (am.keyboard && (am.sel[expander.depth] ?? -1) < 0)
+                        am.selectFirst(expander.depth);
+                }
             }
         }
     }
@@ -298,11 +416,35 @@ Singleton {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-appmenu"
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+        // Ouvert à la souris: pas de focus, l'application garde le sien. Au clavier: focus à la demande
+        WlrLayershell.keyboardFocus: am.open && am.keyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
         Item {
             id: cards
+            focus: true
+            Keys.onEscapePressed: am.close()
+            Keys.onUpPressed: am.keyMove(-1)
+            Keys.onDownPressed: am.keyMove(1)
+            Keys.onLeftPressed: am.keyLeft()
+            Keys.onRightPressed: am.keyRight()
+            Keys.onReturnPressed: am.keyActivate()
+            Keys.onEnterPressed: am.keyActivate()
+            Keys.onSpacePressed: am.keyActivate()
+            // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
+            property bool held: false
+            Window.onActiveChanged: {
+                if (Window.active)
+                    held = true;
+                else if (held && am.keyboard)
+                    am.close();
+            }
+            Connections {
+                target: am
+                function onOpenChanged() {
+                    cards.held = false;
+                }
+            }
             readonly property int cardWidth: 244
             width: Math.max(0, am.levels.length - 1) * (cardWidth - 4) + cardWidth
             height: {
@@ -329,6 +471,20 @@ Singleton {
                     border.color: FiliTheme.nuit4
                     border.width: 1
                     radius: FiliTheme.radiusControl
+                    // Ordonnée (dans la fenêtre) de la ligne i: le sous-menu s'aligne dessus
+                    function rowY(i) {
+                        const it = list.itemAtIndex(i);
+                        return card.y + 4 + (it ? it.y - list.contentY : 0);
+                    }
+                    // Choix au clavier: la ligne reste visible dans une longue liste
+                    Connections {
+                        target: am
+                        function onSelChanged() {
+                            const i = am.sel[card.index] ?? -1;
+                            if (i >= 0 && am.keyboard)
+                                list.positionViewAtIndex(i, ListView.Contain);
+                        }
+                    }
                     ListView {
                         id: list
                         anchors { fill: parent; margins: 4 }

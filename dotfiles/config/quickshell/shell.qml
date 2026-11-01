@@ -28,6 +28,8 @@ ShellRoot {
         function onCommand(target, action, args) {
             if (target === "panel")
                 FiliPanel.summon(action);
+            else if (target === "appmenu")
+                AppMenu.summon(action);
             else if (target === "hotkeys")
                 FiliHotkeys.toggle();
             else if (target === "about")

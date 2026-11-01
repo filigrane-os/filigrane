@@ -15,6 +15,7 @@
 #       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N (colonnes séparées par tabulation);
 #       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
 #   fili-shell launcher close                             ferme le fili-launcher s'il est ouvert (code 0), sinon code 1
+#   fili-shell appmenu [close]                        ouvre au clavier le menu de l'application active (Mod+F10), ou le ferme
 #   fili-shell hotkeys                                ouvre/ferme la fenêtre des raccourcis clavier (fili-hotkeys)
 #   fili-shell about                                  ouvre/ferme la fenêtre « À propos » (fili-about: Filigrane, système, machine)
 #   fili-shell lang                                   relit la langue choisie (fili-lang)
@@ -35,7 +36,7 @@ request() {
     cat "$r"
     rm -f "$r"
 }
-usage() { sed -n '6,21p' "$0" >&2; exit 2; }
+usage() { sed -n '6,22p' "$0" >&2; exit 2; }
 
 case "$1 $2" in
     "bar refresh") shift 2; send "bar refresh $*"; exit 0 ;;
@@ -45,6 +46,7 @@ case "$1 $2" in
     "panel "*) send "panel $2"; exit 0 ;;
     "notification history") request "notification history"; exit ;;
     "launcher close") [ "$(request "launcher close")" = 1 ]; exit ;;
+    "appmenu "*) send "appmenu ${2:-toggle}"; exit 0 ;;
     "hotkeys "*) send "hotkeys toggle"; exit 0 ;;
     "about "*) send "about toggle"; exit 0 ;;
     "lang "*) send "lang reload"; exit 0 ;;
