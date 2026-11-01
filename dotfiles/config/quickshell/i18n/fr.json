@@ -456,5 +456,16 @@
  "Agent": "Agent",
  "default": "par défaut",
  "Follow": "Lien",
- "Message Rob…": "Écrire à Rob…"
+ "Message Rob…": "Écrire à Rob…",
+ "“%1” already exists in “%2”.": "« %1 » existe déjà dans « %2 ».",
+ "%1 items already exist in “%2”.": "%1 éléments existent déjà dans « %2 ».",
+ "Replacing moves the existing item to the Trash (Ctrl+Z brings it back). Keep Both adds “copy” to the name.": "Remplacer met l'élément existant à la corbeille (Ctrl+Z le rend). Garder les deux ajoute « copie » au nom.",
+ "Skip": "Ignorer",
+ "Skip These": "Ignorer ceux-là",
+ "Keep Both": "Garder les deux",
+ "Copy Name": "Copier le nom",
+ "Copy Name Without Extension": "Copier le nom sans extension",
+ "Copy Parent Folder": "Copier le dossier parent",
+ "Copy Path As": "Copier le chemin",
+ "Cannot replace “%1”: %2": "Impossible de remplacer « %1 »: %2"
 }

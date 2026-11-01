@@ -31,6 +31,11 @@
         { "label": "Duplicate", "keys": "Ctrl+D", "exec": "fili-file ctl --pid %pid action duplicate" },
         { "label": "Rename", "keys": "F2", "exec": "fili-file ctl --pid %pid action rename" },
         { "sep": true },
+        { "label": "Copy Full Path", "keys": "Ctrl+Shift+C", "exec": "fili-file ctl --pid %pid action copy-path" },
+        { "label": "Copy Name", "keys": "Ctrl+Alt+C", "exec": "fili-file ctl --pid %pid action copy-name" },
+        { "label": "Copy Name Without Extension", "exec": "fili-file ctl --pid %pid action copy-stem" },
+        { "label": "Copy Parent Folder", "exec": "fili-file ctl --pid %pid action copy-parent" },
+        { "sep": true },
         { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-file ctl --pid %pid action select-all" }
       ]
     },
