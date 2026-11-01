@@ -242,6 +242,10 @@ ShellRoot {
                 ok(title && host && host.visible && host.shown, "appmenu: titres des menus dans la fili-bar", host ? host.visible : "introuvable");
                 AppMenu.openAt(1, title, t.bar);
                 ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: clic sur un titre -> menu ouvert");
+                ok(AppMenu.levels[0][0].keys === "Super+Return", "appmenu: raccourci d'une entrée de repli = bind niri de la même commande", AppMenu.levels[0][0].keys);
+                ok(AppMenu.menus[0].children[0].keys === "Super+Q", "appmenu: Quitter -> raccourci de close-window", AppMenu.menus[0].children[0].keys);
+                const pb = AppMenu.parseBinds('binds {\n    // Mod+X { nope; }\n    Mod+Ctrl+W hotkey-overlay-title="a" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }\n    Mod+V       { toggle-window-floating; }\n    Mod+1 { focus-workspace 1; }\n    Mod+B { spawn "foot" "-e" "btop"; }\n}\nlayout { Mod+Z { x; } }\n');
+                ok(pb["exec:bar-tui impala"] === "Super+Ctrl+W" && pb["niri:toggle-window-floating"] === "Super+V" && pb["niri:focus-workspace 1"] === "Super+1" && pb["exec:foot -e btop"] === "Super+B" && Object.keys(pb).length === 4, "appmenu: lecture des binds niri (spawn, spawn-sh, actions, arguments, commentaires)", JSON.stringify(pb));
                 FiliTheme.ran = [];
                 AppMenu.activate(AppMenu.levels[0][0]);
                 ok(!AppMenu.open && FiliTheme.ran.join() === "foot", "appmenu: entrée -> commande lancée, menu fermé", FiliTheme.ran.join());
@@ -274,7 +278,7 @@ ShellRoot {
                 AppMenu.onMenu(AppMenu.gen, JSON.stringify({ items: [
                     { label: "File", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/1", children: [] },
                     { label: "Edit", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/2", children: [
-                        { label: "Copy", kind: "item", enabled: true, check: 0, svc: ":1.2", path: "/m/3", children: [] },
+                        { label: "Copy", kind: "item", enabled: true, check: 0, keys: "Ctrl+C", svc: ":1.2", path: "/m/3", children: [] },
                         { label: "", kind: "sep", enabled: true, check: 0, svc: ":1.2", path: "/m/4", children: [] },
                         { label: "Wrap", kind: "item", enabled: false, check: 2, svc: ":1.2", path: "/m/5", children: [] },
                         { label: "Find", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/6", children: [
@@ -283,6 +287,7 @@ ShellRoot {
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 const edit = AppMenu.levels[0];
                 ok(edit.length === 4 && edit[1].kind === "sep" && edit[2].check === 2 && !edit[2].enabled && edit[3].kind === "sub", "appmenu: menu AT-SPI -> séparateur, case cochée, entrée grisée, sous-menu");
+                ok(edit[0].keys === "Ctrl+C" && edit[2].keys === "", "appmenu: raccourci d\x27une entrée AT-SPI conservé", edit[0].keys);
                 FiliTheme.ran = [];
                 AppMenu.activate(edit[2]);
                 ok(AppMenu.open && FiliTheme.ran.length === 0, "appmenu: entrée grisée -> rien");

@@ -54,6 +54,8 @@ struct Item {
     kind: &'static str,
     enabled: bool,
     check: u8,
+    /// Raccourci clavier affiché (« Ctrl+T »), vide s'il n'y en a pas
+    keys: String,
     svc: String,
     path: String,
     lazy: bool,
@@ -145,6 +147,15 @@ impl Atspi {
             .unwrap_or(false)
     }
 
+    /// Raccourci d'une entrée (Action.GetKeyBinding), texte brut de la boîte à outils
+    fn key_binding(&self, svc: &str, path: &str) -> String {
+        self.c
+            .call_method(Some(svc), path, Some("org.a11y.atspi.Action"), "GetKeyBinding", &(0i32,))
+            .ok()
+            .and_then(|m| m.body().deserialize::<String>().ok())
+            .unwrap_or_default()
+    }
+
     /// Parent d'un nœud (propriété Parent: structure (service, chemin))
     fn parent_of(&self, svc: &str, path: &str) -> Option<(String, String)> {
         let v = self
@@ -220,6 +231,9 @@ impl Atspi {
             path: path.to_owned(),
             ..Item::default()
         };
+        if item.kind != "sep" && role != ROLE_MENU_BAR && role != ROLE_MENU {
+            item.keys = shortcut(&self.key_binding(svc, path));
+        }
         item.children = kids
             .into_iter()
             .take(MAX_CHILDREN)
@@ -251,6 +265,45 @@ impl Atspi {
         }
         tree.children
     }
+}
+
+/// Raccourci lisible d'une entrée. GTK: « mnémonique;chemin;accélérateur » avec un accélérateur « <Primary><Shift>n »;
+/// Qt: les séquences « Ctrl+N » séparées par « ; », on garde la première.
+fn shortcut(raw: &str) -> String {
+    let fields: Vec<&str> = raw.split(';').collect();
+    if fields.len() == 3 && (fields[0].chars().count() <= 1 || fields[1].contains('<')) {
+        gtk_accel(fields[2])
+    } else {
+        fields[0].trim().to_string()
+    }
+}
+
+/// « <Primary><Shift>n » -> « Ctrl+Shift+N », « space » -> « Space », « F3 » -> « F3 »
+fn gtk_accel(acc: &str) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    let mut rest = acc;
+    while let Some(tail) = rest.strip_prefix('<') {
+        let Some(end) = tail.find('>') else { return String::new() };
+        parts.push(
+            match &tail[..end] {
+                "Primary" | "Control" | "Ctrl" => "Ctrl",
+                "Alt" | "Mod1" => "Alt",
+                "Shift" => "Shift",
+                "Super" | "Mod4" => "Super",
+                "Meta" => "Meta",
+                other => other,
+            }
+            .to_string(),
+        );
+        rest = &tail[end + 1..];
+    }
+    if rest.is_empty() {
+        return String::new();
+    }
+    let mut chars = rest.chars();
+    let first: String = chars.next().map(|c| c.to_uppercase().collect()).unwrap_or_default();
+    parts.push(first + chars.as_str());
+    parts.join("+")
 }
 
 /// Qt enveloppe le contenu de chaque menu dans un nœud MENU sans nom: on le retire
@@ -298,9 +351,11 @@ fn json_items(items: &[Item], out: &mut String) {
         out.push_str("{\"label\":");
         json_str(&it.label, out);
         out.push_str(&format!(
-            ",\"kind\":\"{}\",\"enabled\":{},\"check\":{},\"lazy\":{},\"svc\":",
+            ",\"kind\":\"{}\",\"enabled\":{},\"check\":{},\"lazy\":{},\"keys\":",
             it.kind, it.enabled, it.check, it.lazy
         ));
+        json_str(&it.keys, out);
+        out.push_str(",\"svc\":");
         json_str(&it.svc, out);
         out.push_str(",\"path\":");
         json_str(&it.path, out);
@@ -418,6 +473,24 @@ mod tests {
         let it = Item { label: "A".into(), kind: "item", enabled: true, svc: ":1.2".into(), path: "/p".into(), ..Item::default() };
         let mut s = String::new();
         json_items(&[it], &mut s);
-        assert_eq!(s, "[{\"label\":\"A\",\"kind\":\"item\",\"enabled\":true,\"check\":0,\"lazy\":false,\"svc\":\":1.2\",\"path\":\"/p\",\"children\":[]}]");
+        assert_eq!(s, "[{\"label\":\"A\",\"kind\":\"item\",\"enabled\":true,\"check\":0,\"lazy\":false,\"keys\":\"\",\"svc\":\":1.2\",\"path\":\"/p\",\"children\":[]}]");
+    }
+
+    #[test]
+    fn raccourcis_gtk() {
+        assert_eq!(shortcut("t;<Alt>f:t;<Primary>t"), "Ctrl+T");
+        assert_eq!(shortcut("f;<Alt>f:f;<Primary><Shift>n"), "Ctrl+Shift+N");
+        assert_eq!(shortcut(";;space"), "Space");
+        assert_eq!(shortcut("p;<Alt>v:p;F3"), "F3");
+        assert_eq!(shortcut("d;<Alt>f:d;"), "");
+        assert_eq!(shortcut("<Alt>f;<Alt>f;"), "");
+        assert_eq!(shortcut("c;<Alt>e:c;<Control><Alt>Delete"), "Ctrl+Alt+Delete");
+        assert_eq!(shortcut(""), "");
+    }
+
+    #[test]
+    fn raccourcis_qt() {
+        assert_eq!(shortcut("Ctrl+N"), "Ctrl+N");
+        assert_eq!(shortcut("Ctrl+Shift+N;Ctrl+Alt+N"), "Ctrl+Shift+N");
     }
 }

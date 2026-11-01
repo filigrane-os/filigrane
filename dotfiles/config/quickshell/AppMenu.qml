@@ -84,16 +84,82 @@ Singleton {
         }
     }
 
+    // Raccourcis des binds de niri (config.kdl, puis local.kdl qui complète ou remplace): une entrée de repli qui lance
+    // la même commande ou la même action que un bind affiche sa touche, sans qu'on la recopie (elle ne peut pas dériver).
+    // Clé: "niri:ACTION ARGS" ou "exec:COMMANDE" (spawn et spawn-sh, sans $HOME/.local/bin/); valeur: "Super+Q".
+    readonly property string niriDir: Quickshell.env("FILI_NIRI_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/niri"
+    property var bindsMain: ({})
+    property var bindsLocal: ({})
+    readonly property var binds: Object.assign({}, bindsMain, bindsLocal)
+    onBindsChanged: rebuild()
+    function parseBinds(text) {
+        const out = {};
+        let inBinds = false;
+        for (const line of text.split("\n")) {
+            if (/^binds\s*\{/.test(line)) {
+                inBinds = true;
+                continue;
+            }
+            if (inBinds && /^\}/.test(line)) {
+                inBinds = false;
+                continue;
+            }
+            if (!inBinds || /^\s*\/\//.test(line))
+                continue;
+            const m = /^\s*([A-Za-z0-9_+]+)\s[^{]*\{\s*([a-z0-9-]+)((?:\s+(?:"[^"]*"|[^\s";}]+))*)\s*;/.exec(line);
+            if (!m)
+                continue;
+            const args = (m[3].match(/"[^"]*"|[^\s"]+/g) ?? []).map(a => a.replace(/^"|"$/g, ""));
+            let id;
+            if (m[2] === "spawn")
+                id = "exec:" + args.join(" ");
+            else if (m[2] === "spawn-sh")
+                id = "exec:" + (args[0] ?? "").replace("$HOME/.local/bin/", "");
+            else
+                id = "niri:" + [m[2]].concat(args).join(" ");
+            if (!(id in out))
+                out[id] = m[1].replace(/^Mod\+/, "Super+").replace(/\+Mod\+/g, "+Super+");
+        }
+        return out;
+    }
+    FileView {
+        path: am.niriDir + "/config.kdl"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: am.bindsMain = am.parseBinds(text())
+        onLoadFailed: am.bindsMain = ({})
+    }
+    FileView {
+        path: am.niriDir + "/local.kdl"
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: am.bindsLocal = am.parseBinds(text())
+        onLoadFailed: am.bindsLocal = ({})
+    }
+    // Touche d'une entrée de repli (champ "keys" du fichier, sinon le bind niri de la même action ou commande)
+    function bindKey(e) {
+        if (e.niri)
+            return binds["niri:" + e.niri.join(" ")] ?? "";
+        if (e.exec)
+            return binds["exec:" + e.exec] ?? "";
+        return "";
+    }
+
     // Entrée normalisée, qu'elle vienne d'AT-SPI ou d'un fichier de repli
     function norm(e) {
         if (e.sep || e.kind === "sep")
-            return { label: "", kind: "sep", enabled: false, check: 0, svc: "", path: "", exec: "", niri: null, children: [] };
+            return { label: "", kind: "sep", enabled: false, check: 0, keys: "", svc: "", path: "", exec: "", niri: null, children: [] };
         const kids = (e.children ?? []).map(c => norm(c)).filter(c => c.kind === "sep" || c.label !== "");
         return {
             label: e.label ?? "",
             kind: e.kind ?? (kids.length > 0 ? "sub" : "item"),
             enabled: e.enabled ?? true,
             check: e.check ?? 0,
+            keys: e.keys ?? bindKey(e),
             svc: e.svc ?? "",
             path: e.path ?? "",
             exec: e.exec ?? "",
@@ -445,7 +511,7 @@ Singleton {
                     cards.held = false;
                 }
             }
-            readonly property int cardWidth: 244
+            readonly property int cardWidth: 290
             width: Math.max(0, am.levels.length - 1) * (cardWidth - 4) + cardWidth
             height: {
                 let h = 0;
@@ -520,10 +586,19 @@ Singleton {
                                 color: FiliTheme.voile
                                 font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                             }
+                            // Raccourci clavier, aligné à droite (une flèche remplace la touche d'un sous-menu)
+                            Text {
+                                id: keysText
+                                visible: !row.sep && row.modelData.kind !== "sub" && row.modelData.keys !== ""
+                                anchors { right: parent.right; rightMargin: 10; verticalCenter: parent.verticalCenter }
+                                text: row.modelData.keys
+                                color: FiliTheme.ardoise
+                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                            }
                             Text {
                                 visible: !row.sep
                                 x: 22
-                                width: parent.width - 22 - 22
+                                width: parent.width - 22 - (keysText.visible ? keysText.implicitWidth + 24 : 22)
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: FiliI18n.tr(row.modelData.label, am.appName)
                                 elide: Text.ElideRight

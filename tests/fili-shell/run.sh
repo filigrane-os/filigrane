@@ -20,7 +20,7 @@ cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
 for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats "${FILI_APPS:-$HOME/.local/bin}"/fili-ai-session "${FILI_APPS:-$HOME/.local/bin}"/fili-appmenu; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
 
-FILI_TEST=1 FILI_APPMENU_DIR="$ROOT/dotfiles/config/filigrane/appmenu" LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
+FILI_TEST=1 FILI_APPMENU_DIR="$ROOT/dotfiles/config/filigrane/appmenu" FILI_NIRI_DIR="$ROOT/dotfiles/config/niri" LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1
 rc=$?
 
