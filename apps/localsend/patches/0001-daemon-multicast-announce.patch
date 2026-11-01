@@ -1,0 +1,46 @@
+diff --git a/crates/daemon/src/main.rs b/crates/daemon/src/main.rs
+index 40a8e27..6bd561f 100644
+--- a/crates/daemon/src/main.rs
++++ b/crates/daemon/src/main.rs
+@@ -158,6 +158,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
+         identity.fingerprint
+     );
+ 
++    let fingerprint = identity.fingerprint.clone();
+     let device_info = InfoResponseDto {
+         alias: alias.clone(),
+         version: "2.0".to_string(),
+@@ -184,6 +185,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
+     let cancel_token = CancellationToken::new();
+     let cancel_trigger = cancel_token.clone();
+ 
++    // Annonce multicast (sans elle, aucun appareil ne voit ce démon): rafale au départ, puis un battement
++    // régulier; les annonces des autres appareils alimentent le registre (lsend peers)
++    let discovery = localsend_discovery::DiscoveryEngine::new(
++        localsend_discovery::MulticastConfig {
++            port,
++            local_fingerprint: fingerprint.clone(),
++            heartbeat_interval: std::time::Duration::from_secs(10),
++        },
++        registry.clone(),
++    );
++    match discovery {
++        Ok(engine) => {
++            let announcement = localsend_protocol::MulticastAnnouncement::new(
++                &alias,
++                &fingerprint,
++                port,
++                localsend_protocol::ProtocolType::Https,
++            );
++            let _ = engine.multicast().start(announcement.clone());
++            tokio::spawn(async move {
++                engine.broadcast_burst(&announcement).await;
++                std::future::pending::<()>().await;
++            });
++        }
++        Err(e) => tracing::warn!("Multicast discovery unavailable: {e}"),
++    }
++
+     // Start Unix Domain Socket IPC server on Unix platforms
+     #[cfg(unix)]
+     {

@@ -21,6 +21,7 @@ PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
 setting() { fili-receive settings 2>/dev/null | sed -n "s/^$1=//p"; }
 DEST="$(setting dir)"; [ -n "$DEST" ] || DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
 CONFIRM="$(setting confirm)"; MINUTES="$(setting minutes)"
+ME="$(setting name)"; [ -n "$ME" ] || ME=filigrane
 FRPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-receive"
 LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
 export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
@@ -102,8 +103,10 @@ peers)
                 esac
             done | json_peers ;;
     localsend)
-        # Pairs vus en multicast pendant 2 s (l'adresse IP sert d'identifiant); notre propre daemon est écarté
-        lsend scan --json -d 2 2>/dev/null | jq -c --arg me "$(hostname)" '[.[] | select(.alias != $me) | { id: .ip, name: .alias }]' ;;
+        # Pairs que le démon de réception a vus (l'adresse IP sert d'identifiant): rien n'est émis. Sans démon, un scan
+        # multicast de 2 s; l'outil s'y annonce lui-même « lsend-scanner » chez les autres, d'où cette préférence.
+        if ls_running; then peers="$(lsend peers --json 2>/dev/null)"; else peers="$(lsend scan --json -d 2 2>/dev/null)"; fi
+        printf '%s' "${peers:-[]}" | jq -c --arg me "$ME" '[.[] | select(.alias != $me and .alias != "lsend-scanner") | { id: .ip, name: .alias }]' ;;
     *) echo '[]' ;;
     esac
     ;;
@@ -163,7 +166,7 @@ receive)
         # fili-receive pose la question (notification Accepter / Refuser) ou accepte seul (confirm = "always"); sans lui,
         # le démon reçoit tout tant que le mode est actif (comme AirDrop « visible »). `receive localsend off` l'arrête
         mode=always; if command -v fili-receive >/dev/null; then mode=never; fi
-        setsid -f sh -c 'echo $$ > "$1"; exec localsendd -d "$2" -a "$3" --auto-accept "$4"' sh "$LSPID" "$DEST" "$(hostname)" "$mode" >/dev/null 2>&1
+        setsid -f sh -c 'echo $$ > "$1"; exec localsendd -d "$2" -a "$3" --auto-accept "$4"' sh "$LSPID" "$DEST" "$ME" "$mode" >/dev/null 2>&1
         fr_start localsend
         auto_off localsend
         ;;
@@ -189,7 +192,7 @@ receive-info)
         id="${p%%:*}"; r="$(why "$id")"; on=false
         if [ -z "$r" ] && [ "$("$0" receive "$id" status 2>/dev/null)" = on ]; then on=true; fi
         jq -nc --arg id "$id" --arg label "${p#*:}" --arg why "$r" --argjson on "$on" '{ id: $id, label: $label, available: ($why == ""), why: $why, on: $on }'
-    done | jq -sc --arg dest "$DEST" --arg confirm "${CONFIRM:-ask}" --arg name "$(hostname)" --argjson minutes "${MINUTES:-0}" \
+    done | jq -sc --arg dest "$DEST" --arg confirm "${CONFIRM:-ask}" --arg name "$ME" --argjson minutes "${MINUTES:-0}" \
         '{ dest: $dest, confirm: $confirm, minutes: $minutes, name: $name, protocols: . }'
     ;;
 received)

@@ -458,21 +458,26 @@ setup_apps() {
 # Outils tiers en Rust (apps/<nom>/source: url, commit, bins): clonés à un commit précis, compilés dans ~/.cache, installés
 # dans ~/.local/opt/<nom>-<commit>, liés dans ~/.local/bin; recompilés seulement quand le commit change.
 setup_apps_git() {
-    local src name url commit bins dir b src_dir
+    local src name url commit bins dir b p src_dir patches sum
     for src in "$ROOT"/apps/*/source; do
         [ -e "$src" ] || return 0
         command -v cargo >/dev/null && command -v git >/dev/null || { warn 'cargo or git missing: %s not built' "$src"; return 0; }
         name="$(basename "$(dirname "$src")")"
         url="$(sed -n 's/^url=//p' "$src")"; commit="$(sed -n 's/^commit=//p' "$src")"; bins="$(sed -n 's/^bins=//p' "$src" | tr -d '"')"
-        dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}"
+        # Correctifs locaux (apps/<nom>/patches/*.patch): appliqués après le checkout; leur empreinte fait partie du nom
+        # du dossier, donc un correctif modifié recompile
+        patches="$(ls "$ROOT/apps/$name/patches/"*.patch 2>/dev/null)"
+        sum=""; [ -z "$patches" ] || sum="-p$(cat $patches | sha256sum | cut -c1-8)"
+        dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}$sum"
         if [ ! -x "$dir/${bins%% *}" ]; then
             log 'Building %s (%s)' "$name" "${commit:0:12}"
             src_dir="$TARGET_HOME/.cache/filigrane-src/$name"
             if run_as_user sh -c 'rm -rf "$1" && mkdir -p "$1" && cd "$1" && git init -q && git fetch -q --depth 1 "$2" "$3" && git checkout -q FETCH_HEAD' sh "$src_dir" "$url" "$commit" \
+                && for p in $patches; do run_as_user git -C "$src_dir" apply "$p" || false; done \
                 && run_as_user env CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps/$name" cargo build -q --release --locked --manifest-path "$src_dir/Cargo.toml" \
                 && run_as_user mkdir -p "$dir" \
                 && for b in $bins; do run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/$name/release/$b" "$dir/$b" || false; done; then
-                find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-${commit:0:12}" -exec rm -rf {} +
+                find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-${commit:0:12}$sum" -exec rm -rf {} +
             else
                 warn 'Build of %s failed' "$name"; run_as_user rm -rf "$dir"; continue
             fi
