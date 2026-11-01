@@ -16,10 +16,12 @@ pub struct Settings {
     pub dir: String,
     pub always: bool,
     pub minutes: u32,
+    // Nom sous lequel cet ordinateur apparaît chez les autres appareils (LocalSend)
+    pub name: String,
 }
 
 // Réglages de réception, dans ~/.config/filigrane/fili-file.toml (le fichier de Casier, entrée « Settings… »):
-// receive_dir, receive_confirm = "ask" | "always", receive_minutes
+// receive_dir, receive_confirm = "ask" | "always", receive_minutes, receive_name
 pub fn settings() -> Settings {
     let config = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
     parse_settings(&fs::read_to_string(format!("{config}/filigrane/fili-file.toml")).unwrap_or_default())
@@ -30,6 +32,7 @@ pub fn parse_settings(text: &str) -> Settings {
         dir: env::var("XDG_DOWNLOAD_DIR").ok().filter(|d| !d.is_empty()).unwrap_or_else(|| format!("{}/Downloads", home())),
         always: false,
         minutes: 0,
+        name: "filigrane".into(),
     };
     for line in text.lines() {
         let line = line.split('#').next().unwrap_or("").trim();
@@ -44,6 +47,7 @@ pub fn parse_settings(text: &str) -> Settings {
             }
             "receive_confirm" => s.always = v == "always",
             "receive_minutes" => s.minutes = v.parse().unwrap_or(0),
+            "receive_name" if !v.is_empty() => s.name = v.to_string(),
             _ => {}
         }
     }

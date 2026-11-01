@@ -3,10 +3,10 @@
 //
 //   fili-receive localsend         demandes entrantes et fin de transfert de localsendd
 //   fili-receive bluetooth         agent OBEX de obexd: accepter/refuser chaque fichier
-//   fili-receive settings          réglages résolus: dir=, confirm=ask|always, minutes=
+//   fili-receive settings          réglages résolus: dir=, confirm=ask|always, minutes=, name=
 //   fili-receive received [N]      les N derniers fichiers reçus, en JSON (journal ~/.local/state/filigrane/received.tsv)
 //
-// Réglages facultatifs: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm, receive_minutes).
+// Réglages facultatifs: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm, receive_minutes, receive_name).
 mod bluetooth;
 mod common;
 #[allow(dead_code)]
@@ -22,7 +22,7 @@ fn main() {
         Some("localsend") => localsend::run(s.dir, s.always),
         Some("bluetooth") => bluetooth::run(s.dir, s.always),
         Some("settings") => {
-            println!("dir={}\nconfirm={}\nminutes={}", s.dir, if s.always { "always" } else { "ask" }, s.minutes);
+            println!("dir={}\nconfirm={}\nminutes={}\nname={}", s.dir, if s.always { "always" } else { "ask" }, s.minutes, s.name);
         }
         Some("received") => {
             let n = args.get(2).and_then(|n| n.parse().ok()).unwrap_or(20);
