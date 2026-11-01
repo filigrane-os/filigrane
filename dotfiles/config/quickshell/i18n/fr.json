@@ -413,5 +413,9 @@
  "Sage": "Sauge",
  "Sand": "Sable",
  "Ash": "Cendre",
- "Mist": "Brume"
+ "Mist": "Brume",
+ "%1 found": "%1 trouvés",
+ "All files": "Tous les fichiers",
+ "Search “%1”": "Recherche « %1 »",
+ "Search results": "Résultats de la recherche"
 }
