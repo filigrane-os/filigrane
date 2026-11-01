@@ -1,5 +1,8 @@
 {
-  "name": "Files",
+  "name": "Casier",
+  "app": [
+    { "label": "About Casier", "exec": "fili-file ctl --pid %pid action about" }
+  ],
   "menus": [
     {
       "label": "File",
@@ -11,6 +14,8 @@
         { "sep": true },
         { "label": "Move to Trash", "keys": "Delete", "exec": "fili-file ctl --pid %pid action trash" },
         { "label": "Empty Trash", "keys": "Ctrl+Shift+Delete", "exec": "fili-file ctl --pid %pid action empty-trash" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-file.toml" },
         { "sep": true },
         { "label": "Close", "keys": "Ctrl+W", "exec": "fili-file ctl --pid %pid action close" }
       ]
