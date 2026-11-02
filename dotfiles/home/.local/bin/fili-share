@@ -27,7 +27,8 @@ LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
 export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
 export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
 
-notify() { notify-send -a fili-share "$(t 'Sharing')" "$1" 2>/dev/null; }
+# Le serveur de notifications du shell n'affiche pas d'icône: l'état est un signe dans le texte (✓ réussi, ✕ échec)
+notify() { notify-send -a fili-share "${2:+$2 }$(t 'Sharing')" "${2:+$2  }$1" 2>/dev/null; }
 # Notification d'un envoi: chaque étape (envoi, attente, fin) remplace la précédente au lieu de s'empiler
 NID=""
 status() {
@@ -42,7 +43,7 @@ status_end() {
             --method org.freedesktop.Notifications.CloseNotification "$NID" >/dev/null 2>&1
         NID=""
     fi
-    notify "$1"
+    notify "$1" "$2"
 }
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
 
@@ -163,7 +164,7 @@ send | send-files)
     bluetooth) bt_send "$id" "$@" ;;
     localsend) ls_send "$id" "$name" "$@" ;;
     esac
-    if [ $? -eq 0 ]; then status_end "$(t 'Sent to %s' "$name")"; else status_end "$(t 'Sending to %s failed' "$name")"; exit 1; fi
+    if [ $? -eq 0 ]; then status_end "$(t 'Sent to %s' "$name")" ✓; else status_end "$(t 'Sending to %s failed' "$name")" ✕; exit 1; fi
     ;;
 receive)
     proto="$2"
