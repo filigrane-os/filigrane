@@ -144,6 +144,7 @@ _t_lookup() {
     'Send to %s') _t_fmt='Envoyer à %s' ;;
     'Sending to %s…') _t_fmt='Envoi à %s…' ;;
     '%s item(s) not sent: only files can be sent, not folders') _t_fmt='%s élément(s) non envoyé(s): seuls les fichiers s'\''envoient, pas les dossiers' ;;
+    'Waiting for %s… open LocalSend on the device') _t_fmt='En attente de %s… ouvre LocalSend sur l'\''appareil' ;;
     'Sent to %s') _t_fmt='Envoyé à %s' ;;
     'Sending to %s failed') _t_fmt='Échec de l'\''envoi à %s' ;;
     '.') _t_fmt=',' ;;

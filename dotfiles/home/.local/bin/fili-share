@@ -28,6 +28,12 @@ export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
 export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
 
 notify() { notify-send -a fili-share "$(t 'Sharing')" "$1" 2>/dev/null; }
+# Notification d'un envoi: chaque étape (envoi, attente, fin) remplace la précédente au lieu de s'empiler
+NID=""
+status() {
+    if [ -n "$NID" ]; then NID="$(notify-send -a fili-share -p -r "$NID" "$(t 'Sharing')" "$1" 2>/dev/null)"
+    else NID="$(notify-send -a fili-share -p "$(t 'Sharing')" "$1" 2>/dev/null)"; fi
+}
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
 
 # Raison de l'indisponibilité d'un protocole (vide = disponible)
@@ -75,6 +81,19 @@ fr_stop() { if fr_running "$1"; then kill "$(cat "$FRPID-$1.pid")"; fi; rm -f "$
 auto_off() { # auto_off PROTO
     [ "${MINUTES:-0}" -gt 0 ] 2>/dev/null || return 0
     setsid -f sh -c 'sleep "$1"; exec "$2" receive "$3" off' sh "$((MINUTES * 60))" "$0" "$1" >/dev/null 2>&1
+}
+# Envoi LocalSend. L'application du téléphone ne répond que lorsqu'elle est ouverte au premier plan: tant que la
+# connexion échoue, on réessaie pendant 90 s (en le disant) avant d'abandonner. Un refus de l'autre côté n'est pas retenté.
+ls_send() { # ls_send IP NOM FICHIER...
+    ip="$1"; who="$2"; shift 2
+    end=$(($(date +%s) + 90)); waiting=0
+    while :; do
+        out="$(lsend send "$ip" "$@" 2>&1)" && return 0
+        case "$out" in *"error sending request"*) ;; *) return 1 ;; esac
+        [ "$(date +%s)" -lt "$end" ] || return 1
+        if [ "$waiting" -eq 0 ]; then waiting=1; status "$(t 'Waiting for %s… open LocalSend on the device' "$who")"; fi
+        sleep 3
+    done
 }
 ls_running() { [ -r "$LSPID" ] && [ "$(cat "/proc/$(cat "$LSPID")/comm" 2>/dev/null)" = localsendd ]; }
 bt_running() { [ -r "$PIDF" ] && [ "$(cat "/proc/$(cat "$PIDF")/comm" 2>/dev/null)" = obexd ]; }
@@ -128,13 +147,13 @@ send | send-files)
         [ "$skipped" -eq 0 ] || notify "$(t '%s item(s) not sent: only files can be sent, not folders' "$skipped")"
     fi
     [ "$#" -gt 0 ] || exit 0
-    notify "$(t 'Sending to %s…' "$name")"
+    status "$(t 'Sending to %s…' "$name")"
     case "$proto" in
     airdrop) omdrop send "$@" "$name" ;;
     bluetooth) bt_send "$id" "$@" ;;
-    localsend) lsend send "$id" "$@" ;;
+    localsend) ls_send "$id" "$name" "$@" ;;
     esac
-    if [ $? -eq 0 ]; then notify "$(t 'Sent to %s' "$name")"; else notify "$(t 'Sending to %s failed' "$name")"; exit 1; fi
+    if [ $? -eq 0 ]; then status "$(t 'Sent to %s' "$name")"; else status "$(t 'Sending to %s failed' "$name")"; exit 1; fi
     ;;
 receive)
     proto="$2"
