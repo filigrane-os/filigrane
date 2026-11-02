@@ -1,5 +1,6 @@
 // Ce que partagent les deux protocoles: réglages, notifications avec boutons, journal des fichiers reçus.
 use crate::i18n::{num, tr, trf};
+use std::os::unix::process::CommandExt;
 use std::{
     env, fs,
     io::Write,
@@ -97,11 +98,21 @@ pub fn ask(title: &str, body: &str, actions: &[(&str, String)], timeout_ms: u32)
     (!id.is_empty()).then_some(id)
 }
 
-// Reçu: notification avec « Afficher » (ouvre le dossier dans Casier)
-pub fn announce(title: &str, body: &str, dir: &str) {
-    let show = ask_quiet(title, body, &[("show", tr("Show").to_string())], 12000);
-    if show.as_deref() == Some("show") {
-        let _ = Command::new("fili-file").arg(dir).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
+// Reçu: notification avec « Ouvrir » (le fichier, s'il n'y en a qu'un) et « Ouvrir le dossier » (Casier, avec le
+// fichier sélectionné quand il est seul)
+pub fn announce(title: &str, body: &str, dir: &str, files: &[String]) {
+    let mut actions = Vec::new();
+    if files.len() == 1 {
+        actions.push(("open", tr("Open").to_string()));
+    }
+    actions.push(("folder", tr("Open Folder").to_string()));
+    let detached = |program: &str, arg: &str| {
+        let _ = Command::new(program).arg(arg).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn().map(|mut c| std::thread::spawn(move || c.wait()));
+    };
+    match ask_quiet(title, body, &actions, 12000).as_deref() {
+        Some("open") => detached("xdg-open", &files[0]),
+        Some("folder") => detached("fili-file", files.first().filter(|_| files.len() == 1).map_or(dir, String::as_str)),
+        _ => {}
     }
 }
 

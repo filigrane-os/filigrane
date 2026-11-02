@@ -80,7 +80,7 @@ impl Agent {
                 match status.as_deref() {
                     Some("complete") => {
                         journal("bluetooth", &sender, &format!("{dir}/{name}"), size);
-                        announce(&trf("Received from %1", &[&sender]), &summary(std::slice::from_ref(&name), size), &dir);
+                        announce(&trf("Received from %1", &[&sender]), &summary(std::slice::from_ref(&name), size), &dir, &[format!("{dir}/{name}")]);
                         return;
                     }
                     Some("error") => {
