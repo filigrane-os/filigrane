@@ -21,7 +21,7 @@ PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
 setting() { fili-receive settings 2>/dev/null | sed -n "s/^$1=//p"; }
 DEST="$(setting dir)"; [ -n "$DEST" ] || DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
 CONFIRM="$(setting confirm)"; MINUTES="$(setting minutes)"
-ME="$(setting name)"; [ -n "$ME" ] || ME=filigrane
+ME="$(setting name)"; [ -n "$ME" ] || ME=FILIGRANE
 FRPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-receive"
 LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
 export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
@@ -112,6 +112,7 @@ peers)
     ;;
 send | send-files)
     cmd="$1"; proto="$2"; id="$3"; name="$4"
+    export LSEND_ALIAS="$ME"
     r="$(why "$proto")"
     [ -z "$r" ] || { notify "$(t '%s unavailable: %s' "$proto" "$r")"; exit 1; }
     if [ "$cmd" = send ]; then

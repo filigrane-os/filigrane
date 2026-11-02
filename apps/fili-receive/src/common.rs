@@ -33,7 +33,7 @@ pub fn parse_settings(text: &str) -> Settings {
         dir: env::var("XDG_DOWNLOAD_DIR").ok().filter(|d| !d.is_empty()).unwrap_or_else(|| format!("{}/Downloads", home())),
         always: false,
         minutes: 0,
-        name: "filigrane".into(),
+        name: "FILIGRANE".into(),
     };
     for line in text.lines() {
         let line = line.split('#').next().unwrap_or("").trim();

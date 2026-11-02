@@ -1,5 +1,18 @@
+diff --git a/crates/cli/src/commands/scan.rs b/crates/cli/src/commands/scan.rs
+index d7bcd37..4f01924 100644
+--- a/crates/cli/src/commands/scan.rs
++++ b/crates/cli/src/commands/scan.rs
+@@ -35,7 +35,7 @@ pub async fn run(
+     let registry = PeerRegistry::new();
+ 
+     let announcement = MulticastAnnouncement::new(
+-        "lsend-scanner",
++        &std::env::var("LSEND_ALIAS").ok().filter(|a| !a.is_empty()).unwrap_or_else(|| "FILIGRANE".to_string()),
+         "SCANNER_TEMP_FP",
+         53317,
+         ProtocolType::Https,
 diff --git a/crates/cli/src/commands/send.rs b/crates/cli/src/commands/send.rs
-index dd3a900..8653315 100644
+index dd3a900..fbc8ed4 100644
 --- a/crates/cli/src/commands/send.rs
 +++ b/crates/cli/src/commands/send.rs
 @@ -9,7 +9,7 @@ use crate::tls_client::{create_pinned_client, create_probe_client};
@@ -11,9 +24,15 @@ index dd3a900..8653315 100644
      ProtocolType, RegisterDto,
  };
  use sha2::{Digest, Sha256};
-@@ -164,7 +164,7 @@ pub async fn run(
+@@ -160,11 +160,11 @@ pub async fn run(
+     }
+ 
+     let our_info = RegisterDto {
+-        alias: "lsend-cli".to_string(),
++        alias: std::env::var("LSEND_ALIAS").ok().filter(|a| !a.is_empty()).unwrap_or_else(|| "FILIGRANE".to_string()),
          version: "2.0".to_string(),
-         device_model: Some("CLI Utility".to_string()),
+-        device_model: Some("CLI Utility".to_string()),
++        device_model: Some("FILIGRANE".to_string()),
          device_type: Some(DeviceType::Headless),
 -        fingerprint: "LSEND_CLI_CLIENT_FP".to_string(),
 +        fingerprint: crate::tls_client::client_fingerprint(),
