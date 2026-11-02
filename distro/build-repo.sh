@@ -12,7 +12,8 @@
 # --app NOM: ne construit que ce paquet (NOM = dossier de apps/), sans les méta-paquets: itération rapide.
 # FILI_TARGET_DIR: dossier cible de cargo, à garder entre deux appels pour ne pas tout recompiler
 # (par défaut ~/.cache/filigrane-apps, celui de bootstrap.sh).
-# Un paquet déjà présent à la même version n'est pas reconstruit, sauf si l'outil a des modifications non commitées.
+# Un outil déjà présent à la même version n'est pas reconstruit, sauf s'il a des modifications non commitées.
+# FILI_REUSE=1: même règle pour tous les paquets, méta-paquets compris (CI de publication, voir .github/workflows/repo.yml).
 #
 # Signature (dépôt publié en ligne): XBPS_PRIVKEY=<clé RSA PEM> distro/build-repo.sh. Un dépôt local (ISO) peut rester non signé.
 set -euo pipefail
@@ -42,6 +43,9 @@ read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || tru
 
 create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [options xbps-create]
     local name="$1" ver="$2" arch="$3" desc="$4" deps="$5" dest="$6"; shift 6
+    # FILI_REUSE=1 (CI de publication): un paquet déjà là à cette version reste tel quel, pour que son empreinte
+    # dans l'index reste celle du fichier déjà en ligne
+    if [ -n "${FILI_REUSE:-}" ] && [ -f "$OUT/$name-$ver.$arch.xbps" ]; then echo "$name-$ver.$arch"; return 0; fi
     rm -f "$OUT/$name-$ver.$arch.xbps"
     (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-$ver" -s "$desc" -D "$deps" \
         -H "$DISTRO_HOMEPAGE" -l MIT -m "$DISTRO" "$@" "$dest")
