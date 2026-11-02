@@ -94,3 +94,4 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 | alerte / erreur / succès | tout le module prend `sable` / `cendre` / `sauge`, plus un mot en capitales |
 
 Le survol n'est jamais le seul moyen d'accéder à une information ou une action. **[Apple]**
+- Thème de fili-file personnalisable: défauts dans `apps/fili-file/theme.toml` (clés en anglais; `[theme]` commun, `[theme.dark]` / `[theme.light]` par mode, `[theme.accents]`), surchargés clé par clé par `~/.config/filigrane/theme.toml` (global) puis `~/.config/filigrane/fili-file.toml`. Un test garde les défauts identiques à `FiliTheme.qml` du shell. Les `border.color`/`border.width` passent par `FiliTheme.border`/`borderWidth`.

@@ -33,3 +33,17 @@
 
 # Monter tout seul les clés USB, cartes SD et disques externes à leur branchement (programme fili-automount, lancé avec la session)
 # automount = true
+
+# Thème (couleurs, rayons, bordures, espacements, polices), en anglais, par mode clair / sombre.
+# Les défauts sont dans apps/fili-file/theme.toml (toutes les clés y sont commentées). Ajouter ici seulement ce qui change:
+# [theme]               # les deux modes
+# radius_control = 8
+# border_width = 1
+# [theme.dark]
+# background = "#101418"
+# [theme.light]
+# accent = "#336699"
+# [theme.accents]       # teintes pour `fili-theme accent <nom>`: [sombre, sombre vif, clair, clair vif]
+# sauge = ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"]
+# Pour changer toutes les applications Filigrane d'un coup: ~/.config/filigrane/theme.toml (mêmes sections);
+# ce fichier-ci passe devant.
