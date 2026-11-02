@@ -26,7 +26,7 @@ Pour une archive, `fili-archive` (jamais `zip`/`tar`/`7z` à la main): il n'écr
 
 | Besoin | Commande |
 | --- | --- |
-| Compresser un ou plusieurs fichiers ou dossiers | `fili-archive pack [-f zip\|7z\|tar.gz\|tar.xz\|tar.zst] [-o SORTIE] CHEMIN...` (zip par défaut, à côté des fichiers) |
+| Compresser un ou plusieurs fichiers ou dossiers | `fili-archive pack [-f zip\|7z\|tar.gz\|tar.xz\|tar.zst] [-l fast\|normal\|best] [--no-hidden] [-o SORTIE] CHEMIN...` (zip par défaut, niveau normal, à côté des fichiers; `-q`: sans transaction ni notification, pour Casier qui a son panneau « Compresser… » et son propre défaire) |
 | Extraire | `fili-archive unpack [-o DOSSIER] ARCHIVE...` (dans un dossier à part, à côté de l'archive) |
 | Voir le contenu | `fili-archive list ARCHIVE` |
 
