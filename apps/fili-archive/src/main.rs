@@ -1,6 +1,8 @@
 // fili-archive: compresser et décompresser un ou plusieurs fichiers, sans fenêtre. Délègue à tar, zip, 7z (déjà installés).
 //
-//   fili-archive pack [-f FORMAT] [-o SORTIE] FICHIER...   crée une archive à côté des fichiers (zip par défaut)
+//   fili-archive pack [-f FORMAT] [-l fast|normal|best] [--no-hidden] [-q] [-o SORTIE] FICHIER...
+//                                                          crée une archive à côté des fichiers (zip par défaut)
+//     -q: ni transaction ni notification (fili-file, qui a son panneau, son annulation et son propre « défaire »)
 //   fili-archive unpack [-o DOSSIER] ARCHIVE...            extrait à côté de l'archive (ou dans DOSSIER)
 //   fili-archive open ARCHIVE...                           comme unpack (association de fichiers, fili-archive.desktop)
 //   fili-archive list ARCHIVE                              contenu de l'archive
@@ -56,10 +58,11 @@ fn unique(dir: &Path, stem: &str, ext: &str) -> PathBuf {
 }
 
 // Lance un programme, stdin fermé (pas de question de mot de passe qui bloque); l'erreur porte la fin de sa sortie d'erreur
-fn run(program: &str, args: &[OsString], cwd: &Path) -> Result<(), String> {
+fn run(program: &str, args: &[OsString], cwd: &Path, envs: &[(&str, String)]) -> Result<(), String> {
     let mut child = Command::new(program)
         .args(args)
         .current_dir(cwd)
+        .envs(envs.iter().map(|(k, v)| (*k, v.as_str())))
         .env("ZSTD_NBTHREADS", "0")
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -92,22 +95,33 @@ fn os(s: &str) -> OsString {
     OsString::from(s)
 }
 
+const USAGE_PACK: &str = "usage: fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [-q] [-o OUT] FILE...";
+
 // ---- pack ----------------------------------------------------------------------------------------------
 
 fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
     let (mut format, mut out, mut items) = (None::<String>, None::<PathBuf>, Vec::new());
+    let (mut level, mut skip_hidden) = ("normal".to_string(), false);
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
             "-f" | "--format" => format = Some(it.next().ok_or("-f needs a format")?.to_lowercase()),
             "-o" | "--output" => out = Some(PathBuf::from(it.next().ok_or("-o needs a file name")?)),
+            "-l" | "--level" => {
+                level = it.next().ok_or("-l needs a level")?.to_lowercase();
+                if !matches!(level.as_str(), "fast" | "normal" | "best") {
+                    return Err(format!("unknown level “{level}” (fast, normal, best)"));
+                }
+            }
+            "--no-hidden" => skip_hidden = true,
+            "-q" | "--quiet" => {} // lu par main
             "--" => items.extend(it.by_ref().map(PathBuf::from)),
             s if s.starts_with('-') && s.len() > 1 => return Err(format!("unknown option {s}")),
             s => items.push(PathBuf::from(s)),
         }
     }
     if items.is_empty() {
-        return Err("nothing to compress (usage: fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-o OUT] FILE...)".into());
+        return Err(USAGE_PACK.into());
     }
     let items: Vec<PathBuf> =
         items.iter().map(|p| std::path::absolute(p).map_err(|e| e.to_string())).collect::<Result<_, _>>()?;
@@ -179,14 +193,27 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
     let tmp = dir.join(format!(".{}.{}.part.{fmt}", file_name(&dest), std::process::id()));
     let result = (|| {
         let mut a: Vec<OsString> = Vec::new();
+        let mut envs: Vec<(&str, String)> = Vec::new();
+        let lv = |fast: &str, normal: &str, best: &str| match level.as_str() {
+            "fast" => fast.to_string(),
+            "best" => best.to_string(),
+            _ => normal.to_string(),
+        };
         let program = match fmt.as_str() {
             "zip" => {
-                a.extend([os("-q"), os("-r"), os("-y"), tmp.clone().into_os_string()]);
+                a.extend([os("-q"), os("-r"), os("-y"), os(&lv("-1", "-6", "-9")), tmp.clone().into_os_string()]);
                 a.extend(rels.iter().map(|r| os(&format!("./{r}"))));
+                if skip_hidden {
+                    a.extend([os("-x"), os("*/.*")]);
+                }
                 "zip"
             }
             "7z" => {
-                a.extend([os("a"), os("-y"), os("-bd"), os("-snl"), tmp.clone().into_os_string()]);
+                a.extend([os("a"), os("-y"), os("-bd"), os("-snl"), os(&lv("-mx=1", "-mx=5", "-mx=9"))]);
+                if skip_hidden {
+                    a.push(os("-xr!.*"));
+                }
+                a.push(tmp.clone().into_os_string());
                 a.extend(rels.iter().map(|r| os(&format!("./{r}"))));
                 "7z"
             }
@@ -196,16 +223,24 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
                     "tar.xz" => "-cJf",
                     _ => "--zstd",
                 };
+                if skip_hidden {
+                    a.push(os("--exclude=.*"));
+                }
                 a.push(os(flag));
                 if flag == "--zstd" {
                     a.push(os("-cf"));
+                }
+                match fmt.as_str() {
+                    "tar.gz" => envs.push(("GZIP", lv("-1", "-6", "-9"))),
+                    "tar.xz" => envs.push(("XZ_OPT", lv("-1", "-6", "-9"))),
+                    _ => envs.push(("ZSTD_CLEVEL", lv("1", "3", "19"))),
                 }
                 a.extend([tmp.clone().into_os_string(), os("--")]);
                 a.extend(rels.iter().map(|r| os(r)));
                 "tar"
             }
         };
-        run(program, &a, &base)?;
+        run(program, &a, &base, &envs)?;
         fs::rename(&tmp, &dest).map_err(|e| e.to_string())
     })();
     if let Err(e) = result {
@@ -245,7 +280,7 @@ fn unpack_one(archive: &Path, into: Option<&Path>) -> Result<PathBuf, String> {
         ]
     };
     let program = if is_tar(ext) { "tar" } else { "7z" };
-    let done = run(program, &args, &dir).and_then(|()| {
+    let done = run(program, &args, &dir, &[]).and_then(|()| {
         let mut top: Vec<PathBuf> =
             fs::read_dir(&tmp).map_err(|e| e.to_string())?.filter_map(|e| e.ok()).map(|e| e.path()).collect();
         if top.is_empty() {
@@ -350,7 +385,8 @@ fn main() {
         std::process::exit(2);
     };
     let rest = &args[1..];
-    let tty = std::io::stdout().is_terminal();
+    let quiet = rest.iter().any(|a| a == "-q" || a == "--quiet");
+    let tty = quiet || std::io::stdout().is_terminal();
     let (done, errors, label, verb) = match cmd {
         "pack" | "compress" => match pack(rest) {
             Ok(p) => (p, vec![], "Compress", "Archive created"),
@@ -369,7 +405,7 @@ fn main() {
         },
         "-h" | "--help" | "help" => {
             println!(
-                "fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-o OUT] FILE...\nfili-archive unpack [-o FOLDER] ARCHIVE...\nfili-archive open ARCHIVE...\nfili-archive list ARCHIVE"
+                "fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [-q] [-o OUT] FILE...\nfili-archive unpack [-o FOLDER] ARCHIVE...\nfili-archive open ARCHIVE...\nfili-archive list ARCHIVE"
             );
             return;
         }
@@ -379,7 +415,9 @@ fn main() {
         }
     };
     if !done.is_empty() {
-        tx_made(&done, label);
+        if !quiet {
+            tx_made(&done, label);
+        }
         for p in &done {
             println!("{}", p.display());
         }
