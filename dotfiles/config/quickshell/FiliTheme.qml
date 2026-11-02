@@ -31,58 +31,134 @@ Singleton {
         onLoaded: theme.accent = text().trim()
         onLoadFailed: theme.accent = "default"
     }
+    // Réglages globaux facultatifs: ~/.config/filigrane/theme.toml (sections [theme], [theme.dark], [theme.light],
+    // [theme.accents]; clés en anglais, voir apps/fili-file/theme.toml). Relus dès qu'ils changent; les valeurs
+    // ci-dessous sont les défauts (un test les garde identiques à ceux de fili-file); une valeur invalide est ignorée.
+    property var parsed: ({})
+    readonly property var user: resolve(parsed, light)
+    FileView {
+        path: theme.testing ? "" : (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/theme.toml"
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: theme.parsed = theme.parseToml(text())
+        onLoadFailed: theme.parsed = ({})
+    }
+    function stripComment(line) {
+        let q = false;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '"')
+                q = !q;
+            else if (line[i] === "#" && !q)
+                return line.slice(0, i);
+        }
+        return line;
+    }
+    function parseToml(text) {
+        const out = {};
+        let sec = "";
+        for (const raw of text.split("\n")) {
+            const line = stripComment(raw).trim();
+            const h = /^\[(.+)\]$/.exec(line);
+            if (h) {
+                sec = h[1].trim();
+                continue;
+            }
+            const i = line.indexOf("=");
+            if (i < 0)
+                continue;
+            const k = line.slice(0, i).trim();
+            const v = line.slice(i + 1).trim();
+            if (!out[sec])
+                out[sec] = {};
+            out[sec][k] = v.startsWith("[") && v.endsWith("]") ? v.slice(1, -1).split(",").map(x => x.trim().replace(/^"|"$/g, "").trim()).filter(x => x) : v.replace(/^"|"$/g, "").trim();
+        }
+        return out;
+    }
+    // Clés valables pour le mode: [theme.<mode>] passe devant [theme]
+    function resolve(p, isLight) {
+        const out = {};
+        for (const sec of ["theme", isLight ? "theme.light" : "theme.dark"])
+            for (const k in (p[sec] || {}))
+                out[k] = p[sec][k];
+        return out;
+    }
+    // Valeur de l'utilisateur pour la clé, sinon def; le type de def décide de ce qui est valable (entier, couleur, texte)
+    function ov(key, def) {
+        const v = user[key];
+        if (typeof v !== "string")
+            return def;
+        if (typeof def === "number")
+            return /^\d+$/.test(v) ? Number(v) : def;
+        if (typeof def === "string" && def.charAt(0) === "#")
+            return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : def;
+        return v ? v : def;
+    }
+    // Teintes d'accentuation: celles de [theme.accents] (4 couleurs valides) complètent ou remplacent les défauts
+    function tones(base) {
+        const out = {};
+        for (const k in base)
+            out[k] = base[k];
+        const extra = parsed["theme.accents"] || {};
+        for (const k in extra)
+            if (Array.isArray(extra[k]) && extra[k].length === 4 && extra[k].every(c => /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(c)))
+                out[k] = extra[k];
+        return out;
+    }
     // FileView ne voit pas naître un fichier dans un dossier absent
     Component.onCompleted: if (!testing) Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")])
 
-    readonly property color nuit: light ? "#f3f1ec" : "#1c222b"
-    readonly property color nuitProfond: light ? "#f8f7f3" : "#181d25"
-    readonly property color nuit2: light ? "#e9e6df" : "#232b36"
-    readonly property color nuit3: light ? "#dfdbd2" : "#2d3744"
-    readonly property color nuit4: light ? "#cdc8bd" : "#3c4858"
-    readonly property color ardoise: "#5f7894"
-    readonly property color brume2: light ? "#4f5e70" : "#a9b8c8"
+    readonly property color nuit: ov("background", light ? "#f3f1ec" : "#1c222b")
+    readonly property color nuitProfond: ov("background_deep", light ? "#f8f7f3" : "#181d25")
+    readonly property color nuit2: ov("surface", light ? "#e9e6df" : "#232b36")
+    readonly property color nuit3: ov("surface_hover", light ? "#dfdbd2" : "#2d3744")
+    readonly property color nuit4: ov("surface_active", light ? "#cdc8bd" : "#3c4858")
+    readonly property color ardoise: ov("muted", "#5f7894")
+    readonly property color border: ov("border", light ? "#cdc8bd" : "#3c4858")
+    readonly property color brume2: ov("text_secondary", light ? "#4f5e70" : "#a9b8c8")
     // Couleur d'accentuation (fili-theme accent): [sombre, sombre vif, clair, clair vif]; défaut = brume en sombre, noir (nuit) en clair
-    readonly property var accentTones: ({ default: ["#dbe7f4", "#f3f1ec", "#1c222b", "#0f1319"], voile: ["#9dbbd6", "#b9d0e4", "#3f5a78", "#2f4a66"], ardoise: ["#7f9ab6", "#9ab2ca", "#4f6884", "#3d5470"], sauge: ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"], sable: ["#d2bf92", "#e0d1ab", "#80662b", "#654f1f"], cendre: ["#c98f93", "#d9a8ab", "#9a4f55", "#7d3c42"], brume: ["#dbe7f4", "#f3f1ec", "#4f5e70", "#1c222b"] })
+    readonly property var accentTones: tones({ default: ["#dbe7f4", "#f3f1ec", "#1c222b", "#0f1319"], voile: ["#9dbbd6", "#b9d0e4", "#3f5a78", "#2f4a66"], ardoise: ["#7f9ab6", "#9ab2ca", "#4f6884", "#3d5470"], sauge: ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"], sable: ["#d2bf92", "#e0d1ab", "#80662b", "#654f1f"], cendre: ["#c98f93", "#d9a8ab", "#9a4f55", "#7d3c42"], brume: ["#dbe7f4", "#f3f1ec", "#4f5e70", "#1c222b"] })
     readonly property var tone: accentTones[accent] || accentTones.default
-    readonly property color voile: light ? tone[2] : tone[0]
-    readonly property color voileVif: light ? tone[3] : tone[1]
-    readonly property color brume: light ? "#1c222b" : "#dbe7f4"
-    readonly property color sable: light ? "#80662b" : "#d2bf92"
-    readonly property color cendre: light ? "#9a4f55" : "#c98f93"
-    readonly property color sauge: light ? "#4a7354" : "#a3bfa8"
+    readonly property color voile: ov("accent", light ? tone[2] : tone[0])
+    readonly property color voileVif: ov("accent_bright", light ? tone[3] : tone[1])
+    readonly property color brume: ov("text", light ? "#1c222b" : "#dbe7f4")
+    readonly property color sable: ov("warning", light ? "#80662b" : "#d2bf92")
+    readonly property color cendre: ov("danger", light ? "#9a4f55" : "#c98f93")
+    readonly property color sauge: ov("success", light ? "#4a7354" : "#a3bfa8")
     // Couleur c avec l'opacité a (voiles translucides)
     function alpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a);
     }
 
-    readonly property string font: "Jost"
-    readonly property string mono: "JetBrains Mono"
+    readonly property string font: ov("font", "Jost")
+    readonly property string mono: ov("mono", "JetBrains Mono")
     // Échelle typographique (tokens.md): système 13, vue (listes) 12, petit (secondaire, infobulles, intertitres) 11,
     // étiquette 10; titre ≥ 18 (seul palier où le Light est permis); accent = Jost SemiBold 600
-    readonly property int size: 13
-    readonly property int sizeList: 12
-    readonly property int sizeSmall: 11
-    readonly property int sizeLabel: 10
-    readonly property int sizeTitle: 18
-    readonly property int weightAccent: Font.DemiBold
+    readonly property int size: ov("size", 13)
+    readonly property int sizeList: ov("size_list", 12)
+    readonly property int sizeSmall: ov("size_small", 11)
+    readonly property int sizeLabel: ov("size_label", 10)
+    readonly property int sizeTitle: ov("size_title", 18)
+    readonly property int weightAccent: ov("weight_accent", Font.DemiBold)
     // Rayons: repères et jauges 2, contrôles / lignes / fiches 6, fenêtres de couche 10
-    readonly property int radiusMark: 2
-    readonly property int radiusControl: 6
-    readonly property int radiusWindow: 10
+    readonly property int borderWidth: ov("border_width", 1)
+    readonly property int radiusMark: ov("radius_mark", 2)
+    readonly property int radiusControl: ov("radius_control", 6)
+    readonly property int radiusWindow: ov("radius_window", 10)
     // Espacements: éléments liés 4, entre contrôles 8, entre groupes 12, bord d'onglet 16, marge de panneau 20, alerte 24
-    readonly property int space1: 4
-    readonly property int space2: 8
-    readonly property int space3: 12
-    readonly property int space4: 16
-    readonly property int space5: 20
-    readonly property int space6: 24
-    readonly property int barHeight: 24
+    readonly property int space1: ov("space_1", 4)
+    readonly property int space2: ov("space_2", 8)
+    readonly property int space3: ov("space_3", 12)
+    readonly property int space4: ov("space_4", 16)
+    readonly property int space5: ov("space_5", 20)
+    readonly property int space6: ov("space_6", 24)
+    readonly property int barHeight: ov("bar_height", 24)
     // Rythme de la fili-bar, un seul pour tous les modules (pas d'écart propre aux groupes): marge de chaque module
     // (l'écart entre deux textes vaut donc 2 × pad), cellule minimale d'une icône seule (son trait fait ~10 px: de
     // même marge visible), espace entre l'étiquette (CPU, RAM) et sa valeur
-    readonly property int pad: 7
-    readonly property int iconCell: 24
-    readonly property int labelGap: 5
+    readonly property int pad: ov("pad", 7)
+    readonly property int iconCell: ov("icon_cell", 24)
+    readonly property int labelGap: ov("label_gap", 5)
     // Texte réduit à une seule icône (code privé Nerd Font / Fili Icons)
     function isIcon(t) {
         return /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF])$/.test(t);

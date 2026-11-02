@@ -185,6 +185,16 @@ ShellRoot {
                 expectClick("ai", L, "fili-chat toggle");
                 expectClick("ai", M, "fili-ai-session focus");
                 expectClick("ai", R, "fili-ai pick");
+                // Thème global (~/.config/filigrane/theme.toml): le mode passe devant [theme], valeur invalide ignorée, # entre guillemets
+                const keep = FiliTheme.parsed;
+                const was0 = FiliTheme.mode;
+                FiliTheme.mode = "dark";
+                FiliTheme.parsed = FiliTheme.parseToml("[theme]\nradius_control = 9 # px\nsize = big\ntext = \"#fff\"\n[theme.dark]\nradius_control = 3\n[theme.accents]\nsauge = [\"#111111\", \"#222222\", \"#333333\", \"#444444\"]\n");
+                ok(FiliTheme.radiusControl === 3 && FiliTheme.size === 13 && FiliTheme.brume.toString() === "#ffffff" && FiliTheme.accentTones.sauge[0] === "#111111",
+                   "theme global: mode devant [theme], valeur invalide ignorée, accents fusionnés", FiliTheme.radiusControl + " " + FiliTheme.size + " " + FiliTheme.brume);
+                FiliTheme.parsed = keep;
+                FiliTheme.mode = was0;
+                ok(FiliTheme.radiusControl === 6, "theme global: sans fichier, les défauts reviennent");
                 // Cloche: clic = fili-notification-center, clic droit = ne pas déranger (remis en l'état)
                 const was = FiliNotification.dnd;
                 act("notifications", L);

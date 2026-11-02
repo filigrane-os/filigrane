@@ -608,8 +608,8 @@ Singleton {
                     width: cards.cardWidth
                     height: Math.min(list.contentHeight, (am.screen?.height ?? 800) - FiliTheme.barHeight - 40 - y) + 8
                     color: FiliTheme.nuit
-                    border.color: FiliTheme.nuit4
-                    border.width: 1
+                    border.color: FiliTheme.border
+                    border.width: FiliTheme.borderWidth
                     radius: FiliTheme.radiusControl
                     // Ordonnée (dans la fenêtre) de la ligne i: le sous-menu s'aligne dessus
                     function rowY(i) {
