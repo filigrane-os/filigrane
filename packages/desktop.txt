@@ -63,6 +63,8 @@ rtkit
 # Lecteurs réseau de Casier (Se connecter au serveur…, Ctrl+K): gvfs (SFTP, WebDAV, FTP, NFS) et son backend SMB; démarrent à la demande par D-Bus, pas de daemon résident
 gvfs
 gvfs-smb
+# Téléphones et appareils photo MTP (Casier: apparaissent dans les emplacements, un clic les monte); 1 Mo, sans daemon
+gvfs-mtp
 # Archives (fili-archive): zip pour créer, 7zip pour 7z/rar
 zip
 7zip

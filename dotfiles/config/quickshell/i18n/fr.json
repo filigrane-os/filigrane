@@ -369,6 +369,8 @@
  "%1 on %2": "%1 sur %2",
  "Timed out": "Délai dépassé",
  "Enter an address such as smb://server/share or sftp://server": "Saisir une adresse comme smb://serveur/partage ou sftp://serveur",
+ "Portable device": "Appareil portable",
+ "Unlock the device and choose File Transfer (MTP) mode": "Déverrouille l'appareil et choisis le mode Transfert de fichiers (MTP)",
  "Mounted, but the folder was not found": "Monté, mais le dossier est introuvable",
  "Search": "Rechercher",
  "Compressing %1": "Compression de %1",
