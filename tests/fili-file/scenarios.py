@@ -438,6 +438,62 @@ def _():
     app.ok("dialog", "cancel")
 
 
+@test("aperçu rapide (Espace): lance quicklook sur l'élément courant, désactivé sans élément")
+def _():
+    log = T / "quicklook.log"
+    d = make("ql", {"a.txt": "", "b.txt": ""})
+    app.ok("goto", str(d))
+    app.ok("select", stdin=f"{d}/b.txt\n")
+    app.ok("action", "quick-look")
+    app.wait(lambda: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / "b.txt"), 3, "quicklook lancé sur b.txt")
+    acts = {a["name"]: a for a in app.ok("actions")["actions"]}
+    eq((acts["quick-look"]["label"], acts["quick-look"]["keys"], acts["quick-look"]["enabled"]), ("Quick Look", "Space", True))
+    e = make("ql-empty", {})
+    app.ok("goto", str(e))
+    app.fails("action", "quick-look", containing="disabled")
+
+
+@test("largeurs: colonnes bornées, remise à zéro, colonne inconnue")
+def _():
+    eq(app.state()["column_widths"], {}, "départ")
+    eq(app.ok("width", "column", "size", "200")["width"], 200)
+    eq(app.ok("width", "column", "modified", "10")["width"], 56, "minimum")
+    eq(app.ok("width", "column", "kind", "9999")["width"], 600, "maximum")
+    eq(app.state()["column_widths"], {"size": 200, "modified": 56, "kind": 600})
+    eq(app.ok("width", "column", "size", "reset")["width"], 96, "défaut de la colonne")
+    eq(sorted(app.state()["column_widths"]), ["kind", "modified"])
+    app.fails("width", "column", "nope", "100", containing="unknown column")
+    app.fails("width", "column", "size", "-3", containing="usage")
+
+
+@test("largeurs: panneau d'aperçu borné et remis à 300")
+def _():
+    eq(app.state()["preview_width"], 300, "défaut")
+    eq(app.ok("width", "preview", "420")["width"], 420)
+    eq(app.state()["preview_width"], 420)
+    eq(app.ok("width", "preview", "50")["width"], 160, "minimum")
+    eq(app.ok("width", "preview", "5000")["width"], 900, "maximum")
+    eq(app.ok("width", "preview", "reset")["width"], 300)
+
+
+@test("largeurs: gardées dans l'état et retrouvées après un redémarrage")
+def _():
+    global app
+    app.ok("width", "column", "size", "180")
+    app.ok("width", "preview", "380")
+    ui = T / "home" / ".local" / "state" / "filigrane" / "fili-file-ui"
+    eq(sorted(ui.read_text().split()), ["col.kind=600", "col.modified=56", "col.size=180", "preview=380"], "fichier d'état")
+    app.proc.terminate()
+    app.proc.wait(10)
+    app = App()
+    s = app.state()
+    eq((s["column_widths"], s["preview_width"]), ({"kind": 600, "modified": 56, "size": 180}, 380))
+    app.ok("width", "preview", "reset")
+    for c in ("size", "modified", "kind"):
+        app.ok("width", "column", c, "reset")
+    eq(ui.read_text(), "", "état nettoyé")
+
+
 @test("résultats: show remplace le dossier, goto les ferme")
 def _():
     d = make("res", {"a.txt": "", "sub/": ""})

@@ -48,7 +48,12 @@ done
 f="$d/$(echo "$type" | tr / _)"
 [ -e "$f" ] && cat "$f" || exit 1
 SH
-chmod +x "$T/bin/wl-copy" "$T/bin/wl-paste"
+# Faux quicklook: le vrai ouvre une fenêtre (foot, imv...) sur l'écran de l'utilisateur; celui-ci note son argument
+cat > "$T/bin/quicklook" <<'SH'
+#!/bin/sh
+printf '%s\n' "$1" >> "${FAKE_CLIP:?}/../quicklook.log"
+SH
+chmod +x "$T/bin/wl-copy" "$T/bin/wl-paste" "$T/bin/quicklook"
 
 env -i PATH="$T/bin:$PATH" HOME="$T/home" XDG_RUNTIME_DIR="$T/run" FAKE_CLIP="$T/clip" QT_QPA_PLATFORM=offscreen \
     FILI_LANG=en LANG=C.UTF-8 FILI_TEST_ROOT="$T" FILI_FILE_BIN="$BIN" FILI_VERBOSE="$([ "${1:-}" = -v ] && echo 1)" \
