@@ -35,6 +35,9 @@ if [ -n "$errors" ]; then
 fi
 # Le menu de fili-file dans la fili-bar suit les commandes et raccourcis de l'application
 python3 -I "$ROOT/tests/fili-shell/check-fili-file-menu.py" || exit 1
+# Casier (fili-file): instance sans affichage pilotée par ctl, dans un HOME temporaire (tests/fili-file/run.sh; recompiler
+# d'abord: le banc refuse un binaire plus ancien que les sources)
+"$ROOT/tests/fili-file/run.sh" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
 # Config live: chaque fichier QML du dépôt doit être lié dans ~/.config/quickshell (bootstrap.sh), sinon la session
