@@ -30,3 +30,6 @@
 
 # Nom sous lequel cet ordinateur apparaît chez les autres appareils (LocalSend)
 # receive_name = "FILIGRANE"
+
+# Monter tout seul les clés USB, cartes SD et disques externes à leur branchement (programme fili-automount, lancé avec la session)
+# automount = true

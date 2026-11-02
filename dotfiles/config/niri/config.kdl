@@ -304,6 +304,8 @@ spawn-sh-at-startup "while :; do quickshell; sleep 1; done"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
 // Profils d'écrans automatiques (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
+// Monte clés USB, cartes SD et disques externes à leur branchement (désactivable: automount = false dans ~/.config/filigrane/fili-file.toml)
+spawn-at-startup "sh" "-c" "$HOME/.local/bin/fili-automount"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
 // Notifications des webapps listées dans ~/.config/webapps/notify (WhatsApp...): indicateur de la barre, voir ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
