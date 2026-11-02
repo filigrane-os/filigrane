@@ -109,7 +109,8 @@ pub fn announce(title: &str, body: &str, dir: &str, files: &[String]) {
     let detached = |program: &str, arg: &str| {
         let _ = Command::new(program).arg(arg).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn().map(|mut c| std::thread::spawn(move || c.wait()));
     };
-    match ask_quiet(title, body, &actions, 12000).as_deref() {
+    // Le serveur de notifications du shell n'affiche pas d'icône: ✓ dans le titre
+    match ask_quiet(&format!("✓ {title}"), body, &actions, 12000).as_deref() {
         Some("open") => detached("xdg-open", &files[0]),
         Some("folder") => detached("fili-file", files.first().filter(|_| files.len() == 1).map_or(dir, String::as_str)),
         _ => {}

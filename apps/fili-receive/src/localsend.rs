@@ -164,7 +164,7 @@ fn finish(dir: &str, s: Session) {
         names.push(name);
     }
     if s.failed > 0 {
-        notify(&trf("Reception from %1 failed", &[&s.sender]), &summary(&names, size));
+        notify(&format!("✕ {}", trf("Reception from %1 failed", &[&s.sender])), &summary(&names, size));
     } else if !names.is_empty() {
         announce(&trf("Received from %1", &[&s.sender]), &summary(&names, size), dir, &names.iter().map(|n| format!("{dir}/{n}")).collect::<Vec<_>>());
     }

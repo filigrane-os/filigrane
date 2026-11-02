@@ -84,7 +84,7 @@ impl Agent {
                         return;
                     }
                     Some("error") => {
-                        notify(&trf("Reception from %1 failed", &[&sender]), &name);
+                        notify(&format!("✕ {}", trf("Reception from %1 failed", &[&sender])), &name);
                         return;
                     }
                     // Objet disparu: transfert terminé ou annulé sans état final lisible
