@@ -9,6 +9,7 @@
       "children": [
         { "label": "New window", "exec": "fili-file" },
         { "label": "New Tab", "keys": "Ctrl+T", "exec": "fili-file ctl --pid %pid action new-tab" },
+        { "label": "Move Tab to New Window", "exec": "fili-file ctl --pid %pid action detach-tab" },
         { "label": "New Folder", "keys": "Ctrl+Shift+N", "exec": "fili-file ctl --pid %pid action new-folder" },
         { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
         { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },

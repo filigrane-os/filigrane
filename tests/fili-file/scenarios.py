@@ -277,6 +277,28 @@ def _():
     app.ok("tab", "close", "1")
 
 
+@test("onglets: détacher un onglet l'ouvre dans une nouvelle fenêtre, sur son dossier")
+def _():
+    import signal
+    d = make("detach", {"a/": "", "b/": ""})
+    app.ok("goto", str(d / "a"))
+    app.ok("tab", "new", str(d / "b"))
+    before = set(SOCK_DIR.glob("*.sock"))
+    app.fails("tab", "detach", "9", containing="no such tab")
+    app.ok("action", "detach-tab")
+    s = app.state()
+    eq((s["tabs"], s["location"]), ([str(d / "a")], str(d / "a")), "l'onglet a quitté la fenêtre")
+    app.wait(lambda: len(set(SOCK_DIR.glob("*.sock")) - before) == 1, 20, "nouvelle fenêtre")
+    pid = int((set(SOCK_DIR.glob("*.sock")) - before).pop().stem)
+    try:
+        r = subprocess.run([BIN, "ctl", "--pid", str(pid), "state"], capture_output=True, text=True, timeout=20)
+        eq(json.loads(r.stdout)["state"]["location"], str(d / "b"), "dossier de la nouvelle fenêtre")
+    finally:
+        os.kill(pid, signal.SIGTERM)
+    app.fails("tab", "detach", containing="last tab")
+    app.fails("action", "detach-tab", containing="disabled")
+
+
 @test("affichage: liste/icônes, aperçu, tri")
 def _():
     app.ok("view", "icons")
