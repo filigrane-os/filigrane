@@ -34,6 +34,16 @@ status() {
     if [ -n "$NID" ]; then NID="$(notify-send -a fili-share -p -r "$NID" "$(t 'Sharing')" "$1" 2>/dev/null)"
     else NID="$(notify-send -a fili-share -p "$(t 'Sharing')" "$1" 2>/dev/null)"; fi
 }
+# Résultat d'un envoi: notification neuve (remplacer l'étape en cours qui expire au même instant ne réaffiche rien),
+# l'étape en cours est fermée
+status_end() {
+    if [ -n "$NID" ]; then
+        gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications \
+            --method org.freedesktop.Notifications.CloseNotification "$NID" >/dev/null 2>&1
+        NID=""
+    fi
+    notify "$1"
+}
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
 
 # Raison de l'indisponibilité d'un protocole (vide = disponible)
@@ -153,7 +163,7 @@ send | send-files)
     bluetooth) bt_send "$id" "$@" ;;
     localsend) ls_send "$id" "$name" "$@" ;;
     esac
-    if [ $? -eq 0 ]; then status "$(t 'Sent to %s' "$name")"; else status "$(t 'Sending to %s failed' "$name")"; exit 1; fi
+    if [ $? -eq 0 ]; then status_end "$(t 'Sent to %s' "$name")"; else status_end "$(t 'Sending to %s failed' "$name")"; exit 1; fi
     ;;
 receive)
     proto="$2"
