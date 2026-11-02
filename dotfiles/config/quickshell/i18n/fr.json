@@ -389,6 +389,8 @@
  "Extract Here": "Extraire ici",
  "Compress": "Compresser",
  "Compress…": "Compresser…",
+ "%1 mounted": "%1 monté",
+ "Cannot mount %1": "Impossible de monter %1",
  "“%1” is protected by a password": "« %1 » est protégée par un mot de passe",
  "Wrong password. Try again.": "Mot de passe incorrect. Réessaie.",
  "Only zip and 7z archives can have a password.": "Seules les archives zip et 7z peuvent avoir un mot de passe.",
