@@ -5,6 +5,8 @@
 set -eu
 D="${1:-/tmp/casier-recette}"
 case "$D" in /tmp/*) ;; *) echo "dossier hors /tmp refusé: $D" >&2; exit 2 ;; esac
+# Le dossier en lecture seule d'une exécution précédente empêche sa propre suppression
+[ -d "$D" ] && chmod -R u+w "$D"
 rm -rf "$D"
 mkdir -p "$D/noms" "$D/gros" "$D/liens" "$D/archives" "$D/medias" "$D/lecture-seule" "$D/vide" "$D/destination" "$D/conflit/source" "$D/conflit/cible"
 
