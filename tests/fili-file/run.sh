@@ -53,8 +53,20 @@ cat > "$T/bin/quicklook" <<'SH'
 #!/bin/sh
 printf '%s\n' "$1" >> "${FAKE_CLIP:?}/../quicklook.log"
 SH
-chmod +x "$T/bin/wl-copy" "$T/bin/wl-paste" "$T/bin/quicklook"
+# Faux éditeur de texte par défaut (text/plain): un fichier vide s'ouvre avec lui, il note son argument
+cat > "$T/bin/fake-editor" <<'SH'
+#!/bin/sh
+printf '%s\n' "$1" >> "${FAKE_CLIP:?}/../editor.log"
+SH
+mkdir -p "$T/home/.local/share/applications" "$T/home/.config"
+printf '[Desktop Entry]\nType=Application\nName=Fake Editor\nExec=%s/bin/fake-editor %%f\nMimeType=text/plain;\n' "$T" > "$T/home/.local/share/applications/fili-test-editor.desktop"
+printf '[Default Applications]\ntext/plain=fili-test-editor.desktop\n' > "$T/home/.config/mimeapps.list"
+chmod +x "$T/bin/wl-copy" "$T/bin/wl-paste" "$T/bin/quicklook" "$T/bin/fake-editor"
 
-env -i PATH="$T/bin:$PATH" HOME="$T/home" XDG_RUNTIME_DIR="$T/run" FAKE_CLIP="$T/clip" QT_QPA_PLATFORM=offscreen \
+# Montages factices: la vue Corbeille regroupe les corbeilles des volumes montés, et « Vider » les vide toutes. Le banc ne
+# connaît que /dev/shm (corbeille d'un autre volume que le HOME de test), jamais les vrais volumes de la machine.
+printf '22 1 0:20 / /dev/shm rw - tmpfs tmpfs rw\n' > "$T/mountinfo"
+
+env -i FILI_MOUNTINFO="$T/mountinfo" PATH="$T/bin:$PATH" HOME="$T/home" XDG_RUNTIME_DIR="$T/run" FAKE_CLIP="$T/clip" QT_QPA_PLATFORM=offscreen \
     FILI_LANG=en LANG=C.UTF-8 FILI_TEST_ROOT="$T" FILI_FILE_BIN="$BIN" FILI_VERBOSE="$([ "${1:-}" = -v ] && echo 1)" \
     timeout 240 python3 -I "$ROOT/tests/fili-file/scenarios.py"

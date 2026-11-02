@@ -19,6 +19,7 @@
         { "label": "Nearby", "keys": "Ctrl+Shift+R", "exec": "fili-file ctl --pid %pid action nearby" },
         { "sep": true },
         { "label": "Move to Trash", "keys": "Delete", "exec": "fili-file ctl --pid %pid action trash" },
+        { "label": "Put Back", "exec": "fili-file ctl --pid %pid action put-back" },
         { "label": "Empty Trash", "keys": "Ctrl+Shift+Delete", "exec": "fili-file ctl --pid %pid action empty-trash" },
         { "sep": true },
         { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-file.toml" },
