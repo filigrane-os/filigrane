@@ -31,7 +31,8 @@ jobs:
       - name: Clé de signature présente
         env:
           XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
-        run: test -n "$XBPS_PRIVKEY" || { echo '::error::secret XBPS_PRIVKEY absent: pas de publication non signée'; exit 1; }
+        run: |
+          test -n "$XBPS_PRIVKEY" || { echo '::error::secret XBPS_PRIVKEY absent, pas de publication non signee'; exit 1; }
       - uses: actions/cache@v4
         with:
           path: .cache/cargo-target
