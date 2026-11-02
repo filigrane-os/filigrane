@@ -172,8 +172,8 @@ Singleton {
         implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56)) + (btns.length > 0 ? 40 : 0)
         color: FiliTheme.nuit
         radius: FiliTheme.radiusWindow
-        border.width: 1
-        border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.nuit4
+        border.width: FiliTheme.borderWidth
+        border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.border
         clip: true
 
         Timer {

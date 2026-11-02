@@ -248,7 +248,7 @@ ColumnLayout {
                         width: view.unit - 2; height: view.unit - 2
                         radius: FiliTheme.radiusControl
                         color: keyArea.pressed ? FiliTheme.nuit4 : keyArea.containsMouse ? FiliTheme.nuit3 : "transparent"
-                        border { color: FiliTheme.nuit4; width: 1 }
+                        border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                         Text {
                             anchors.centerIn: parent
                             text: key.lv[1] || (key.lv[0] !== "NoSymbol" ? "◌" : "")
@@ -282,7 +282,7 @@ ColumnLayout {
                 width: modelData.w * view.unit - 2; height: view.unit - 2
                 radius: FiliTheme.radiusControl
                 color: on ? FiliTheme.voile : modAreaCol.containsMouse ? FiliTheme.nuit3 : "transparent"
-                border { color: FiliTheme.nuit4; width: 1 }
+                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                 Text {
                     anchors.centerIn: parent
                     text: modelData.label

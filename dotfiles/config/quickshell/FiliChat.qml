@@ -625,7 +625,7 @@ Singleton {
                 anchors.fill: parent
                 anchors.margins: FiliTheme.space1
                 color: FiliTheme.nuit
-                border { color: FiliTheme.nuit4; width: 1 }
+                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                 radius: FiliTheme.radiusWindow
                 clip: true
                 // Info-bulle d'un onglet de session (titre entier et application liée)
@@ -1101,7 +1101,7 @@ Singleton {
                                 Layout.preferredHeight: 28
                                 radius: FiliTheme.radiusControl
                                 color: instHit.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
-                                border { color: FiliTheme.nuit4; width: 1 }
+                                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                                 Text {
                                     id: instLabel
                                     anchors.centerIn: parent
@@ -1354,7 +1354,7 @@ Singleton {
                             anchors.fill: parent
                             radius: FiliTheme.radiusWindow
                             color: FiliTheme.nuit2
-                            border { color: FiliTheme.nuit4; width: 1 }
+                            border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                         }
                         Column {
                             id: cCol
@@ -1416,7 +1416,7 @@ Singleton {
                     height: tipLabel.implicitHeight + 2 * FiliTheme.space1
                     radius: FiliTheme.radiusControl
                     color: FiliTheme.nuit3
-                    border { color: FiliTheme.nuit4; width: 1 }
+                    border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                     Text {
                         id: tipLabel
                         anchors { fill: parent; margins: FiliTheme.space1; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }

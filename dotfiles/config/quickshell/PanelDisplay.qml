@@ -246,7 +246,7 @@ ColumnLayout {
                 radius: FiliTheme.radiusMark
                 color: picked ? FiliTheme.nuit4 : FiliTheme.nuit
                 border.color: picked ? FiliTheme.voile : FiliTheme.ardoise
-                border.width: 1
+                border.width: FiliTheme.borderWidth
                 Text {
                     anchors.centerIn: parent
                     width: parent.width - 4

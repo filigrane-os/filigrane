@@ -163,8 +163,8 @@ Singleton {
                 width: 340
                 height: (loader.item ? loader.item.implicitHeight : 0) + 28
                 color: FiliTheme.nuit
-                border.color: FiliTheme.nuit4
-                border.width: 1
+                border.color: FiliTheme.border
+                border.width: FiliTheme.borderWidth
                 radius: FiliTheme.radiusWindow
                 Loader {
                     id: loader

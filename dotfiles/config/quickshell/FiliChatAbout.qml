@@ -96,7 +96,7 @@ Singleton {
                 width: Math.min(parent.width - 48, 400)
                 height: Math.min(parent.height - 48, content.implicitHeight + 48)
                 color: FiliTheme.nuit
-                border { color: FiliTheme.nuit4; width: 1 }
+                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                 radius: FiliTheme.radiusWindow
                 clip: true
                 MouseArea { anchors.fill: parent }

@@ -9,7 +9,7 @@ Rectangle {
     anchors { fill: target; margins: -gap }
     radius: (target.radius ?? FiliTheme.radiusControl) + gap
     color: "transparent"
-    border.width: 1
+    border.width: FiliTheme.borderWidth
     border.color: FiliTheme.voile
     visible: shown && FiliShell.keyNav
 }
