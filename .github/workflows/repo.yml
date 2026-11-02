@@ -6,7 +6,7 @@ name: Dépôt xbps
 # Secret requis: XBPS_PRIVKEY (clé RSA PEM). Sans lui, rien n'est publié (jamais de dépôt non signé en ligne).
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
     paths: ['apps/**', 'packages/**', 'distro/build-repo.sh', 'distro/distro.env', '.github/workflows/repo.yml']
   workflow_dispatch:
 
