@@ -7,6 +7,11 @@ use std::{collections::HashMap, env, fmt::Display, fs, sync::OnceLock};
 static CATALOG: OnceLock<HashMap<String, String>> = OnceLock::new();
 
 fn lang() -> String {
+    // Les tests attendent les textes anglais du code, quelle que soit la langue choisie par l'utilisateur (le catalogue
+    // est figé par le premier appel: un test qui ne pose pas FILI_LANG ferait échouer les autres)
+    if cfg!(test) {
+        return "en".into();
+    }
     // Choix de l'utilisateur (fili-lang), après FILI_LANG; le fili-shell relance bar-stats quand il change
     let state = env::var("XDG_STATE_HOME").unwrap_or_else(|_| format!("{}/.local/state", env::var("HOME").unwrap_or_default()));
     let choice = fs::read_to_string(format!("{state}/filigrane/locale")).map(|s| s.trim().to_string()).unwrap_or_default();
