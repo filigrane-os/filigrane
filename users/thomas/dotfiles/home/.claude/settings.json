@@ -170,9 +170,10 @@
     "type": "command",
     "command": "fili-ai-session statusline"
   },
-  "skipDangerousModePermissionPrompt": true,
-  "theme": "auto",
   "enabledPlugins": {
     "rust-analyzer-lsp@claude-plugins-official": true
-  }
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "auto",
+  "agentPushNotifEnabled": true
 }
