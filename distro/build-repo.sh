@@ -1,10 +1,18 @@
 #!/bin/bash
 # Construit le dépôt xbps de la distribution dans distro/out/repo (sans root):
-#   <distro>-apps    les outils maison de apps/ compilés en release (/usr/bin): plus besoin de cargo sur la machine
+#   <distro>-<app>   un paquet par outil de apps/ (Rust, binaire en release dans /usr/bin): plus besoin de cargo sur la machine.
+#                    Version = celle de Cargo.toml, révision _N = nombre de commits touchant apps/<app> (donc une mise à jour
+#                    par changement de l'outil, sans bump à la main). Dépendances et description: apps/<app>/package.env
+#   <distro>-apps    méta-paquet qui dépend de tous les outils (bootstrap.sh et <distro>-desktop s'appuient dessus)
 #   <distro>-<liste> un méta-paquet par packages/<liste>.txt (base, desktop, dev, vm, baremetal, cpu-*, gpu-*...):
 #                    ajouter un paquet à une liste le fait arriver chez tout le monde par `xbps-install -Su`
 #
-#   distro/build-repo.sh [--arch x86_64]
+#   distro/build-repo.sh [--arch x86_64] [--app NOM]
+#
+# --app NOM: ne construit que ce paquet (NOM = dossier de apps/), sans les méta-paquets: itération rapide.
+# FILI_TARGET_DIR: dossier cible de cargo, à garder entre deux appels pour ne pas tout recompiler
+# (par défaut ~/.cache/filigrane-apps, celui de bootstrap.sh).
+# Un paquet déjà présent à la même version n'est pas reconstruit, sauf si l'outil a des modifications non commitées.
 #
 # Signature (dépôt publié en ligne): XBPS_PRIVKEY=<clé RSA PEM> distro/build-repo.sh. Un dépôt local (ISO) peut rester non signé.
 set -euo pipefail
@@ -13,56 +21,99 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=distro/distro.env
 source "$ROOT/distro/distro.env"
 ARCH="$(uname -m)"
-[ "${1:-}" = --arch ] && ARCH="${2:?architecture manquante}"
+ONLY=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --arch) ARCH="${2:?architecture manquante}"; shift 2 ;;
+        --app) ONLY="${2:?nom de outil manquant}"; shift 2 ;;
+        *) echo "usage: distro/build-repo.sh [--arch ARCH] [--app NOM]" >&2; exit 2 ;;
+    esac
+done
 OUT="$ROOT/distro/out/repo"
+TARGET="${FILI_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Version: date et heure du dernier commit (croît à chaque changement poussé), _1 = révision xbps
+# Version des méta-paquets: date et heure du dernier commit (croît à chaque changement poussé), _1 = révision xbps
 VERSION="0.$(git -C "$ROOT" log -1 --format=%cd --date=format:%Y%m%d.%H%M 2>/dev/null || date +%Y%m%d.%H%M)"
 mkdir -p "$OUT"
 
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
 
-create() { # create NOM ARCH "description" "dépendances" DESTDIR [options xbps-create]
-    local name="$1" arch="$2" desc="$3" deps="$4" dest="$5"; shift 5
-    rm -f "$OUT/$name-$VERSION"_1."$arch".xbps
-    (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-${VERSION}_1" -s "$desc" -D "$deps" \
+create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [options xbps-create]
+    local name="$1" ver="$2" arch="$3" desc="$4" deps="$5" dest="$6"; shift 6
+    rm -f "$OUT/$name-$ver.$arch.xbps"
+    (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-$ver" -s "$desc" -D "$deps" \
         -H "$DISTRO_HOMEPAGE" -l MIT -m "$DISTRO" "$@" "$dest")
-    echo "$name-${VERSION}_1.$arch"
+    echo "$name-$ver.$arch"
 }
 
-echo "==> $DISTRO-apps (apps/*, Rust)"
-command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }
-dest="$WORK/apps"
-mkdir -p "$dest/usr/bin"
-for manifest in "$ROOT"/apps/*/Cargo.toml; do
-    name="$(basename "$(dirname "$manifest")")"
-    (cd "$(dirname "$manifest")" && CARGO_TARGET_DIR="$WORK/target" cargo build -q --release --locked --manifest-path "$manifest")
-    install -m 755 "$WORK/target/release/$name" "$dest/usr/bin/$name"
-done
-# fili-file: Qt Quick (déjà là pour Quickshell), qt6-svg pour les icônes
-create "$DISTRO-apps" "$ARCH" "Outils natifs de $DISTRO (barre, flou du menu, budget ressources, explorateur)" \
-    "glibc>=2.39_1 libgcc>=0 qt6-declarative>=0 qt6-svg>=0" "$dest" \
-    --shlib-requires "libc.so.6 libgcc_s.so.1 libstdc++.so.6 libQt6Core.so.6 libQt6Gui.so.6 libQt6Qml.so.6"
+# Nom du paquet: le dossier de apps/, préfixé par <distro>- s'il ne l'est pas (budget -> fili-budget, évite les collisions avec Void)
+pkg_name() { case "$1" in "$DISTRO"-*) echo "$1" ;; *) echo "$DISTRO-$1" ;; esac; }
 
-echo "==> Méta-paquets (packages/*.txt)"
-empty="$WORK/empty"
-mkdir -p "$empty"
-for list in "$ROOT"/packages/*.txt; do
-    l="$(basename "$list" .txt)"
-    [ "$l" = restricted ] && continue  # licences sans redistribution: xbps-src en local
-    deps="$(read_list "$list" | sed 's/$/>=0/' | tr '\n' ' ')"
-    [ "$l" = desktop ] && deps="$deps $DISTRO-apps>=${VERSION}_1"
-    create "$DISTRO-$l" noarch "$DISTRO: paquets de la liste $l" "$deps" "$empty"
-done
+# Version xbps d'un outil: <version Cargo>_<commits qui touchent apps/<app>> (+1 si modifié et non commité)
+app_version() {
+    local app="$1" v rev
+    v="$(sed -n 's/^version *= *"\(.*\)".*/\1/p' "$ROOT/apps/$app/Cargo.toml" | head -1)"
+    rev="$(git -C "$ROOT" rev-list --count HEAD -- "apps/$app" 2>/dev/null || echo 0)"
+    [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && rev=$((rev + 1))
+    [ "$rev" -ge 1 ] || rev=1
+    echo "${v}_${rev}"
+}
+
+build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
+    local app="$1" dir="$ROOT/apps/$1" pkg ver dest dirty=""
+    pkg="$(pkg_name "$app")"
+    ver="$(app_version "$app")"
+    echo "$pkg" >>"$WORK/apps.list"
+    [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && dirty=1
+    if [ -z "$dirty" ] && [ -f "$OUT/$pkg-$ver.$ARCH.xbps" ]; then
+        echo "==> $pkg-$ver: déjà construit"; return 0
+    fi
+    echo "==> $pkg-$ver"
+    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS. Défaut: un binaire Rust qui ne lie que la libc.
+    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1"
+    # shellcheck disable=SC1091
+    [ -f "$dir/package.env" ] && source "$dir/package.env"
+    # Depuis le dossier de l'outil: son .cargo/config.toml compte (QMAKE de fili-file)
+    (cd "$dir" && CARGO_TARGET_DIR="$TARGET" cargo build -q --release --locked --manifest-path "$dir/Cargo.toml")
+    dest="$WORK/$app"
+    mkdir -p "$dest/usr/bin"
+    install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
+    create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
+}
+
+command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }
+if [ -n "$ONLY" ]; then
+    [ -f "$ROOT/apps/$ONLY/Cargo.toml" ] || { echo "apps/$ONLY n'est pas un outil Rust du dépôt" >&2; exit 1; }
+    build_app "$ONLY"
+else
+    for manifest in "$ROOT"/apps/*/Cargo.toml; do
+        build_app "$(basename "$(dirname "$manifest")")"
+    done
+
+    echo "==> $DISTRO-apps (méta-paquet des outils)"
+    empty="$WORK/empty"
+    mkdir -p "$empty"
+    create "$DISTRO-apps" "${VERSION}_1" noarch "Outils natifs de $DISTRO (barre, flou du menu, budget ressources, explorateur...)" \
+        "$(sed 's/$/>=0/' "$WORK/apps.list" | tr '\n' ' ')" "$empty" >/dev/null
+
+    echo "==> Méta-paquets (packages/*.txt)"
+    for list in "$ROOT"/packages/*.txt; do
+        l="$(basename "$list" .txt)"
+        [ "$l" = restricted ] && continue  # licences sans redistribution: xbps-src en local
+        deps="$(read_list "$list" | sed 's/$/>=0/' | tr '\n' ' ')"
+        [ "$l" = desktop ] && deps="$deps $DISTRO-apps>=${VERSION}_1"
+        create "$DISTRO-$l" "${VERSION}_1" noarch "$DISTRO: paquets de la liste $l" "$deps" "$empty"
+    done
+fi
 
 echo "==> Index"
 xbps-rindex -a "$OUT"/*.xbps >/dev/null
-xbps-rindex -r "$OUT" >/dev/null  # anciennes versions retirées de l'index...
-find "$OUT" -name "$DISTRO-*.xbps" ! -name "*-${VERSION}_1.*" -delete  # ...et du disque
+xbps-rindex -r "$OUT" >/dev/null  # entrées dont le fichier a disparu retirées de l'index...
+xbps-rindex -c "$OUT" >/dev/null  # ...et fichiers périmés (plus dans l'index) retirés du disque
 if [ -n "${XBPS_PRIVKEY:-}" ]; then
     xbps-rindex --sign --signedby "$DISTRO" --privkey "$XBPS_PRIVKEY" "$OUT"
     xbps-rindex --sign-pkg --privkey "$XBPS_PRIVKEY" "$OUT"/*.xbps
 fi
-echo "Dépôt: $OUT ($(find "$OUT" -name '*.xbps' | wc -l) paquets, version $VERSION)"
+echo "Dépôt: $OUT ($(find "$OUT" -name '*.xbps' | wc -l) paquets)"
