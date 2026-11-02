@@ -89,6 +89,10 @@ def eq(got, want, what=""):
         raise AssertionError(f"{what}: obtenu {got!r}, attendu {want!r}".strip(": "))
 
 
+class Skip(Exception):
+    """Le scénario ne peut pas s'exécuter ici (rendu « ok # SKIP » et dit pourquoi)."""
+
+
 app = None
 results = []
 
@@ -125,7 +129,7 @@ def _():
 def _():
     app.fails("action", "nope", containing="unknown action")
     app.fails("action", "empty-trash", containing="disabled")
-    app.fails("action", "copy", "foo", containing="takes no argument")
+    app.fails("action", "undo", "foo", containing="takes no argument")
     app.fails("goto", str(DATA / "missing"), containing="not found")
     app.fails("dialog", "cancel", containing="no dialog")
 
@@ -220,6 +224,24 @@ def _():
 
 # ---------------------------------------------------------------- onglets et affichage
 
+@test("fichiers cachés: le choix est gardé entre deux lancements")
+def _():
+    global app
+    app.ok("hidden", "on")
+    ui = T / "home" / ".local" / "state" / "filigrane" / "fili-file-ui"
+    assert "hidden=1" in ui.read_text().split(), ui.read_text()
+    app.proc.terminate()
+    app.proc.wait(10)
+    app = App()
+    eq(app.state()["hidden_shown"], True, "réouverture")
+    app.ok("hidden", "off")
+    assert "hidden=0" in ui.read_text().split(), ui.read_text()
+    app.proc.terminate()
+    app.proc.wait(10)
+    app = App()
+    eq(app.state()["hidden_shown"], False, "réouverture après décochage")
+
+
 @test("onglets: nouveau, changer, fermer, dernier onglet")
 def _():
     d = make("tabs", {"x/": ""})
@@ -234,6 +256,25 @@ def _():
     eq(len(app.state()["tabs"]), 1)
     app.fails("tab", "close", containing="last tab")
     app.fails("tab", "switch", "5", containing="no such tab")
+
+
+@test("onglets: réordonner garde l'onglet affiché")
+def _():
+    d = make("tabs2", {"a/": "", "b/": "", "c/": ""})
+    app.ok("goto", str(d / "a"))
+    app.ok("tab", "new", str(d / "b"))
+    app.ok("tab", "new", str(d / "c"))
+    s = app.state()
+    eq((s["tabs"], s["tab"]), ([str(d / "a"), str(d / "b"), str(d / "c")], 2))
+    app.ok("tab", "move", "0", "2")
+    s = app.state()
+    eq((s["tabs"], s["tab"], s["location"]), ([str(d / "b"), str(d / "c"), str(d / "a")], 1, str(d / "c")), "l'onglet affiché (c) suit")
+    app.ok("tab", "move", "2", "0")
+    s = app.state()
+    eq((s["tabs"], s["tab"]), ([str(d / "a"), str(d / "b"), str(d / "c")], 2))
+    app.fails("tab", "move", "0", "9", containing="no such tab")
+    app.ok("tab", "close", "2")
+    app.ok("tab", "close", "1")
 
 
 @test("affichage: liste/icônes, aperçu, tri")
@@ -401,6 +442,76 @@ def _():
     app.wait(lambda: not (trash / "b.txt").exists(), what="corbeille vidée")
 
 
+@test("corbeille d'un autre volume: regroupée dans la Corbeille, remise en place, vidée avec les autres")
+def _():
+    import shutil
+    import tempfile
+    shm = Path("/dev/shm")
+    uid = os.getuid()
+    leftover = shm / f".Trash-{uid}"
+    if not os.access(shm, os.W_OK) or os.stat(shm).st_dev == os.stat(T).st_dev or leftover.exists():
+        raise Skip("/dev/shm absent, sur le même volume que le test, ou déjà une corbeille")
+    d = Path(tempfile.mkdtemp(dir=shm, prefix="fili-file-test."))
+    try:
+        (d / "v.txt").write_text("volume")
+        app.ok("goto", str(d))
+        app.ok("select", stdin=f"{d}/v.txt\n")
+        app.ok("action", "trash")
+        app.wait(lambda: not (d / "v.txt").exists(), what="fichier à la corbeille du volume")
+        vtrash = leftover / "files" / "v.txt"
+        assert vtrash.exists(), "pas dans .Trash-UID du volume"
+        app.ok("goto", str(T / "home" / ".local" / "share" / "Trash" / "files"))
+        s = app.state()
+        assert s["in_trash"], s
+        # La Corbeille de Casier montre l'élément de l'autre volume (sélectionnable = présent dans la vue)
+        app.ok("select", stdin=f"{vtrash}\n")
+        app.ok("action", "put-back")
+        app.wait(lambda: (d / "v.txt").exists() and not vtrash.exists(), what="remis en place depuis la corbeille du volume")
+        eq((d / "v.txt").read_text(), "volume")
+        # Vider la corbeille vide aussi celle du volume
+        app.ok("goto", str(d))
+        app.ok("select", stdin=f"{d}/v.txt\n")
+        app.ok("action", "trash")
+        app.wait(lambda: vtrash.exists())
+        app.ok("goto", str(T / "home" / ".local" / "share" / "Trash" / "files"))
+        app.ok("action", "empty-trash")
+        app.ok("dialog", "accept")
+        app.wait(lambda: not vtrash.exists(), what="corbeille du volume vidée")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+        shutil.rmtree(leftover, ignore_errors=True)
+
+
+@test("fermer: refusé tant qu'une copie est en cours, accepté ensuite")
+def _():
+    d = make("busy", {"dst/": "", "tree/": ""})
+    for i in range(40):
+        sub = d / "tree" / f"d{i}"
+        sub.mkdir()
+        for j in range(700):
+            (sub / f"f{j}").write_bytes(b"")
+    app.ok("goto", str(d))
+    app.ok("select", stdin=f"{d}/tree\n")
+    app.ok("action", "copy")
+    app.ok("goto", str(d / "dst"))
+    app.ok("action", "paste")
+    caught = False
+    for _ in range(60):
+        if app.state()["tasks"]:
+            rc, _, raw = app.ctl("action", "close")
+            eq(rc, 0, "la commande close est acceptée")
+            s = app.state()
+            if s["tasks"]:
+                assert "operation is in progress" in s["notice"], s["notice"]
+                assert app.proc.poll() is None, "la fenêtre s'est fermée pendant la copie"
+                caught = True
+            break
+        time.sleep(0.05)
+    app.wait(lambda: not app.state()["tasks"] and (d / "dst" / "tree" / "d39" / "f699").exists(), 60, "fin de la copie")
+    if not caught:
+        raise Skip("copie trop rapide pour être interrompue")
+
+
 @test("compresser (zip, 7z, tar.gz) puis extraire")
 def _():
     d = make("arc", {"a.txt": "alpha"})
@@ -453,6 +564,43 @@ def _():
     app.fails("action", "quick-look", containing="disabled")
 
 
+@test("ouvrir un fichier vide (0 octet): application de son type, pas xdg-open")
+def _():
+    log = T / "editor.log"
+    d = make("zero", {"vide.txt": "", "sans-extension": ""})
+    app.ok("goto", str(d))
+    for name in ("vide.txt", "sans-extension"):
+        app.ok("select", stdin=f"{d}/{name}\n")
+        app.ok("action", "open")
+        app.wait(lambda name=name: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / name), 4, f"{name} ouvert par l'éditeur du type")
+
+
+@test("menu de la barre: commandes de fichiers grisées sans sélection, réactivées avec (contexte publié)")
+def _():
+    d = make("grey", {"a.txt": ""})
+    e = make("grey-empty", {})
+    ctx = T / "run" / "fili" / "context" / f"{app.pid}.json"
+    disabled = lambda: set(json.loads(ctx.read_text())["disabled"])
+    # Ce qui vise des éléments sélectionnés
+    needs = {"copy", "cut", "trash", "rename", "duplicate", "compress", "open", "quick-look", "copy-path", "copy-name", "select-same-kind"}
+    app.ok("goto", str(e))
+    app.wait(lambda: needs <= disabled(), 4, "commandes de sélection grisées dans un dossier vide")
+    assert not ({"paste", "new-folder", "select-all", "reload"} & disabled()), disabled()
+    assert {"empty-trash", "put-back"} <= disabled(), "la corbeille n'est pas ouverte"
+    app.ok("goto", str(d))
+    app.ok("select", stdin=f"{d}/a.txt\n")
+    app.wait(lambda: not (needs & disabled()), 4, "avec une sélection, ces commandes sont actives")
+    # Une sélection vidée (clic dans le vide) les grise de nouveau, même si une ligne reste « courante »
+    app.ok("select", "--none")
+    app.wait(lambda: needs <= disabled(), 4, "sélection vidée: grisées")
+    app.fails("action", "copy", containing="disabled")
+    # Un dialogue ouvert grise aussi coller et nouveau dossier
+    app.ok("action", "select-matching")
+    app.wait(lambda: {"paste", "new-folder"} <= disabled(), 4, "dialogue ouvert: coller grisé")
+    app.ok("dialog", "cancel")
+    app.wait(lambda: "paste" not in disabled(), 4, "dialogue fermé: coller actif")
+
+
 @test("largeurs: colonnes bornées, remise à zéro, colonne inconnue")
 def _():
     eq(app.state()["column_widths"], {}, "départ")
@@ -482,7 +630,8 @@ def _():
     app.ok("width", "column", "size", "180")
     app.ok("width", "preview", "380")
     ui = T / "home" / ".local" / "state" / "filigrane" / "fili-file-ui"
-    eq(sorted(ui.read_text().split()), ["col.kind=600", "col.modified=56", "col.size=180", "preview=380"], "fichier d'état")
+    widths = lambda: sorted(l for l in ui.read_text().split() if l.startswith(("col.", "preview=")))
+    eq(widths(), ["col.kind=600", "col.modified=56", "col.size=180", "preview=380"], "fichier d'état")
     app.proc.terminate()
     app.proc.wait(10)
     app = App()
@@ -491,7 +640,18 @@ def _():
     app.ok("width", "preview", "reset")
     for c in ("size", "modified", "kind"):
         app.ok("width", "column", c, "reset")
-    eq(ui.read_text(), "", "état nettoyé")
+    eq(widths(), [], "largeurs retirées de l'état")
+
+
+@test("réseau: le lieu « Network » montre les connexions, goto d'un dossier le ferme")
+def _():
+    d = make("net", {})
+    app.ok("goto", str(d))
+    app.ok("goto", "network:")
+    s = app.state()
+    eq(s["results"], "Network")
+    app.ok("goto", str(d))
+    eq(app.state()["results"], "", "vue réseau fermée")
 
 
 @test("résultats: show remplace le dossier, goto les ferme")
@@ -522,6 +682,8 @@ def main():
         try:
             fn()
             print(f"ok {i} - {name}")
+        except Skip as e:
+            print(f"ok {i} - {name} # SKIP {e}")
         except Exception as e:  # noqa: BLE001 - tout échec est un résultat de test, pas une exception du banc
             failed += 1
             print(f"not ok {i} - {name}")

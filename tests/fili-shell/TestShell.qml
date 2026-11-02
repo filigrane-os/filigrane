@@ -276,6 +276,13 @@ ShellRoot {
                 ok(AppMenu.menus.map(m => m.label).join() === "Casier,File,Edit,View,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menus de la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
                 const copy = AppMenu.menus[2].children[3];
                 ok(copy.label === "Copy" && copy.keys === "Ctrl+C", "appmenu: fili-file -> Copier avec son raccourci", copy.label + " " + copy.keys);
+                ok(copy.enabled === true, "appmenu: fili-file -> Copier actif par défaut");
+                // L'application publie les commandes impossibles (rien de sélectionné): la barre les grise, puis les réactive
+                AppMenu.onState(JSON.stringify({ disabled: ["copy", "cut", "trash"] }));
+                const grey = AppMenu.menus[2].children;
+                ok(grey[3].label === "Copy" && grey[3].enabled === false && grey[2].enabled === false && grey[4].label === "Paste" && grey[4].enabled === true, "appmenu: fili-file -> commandes impossibles grisées (Cut, Copy), les autres actives (Paste)", grey.map(g => g.enabled).join());
+                AppMenu.onState("pas du json");
+                ok(AppMenu.menus[2].children[3].enabled === true, "appmenu: état illisible -> tout actif");
                 FiliTheme.ran = [];
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 AppMenu.activate(copy);

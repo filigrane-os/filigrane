@@ -179,6 +179,43 @@ Singleton {
         return "";
     }
 
+    // Commandes de l'application impossibles maintenant: champ « disabled » de son fichier de contexte
+    // ($XDG_RUNTIME_DIR/fili/context/PID.json, voir le skill filigrane-ui), relu à l'ouverture du menu. Une entrée de repli
+    // « ... ctl --pid %pid action NOM » est grisée quand NOM y figure.
+    property var disabled: []
+    onDisabledChanged: rebuild()
+    function cmdDisabled(exec) {
+        const m = /\bctl\b.*\baction ([a-z-]+)/.exec(exec ?? "");
+        return m !== null && disabled.indexOf(m[1]) >= 0;
+    }
+    function onState(text) {
+        let list = [];
+        try {
+            list = JSON.parse(text).disabled ?? [];
+        } catch (e) {
+            list = [];
+        }
+        // Rien ne change quand la liste est la même (évite de reconstruire les menus à chaque ouverture)
+        if (list.join(",") !== disabled.join(","))
+            disabled = list;
+    }
+    function readState() {
+        if (!win || !win.pid || source !== "fallback" || JSON.stringify(spec).indexOf("%pid") < 0) {
+            if (disabled.length > 0)
+                disabled = [];
+            return;
+        }
+        stateReader.command = ["cat", (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili/context/" + win.pid + ".json"];
+        stateReader.running = false;
+        stateReader.running = true;
+    }
+    Process {
+        id: stateReader
+        stdout: StdioCollector {
+            onStreamFinished: am.onState(text)
+        }
+    }
+
     // Entrée normalisée, qu'elle vienne d'AT-SPI ou d'un fichier de repli
     function norm(e) {
         if (e.sep || e.kind === "sep")
@@ -187,7 +224,7 @@ Singleton {
         return {
             label: e.label ?? "",
             kind: e.kind ?? (kids.length > 0 ? "sub" : "item"),
-            enabled: e.enabled ?? true,
+            enabled: e.enabled ?? !cmdDisabled(e.exec),
             check: e.check ?? 0,
             keys: e.keys ?? bindKey(e),
             svc: e.svc ?? "",
@@ -229,6 +266,7 @@ Singleton {
         appMenus = [];
         source = "";
         pending = false;
+        disabled = [];
         const w = chatFocus ? null : win;
         // Un fichier de repli de l'application est un choix délibéré: il passe devant AT-SPI (la MenuBar de Qt Quick
         // Controls y figure sans aucune entrée, ses menus ne sont pas exportés)
@@ -303,6 +341,7 @@ Singleton {
             return;
         FiliTooltip.hide();
         FiliShell.popupOpened("appmenu");
+        readState();
         anchorX = item.mapToItem(null, 0, 0).x;
         screen = bar?.screen ?? null;
         more = host ? host.overflow && index === host.fit : false;
