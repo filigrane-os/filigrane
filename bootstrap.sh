@@ -4,7 +4,7 @@
 #   ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
 #                  [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
 #                  [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<nom>]
-#                  [--system-only | --dotfiles-only | --fili-shell | --plan]
+#                  [--system-only | --dotfiles-only | --fili-shell | --apps | --plan]
 #
 # Trois couches, appliquées dans l'ordre (une couche suivante remplace un fichier de même chemin):
 #   1. la distribution (racine du dépôt: packages/, services/, system/, dotfiles/, apps/), générique;
@@ -14,6 +14,8 @@
 #
 # --fili-shell: ne relie que le fili-shell (config/quickshell, scripts bar-* et fili-*, de chaque couche) et le recharge;
 # sans sudo, pour un nouveau fichier QML ou script.
+# --apps: ne construit et n'installe que les outils de apps/ (Rust maison et tiers, correctifs compris) et relie
+# leurs binaires dans ~/.local/bin; sans sudo.
 # --plan: affiche les listes retenues pour la configuration et quitte, sans rien modifier (CI).
 # --profile: environnement (VM ou machine physique). --machine: matériel, pour tout ce qui est
 # spécifique à un modèle (hardware/<machine>/). --cpu/--gpu: firmware et pilotes (packages/cpu-*.txt,
@@ -50,6 +52,7 @@ DO_SYSTEM=1
 DO_DOTFILES=1
 PLAN=0
 SHELL_ONLY=0
+APPS_ONLY=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --profile) PROFILE="${2:?profil manquant}"; shift 2 ;;
@@ -61,8 +64,9 @@ while [ $# -gt 0 ]; do
         --system-only) DO_DOTFILES=0; shift ;;
         --dotfiles-only) DO_SYSTEM=0; shift ;;
         --fili-shell) DO_SYSTEM=0; DO_DOTFILES=0; SHELL_ONLY=1; shift ;;
+        --apps) DO_SYSTEM=0; DO_DOTFILES=0; APPS_ONLY=1; shift ;;
         --user-layer) USER_LAYER="${2:?couche manquante}"; shift 2 ;;
-        -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
         *) die 'Unknown option: %s' "$1" ;;
     esac
 done
@@ -674,6 +678,7 @@ fi
 if [ "$PLAN" -eq 1 ]; then print_plan; exit; fi
 [ "$DO_SYSTEM" -eq 1 ] && setup_system
 [ "$SHELL_ONLY" -eq 1 ] && setup_fili_shell
+[ "$APPS_ONLY" -eq 1 ] && setup_apps
 [ "$DO_DOTFILES" -eq 1 ] && setup_dotfiles
 [ "$DO_DOTFILES" -eq 1 ] && setup_apps
 [ "$DO_SYSTEM" -eq 1 ] && setup_ai
