@@ -2,8 +2,9 @@
 //
 //   fili-archive pack [-f FORMAT] [-l fast|normal|best] [--no-hidden] [-q] [-o SORTIE] FICHIER...
 //                                                          crée une archive à côté des fichiers (zip par défaut)
+//     --password-stdin: le mot de passe est la 1re ligne de l'entrée standard (zip AES-256 ou 7z à noms chiffrés; jamais en argument)
 //     -q: ni transaction ni notification (fili-file, qui a son panneau, son annulation et son propre « défaire »)
-//   fili-archive unpack [-o DOSSIER] ARCHIVE...            extrait à côté de l'archive (ou dans DOSSIER)
+//   fili-archive unpack [--password-stdin] [-o DOSSIER] ARCHIVE...   extrait à côté de l'archive (ou dans DOSSIER)
 //   fili-archive open ARCHIVE...                           comme unpack (association de fichiers, fili-archive.desktop)
 //   fili-archive list ARCHIVE                              contenu de l'archive
 //
@@ -57,51 +58,75 @@ fn unique(dir: &Path, stem: &str, ext: &str) -> PathBuf {
     (1..).map(make).find(|p| !exists(p)).unwrap()
 }
 
-// Lance un programme, stdin fermé (pas de question de mot de passe qui bloque); l'erreur porte la fin de sa sortie d'erreur
-fn run(program: &str, args: &[OsString], cwd: &Path, envs: &[(&str, String)]) -> Result<(), String> {
+// Lance un programme. stdin: fermé, ou le mot de passe suivi d'un saut de ligne (7z le lit ainsi; jamais en argument, que
+// `ps` montrerait). L'erreur porte la fin de la sortie; une archive chiffrée donne « protected by a password » (aucun mot de
+// passe fourni) ou « wrong password ».
+fn run(program: &str, args: &[OsString], cwd: &Path, envs: &[(&str, String)], password: Option<&str>) -> Result<(), String> {
     let mut child = Command::new(program)
         .args(args)
         .current_dir(cwd)
         .envs(envs.iter().map(|(k, v)| (*k, v.as_str())))
         .env("ZSTD_NBTHREADS", "0")
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
+        .stdin(if password.is_some() { Stdio::piped() } else { Stdio::null() })
+        .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
         .map_err(
             |e| if e.kind() == std::io::ErrorKind::NotFound { format!("{program} is not installed") } else { e.to_string() },
         )?;
+    if let (Some(pw), Some(mut stdin)) = (password, child.stdin.take()) {
+        use std::io::Write;
+        // 7z demande deux fois à la création (saisie et confirmation) quand il lit un terminal, une fois sinon: on envoie une ligne
+        let _ = writeln!(stdin, "{pw}");
+    }
+    // La sortie standard est lue à part (7z y pose ses questions) pour ne jamais bloquer sur un tube plein
+    let out_reader = child.stdout.take().map(|mut o| {
+        std::thread::spawn(move || {
+            let mut t = String::new();
+            let _ = o.read_to_string(&mut t);
+            t
+        })
+    });
     let mut err = String::new();
     if let Some(mut s) = child.stderr.take() {
         let _ = s.read_to_string(&mut err);
     }
+    let out = out_reader.and_then(|h| h.join().ok()).unwrap_or_default();
     let status = child.wait().map_err(|e| e.to_string())?;
     if status.success() {
         return Ok(());
     }
+    let all = format!("{out}\n{err}").to_lowercase();
+    if all.contains("wrong password") || all.contains("cannot open encrypted") {
+        return Err(if password.is_some() { "wrong password" } else { "the archive is protected by a password" }.into());
+    }
+    if password.is_none() && (all.contains("enter password") || all.contains("break signaled") || all.contains("encrypted")) {
+        return Err("the archive is protected by a password".into());
+    }
     let tail: Vec<&str> = err.lines().filter(|l| !l.trim().is_empty()).collect();
     let tail = tail[tail.len().saturating_sub(2)..].join(" ");
-    let lower = tail.to_lowercase();
-    Err(if lower.contains("password") || lower.contains("encrypted") {
-        "the archive is protected by a password (not supported yet)".into()
-    } else if tail.is_empty() {
-        format!("{program} failed")
-    } else {
-        tail
-    })
+    Err(if tail.is_empty() { format!("{program} failed") } else { tail })
+}
+
+// Première ligne de l'entrée standard (option --password-stdin)
+fn read_password() -> Result<String, String> {
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line).map_err(|e| e.to_string())?;
+    let pw = line.trim_end_matches(['\n', '\r']).to_string();
+    if pw.is_empty() { Err("empty password".into()) } else { Ok(pw) }
 }
 
 fn os(s: &str) -> OsString {
     OsString::from(s)
 }
 
-const USAGE_PACK: &str = "usage: fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [-q] [-o OUT] FILE...";
+const USAGE_PACK: &str = "usage: fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [--password-stdin] [-q] [-o OUT] FILE...";
 
 // ---- pack ----------------------------------------------------------------------------------------------
 
 fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
     let (mut format, mut out, mut items) = (None::<String>, None::<PathBuf>, Vec::new());
-    let (mut level, mut skip_hidden) = ("normal".to_string(), false);
+    let (mut level, mut skip_hidden, mut ask_password) = ("normal".to_string(), false, false);
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -114,6 +139,7 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
                 }
             }
             "--no-hidden" => skip_hidden = true,
+            "--password-stdin" => ask_password = true,
             "-q" | "--quiet" => {} // lu par main
             "--" => items.extend(it.by_ref().map(PathBuf::from)),
             s if s.starts_with('-') && s.len() > 1 => return Err(format!("unknown option {s}")),
@@ -189,6 +215,14 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
     if !dir.is_dir() {
         return Err(format!("“{}” is not a folder", dir.display()));
     }
+    let password = if ask_password {
+        if !matches!(fmt.as_str(), "zip" | "7z") {
+            return Err("a password needs the zip or 7z format".into());
+        }
+        Some(read_password()?)
+    } else {
+        None
+    };
     // Écrit sous un nom caché qui garde l'extension (zip ajoute sinon la sienne), puis renomme
     let tmp = dir.join(format!(".{}.{}.part.{fmt}", file_name(&dest), std::process::id()));
     let result = (|| {
@@ -200,6 +234,17 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
             _ => normal.to_string(),
         };
         let program = match fmt.as_str() {
+            // Avec mot de passe, zip classique (chiffrement faible, mot de passe en argument): 7z écrit un zip AES-256
+            "zip" if password.is_some() => {
+                a.extend([os("a"), os("-tzip"), os("-mem=AES256"), os("-p"), os("-y"), os("-bd"), os("-snl")]);
+                a.push(os(&lv("-mx=1", "-mx=5", "-mx=9")));
+                if skip_hidden {
+                    a.push(os("-xr!.*"));
+                }
+                a.push(tmp.clone().into_os_string());
+                a.extend(rels.iter().map(|r| os(&format!("./{r}"))));
+                "7z"
+            }
             "zip" => {
                 a.extend([os("-q"), os("-r"), os("-y"), os(&lv("-1", "-6", "-9")), tmp.clone().into_os_string()]);
                 a.extend(rels.iter().map(|r| os(&format!("./{r}"))));
@@ -210,6 +255,10 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
             }
             "7z" => {
                 a.extend([os("a"), os("-y"), os("-bd"), os("-snl"), os(&lv("-mx=1", "-mx=5", "-mx=9"))]);
+                if password.is_some() {
+                    // noms de fichiers chiffrés aussi
+                    a.extend([os("-mhe=on"), os("-p")]);
+                }
                 if skip_hidden {
                     a.push(os("-xr!.*"));
                 }
@@ -240,7 +289,7 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
                 "tar"
             }
         };
-        run(program, &a, &base, &envs)?;
+        run(program, &a, &base, &envs, password.as_deref())?;
         fs::rename(&tmp, &dest).map_err(|e| e.to_string())
     })();
     if let Err(e) = result {
@@ -252,7 +301,7 @@ fn pack(args: &[String]) -> Result<Vec<PathBuf>, String> {
 
 // ---- unpack --------------------------------------------------------------------------------------------
 
-fn unpack_one(archive: &Path, into: Option<&Path>) -> Result<PathBuf, String> {
+fn unpack_one(archive: &Path, into: Option<&Path>, password: Option<&str>) -> Result<PathBuf, String> {
     let archive = std::path::absolute(archive).map_err(|e| e.to_string())?;
     let name = file_name(&archive);
     if !archive.is_file() {
@@ -280,7 +329,7 @@ fn unpack_one(archive: &Path, into: Option<&Path>) -> Result<PathBuf, String> {
         ]
     };
     let program = if is_tar(ext) { "tar" } else { "7z" };
-    let done = run(program, &args, &dir, &[]).and_then(|()| {
+    let done = run(program, &args, &dir, &[], password).and_then(|()| {
         let mut top: Vec<PathBuf> =
             fs::read_dir(&tmp).map_err(|e| e.to_string())?.filter_map(|e| e.ok()).map(|e| e.path()).collect();
         if top.is_empty() {
@@ -306,7 +355,7 @@ fn unpack_one(archive: &Path, into: Option<&Path>) -> Result<PathBuf, String> {
 }
 
 fn unpack(args: &[String]) -> (Vec<PathBuf>, Vec<String>) {
-    let (mut into, mut archives) = (None::<PathBuf>, Vec::new());
+    let (mut into, mut archives, mut ask_password) = (None::<PathBuf>, Vec::new(), false);
     let mut it = args.iter();
     while let Some(a) = it.next() {
         match a.as_str() {
@@ -314,17 +363,27 @@ fn unpack(args: &[String]) -> (Vec<PathBuf>, Vec<String>) {
                 Some(d) => into = Some(PathBuf::from(d)),
                 None => return (vec![], vec!["-o needs a folder".into()]),
             },
+            "--password-stdin" => ask_password = true,
+            "-q" | "--quiet" => {}
             "--" => archives.extend(it.by_ref().map(PathBuf::from)),
             s if s.starts_with('-') && s.len() > 1 => return (vec![], vec![format!("unknown option {s}")]),
             s => archives.push(PathBuf::from(s)),
         }
     }
     if archives.is_empty() {
-        return (vec![], vec!["no archive given (usage: fili-archive unpack [-o FOLDER] ARCHIVE...)".into()]);
+        return (vec![], vec!["no archive given (usage: fili-archive unpack [--password-stdin] [-o FOLDER] ARCHIVE...)".into()]);
     }
+    let password = if ask_password {
+        match read_password() {
+            Ok(p) => Some(p),
+            Err(e) => return (vec![], vec![e]),
+        }
+    } else {
+        None
+    };
     let (mut done, mut errors) = (Vec::new(), Vec::new());
     for a in &archives {
-        match unpack_one(a, into.as_deref()) {
+        match unpack_one(a, into.as_deref(), password.as_deref()) {
             Ok(p) => done.push(p),
             Err(e) => errors.push(e),
         }
@@ -405,7 +464,7 @@ fn main() {
         },
         "-h" | "--help" | "help" => {
             println!(
-                "fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [-q] [-o OUT] FILE...\nfili-archive unpack [-o FOLDER] ARCHIVE...\nfili-archive open ARCHIVE...\nfili-archive list ARCHIVE"
+                "fili-archive pack [-f zip|7z|tar.gz|tar.xz|tar.zst] [-l fast|normal|best] [--no-hidden] [--password-stdin] [-q] [-o OUT] FILE...\nfili-archive unpack [--password-stdin] [-o FOLDER] ARCHIVE...\nfili-archive open ARCHIVE...\nfili-archive list ARCHIVE"
             );
             return;
         }

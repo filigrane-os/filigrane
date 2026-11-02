@@ -12,6 +12,8 @@
         { "label": "New Folder", "keys": "Ctrl+Shift+N", "exec": "fili-file ctl --pid %pid action new-folder" },
         { "label": "Open", "exec": "fili-file ctl --pid %pid action open" },
         { "label": "Get Info", "keys": "Ctrl+I", "exec": "fili-file ctl --pid %pid action info" },
+        { "label": "Compress…", "exec": "fili-file ctl --pid %pid action compress" },
+        { "label": "Extract Here", "exec": "fili-file ctl --pid %pid action extract" },
         { "label": "Share…", "exec": "fili-file ctl --pid %pid action share" },
         { "label": "Nearby", "keys": "Ctrl+Shift+R", "exec": "fili-file ctl --pid %pid action nearby" },
         { "sep": true },
