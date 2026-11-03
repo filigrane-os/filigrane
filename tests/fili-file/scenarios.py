@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Scénarios de fili-file (voir run.sh): une instance sans affichage, pilotée par `fili-file ctl`, état lu par
-`ctl state`, effets vérifiés sur le système de fichiers. Sortie TAP comme tests/fili-shell: « ok N - nom » ou
-« not ok N - nom » suivi de la raison, puis « # fin: X échec(s) sur N ». Code 0 si tout passe."""
+"""Scenarios of fili-file (see run.sh): one instance without a display, driven by `fili-file ctl`, state read through
+`ctl state`, effects checked on the file system. TAP output like tests/fili-shell: "ok N - name" or
+"not ok N - name" followed by the reason, then "# done: X failure(s) of N". Exit code 0 if everything passes."""
 import json
 import os
 import subprocess
@@ -27,7 +27,7 @@ class App:
         self.wait(lambda: (SOCK_DIR / f"{self.pid}.sock").exists(), 20, "socket de l'application")
 
     def ctl(self, *args, stdin=None):
-        """Lance `fili-file ctl --pid PID ARGS`; rend (code, JSON de la réponse ou None, texte brut)."""
+        """Runs `fili-file ctl --pid PID ARGS`; returns (code, JSON of the answer or None, raw text)."""
         r = subprocess.run([BIN, "ctl", "--pid", str(self.pid), *args], input=stdin, capture_output=True, text=True, timeout=20)
         out = r.stdout.strip()
         try:
@@ -45,12 +45,12 @@ class App:
         return data
 
     def fails(self, *args, stdin=None, containing=""):
-        """La commande doit échouer (code 1) avec ce texte dans l'erreur; rend le message."""
+        """The command must fail (code 1) with this text in the error; returns the message."""
         rc, _, raw = self.ctl(*args, stdin=stdin)
         if rc != 1:
-            raise AssertionError(f"ctl {' '.join(args)}: attendu un échec (code 1), code {rc}: {raw}")
+            raise AssertionError(f"ctl {' '.join(args)}: expected a failure (code 1), got code {rc}: {raw}")
         if containing not in raw:
-            raise AssertionError(f"ctl {' '.join(args)}: « {containing} » absent de « {raw} »")
+            raise AssertionError(f"ctl {' '.join(args)}: \"{containing}\" not found in \"{raw}\"")
         return raw
 
     def state(self):
@@ -60,14 +60,14 @@ class App:
         end = time.time() + seconds
         while time.time() < end:
             if self.proc.poll() is not None and what != "socket de l'application":
-                raise AssertionError(f"fili-file s'est arrêté (code {self.proc.returncode}), voir app.log")
+                raise AssertionError(f"fili-file stopped (code {self.proc.returncode}), see app.log")
             try:
                 if pred():
                     return
             except (AssertionError, KeyError):
                 pass
             time.sleep(0.1)
-        raise AssertionError(f"délai dépassé: {what}")
+        raise AssertionError(f"timeout: {what}")
 
 
 def names(d):
@@ -75,7 +75,7 @@ def names(d):
 
 
 def make(name, files):
-    """Dossier frais DATA/name avec ces fichiers ({nom: contenu}; nom finissant par / = dossier); l'application y va."""
+    """Fresh folder DATA/name with these files ({name: content}; a name ending with / = folder); the application goes there."""
     d = DATA / name
     d.mkdir()
     for f, content in files.items():
@@ -92,7 +92,7 @@ def eq(got, want, what=""):
 
 
 class Skip(Exception):
-    """Le scénario ne peut pas s'exécuter ici (rendu « ok # SKIP » et dit pourquoi)."""
+    """The scenario cannot run here (reported as "ok # SKIP" with the reason)."""
 
 
 app = None
@@ -106,9 +106,9 @@ def test(name):
     return deco
 
 
-# ---------------------------------------------------------------- démarrage et contrat de ctl
+# ---------------------------------------------------------------- startup and the ctl contract
 
-@test("démarrage: état de la fenêtre")
+@test("startup: state of the window")
 def _():
     s = app.state()
     eq(s["location"], str(DATA), "dossier")
@@ -117,7 +117,7 @@ def _():
     assert s["can_act"] and s["pid"] == app.pid
 
 
-@test("actions: liste complète avec libellés et raccourcis")
+@test("actions: full list with labels and shortcuts")
 def _():
     acts = {a["name"]: a for a in app.ok("actions")["actions"]}
     assert len(acts) >= 41, len(acts)
@@ -127,7 +127,7 @@ def _():
     assert all(isinstance(a["enabled"], bool) and a["label"] for a in acts.values())
 
 
-@test("erreurs: action inconnue, désactivée, avec argument inutile, commande inconnue")
+@test("errors: unknown action, disabled one, useless argument, unknown command")
 def _():
     app.fails("action", "nope", containing="unknown action")
     app.fails("action", "empty-trash", containing="disabled")
@@ -147,12 +147,12 @@ def _():
     app.ok("action", "back")
     eq(app.state()["location"], str(d / "a"), "retour")
     app.ok("action", "forward")
-    eq(app.state()["location"], str(d / "b"), "avant")
+    eq(app.state()["location"], str(d / "b"), "before")
     app.ok("action", "up")
     eq(app.state()["location"], str(d), "parent")
 
 
-@test("navigation: un fichier est sélectionné dans son dossier; reveal aussi (dossier compris)")
+@test("navigation: a file is selected in its folder; reveal too (folder included)")
 def _():
     d = make("goto-file", {"f.txt": "x", "sub/": ""})
     app.ok("goto", str(d / "f.txt"))
@@ -163,10 +163,10 @@ def _():
     s = app.state()
     eq((s["location"], s["selection"]), (str(d), [str(d / "sub")]))
     app.fails("reveal", str(d / "absent"), containing="not found in")
-    eq(app.state()["selection"], [str(d / "sub")], "sélection inchangée")
+    eq(app.state()["selection"], [str(d / "sub")], "selection unchanged")
 
 
-@test("navigation: chemin relatif résolu depuis le dossier de l'appelant")
+@test("navigation: relative path resolved from the caller's folder")
 def _():
     d = make("rel", {"in/": ""})
     r = subprocess.run([BIN, "ctl", "--pid", str(app.pid), "goto", "in"], cwd=d, capture_output=True, text=True)
@@ -174,9 +174,9 @@ def _():
     eq(app.state()["location"], str(d / "in"))
 
 
-# ---------------------------------------------------------------- sélection
+# ---------------------------------------------------------------- selection
 
-@test("sélection: remplacer, ajouter, vider, motif")
+@test("selection: replace, add, clear, pattern")
 def _():
     d = make("sel", {"a.txt": "", "b.txt": "", "c.pdf": ""})
     app.ok("goto", str(d))
@@ -189,15 +189,15 @@ def _():
     eq(app.state()["selection"], [])
 
 
-@test("sélection: un chemin hors du dossier est une erreur et n'est pas sélectionné")
+@test("selection: a path outside the folder is an error and is not selected")
 def _():
     d = make("sel-bad", {"a.txt": ""})
     app.ok("goto", str(d))
     app.fails("select", stdin=f"{d}/a.txt\n{d}/absent\n", containing="absent")
-    eq(app.state()["selection"], [str(d / "a.txt")], "le présent reste sélectionné")
+    eq(app.state()["selection"], [str(d / "a.txt")], "the present one stays selected")
 
 
-@test("sélection: tout, inverser, même type, motif par action")
+@test("selection: all, invert, same type, pattern by action")
 def _():
     d = make("sel2", {"a.txt": "", "b.txt": "", "c.pdf": ""})
     app.ok("goto", str(d))
@@ -212,7 +212,7 @@ def _():
     eq(app.ok("action", "select-matching", "c*")["selected"], 1)
 
 
-@test("sélection: les fichiers cachés n'existent qu'une fois affichés")
+@test("selection: hidden files only exist once shown")
 def _():
     d = make("hid", {"a": "", ".h": ""})
     app.ok("goto", str(d))
@@ -226,7 +226,7 @@ def _():
 
 # ---------------------------------------------------------------- onglets et affichage
 
-@test("fichiers cachés: le choix est gardé entre deux lancements")
+@test("hidden files: the choice is kept between two launches")
 def _():
     global app
     app.ok("hidden", "on")
@@ -235,13 +235,13 @@ def _():
     app.proc.terminate()
     app.proc.wait(10)
     app = App()
-    eq(app.state()["hidden_shown"], True, "réouverture")
+    eq(app.state()["hidden_shown"], True, "reopening")
     app.ok("hidden", "off")
     assert "hidden=0" in ui.read_text().split(), ui.read_text()
     app.proc.terminate()
     app.proc.wait(10)
     app = App()
-    eq(app.state()["hidden_shown"], False, "réouverture après décochage")
+    eq(app.state()["hidden_shown"], False, "reopening after unchecking")
 
 
 @test("onglets: nouveau, changer, fermer, dernier onglet")
@@ -260,7 +260,7 @@ def _():
     app.fails("tab", "switch", "5", containing="no such tab")
 
 
-@test("onglets: réordonner garde l'onglet affiché")
+@test("tabs: reordering keeps the tab shown")
 def _():
     d = make("tabs2", {"a/": "", "b/": "", "c/": ""})
     app.ok("goto", str(d / "a"))
@@ -270,7 +270,7 @@ def _():
     eq((s["tabs"], s["tab"]), ([str(d / "a"), str(d / "b"), str(d / "c")], 2))
     app.ok("tab", "move", "0", "2")
     s = app.state()
-    eq((s["tabs"], s["tab"], s["location"]), ([str(d / "b"), str(d / "c"), str(d / "a")], 1, str(d / "c")), "l'onglet affiché (c) suit")
+    eq((s["tabs"], s["tab"], s["location"]), ([str(d / "b"), str(d / "c"), str(d / "a")], 1, str(d / "c")), "the tab shown (c) follows")
     app.ok("tab", "move", "2", "0")
     s = app.state()
     eq((s["tabs"], s["tab"]), ([str(d / "a"), str(d / "b"), str(d / "c")], 2))
@@ -279,7 +279,7 @@ def _():
     app.ok("tab", "close", "1")
 
 
-@test("onglets: détacher un onglet l'ouvre dans une nouvelle fenêtre, sur son dossier")
+@test("tabs: detaching a tab opens it in a new window, on its folder")
 def _():
     import signal
     d = make("detach", {"a/": "", "b/": ""})
@@ -289,19 +289,19 @@ def _():
     app.fails("tab", "detach", "9", containing="no such tab")
     app.ok("action", "detach-tab")
     s = app.state()
-    eq((s["tabs"], s["location"]), ([str(d / "a")], str(d / "a")), "l'onglet a quitté la fenêtre")
-    app.wait(lambda: len(set(SOCK_DIR.glob("*.sock")) - before) == 1, 20, "nouvelle fenêtre")
+    eq((s["tabs"], s["location"]), ([str(d / "a")], str(d / "a")), "the tab left the window")
+    app.wait(lambda: len(set(SOCK_DIR.glob("*.sock")) - before) == 1, 20, "new window")
     pid = int((set(SOCK_DIR.glob("*.sock")) - before).pop().stem)
     try:
         r = subprocess.run([BIN, "ctl", "--pid", str(pid), "state"], capture_output=True, text=True, timeout=20)
-        eq(json.loads(r.stdout)["state"]["location"], str(d / "b"), "dossier de la nouvelle fenêtre")
+        eq(json.loads(r.stdout)["state"]["location"], str(d / "b"), "folder of the new window")
     finally:
         os.kill(pid, signal.SIGTERM)
     app.fails("tab", "detach", containing="last tab")
     app.fails("action", "detach-tab", containing="disabled")
 
 
-@test("affichage: liste/icônes, aperçu, tri")
+@test("display: list/icons, preview, sort")
 def _():
     app.ok("view", "icons")
     eq(app.state()["view"], "icons")
@@ -320,9 +320,9 @@ def _():
     app.fails("sort", "nope", containing="usage")
 
 
-# ---------------------------------------------------------------- opérations sur les fichiers
+# ---------------------------------------------------------------- file operations
 
-@test("copier/coller dans un autre dossier (l'original reste)")
+@test("copy/paste in another folder (the original stays)")
 def _():
     d = make("cp", {"a.txt": "alpha", "dst/": ""})
     app.ok("goto", str(d))
@@ -330,12 +330,12 @@ def _():
     app.ok("action", "copy")
     app.ok("goto", str(d / "dst"))
     app.ok("action", "paste")
-    app.wait(lambda: (d / "dst" / "a.txt").exists(), what="fichier collé")
+    app.wait(lambda: (d / "dst" / "a.txt").exists(), what="pasted file")
     eq((d / "dst" / "a.txt").read_text(), "alpha")
     assert (d / "a.txt").exists()
 
 
-@test("couper/coller déplace")
+@test("cut/paste moves")
 def _():
     d = make("mv", {"a.txt": "alpha", "dst/": ""})
     app.ok("goto", str(d))
@@ -343,10 +343,10 @@ def _():
     app.ok("action", "cut")
     app.ok("goto", str(d / "dst"))
     app.ok("action", "paste")
-    app.wait(lambda: (d / "dst" / "a.txt").exists() and not (d / "a.txt").exists(), what="fichier déplacé")
+    app.wait(lambda: (d / "dst" / "a.txt").exists() and not (d / "a.txt").exists(), what="moved file")
 
 
-@test("presse-papiers: copier le chemin, le nom, la base, le dossier")
+@test("clipboard: copy the path, the name, the base name, the folder")
 def _():
     d = make("clip", {"rapport.final.txt": ""})
     app.ok("goto", str(d))
@@ -354,7 +354,7 @@ def _():
     clip = T / "clip" / "text_plain"
     for action, want in (("copy-path", str(d / "rapport.final.txt")), ("copy-name", "rapport.final.txt"), ("copy-stem", "rapport.final"), ("copy-parent", str(d))):
         app.ok("action", action)
-        app.wait(lambda: clip.exists() and clip.read_text() == want, 3, f"{action} dans le presse-papiers")
+        app.wait(lambda: clip.exists() and clip.read_text() == want, 3, f"{action} in the clipboard")
 
 
 @test("dupliquer")
@@ -378,11 +378,11 @@ def conflict(name, answer, check):
     app.wait(lambda: app.state()["dialog"] == "conflict", what="dialogue de conflit")
     app.fails("action", "copy", containing="disabled")
     app.ok("dialog", answer)
-    app.wait(lambda: app.state()["dialog"] == "" and not app.state()["tasks"], what="fin de l'opération")
+    app.wait(lambda: app.state()["dialog"] == "" and not app.state()["tasks"], what="end of the operation")
     check(d / "dst")
 
 
-@test("conflit de nom: remplacer (l'ancien va à la corbeille)")
+@test("name conflict: replace (the old one goes to the trash)")
 def _():
     def check(dst):
         eq((dst / "a.txt").read_text(), "new")
@@ -415,7 +415,7 @@ def _():
     conflict("cf-cancel", "cancel", check)
 
 
-@test("renommer par argument; refus si le nom existe")
+@test("rename by argument; refused if the name exists")
 def _():
     d = make("ren", {"a.txt": "", "b.txt": ""})
     app.ok("goto", str(d))
@@ -424,7 +424,7 @@ def _():
     eq(names(d), ["b.txt", "z.txt"])
     eq(app.state()["selection"], [str(d / "z.txt")])
     app.fails("action", "rename", "b.txt", containing="")
-    eq(names(d), ["b.txt", "z.txt"], "rien n'a changé")
+    eq(names(d), ["b.txt", "z.txt"], "nothing changed")
     app.ok("select", stdin=f"{d}/b.txt\n{d}/z.txt\n")
     app.fails("action", "rename", "q.txt", containing="exactly one")
 
@@ -433,24 +433,24 @@ def _():
 def _():
     d = make("nf", {})
     app.ok("goto", str(d))
-    app.ok("action", "new-folder", "projets")
-    assert (d / "projets").is_dir(), names(d)
-    eq(app.state()["selection"], [str(d / "projets")])
+    app.ok("action", "new-folder", "projects")
+    assert (d / "projects").is_dir(), names(d)
+    eq(app.state()["selection"], [str(d / "projects")])
 
 
-@test("corbeille puis annuler; vider la corbeille demande confirmation")
+@test("trash then undo; emptying the trash asks for confirmation")
 def _():
     d = make("trash", {"a.txt": "alpha", "b.txt": ""})
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/a.txt\n")
     app.ok("action", "trash")
-    app.wait(lambda: not (d / "a.txt").exists(), what="fichier à la corbeille")
+    app.wait(lambda: not (d / "a.txt").exists(), what="file in the trash")
     trash = T / "home" / ".local" / "share" / "Trash" / "files"
     assert (trash / "a.txt").exists(), names(trash) if trash.exists() else "pas de corbeille"
     app.ok("action", "undo")
     app.wait(lambda: (d / "a.txt").exists(), what="restauration")
     eq((d / "a.txt").read_text(), "alpha")
-    # Dans la corbeille: vider demande confirmation; annuler ne supprime rien
+    # In the trash: emptying asks for confirmation; cancelling deletes nothing
     app.ok("select", stdin=f"{d}/b.txt\n")
     app.ok("action", "trash")
     app.wait(lambda: (trash / "b.txt").exists())
@@ -463,10 +463,10 @@ def _():
     assert (trash / "b.txt").exists()
     app.ok("action", "empty-trash")
     app.ok("dialog", "accept")
-    app.wait(lambda: not (trash / "b.txt").exists(), what="corbeille vidée")
+    app.wait(lambda: not (trash / "b.txt").exists(), what="trash emptied")
 
 
-@test("corbeille d'un autre volume: regroupée dans la Corbeille, remise en place, vidée avec les autres")
+@test("trash of another volume: gathered in the Trash, put back, emptied with the others")
 def _():
     import shutil
     import tempfile
@@ -474,25 +474,25 @@ def _():
     uid = os.getuid()
     leftover = shm / f".Trash-{uid}"
     if not os.access(shm, os.W_OK) or os.stat(shm).st_dev == os.stat(T).st_dev or leftover.exists():
-        raise Skip("/dev/shm absent, sur le même volume que le test, ou déjà une corbeille")
+        raise Skip("/dev/shm absent, on the same volume as the test, or already a trash")
     d = Path(tempfile.mkdtemp(dir=shm, prefix="fili-file-test."))
     try:
         (d / "v.txt").write_text("volume")
         app.ok("goto", str(d))
         app.ok("select", stdin=f"{d}/v.txt\n")
         app.ok("action", "trash")
-        app.wait(lambda: not (d / "v.txt").exists(), what="fichier à la corbeille du volume")
+        app.wait(lambda: not (d / "v.txt").exists(), what="file in the trash of the volume")
         vtrash = leftover / "files" / "v.txt"
-        assert vtrash.exists(), "pas dans .Trash-UID du volume"
+        assert vtrash.exists(), "not in .Trash-UID of the volume"
         app.ok("goto", str(T / "home" / ".local" / "share" / "Trash" / "files"))
         s = app.state()
         assert s["in_trash"], s
-        # La Corbeille de Casier montre l'élément de l'autre volume (sélectionnable = présent dans la vue)
+        # Casier's Trash shows the item of the other volume (selectable = present in the view)
         app.ok("select", stdin=f"{vtrash}\n")
         app.ok("action", "put-back")
-        app.wait(lambda: (d / "v.txt").exists() and not vtrash.exists(), what="remis en place depuis la corbeille du volume")
+        app.wait(lambda: (d / "v.txt").exists() and not vtrash.exists(), what="put back from the trash of the volume")
         eq((d / "v.txt").read_text(), "volume")
-        # Vider la corbeille vide aussi celle du volume
+        # Emptying the trash also empties the one of the volume
         app.ok("goto", str(d))
         app.ok("select", stdin=f"{d}/v.txt\n")
         app.ok("action", "trash")
@@ -500,13 +500,13 @@ def _():
         app.ok("goto", str(T / "home" / ".local" / "share" / "Trash" / "files"))
         app.ok("action", "empty-trash")
         app.ok("dialog", "accept")
-        app.wait(lambda: not vtrash.exists(), what="corbeille du volume vidée")
+        app.wait(lambda: not vtrash.exists(), what="trash of the volume emptied")
     finally:
         shutil.rmtree(d, ignore_errors=True)
         shutil.rmtree(leftover, ignore_errors=True)
 
 
-@test("fermer: refusé tant qu'une copie est en cours, accepté ensuite")
+@test("close: refused while a copy is in progress, accepted afterwards")
 def _():
     d = make("busy", {"dst/": "", "tree/": ""})
     for i in range(40):
@@ -523,17 +523,17 @@ def _():
     for _ in range(60):
         if app.state()["tasks"]:
             rc, _, raw = app.ctl("action", "close")
-            eq(rc, 0, "la commande close est acceptée")
+            eq(rc, 0, "the close command is accepted")
             s = app.state()
             if s["tasks"]:
                 assert "operation is in progress" in s["notice"], s["notice"]
-                assert app.proc.poll() is None, "la fenêtre s'est fermée pendant la copie"
+                assert app.proc.poll() is None, "the window closed during the copy"
                 caught = True
             break
         time.sleep(0.05)
-    app.wait(lambda: not app.state()["tasks"] and (d / "dst" / "tree" / "d39" / "f699").exists(), 60, "fin de la copie")
+    app.wait(lambda: not app.state()["tasks"] and (d / "dst" / "tree" / "d39" / "f699").exists(), 60, "end of the copy")
     if not caught:
-        raise Skip("copie trop rapide pour être interrompue")
+        raise Skip("copy too fast to be interrupted")
 
 
 @test("compresser (zip, 7z, tar.gz) puis extraire")
@@ -549,14 +549,14 @@ def _():
     app.ok("action", "extract")
     app.wait(lambda: len(names(d)) > 4 and not app.state()["tasks"], 15, "extraction")
     extracted = [p for p in names(d) if p not in ("a.txt", "one.zip", "three.tar.gz", "two.7z")]
-    # a.txt existe déjà à côté de l'archive: l'extraction prend le premier nom libre
+    # a.txt already exists next to the archive: the extraction takes the first free name
     eq(extracted, ["a 2.txt"], "fichier extrait")
     eq((d / "a 2.txt").read_text(), "alpha")
 
 
-# ---------------------------------------------------------------- dialogues, résultats, recherche
+# ---------------------------------------------------------------- dialogs, results, search
 
-@test("dialogues: motif, compresser, infos, À propos s'ouvrent, bloquent les raccourcis et se ferment")
+@test("dialogs: pattern, compress, info, About open, block the shortcuts and close")
 def _():
     d = make("dlg", {"a.txt": ""})
     app.ok("goto", str(d))
@@ -566,21 +566,21 @@ def _():
         app.wait(lambda name=name: app.state()["dialog"] == name, 3, f"dialogue {name}")
         app.fails("action", "copy", containing="disabled")
         app.ok("dialog", "cancel")
-        app.wait(lambda: app.state()["dialog"] == "", 3, "dialogue fermé")
+        app.wait(lambda: app.state()["dialog"] == "", 3, "dialog closed")
     app.ok("action", "info")
     app.wait(lambda: app.state()["dialog"] == "info", 3)
     app.fails("dialog", "accept", containing="no default button")
     app.ok("dialog", "cancel")
 
 
-@test("aperçu rapide (Espace): lance quicklook sur l'élément courant, désactivé sans élément")
+@test("quick look (Space): starts quicklook on the current item, disabled without an item")
 def _():
     log = T / "quicklook.log"
     d = make("ql", {"a.txt": "", "b.txt": ""})
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/b.txt\n")
     app.ok("action", "quick-look")
-    app.wait(lambda: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / "b.txt"), 3, "quicklook lancé sur b.txt")
+    app.wait(lambda: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / "b.txt"), 3, "quicklook started on b.txt")
     acts = {a["name"]: a for a in app.ok("actions")["actions"]}
     eq((acts["quick-look"]["label"], acts["quick-look"]["keys"], acts["quick-look"]["enabled"]), ("Quick Look", "Space", True))
     e = make("ql-empty", {})
@@ -588,15 +588,15 @@ def _():
     app.fails("action", "quick-look", containing="disabled")
 
 
-@test("ouvrir un fichier vide (0 octet): application de son type, pas xdg-open")
+@test("open an empty file (0 bytes): application of its type, not xdg-open")
 def _():
     log = T / "editor.log"
-    d = make("zero", {"vide.txt": "", "sans-extension": ""})
+    d = make("zero", {"empty.txt": "", "no-extension": ""})
     app.ok("goto", str(d))
-    for name in ("vide.txt", "sans-extension"):
+    for name in ("empty.txt", "no-extension"):
         app.ok("select", stdin=f"{d}/{name}\n")
         app.ok("action", "open")
-        app.wait(lambda name=name: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / name), 4, f"{name} ouvert par l'éditeur du type")
+        app.wait(lambda name=name: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / name), 4, f"{name} opened by the editor of its type")
 
 
 @test("optional tools missing: compress, extract, share and nearby switch off, the rest keeps working")
@@ -621,48 +621,48 @@ def _():
         bare.proc.wait(timeout=10)
 
 
-@test("menu de la barre: commandes de fichiers grisées sans sélection, réactivées avec (contexte publié)")
+@test("menu bar: file commands greyed out without a selection, enabled again with one (published context)")
 def _():
     d = make("grey", {"a.txt": ""})
     e = make("grey-empty", {})
     ctx = T / "run" / "fili" / "context" / f"{app.pid}.json"
     disabled = lambda: set(json.loads(ctx.read_text())["disabled"])
-    # Ce qui vise des éléments sélectionnés
+    # What targets selected items
     needs = {"copy", "cut", "trash", "rename", "duplicate", "compress", "open", "quick-look", "copy-path", "copy-name", "select-same-kind"}
     app.ok("goto", str(e))
-    app.wait(lambda: needs <= disabled(), 4, "commandes de sélection grisées dans un dossier vide")
+    app.wait(lambda: needs <= disabled(), 4, "selection commands greyed out in an empty folder")
     assert not ({"paste", "new-folder", "select-all", "reload"} & disabled()), disabled()
-    assert {"empty-trash", "put-back"} <= disabled(), "la corbeille n'est pas ouverte"
+    assert {"empty-trash", "put-back"} <= disabled(), "the trash is not open"
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/a.txt\n")
-    app.wait(lambda: not (needs & disabled()), 4, "avec une sélection, ces commandes sont actives")
-    # Une sélection vidée (clic dans le vide) les grise de nouveau, même si une ligne reste « courante »
+    app.wait(lambda: not (needs & disabled()), 4, "with a selection, these commands are enabled")
+    # An emptied selection (click on the empty space) greys them out again, even if a row stays "current"
     app.ok("select", "--none")
-    app.wait(lambda: needs <= disabled(), 4, "sélection vidée: grisées")
+    app.wait(lambda: needs <= disabled(), 4, "selection emptied: greyed out")
     app.fails("action", "copy", containing="disabled")
     # Un dialogue ouvert grise aussi coller et nouveau dossier
     app.ok("action", "select-matching")
-    app.wait(lambda: {"paste", "new-folder"} <= disabled(), 4, "dialogue ouvert: coller grisé")
+    app.wait(lambda: {"paste", "new-folder"} <= disabled(), 4, "dialog open: paste greyed out")
     app.ok("dialog", "cancel")
-    app.wait(lambda: "paste" not in disabled(), 4, "dialogue fermé: coller actif")
+    app.wait(lambda: "paste" not in disabled(), 4, "dialog closed: paste enabled")
 
 
-@test("largeurs: colonnes bornées, remise à zéro, colonne inconnue")
+@test("widths: columns bounded, reset to zero, unknown column")
 def _():
-    eq(app.state()["column_widths"], {}, "départ")
+    eq(app.state()["column_widths"], {}, "start")
     eq(app.ok("width", "column", "size", "200")["width"], 200)
     eq(app.ok("width", "column", "modified", "10")["width"], 56, "minimum")
     eq(app.ok("width", "column", "kind", "9999")["width"], 600, "maximum")
     eq(app.state()["column_widths"], {"size": 200, "modified": 56, "kind": 600})
-    eq(app.ok("width", "column", "size", "reset")["width"], 96, "défaut de la colonne")
+    eq(app.ok("width", "column", "size", "reset")["width"], 96, "default of the column")
     eq(sorted(app.state()["column_widths"]), ["kind", "modified"])
     app.fails("width", "column", "nope", "100", containing="unknown column")
     app.fails("width", "column", "size", "-3", containing="usage")
 
 
-@test("largeurs: panneau d'aperçu borné et remis à 300")
+@test("widths: preview panel bounded and reset to 300")
 def _():
-    eq(app.state()["preview_width"], 300, "défaut")
+    eq(app.state()["preview_width"], 300, "default")
     eq(app.ok("width", "preview", "420")["width"], 420)
     eq(app.state()["preview_width"], 420)
     eq(app.ok("width", "preview", "50")["width"], 160, "minimum")
@@ -670,14 +670,14 @@ def _():
     eq(app.ok("width", "preview", "reset")["width"], 300)
 
 
-@test("largeurs: gardées dans l'état et retrouvées après un redémarrage")
+@test("widths: kept in the state and found again after a restart")
 def _():
     global app
     app.ok("width", "column", "size", "180")
     app.ok("width", "preview", "380")
     ui = T / "home" / ".local" / "state" / "filigrane" / "fili-file-ui"
     widths = lambda: sorted(l for l in ui.read_text().split() if l.startswith(("col.", "preview=")))
-    eq(widths(), ["col.kind=600", "col.modified=56", "col.size=180", "preview=380"], "fichier d'état")
+    eq(widths(), ["col.kind=600", "col.modified=56", "col.size=180", "preview=380"], "state file")
     app.proc.terminate()
     app.proc.wait(10)
     app = App()
@@ -686,10 +686,10 @@ def _():
     app.ok("width", "preview", "reset")
     for c in ("size", "modified", "kind"):
         app.ok("width", "column", c, "reset")
-    eq(widths(), [], "largeurs retirées de l'état")
+    eq(widths(), [], "widths removed from the state")
 
 
-@test("réseau: le lieu « Network » montre les connexions, goto d'un dossier le ferme")
+@test("network: the \"Network\" place shows the connections, goto a folder closes it")
 def _():
     d = make("net", {})
     app.ok("goto", str(d))
@@ -697,22 +697,22 @@ def _():
     s = app.state()
     eq(s["results"], "Network")
     app.ok("goto", str(d))
-    eq(app.state()["results"], "", "vue réseau fermée")
+    eq(app.state()["results"], "", "network view closed")
 
 
-@test("résultats: show remplace le dossier, goto les ferme")
+@test("results: show replaces the folder, goto closes them")
 def _():
     d = make("res", {"a.txt": "", "sub/": ""})
     (d / "sub" / "b.txt").write_text("")
     app.ok("goto", str(d))
-    app.ok("show", "Mes résultats", stdin=f"{d}/a.txt\n{d}/sub/b.txt\n")
+    app.ok("show", "My results", stdin=f"{d}/a.txt\n{d}/sub/b.txt\n")
     s = app.state()
-    eq(s["results"], "Mes résultats")
+    eq(s["results"], "My results")
     app.ok("goto", str(d))
-    eq(app.state()["results"], "", "résultats fermés")
+    eq(app.state()["results"], "", "results closed")
 
 
-@test("recherche: le filtre est dans l'état")
+@test("search: the filter is in the state")
 def _():
     d = make("flt", {"alpha.txt": "", "beta.txt": ""})
     app.ok("goto", str(d))
@@ -730,18 +730,18 @@ def main():
             print(f"ok {i} - {name}")
         except Skip as e:
             print(f"ok {i} - {name} # SKIP {e}")
-        except Exception as e:  # noqa: BLE001 - tout échec est un résultat de test, pas une exception du banc
+        except Exception as e:  # noqa: BLE001 - any failure is a test result, not an exception of the bench
             failed += 1
             print(f"not ok {i} - {name}")
             print("#   " + str(e).replace("\n", "\n#   "))
         sys.stdout.flush()
-        # Une fenêtre qui meurt rend les cas suivants sans objet
+        # A window that dies makes the following cases pointless
         if app.proc.poll() is not None:
-            print(f"not ok - fili-file s'est arrêté (code {app.proc.returncode}); journal:")
+            print(f"not ok - fili-file stopped (code {app.proc.returncode}); log:")
             print("#   " + (T / "app.log").read_text()[-1500:].replace("\n", "\n#   "))
             failed += 1
             break
-        # Remet la fenêtre à l'état neutre pour le cas suivant
+        # Put the window back to a neutral state for the next case
         try:
             if app.state()["dialog"]:
                 app.ctl("dialog", "cancel")
@@ -750,7 +750,7 @@ def main():
         except Exception:  # noqa: BLE001
             pass
     app.proc.terminate()
-    print(f"# fin: {failed} échec(s) sur {len(results)}")
+    print(f"# done: {failed} failure(s) of {len(results)}")
     return 1 if failed else 0
 
 

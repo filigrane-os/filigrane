@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Le menu de fili-file dans la fili-bar (dotfiles/config/filigrane/appmenu/fili-file.json) doit rester celui de
-l'application: pour chaque entrée `fili-file ctl ... action NOM`, la commande NOM existe dans apps/fili-file/qml/Main.qml
-(table menuActions) avec le même libellé et le même raccourci; chaque commande à libellé de la barre de menus Qt est
-proposée dans la barre. Code 0 si tout concorde, 1 sinon (chaque écart sur une ligne)."""
+"""The menu of fili-file in the fili-bar (dotfiles/config/filigrane/appmenu/fili-file.json) must stay the one of
+the application: for each entry `fili-file ctl ... action NAME`, the command NAME exists in apps/fili-file/qml/Main.qml
+(menuActions table) with the same label and the same shortcut; each command with a label of the Qt menu bar is
+offered in the bar. Exit code 0 if everything agrees, 1 otherwise (each difference on one line)."""
 import json
 import re
 import sys
@@ -32,20 +32,20 @@ for entries in [menu.get("app", [])] + [top["children"] for top in menu["menus"]
         name = m.group(1)
         seen.add(name)
         if name not in table:
-            errors.append(f"commande « {name} » absente de menuActions (Main.qml)")
+            errors.append(f"command \"{name}\" missing from menuActions (Main.qml)")
             continue
         text, shortcut = actions.get(table[name], ("", ""))
         if e["label"] != text:
-            errors.append(f"{name}: libellé « {e['label']} » dans le menu, « {text} » dans Main.qml")
+            errors.append(f"{name}: label \"{e['label']}\" in the menu, \"{text}\" in Main.qml")
         if e.get("keys", "") != shortcut:
-            errors.append(f"{name}: raccourci « {e.get('keys', '')} » dans le menu, « {shortcut} » dans Main.qml")
+            errors.append(f"{name}: shortcut \"{e.get('keys', '')}\" in the menu, \"{shortcut}\" in Main.qml")
 for name, action in table.items():
     if action != "aQuit" and actions.get(action, ("", ""))[0] and name not in seen:
-        errors.append(f"commande « {name} » de Main.qml absente du menu de la fili-bar")
+        errors.append(f"command \"{name}\" of Main.qml missing from the fili-bar menu")
 
 if errors:
-    print("not ok - menu de fili-file dans la fili-bar:")
+    print("not ok - menu of fili-file in the fili-bar:")
     for e in errors:
         print("#   " + e)
     sys.exit(1)
-print(f"ok - menu de fili-file dans la fili-bar: {len(seen)} commandes concordantes")
+print(f"ok - menu of fili-file in the fili-bar: {len(seen)} matching commands")
