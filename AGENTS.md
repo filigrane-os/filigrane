@@ -49,3 +49,5 @@ Choix de conception (valeur, réglage, outil): prendre le défaut raisonnable, l
 ## Style
 
 Réponses en français, courtes et factuelles. Dire ce qui a été fait, vérifié ou non testé.
+
+**Code en anglais** (projet open source): tout ce qui est écrit dans le dépôt est en anglais: code, identifiants, commentaires, messages de commit, documentation, messages de la ligne de commande et chaînes d'interface (les traductions vont dans les fichiers de langue). Seules les réponses à l'utilisateur dans la conversation restent en français. Un fichier touché qui contient encore du français est traduit au passage.
