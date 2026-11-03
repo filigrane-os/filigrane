@@ -15,7 +15,7 @@ The OS stays in the background, like a watermark (*filigrane* in French): RAM, C
 On a Void Linux system that is already installed:
 
 ```
-git clone https://github.com/thooams/filigrane ~/filigrane && cd ~/filigrane
+git clone https://github.com/filigrane-os/filigrane ~/filigrane && cd ~/filigrane
 ./bootstrap.sh
 ```
 
