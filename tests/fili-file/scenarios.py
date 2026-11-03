@@ -4,6 +4,7 @@
 "not ok N - name" followed by the reason, then "# done: X failure(s) of N". Exit code 0 if everything passes."""
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -88,7 +89,12 @@ def make(name, files):
 
 def eq(got, want, what=""):
     if got != want:
-        raise AssertionError(f"{what}: obtenu {got!r}, attendu {want!r}".strip(": "))
+        raise AssertionError(f"{what}: got {got!r}, expected {want!r}".strip(": "))
+
+
+def have(tool):
+    """Whether the application can find `tool`: PATH only (HOME is a test directory, ~/.local/bin does not count)."""
+    return shutil.which(tool, path=os.environ.get("PATH", "")) is not None
 
 
 class Skip(Exception):
@@ -111,8 +117,8 @@ def test(name):
 @test("startup: state of the window")
 def _():
     s = app.state()
-    eq(s["location"], str(DATA), "dossier")
-    eq(s["tabs"], [str(DATA)], "onglets")
+    eq(s["location"], str(DATA), "folder")
+    eq(s["tabs"], [str(DATA)], "tabs")
     eq((s["view"], s["hidden_shown"], s["preview"], s["dialog"], s["in_trash"], s["results"]), ("list", False, False, "", False, ""))
     assert s["can_act"] and s["pid"] == app.pid
 
@@ -138,14 +144,14 @@ def _():
 
 # ---------------------------------------------------------------- navigation
 
-@test("navigation: goto, retour, avant, parent")
+@test("navigation: goto, back, forward, parent")
 def _():
     d = make("nav", {"a/": "", "b/": ""})
     app.ok("goto", str(d / "a"))
     eq(app.state()["location"], str(d / "a"))
     app.ok("goto", str(d / "b"))
     app.ok("action", "back")
-    eq(app.state()["location"], str(d / "a"), "retour")
+    eq(app.state()["location"], str(d / "a"), "back")
     app.ok("action", "forward")
     eq(app.state()["location"], str(d / "b"), "before")
     app.ok("action", "up")
@@ -224,7 +230,7 @@ def _():
     eq(app.state()["hidden_shown"], False)
 
 
-# ---------------------------------------------------------------- onglets et affichage
+# ---------------------------------------------------------------- tabs and display
 
 @test("hidden files: the choice is kept between two launches")
 def _():
@@ -244,7 +250,7 @@ def _():
     eq(app.state()["hidden_shown"], False, "reopening after unchecking")
 
 
-@test("onglets: nouveau, changer, fermer, dernier onglet")
+@test("tabs: new, switch, close, last tab")
 def _():
     d = make("tabs", {"x/": ""})
     app.ok("goto", str(d))
@@ -357,13 +363,13 @@ def _():
         app.wait(lambda: clip.exists() and clip.read_text() == want, 3, f"{action} in the clipboard")
 
 
-@test("dupliquer")
+@test("duplicate")
 def _():
     d = make("dup", {"a.txt": "alpha"})
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/a.txt\n")
     app.ok("action", "duplicate")
-    app.wait(lambda: (d / "a copy.txt").exists(), what="copie")
+    app.wait(lambda: (d / "a copy.txt").exists(), what="copy")
     eq((d / "a copy.txt").read_text(), "alpha")
 
 
@@ -375,7 +381,7 @@ def conflict(name, answer, check):
     app.ok("action", "copy")
     app.ok("goto", str(d / "dst"))
     app.ok("action", "paste")
-    app.wait(lambda: app.state()["dialog"] == "conflict", what="dialogue de conflit")
+    app.wait(lambda: app.state()["dialog"] == "conflict", what="conflict dialog")
     app.fails("action", "copy", containing="disabled")
     app.ok("dialog", answer)
     app.wait(lambda: app.state()["dialog"] == "" and not app.state()["tasks"], what="end of the operation")
@@ -390,7 +396,7 @@ def _():
     conflict("cf-replace", "replace", check)
 
 
-@test("conflit de nom: garder les deux")
+@test("name conflict: keep both")
 def _():
     def check(dst):
         eq((dst / "a.txt").read_text(), "old")
@@ -399,7 +405,7 @@ def _():
     conflict("cf-both", "both", check)
 
 
-@test("conflit de nom: ignorer")
+@test("name conflict: skip")
 def _():
     def check(dst):
         eq((dst / "a.txt").read_text(), "old")
@@ -407,7 +413,7 @@ def _():
     conflict("cf-skip", "skip", check)
 
 
-@test("conflit de nom: annuler")
+@test("name conflict: cancel")
 def _():
     def check(dst):
         eq((dst / "a.txt").read_text(), "old")
@@ -429,7 +435,7 @@ def _():
     app.fails("action", "rename", "q.txt", containing="exactly one")
 
 
-@test("nouveau dossier par argument")
+@test("new folder by argument")
 def _():
     d = make("nf", {})
     app.ok("goto", str(d))
@@ -446,7 +452,7 @@ def _():
     app.ok("action", "trash")
     app.wait(lambda: not (d / "a.txt").exists(), what="file in the trash")
     trash = T / "home" / ".local" / "share" / "Trash" / "files"
-    assert (trash / "a.txt").exists(), names(trash) if trash.exists() else "pas de corbeille"
+    assert (trash / "a.txt").exists(), names(trash) if trash.exists() else "no trash"
     app.ok("action", "undo")
     app.wait(lambda: (d / "a.txt").exists(), what="restauration")
     eq((d / "a.txt").read_text(), "alpha")
@@ -536,8 +542,10 @@ def _():
         raise Skip("copy too fast to be interrupted")
 
 
-@test("compresser (zip, 7z, tar.gz) puis extraire")
+@test("compress (zip, 7z, tar.gz) then extract")
 def _():
+    if not have("fili-archive"):
+        raise Skip("fili-archive is not installed")
     d = make("arc", {"a.txt": "alpha"})
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/a.txt\n")
@@ -550,7 +558,7 @@ def _():
     app.wait(lambda: len(names(d)) > 4 and not app.state()["tasks"], 15, "extraction")
     extracted = [p for p in names(d) if p not in ("a.txt", "one.zip", "three.tar.gz", "two.7z")]
     # a.txt already exists next to the archive: the extraction takes the first free name
-    eq(extracted, ["a 2.txt"], "fichier extrait")
+    eq(extracted, ["a 2.txt"], "extracted file")
     eq((d / "a 2.txt").read_text(), "alpha")
 
 
@@ -562,8 +570,10 @@ def _():
     app.ok("goto", str(d))
     app.ok("select", stdin=f"{d}/a.txt\n")
     for action, name in (("select-matching", "match"), ("compress", "compress"), ("info", "info"), ("about", "about")):
+        if action == "compress" and not have("fili-archive"):
+            continue  # the command is switched off without its program (see the "optional tools" scenario)
         app.ok("action", action)
-        app.wait(lambda name=name: app.state()["dialog"] == name, 3, f"dialogue {name}")
+        app.wait(lambda name=name: app.state()["dialog"] == name, 3, f"dialog {name}")
         app.fails("action", "copy", containing="disabled")
         app.ok("dialog", "cancel")
         app.wait(lambda: app.state()["dialog"] == "", 3, "dialog closed")
@@ -628,7 +638,9 @@ def _():
     ctx = T / "run" / "fili" / "context" / f"{app.pid}.json"
     disabled = lambda: set(json.loads(ctx.read_text())["disabled"])
     # What targets selected items
-    needs = {"copy", "cut", "trash", "rename", "duplicate", "compress", "open", "quick-look", "copy-path", "copy-name", "select-same-kind"}
+    needs = {"copy", "cut", "trash", "rename", "duplicate", "open", "quick-look", "copy-path", "copy-name", "select-same-kind"}
+    if have("fili-archive"):
+        needs.add("compress")
     app.ok("goto", str(e))
     app.wait(lambda: needs <= disabled(), 4, "selection commands greyed out in an empty folder")
     assert not ({"paste", "new-folder", "select-all", "reload"} & disabled()), disabled()
@@ -640,7 +652,7 @@ def _():
     app.ok("select", "--none")
     app.wait(lambda: needs <= disabled(), 4, "selection emptied: greyed out")
     app.fails("action", "copy", containing="disabled")
-    # Un dialogue ouvert grise aussi coller et nouveau dossier
+    # An open dialog also greys out paste and new folder
     app.ok("action", "select-matching")
     app.wait(lambda: {"paste", "new-folder"} <= disabled(), 4, "dialog open: paste greyed out")
     app.ok("dialog", "cancel")
