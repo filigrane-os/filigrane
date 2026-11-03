@@ -2,6 +2,10 @@
 Name=Filigrane-Icons
 Comment=Dossiers et glyphes de Filigrane (d'après Nordic-Slot-Dark-Icons), le reste d'Adwaita
 Inherits=Adwaita,hicolor
+# Hints for fili-file (other applications ignore unknown X- keys): one blue folder, one file glyph, filled sidebar glyphs
+X-Fili-FolderIcon=folder-blue
+X-Fili-FileIcon=file
+X-Fili-GlyphDir=places/16
 Directories=places/scalable,places/16,places/symbolic,mimetypes/scalable,mimetypes/symbolic,devices/symbolic
 
 [places/scalable]
