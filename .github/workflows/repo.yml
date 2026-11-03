@@ -56,7 +56,7 @@ jobs:
             -e FILI_TARGET_DIR=/src/.cache/cargo-target -e FILI_REUSE=1 ghcr.io/void-linux/void-glibc-full:latest sh -exc '
               xbps-install -Syu xbps || true
               xbps-install -Syu
-              xbps-install -y bash git cargo qt6-base-devel qt6-declarative-devel qt6-svg-devel pkg-config
+              xbps-install -y bash git cargo make gcc qt6-base-devel qt6-declarative-devel qt6-svg-devel pkg-config
               git config --global --add safe.directory /src
               XBPS_PRIVKEY=/key.pem bash distro/build-repo.sh'
           rm -f "$RUNNER_TEMP/key.pem"
