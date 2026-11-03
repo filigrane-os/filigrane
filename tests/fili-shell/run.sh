@@ -35,6 +35,9 @@ if [ -n "$errors" ]; then
 fi
 # Le menu de fili-file dans la fili-bar suit les commandes et raccourcis de l'application
 python3 -I "$ROOT/tests/fili-shell/check-fili-file-menu.py" || exit 1
+# Casier follows the shell: same theme defaults and same kinetic scroll (opt-in tests of apps/fili-file, see src/main.rs)
+(cd "$ROOT/apps/fili-file" && FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}" cargo test --release -q shell_parity) >/dev/null 2>&1 \
+    && echo "ok - Casier follows the shell (theme defaults, kinetic scroll)" || { echo "not ok - Casier no longer matches the shell: cd apps/fili-file && FILI_SHELL_DIR=../../dotfiles/config/quickshell cargo test --release shell_parity"; exit 1; }
 # Casier (fili-file): instance sans affichage pilotée par ctl, dans un HOME temporaire (tests/fili-file/run.sh; recompiler
 # d'abord: le banc refuse un binaire plus ancien que les sources)
 "$ROOT/tests/fili-file/run.sh" || exit 1
