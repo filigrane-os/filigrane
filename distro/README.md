@@ -39,4 +39,4 @@ Boot the ISO (the `anon` session opens automatically), connect the network, then
 
 ## Publishing the repository
 
-`.github/workflows/repo.yml` builds the packages in a Void container, signs them (`XBPS_PRIVKEY` secret) and uploads them to the assets of the GitHub release `repo`: only new versions are sent, the index goes last, old versions are removed. The address is `DISTRO_REPO_URL` in `distro.env`. Machines should not hard-code it: the future `fili-repo` package will install the `/etc/xbps.d/` configuration, so moving the repository to a domain name is one package update.
+`.github/workflows/repo.yml` builds the packages in a Void container, signs them (`XBPS_PRIVKEY` secret) and uploads them to the assets of the GitHub release `repo`: only new versions are sent, the index goes last, old versions are removed. The address is `DISTRO_REPO_URL` in `distro.env`. Machines do not hard-code it: the `fili-repo` package (a dependency of `fili-base`) installs the `/etc/xbps.d/` configuration and the public signing key (`distro/repo/keys/`), so moving the repository to a domain name is one package update.

@@ -102,17 +102,30 @@ else
     create "$DISTRO-apps" "${VERSION}_1" noarch "Outils natifs de $DISTRO (barre, flou du menu, budget ressources, explorateur...)" \
         "$(sed 's/$/>=0/' "$WORK/apps.list" | tr '\n' ' ')" "$empty" >/dev/null
 
+    echo "==> $DISTRO-repo (adresse du dépôt et clé de signature)"
+    # Les machines tiennent leur configuration xbps de ce paquet: changer DISTRO_REPO_URL puis publier = nouvelle adresse partout.
+    # La clé publique (distro/repo/keys/<empreinte>.plist) évite la question d'import au premier xbps-install.
+    rdest="$WORK/repo"
+    mkdir -p "$rdest/etc/xbps.d" "$rdest/var/db/xbps/keys"
+    printf '# Dépôt de la distribution %s (paquet %s-repo)\nrepository=%s\n' "$DISTRO" "$DISTRO" "$DISTRO_REPO_URL" >"$rdest/etc/xbps.d/10-$DISTRO.conf"
+    cp "$ROOT"/distro/repo/keys/*.plist "$rdest/var/db/xbps/keys/"
+    create "$DISTRO-repo" "${VERSION}_1" noarch "Dépôt xbps de $DISTRO: adresse et clé de signature" "" "$rdest" \
+        --config-files "/etc/xbps.d/10-$DISTRO.conf" >/dev/null
+
     echo "==> Méta-paquets (packages/*.txt)"
     for list in "$ROOT"/packages/*.txt; do
         l="$(basename "$list" .txt)"
         [ "$l" = restricted ] && continue  # licences sans redistribution: xbps-src en local
         deps="$(read_list "$list" | sed 's/$/>=0/' | tr '\n' ' ')"
         [ "$l" = desktop ] && deps="$deps $DISTRO-apps>=${VERSION}_1"
+        [ "$l" = base ] && deps="$deps $DISTRO-repo>=0"
         create "$DISTRO-$l" "${VERSION}_1" noarch "$DISTRO: paquets de la liste $l" "$deps" "$empty"
     done
 fi
 
 echo "==> Index"
+# Index refait depuis les fichiers présents: un paquet reconstruit sous la même version aurait sinon gardé l'ancienne empreinte
+rm -f "$OUT"/*-repodata "$OUT"/*-stagedata
 xbps-rindex -a "$OUT"/*.xbps >/dev/null
 xbps-rindex -r "$OUT" >/dev/null  # entrées dont le fichier a disparu retirées de l'index...
 xbps-rindex -c "$OUT" >/dev/null  # ...et fichiers périmés (plus dans l'index) retirés du disque
