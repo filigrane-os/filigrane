@@ -452,13 +452,13 @@ setup_apps() {
         [ -e "$manifest" ] || return 0
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
         app="$(dirname "$manifest")"; name="$(basename "$app")"
-        # build.rs, qml/ et .cargo/ (fili-file: interface QML compilée dans le binaire, qmake de Qt)
-        sum="$(cd "$app" && { find Cargo.toml Cargo.lock src build.rs qml .cargo -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary)
+        sum="$(cd "$app" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         if [ ! -x "$dir/$name" ]; then
             log 'Building %s (%s)' "$name" "$sum"
-            # Depuis le dossier de l'outil: son .cargo/config.toml compte (QMAKE de fili-file)
-            if (cd "$app" && run_as_user env CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
+            # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
+            if (cd "$app" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
                     cargo build -q --release --locked --manifest-path "$manifest") \
                 && run_as_user mkdir -p "$dir" \
                 && run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$name" "$dir/$name"; then
