@@ -84,6 +84,11 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
     dest="$WORK/$app"
     mkdir -p "$dest/usr/bin"
     install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
+    # licenses/ of the tool (fonts and other embedded files): /usr/share/licenses/<package>/
+    if [ -d "$dir/licenses" ]; then
+        mkdir -p "$dest/usr/share/licenses/$pkg"
+        cp "$dir"/licenses/* "$dest/usr/share/licenses/$pkg/"
+    fi
     # ALIASES (package.env): other command names for the same program (casier -> fili-file)
     local alias
     for alias in $ALIASES; do ln -s "$app" "$dest/usr/bin/$alias"; done
