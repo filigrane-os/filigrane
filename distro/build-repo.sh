@@ -109,8 +109,9 @@ else
     mkdir -p "$rdest/etc/xbps.d" "$rdest/var/db/xbps/keys"
     printf '# Dépôt de la distribution %s (paquet %s-repo)\nrepository=%s\n' "$DISTRO" "$DISTRO" "$DISTRO_REPO_URL" >"$rdest/etc/xbps.d/10-$DISTRO.conf"
     cp "$ROOT"/distro/repo/keys/*.plist "$rdest/var/db/xbps/keys/"
-    create "$DISTRO-repo" "${VERSION}_1" noarch "Dépôt xbps de $DISTRO: adresse et clé de signature" "" "$rdest" \
-        --config-files "/etc/xbps.d/10-$DISTRO.conf" >/dev/null
+    # Pas de --config-files: xbps ne remplace jamais un fichier de configuration déjà présent (celui de bootstrap.sh, par
+    # exemple), et l'adresse doit suivre le paquet. Réglage local: un autre fichier de /etc/xbps.d (20-local.conf...).
+    create "$DISTRO-repo" "${VERSION}_1" noarch "Dépôt xbps de $DISTRO: adresse et clé de signature" "" "$rdest" >/dev/null
 
     echo "==> Méta-paquets (packages/*.txt)"
     for list in "$ROOT"/packages/*.txt; do
