@@ -55,10 +55,16 @@ create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [o
 # Nom du paquet: le dossier de apps/, préfixé par <distro>- s'il ne l'est pas (budget -> fili-budget, évite les collisions avec Void)
 pkg_name() { case "$1" in "$DISTRO"-*) echo "$1" ;; *) echo "$DISTRO-$1" ;; esac; }
 
+# Source directory of a tool: apps/<app>, or the pinned checkout of a tool that lives in its own repository
+# (apps/<app>/upstream, see scripts/upstream-dir)
+src_dir() {
+    if [ -f "$ROOT/apps/$1/upstream" ]; then "$ROOT/scripts/upstream-dir" "$1"; else echo "$ROOT/apps/$1"; fi
+}
+
 # Version xbps d'un outil: <version Cargo>_<commits qui touchent apps/<app>> (+1 si modifié et non commité)
 app_version() {
     local app="$1" v rev
-    v="$(sed -n 's/^version *= *"\(.*\)".*/\1/p' "$ROOT/apps/$app/Cargo.toml" | head -1)"
+    v="$(sed -n 's/^version *= *"\(.*\)".*/\1/p' "$(src_dir "$app")/Cargo.toml" | head -1)"
     rev="$(git -C "$ROOT" rev-list --count HEAD -- "apps/$app" 2>/dev/null || echo 0)"
     [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && rev=$((rev + 1))
     [ "$rev" -ge 1 ] || rev=1
@@ -66,11 +72,15 @@ app_version() {
 }
 
 build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
-    local app="$1" dir="$ROOT/apps/$1" pkg ver dest dirty=""
+    local app="$1" dir pkg ver dest dirty="" override
+    dir="$(src_dir "$app")"
     pkg="$(pkg_name "$app")"
     ver="$(app_version "$app")"
     echo "$pkg" >>"$WORK/apps.list"
     [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && dirty=1
+    # A local checkout (FILI_SRC_<NAME>) is work in progress: always rebuilt
+    override="FILI_SRC_$(printf '%s' "$app" | tr 'a-z-' 'A-Z_')"
+    [ -n "${!override:-}" ] && dirty=1
     if [ -z "$dirty" ] && [ -f "$OUT/$pkg-$ver.$ARCH.xbps" ]; then
         echo "==> $pkg-$ver: déjà construit"; return 0
     fi
@@ -80,28 +90,35 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
     # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
-    (cd "$dir" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET" cargo build -q --release --locked --manifest-path "$dir/Cargo.toml")
     dest="$WORK/$app"
-    mkdir -p "$dest/usr/bin"
-    install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
-    # licenses/ of the tool (fonts and other embedded files): /usr/share/licenses/<package>/
-    if [ -d "$dir/licenses" ]; then
-        mkdir -p "$dest/usr/share/licenses/$pkg"
-        cp "$dir"/licenses/* "$dest/usr/share/licenses/$pkg/"
+    mkdir -p "$dest"
+    if [ -f "$dir/Makefile" ]; then
+        # A tool with its own Makefile installs itself (binary, aliases, desktop entry, icon, services, licenses)
+        (cd "$dir" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET" make install PREFIX=/usr DESTDIR="$dest" >/dev/null)
+    else
+        (cd "$dir" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET" cargo build -q --release --locked --manifest-path "$dir/Cargo.toml")
+        mkdir -p "$dest/usr/bin"
+        install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
+        # licenses/ of the tool (fonts and other embedded files): /usr/share/licenses/<package>/
+        if [ -d "$dir/licenses" ]; then
+            mkdir -p "$dest/usr/share/licenses/$pkg"
+            cp "$dir"/licenses/* "$dest/usr/share/licenses/$pkg/"
+        fi
+        # ALIASES (package.env): other command names for the same program
+        local alias
+        for alias in $ALIASES; do ln -sfn "$app" "$dest/usr/bin/$alias"; done
     fi
-    # ALIASES (package.env): other command names for the same program (casier -> fili-file)
-    local alias
-    for alias in $ALIASES; do ln -s "$app" "$dest/usr/bin/$alias"; done
     LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
 }
 
 command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }
 if [ -n "$ONLY" ]; then
-    [ -f "$ROOT/apps/$ONLY/Cargo.toml" ] || { echo "apps/$ONLY n'est pas un outil Rust du dépôt" >&2; exit 1; }
+    [ -f "$ROOT/apps/$ONLY/Cargo.toml" ] || [ -f "$ROOT/apps/$ONLY/upstream" ] || { echo "apps/$ONLY n'est pas un outil Rust du dépôt" >&2; exit 1; }
     build_app "$ONLY"
 else
-    for manifest in "$ROOT"/apps/*/Cargo.toml; do
-        build_app "$(basename "$(dirname "$manifest")")"
+    for d in "$ROOT"/apps/*/; do
+        [ -f "$d/Cargo.toml" ] || [ -f "$d/upstream" ] || continue
+        build_app "$(basename "$d")"
     done
 
     echo "==> $DISTRO-apps (méta-paquet des outils)"

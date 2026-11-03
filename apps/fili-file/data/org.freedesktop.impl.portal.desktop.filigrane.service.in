@@ -1,3 +1,0 @@
-[D-BUS Service]
-Name=org.freedesktop.impl.portal.desktop.filigrane
-Exec=@BINDIR@/fili-file --portal
