@@ -35,7 +35,7 @@
 # automount = true
 
 # Thème (couleurs, rayons, bordures, espacements, polices), en anglais, par mode clair / sombre.
-# Les défauts sont dans apps/fili-file/theme.toml (toutes les clés y sont commentées). Ajouter ici seulement ce qui change:
+# Les défauts sont dans fili-file/theme.toml (toutes les clés y sont commentées). Ajouter ici seulement ce qui change:
 # [theme]               # les deux modes
 # radius_control = 8
 # border_width = 1

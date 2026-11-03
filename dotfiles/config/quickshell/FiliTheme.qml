@@ -32,7 +32,7 @@ Singleton {
         onLoadFailed: theme.accent = "default"
     }
     // Réglages globaux facultatifs: ~/.config/filigrane/theme.toml (sections [theme], [theme.dark], [theme.light],
-    // [theme.accents]; clés en anglais, voir apps/fili-file/theme.toml). Relus dès qu'ils changent; les valeurs
+    // [theme.accents]; clés en anglais, voir fili-file/theme.toml). Relus dès qu'ils changent; les valeurs
     // ci-dessous sont les défauts (un test les garde identiques à ceux de fili-file); une valeur invalide est ignorée.
     property var parsed: ({})
     readonly property var user: resolve(parsed, light)

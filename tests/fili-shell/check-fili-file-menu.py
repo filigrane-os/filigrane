@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """The menu of fili-file in the fili-bar (dotfiles/config/filigrane/appmenu/fili-file.json) must stay the one of
-the application: for each entry `fili-file ctl ... action NAME`, the command NAME exists in apps/fili-file/qml/Main.qml
+the application: for each entry `fili-file ctl ... action NAME`, the command NAME exists in qml/Main.qml of fili-file
 (menuActions table) with the same label and the same shortcut; each command with a label of the Qt menu bar is
 offered in the bar. Exit code 0 if everything agrees, 1 otherwise (each difference on one line)."""
 import json
+import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[2]
-qml = (root / "apps/fili-file/qml/Main.qml").read_text(encoding="utf-8")
+# Source of fili-file: the version pinned in apps/fili-file/upstream (or FILI_SRC_FILI_FILE, a local checkout)
+src = Path(subprocess.run([str(root / "scripts/upstream-dir"), "fili-file"], capture_output=True, text=True, check=True).stdout.strip())
+qml = (src / "qml/Main.qml").read_text(encoding="utf-8")
 menu = json.loads((root / "dotfiles/config/filigrane/appmenu/fili-file.json").read_text(encoding="utf-8"))
 
 # Action { id: aCopy; text: Fili.tr("Copy"); shortcut: "Ctrl+C"; ... }

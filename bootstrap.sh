@@ -446,23 +446,31 @@ run_as_user() {
 # seulement quand les sources changent. Le dossier de compilation (target/) reste hors du dépôt, dans ~/.cache.
 # Avec le paquet <distro>-apps (dépôt xbps de la distribution, voir distro/), les binaires sont déjà dans /usr/bin.
 setup_apps() {
-    local manifest app name sum dir
+    local app name src sum dir alias
     if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"; return 0; fi
-    for manifest in "$ROOT"/apps/*/Cargo.toml; do
-        [ -e "$manifest" ] || return 0
+    for app in "$ROOT"/apps/*/; do
+        app="${app%/}"; name="$(basename "$app")"
+        if [ -f "$app/upstream" ]; then
+            # Tool that lives in its own repository: the pinned version (apps/<name>/upstream, scripts/upstream-dir)
+            command -v git >/dev/null || { warn 'git missing: %s not built' "$name"; continue; }
+            src="$(run_as_user "$ROOT/scripts/upstream-dir" "$name")" || { warn 'Source of %s not available (network?)' "$name"; continue; }
+        elif [ -f "$app/Cargo.toml" ]; then
+            src="$app"
+        else
+            continue
+        fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
-        app="$(dirname "$manifest")"; name="$(basename "$app")"
         # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary)
-        sum="$(cd "$app" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         if [ ! -x "$dir/$name" ]; then
             log 'Building %s (%s)' "$name" "$sum"
             # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
-            if (cd "$app" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
-                    cargo build -q --release --locked --manifest-path "$manifest") \
+            if (cd "$src" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
+                    cargo build -q --release --locked --manifest-path "$src/Cargo.toml") \
                 && run_as_user mkdir -p "$dir" \
                 && run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$name" "$dir/$name"; then
-                # anciennes versions
+                # old versions
                 find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-$sum" -exec rm -rf {} +
             else
                 warn 'Build of %s failed' "$name"; run_as_user rm -rf "$dir"; continue
@@ -470,9 +478,8 @@ setup_apps() {
         fi
         run_as_user mkdir -p "$TARGET_HOME/.local/bin"
         run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$name"
-        # Other command names of the same program (ALIASES in apps/<name>/package.env, e.g. casier -> fili-file)
-        local alias
-        for alias in $(ALIASES="" && . "$app/package.env" 2>/dev/null && echo "$ALIASES"); do
+        # Other command names of the same program (ALIASES in package.env, e.g. casier -> fili-file)
+        for alias in $(ALIASES="" && . "$src/package.env" 2>/dev/null && echo "$ALIASES"); do
             run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$alias"
         done
     done

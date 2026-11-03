@@ -2,7 +2,7 @@ pragma Singleton
 // fili-chat-about: fiche « À propos de Rob » (le chat de Filigrane), au centre de l'écran: icône robot (celle du module
 // IA de la fili-bar), nom d'usage (Rob), « Aussi connu sous le nom de fili-chat » (le programme), puis les infos utiles:
 // agent, version et modèle (lus par `fili-ai status` à chaque ouverture, rien ne tourne fenêtre fermée), sessions,
-// présentation du tiroir, fichier de réglages. Même contenu de base que la fiche de Casier (apps/fili-file/src/about.rs):
+// présentation du tiroir, fichier de réglages. Même contenu de base que la fiche de Casier (fili-file/src/about.rs):
 // toute application fili-* a cette fiche (skill filigrane-ui, references/hig.md §7).
 // Ouverture: menu Rob › About Rob (`fili-shell chat about`). Fermeture: Échap, clic hors de la carte.
 import QtQuick
