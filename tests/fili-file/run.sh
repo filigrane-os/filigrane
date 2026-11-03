@@ -9,12 +9,14 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BIN="${FILI_FILE_BIN:-${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}/release/fili-file}"
 [ -x "$BIN" ] || { echo "not ok - fili-file introuvable ($BIN): cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps cargo build --release" >&2; exit 1; }
 # Un binaire plus ancien que les sources testerait autre chose que le dépôt
-stale="$(find "$ROOT/apps/fili-file/src" "$ROOT/apps/fili-file/qml" "$ROOT/apps/bar-stats/src/i18n.rs" -newer "$BIN" -type f 2>/dev/null | head -3)"
+stale="$(find "$ROOT/apps/fili-file/src" "$ROOT/apps/fili-file/qml" "$ROOT/apps/fili-file/i18n" "$ROOT/apps/fili-file/fonts" -newer "$BIN" -type f 2>/dev/null | head -3)"
 if [ -n "$stale" ]; then
     echo "not ok - binaire périmé, à recompiler (cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps cargo build --release); plus récents que $BIN:"
     printf '%s\n' "$stale" | sed 's/^/#   /'
     exit 1
 fi
+# The translation catalog matches the texts of the code
+python3 -I "$ROOT/apps/fili-file/scripts/check-i18n.py" >/dev/null || { python3 -I "$ROOT/apps/fili-file/scripts/check-i18n.py"; exit 1; }
 # Chemin court: le socket Unix du contexte est limité à 108 caractères
 T="$(mktemp -d /tmp/fili-file-test.XXXXXX)"
 trap 'kill $(cat "$T/pid" 2>/dev/null) 2>/dev/null; rm -rf "$T"' EXIT INT TERM
