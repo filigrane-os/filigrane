@@ -17,11 +17,13 @@ SOCK_DIR = T / "run" / "fili" / "context"
 
 
 class App:
-    def __init__(self):
-        self.log = open(T / "app.log", "w")
-        self.proc = subprocess.Popen([BIN, str(DATA)], stdout=self.log, stderr=self.log, start_new_session=True)
+    def __init__(self, env=None, name="app"):
+        """`env` overrides variables of the environment (a second instance with another PATH, for example)."""
+        self.log = open(T / f"{name}.log", "w")
+        self.proc = subprocess.Popen([BIN, str(DATA)], stdout=self.log, stderr=self.log, start_new_session=True, env={**os.environ, **(env or {})})
         self.pid = self.proc.pid
-        (T / "pid").write_text(str(self.pid))
+        if name == "app":
+            (T / "pid").write_text(str(self.pid))
         self.wait(lambda: (SOCK_DIR / f"{self.pid}.sock").exists(), 20, "socket de l'application")
 
     def ctl(self, *args, stdin=None):
@@ -595,6 +597,28 @@ def _():
         app.ok("select", stdin=f"{d}/{name}\n")
         app.ok("action", "open")
         app.wait(lambda name=name: log.exists() and log.read_text().strip().splitlines()[-1] == str(d / name), 4, f"{name} ouvert par l'éditeur du type")
+
+
+@test("optional tools missing: compress, extract, share and nearby switch off, the rest keeps working")
+def _():
+    # The helpers are looked up in PATH and ~/.local/bin (HOME is a test directory): a PATH of the system directories only
+    # shows the application without them. Skipped when they are installed system-wide.
+    if any(Path(d, tool).exists() for d in ("/usr/bin", "/bin", "/usr/local/bin") for tool in ("fili-archive", "fili-share")):
+        raise Skip("fili-archive or fili-share installed in a system directory")
+    bare = App(env={"PATH": f"{T}/bin:/usr/bin:/bin"}, name="bare")
+    try:
+        d = make("bare", {"a.txt": "x"})
+        bare.ok("goto", str(d))
+        bare.ok("select", stdin=f"{d}/a.txt\n")
+        acts = {a["name"]: a for a in bare.ok("actions")["actions"]}
+        for n in ("compress", "extract", "share", "nearby"):
+            eq(acts[n]["enabled"], False, f"{n} enabled without its program")
+        for n in ("copy", "rename", "trash", "new-folder"):
+            eq(acts[n]["enabled"], True, f"{n} enabled")
+        bare.fails("action", "compress", containing="disabled")
+    finally:
+        bare.proc.terminate()
+        bare.proc.wait(timeout=10)
 
 
 @test("menu de la barre: commandes de fichiers grisées sans sélection, réactivées avec (contexte publié)")
