@@ -256,11 +256,22 @@ setup_system() {
         say 'SKIP: default browser already set (%s)' "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)"
     else install_pkgs chromium; fi
 
-    # Dépôt de la distribution embarqué (ISO: distro/out/repo, construit par distro/build-repo.sh): outils natifs
-    # déjà compilés, sans passer par cargo
-    if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ] && ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
-        log 'Native tools (%s-apps, embedded repository)' "$DISTRO"
-        $SUDO xbps-install -Sy --repository="$ROOT/distro/out/repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+    # Outils natifs déjà compilés, sans passer par cargo. D'abord le dépôt embarqué (ISO: distro/out/repo, construit par
+    # distro/build-repo.sh), sinon le dépôt publié (DISTRO_REPO_URL): on pose son adresse et sa clé de signature, puis
+    # <distro>-repo (qui les possède ensuite et les tient à jour) et <distro>-apps. En dernier recours, setup_apps compile.
+    if ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
+        if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ]; then
+            log 'Native tools (%s-apps, embedded repository)' "$DISTRO"
+            $SUDO xbps-install -Sy --repository="$ROOT/distro/out/repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+        elif [ -n "${DISTRO_REPO_URL:-}" ]; then
+            log 'Native tools (%s-apps, published repository)' "$DISTRO"
+            if ! xbps-query "$DISTRO-repo" >/dev/null 2>&1 && [ ! -f "/etc/xbps.d/10-$DISTRO.conf" ]; then
+                printf '# Dépôt de la distribution %s (remplacé par le paquet %s-repo)\nrepository=%s\n' "$DISTRO" "$DISTRO" "$DISTRO_REPO_URL" \
+                    | $SUDO install -Dm644 /dev/stdin "/etc/xbps.d/10-$DISTRO.conf"
+                $SUDO install -Dm644 -t /var/db/xbps/keys "$ROOT"/distro/repo/keys/*.plist
+            fi
+            $SUDO xbps-install -Sy "$DISTRO-repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+        fi
     fi
 
     log 'Cleaning the xbps cache (small disk)'
