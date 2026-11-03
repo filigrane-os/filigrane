@@ -470,6 +470,11 @@ setup_apps() {
         fi
         run_as_user mkdir -p "$TARGET_HOME/.local/bin"
         run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$name"
+        # Other command names of the same program (ALIASES in apps/<name>/package.env, e.g. casier -> fili-file)
+        local alias
+        for alias in $(ALIASES="" && . "$app/package.env" 2>/dev/null && echo "$ALIASES"); do
+            run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$alias"
+        done
     done
     setup_apps_git
 }

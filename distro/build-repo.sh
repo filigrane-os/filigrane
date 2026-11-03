@@ -75,8 +75,8 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
         echo "==> $pkg-$ver: déjà construit"; return 0
     fi
     echo "==> $pkg-$ver"
-    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS. Défaut: un binaire Rust qui ne lie que la libc.
-    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1"
+    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS, ALIASES. Défaut: un binaire Rust qui ne lie que la libc.
+    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES=""
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
     # Depuis le dossier de l'outil: son .cargo/config.toml compte (QMAKE de fili-file)
@@ -84,6 +84,9 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
     dest="$WORK/$app"
     mkdir -p "$dest/usr/bin"
     install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
+    # ALIASES (package.env): other command names for the same program (casier -> fili-file)
+    local alias
+    for alias in $ALIASES; do ln -s "$app" "$dest/usr/bin/$alias"; done
     create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
 }
 
