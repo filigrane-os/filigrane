@@ -7,11 +7,11 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BIN="${FILI_FILE_BIN:-${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}/release/fili-file}"
-[ -x "$BIN" ] || { echo "not ok - fili-file introuvable ($BIN): cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps cargo build --release" >&2; exit 1; }
+[ -x "$BIN" ] || { echo "not ok - fili-file introuvable ($BIN): cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps make" >&2; exit 1; }
 # Un binaire plus ancien que les sources testerait autre chose que le dépôt
 stale="$(find "$ROOT/apps/fili-file/src" "$ROOT/apps/fili-file/qml" "$ROOT/apps/fili-file/i18n" "$ROOT/apps/fili-file/fonts" -newer "$BIN" -type f 2>/dev/null | head -3)"
 if [ -n "$stale" ]; then
-    echo "not ok - binaire périmé, à recompiler (cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps cargo build --release); plus récents que $BIN:"
+    echo "not ok - binaire périmé, à recompiler (cd apps/fili-file && CARGO_TARGET_DIR=\$HOME/.cache/filigrane-apps make); plus récents que $BIN:"
     printf '%s\n' "$stale" | sed 's/^/#   /'
     exit 1
 fi

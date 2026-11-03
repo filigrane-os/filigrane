@@ -41,14 +41,14 @@ mkdir -p "$OUT"
 
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
 
-create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [options xbps-create]
+create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [options xbps-create]; license: $LICENSE_OF (default MIT)
     local name="$1" ver="$2" arch="$3" desc="$4" deps="$5" dest="$6"; shift 6
     # FILI_REUSE=1 (CI de publication): un paquet déjà là à cette version reste tel quel, pour que son empreinte
     # dans l'index reste celle du fichier déjà en ligne
     if [ -n "${FILI_REUSE:-}" ] && [ -f "$OUT/$name-$ver.$arch.xbps" ]; then echo "$name-$ver.$arch"; return 0; fi
     rm -f "$OUT/$name-$ver.$arch.xbps"
     (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-$ver" -s "$desc" -D "$deps" \
-        -H "$DISTRO_HOMEPAGE" -l MIT -m "$DISTRO" "$@" "$dest")
+        -H "$DISTRO_HOMEPAGE" -l "${LICENSE_OF:-MIT}" -m "$DISTRO" "$@" "$dest")
     echo "$name-$ver.$arch"
 }
 
@@ -75,12 +75,12 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
         echo "==> $pkg-$ver: déjà construit"; return 0
     fi
     echo "==> $pkg-$ver"
-    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS, ALIASES. Défaut: un binaire Rust qui ne lie que la libc.
-    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES=""
+    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Défaut: un binaire Rust qui ne lie que la libc.
+    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT"
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
-    # Depuis le dossier de l'outil: son .cargo/config.toml compte (QMAKE de fili-file)
-    (cd "$dir" && CARGO_TARGET_DIR="$TARGET" cargo build -q --release --locked --manifest-path "$dir/Cargo.toml")
+    # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
+    (cd "$dir" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET" cargo build -q --release --locked --manifest-path "$dir/Cargo.toml")
     dest="$WORK/$app"
     mkdir -p "$dest/usr/bin"
     install -m 755 "$TARGET/release/$app" "$dest/usr/bin/$app"
@@ -92,7 +92,7 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
     # ALIASES (package.env): other command names for the same program (casier -> fili-file)
     local alias
     for alias in $ALIASES; do ln -s "$app" "$dest/usr/bin/$alias"; done
-    create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
+    LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
 }
 
 command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }
