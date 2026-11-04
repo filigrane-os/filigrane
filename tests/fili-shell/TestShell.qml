@@ -30,6 +30,16 @@ ShellRoot {
             console.log("not ok " + count + " - " + name + (detail !== undefined ? " # " + detail : ""));
         }
     }
+    function findAll(item, name, out) {
+        out = out ?? [];
+        if (!item)
+            return out;
+        if (item.objectName === name)
+            out.push(item);
+        for (const c of item.children ?? [])
+            findAll(c, name, out);
+        return out;
+    }
     function find(item, name) {
         if (!item)
             return null;
@@ -170,20 +180,31 @@ ShellRoot {
                 ok(card.title && card.rows.length >= 3 && card.rows.every(r => r[0] && r[1]), "horloge: fiche (date, heure, fuseau, semaine)", JSON.stringify(card));
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"], ["ai", "agent"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
                 }
+                // Panneau de l'agent: une ligne par session (clic = sa fenêtre), message de la demande, actions
+                BarState.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
+                FiliPanel.view = "agent";
+                const ag = FiliPanel.loaded;
+                FiliTheme.ran = [];
+                ok(t.findAll(ag, "agent-session").length === 2 && t.find(ag, "agent-message").visible && t.find(ag, "agent-message").text === "Bash?", "fili-panel agent: sessions et message de la demande");
+                t.findAll(ag, "agent-session")[0].press(L);
+                ok(FiliTheme.ran.join("\n").indexOf("fili-ai-session focus a1") >= 0 && FiliPanel.view === "", "fili-panel agent: clic sur une session -> sa fenêtre, panneau fermé", JSON.stringify(FiliTheme.ran));
+                BarState.aiData = { sessions: [], limits: null };
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
                 expectClick("display", "up", "brightnessctl -q set 3%+");
                 expectClick("display", "down", "brightnessctl -q set 3%-");
                 expectClick("network", R, "menu network");
                 expectClick("power", R, "menu system");
-                // Agent IA: clic = tiroir du chat, milieu = session de terminal qui attend (ou fili-ai), droit = choix de l'agent
-                expectClick("ai", L, "fili-chat toggle");
+                // Agent IA: clic = panneau (ci-dessus), milieu et Mod+clic = ce qui attend (session de terminal ou fili-ai), droit = choix de l'agent
                 expectClick("ai", M, "fili-ai-session focus");
+                t.find(t.bar.contentItem, "ai").hover.meta = true;
+                expectClick("ai", L, "fili-ai-session focus");
+                t.find(t.bar.contentItem, "ai").hover.meta = false;
                 expectClick("ai", R, "fili-ai pick");
                 // Thème global (~/.config/filigrane/theme.toml): le mode passe devant [theme], valeur invalide ignorée, # entre guillemets
                 const keep = FiliTheme.parsed;
@@ -768,7 +789,10 @@ ShellRoot {
                 FiliPanel.summon("toggle");
                 ok(FiliPanel.view === "monitor" && FiliShell.keyNav, "clavier: Mod+A ouvre le dernier panneau, contours actifs", FiliPanel.view);
                 FiliPanel.step(1);
-                ok(FiliPanel.view === "audio", "clavier: → panneau voisin (son)", FiliPanel.view);
+                ok(FiliPanel.view === "agent", "clavier: → panneau voisin (agent IA)", FiliPanel.view);
+                FiliPanel.step(1);
+                ok(FiliPanel.view === "audio", "clavier: → encore (son)", FiliPanel.view);
+                FiliPanel.step(-1);
                 FiliPanel.step(-1);
                 FiliPanel.step(-1);
                 ok(FiliPanel.view === "power", "clavier: ← depuis le premier boucle sur le dernier (alimentation)", FiliPanel.view);

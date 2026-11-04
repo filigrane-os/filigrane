@@ -257,16 +257,17 @@ PanelWindow {
         Row {
             // Agent IA (chat FiliChat et sessions des terminaux, fili-ai-session; état lu par BarState): sable et
             // clignotant quand l'agent attend une réponse (ASK), DONE quand il a fini sans être regardé; clic =
-            // affiche ou cache le chat (comme Mod+Y), clic milieu = la session de terminal qui attend (sinon la
-            // dernière, encore: la suivante; aucune: fili-ai), clic droit = choisir l'agent
+            // ouvre le panneau de l'agent (sessions, actions), Mod+clic ou clic milieu = ce qui attend (le chat, sinon la
+            // session de terminal qui attend, sinon la dernière, encore: la suivante; aucune: fili-ai), clic droit = choisir l'agent
             BarScript {
                 objectName: "ai"
                 value: BarState.ai
                 colors: ({ off: FiliTheme.ardoise, idle: FiliTheme.brume2, working: FiliTheme.brume, waiting: FiliTheme.sable, done: FiliTheme.voile })
                 blinkClass: "waiting"
-                click: bar.b + "/fili-chat toggle"
-                mclick: bar.b + "/fili-ai-session focus"
                 rclick: bar.b + "/fili-ai pick"
+                hover.onLeftClicked: hover.meta ? BarState.aiAsk() : FiliPanel.toggle(hover, "agent", bar)
+                hover.onMiddleClicked: BarState.aiAsk()
+                Component.onCompleted: FiliPanel.register("agent", hover, bar)
             }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
             BarItem {
