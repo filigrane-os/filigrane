@@ -119,6 +119,8 @@ Singleton {
     // Couleur d'accentuation (fili-theme accent): [sombre, sombre vif, clair, clair vif]; défaut = sable en sombre, ardoise en clair
     readonly property var accentTones: tones({ default: ["#d2bf92", "#e0d1ab", "#4f6884", "#3d5470"], voile: ["#9dbbd6", "#b9d0e4", "#3f5a78", "#2f4a66"], ardoise: ["#7f9ab6", "#9ab2ca", "#4f6884", "#3d5470"], sauge: ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"], sable: ["#d2bf92", "#e0d1ab", "#80662b", "#654f1f"], cendre: ["#c98f93", "#d9a8ab", "#9a4f55", "#7d3c42"], brume: ["#dbe7f4", "#f3f1ec", "#4f5e70", "#1c222b"] })
     readonly property var tone: accentTones[accent] || accentTones.default
+    // Nom de la couleur réellement affichée: sans choix (ou nom inconnu), sable en sombre, ardoise en clair
+    readonly property string accentName: accent !== "default" && accentTones[accent] ? accent : (light ? "ardoise" : "sable")
     readonly property color voile: ov("accent", light ? tone[2] : tone[0])
     readonly property color voileVif: ov("accent_bright", light ? tone[3] : tone[1])
     readonly property color brume: ov("text", light ? "#1c222b" : "#dbe7f4")
