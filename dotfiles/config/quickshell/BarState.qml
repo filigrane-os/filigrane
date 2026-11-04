@@ -178,6 +178,13 @@ Singleton {
             return { text: base.text, class: "working", tooltip: card };
         return Object.assign({}, base, { tooltip: card });
     }
+    // Go to what is asking: the chat when it waits for an answer, else the terminal session that waits (or the next one)
+    function aiAsk() {
+        if (FiliChat.attention === "waiting")
+            FiliChat.show();
+        else
+            FiliTheme.run(FiliTheme.bin + "/fili-ai-session focus");
+    }
     Connections {
         target: Niri
         function onFocusedIdChanged() {
@@ -238,7 +245,7 @@ Singleton {
         const card = {
             title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
             rows: rows,
-            hint: FiliI18n.tr("click: show or hide the chat · middle click: go to a terminal session · right click: choose the agent")
+            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent")
         };
         if (calls.some(s => s.state === "waiting"))
             return { text: icon + " ASK", class: "waiting", tooltip: card };

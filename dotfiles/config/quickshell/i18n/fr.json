@@ -312,7 +312,6 @@
  "Ask anything about this machine or Filigrane.": "Posez une question sur cette machine ou sur Filigrane.",
  "The agent stopped": "L'agent s'est arrêté",
  "The agent is not reachable": "L'agent ne répond pas",
- "click: show or hide the chat · middle click: go to a terminal session · right click: choose the agent": "clic: afficher ou cacher le chat · clic milieu: aller à une session de terminal · clic droit: choisir l'agent",
  "Allow %1?": "Autoriser %1 ?",
  "%1 allowed": "%1 autorisé",
  "%1 denied": "%1 refusé",
@@ -367,5 +366,13 @@
  "kB": "Ko",
  "MB": "Mo",
  "GB": "Go",
- "TB": "To"
+ "TB": "To",
+ "SESSIONS": "SESSIONS",
+ "ACTIONS": "ACTIONS",
+ "No session": "Aucune session",
+ "Hide the chat": "Cacher le chat",
+ "Show the chat": "Afficher le chat",
+ "New terminal session": "Nouvelle session de terminal",
+ "Choose the agent": "Choisir l'agent",
+ "click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent": "clic : panneau de l'agent · Super+clic ou clic milieu : aller à ce qui attend · clic droit : choisir l'agent"
 }

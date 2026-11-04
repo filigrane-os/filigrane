@@ -13,6 +13,8 @@ MouseArea {
     property string mclick
     property string scrollUp
     property string scrollDown
+    // Super held during the last press (needs the bar to receive modifiers; false otherwise)
+    property bool meta: false
     signal leftClicked
     signal rightClicked
     signal middleClicked
@@ -26,8 +28,8 @@ MouseArea {
     // Panneau ouvert: niri retire le focus clavier au fili-panel dès le clic sur la barre et le clic (appui puis
     // relâchement) est perdu, d'où deux clics. Alors l'action part à l'appui, et le relâchement ne la rejoue pas.
     property bool early: false
-    onPressed: m => down(m.button)
-    onClicked: m => up(m.button)
+    onPressed: m => { meta = (m.modifiers & Qt.MetaModifier) !== 0; down(m.button); }
+    onClicked: m => { meta = (m.modifiers & Qt.MetaModifier) !== 0; up(m.button); }
     // Molette: un cran de souris = 120; le pavé tactile envoie une rafale de petits deltas, cumulés pour ne pas
     // enchaîner une action par événement (volume de 0 à 100 % en un geste)
     property real wheelAcc: 0
