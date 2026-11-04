@@ -1,15 +1,15 @@
-// Réglages niri personnels (couche users/thomas), inclus à la fin de ~/.config/niri/config.kdl
+// Personal niri settings (users/thomas layer), included at the end of ~/.config/niri/config.kdl
 
-// Proton Mail: pont IMAP local sans GUI, puis écoute des nouveaux mails (relancée si le pont n'est pas prêt)
+// Proton Mail: local IMAP bridge without GUI, then listening for new mail (restarted if the bridge is not ready)
 spawn-at-startup "protonmail-bridge" "--noninteractive"
 spawn-sh-at-startup "while :; do goimapnotify; sleep 30; done"
-// WhatsApp sans navigateur: whatsapp-unreadd + compteur de non-lus (appairage: wa-pair), voir ~/.local/bin/wa-daemon
+// WhatsApp without a browser: whatsapp-unreadd + unread counter (pairing: wa-pair), see ~/.local/bin/wa-daemon
 spawn-at-startup "wa-daemon"
-// Fenêtre « Appel WhatsApp » en flottant (titre connu après l'ouverture), voir ~/.local/bin/wa-call-float
+// "WhatsApp call" window floating (title known after it opens), see ~/.local/bin/wa-call-float
 spawn-sh-at-startup "$HOME/.local/bin/wa-call-float"
-// Notifications Proton Calendar (lien ICS dans ~/.config/proton-calendar.url), voir ~/.local/bin/cal-notify
+// Proton Calendar notifications (ICS link in ~/.config/proton-calendar.url), see ~/.local/bin/cal-notify
 spawn-sh-at-startup "$HOME/.local/bin/cal-notify"
-// iCloud Drive dans ~/iCloud (rclone mount, fichiers téléchargés à l'ouverture), voir ~/.local/bin/icloud-mount
+// iCloud Drive in ~/iCloud (rclone mount, files downloaded on open), see ~/.local/bin/icloud-mount
 spawn-sh-at-startup "$HOME/.local/bin/icloud-mount"
 
 binds {

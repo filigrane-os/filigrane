@@ -1,8 +1,8 @@
-# Écoute IMAP IDLE sur le pont Proton local (protonmail-bridge --noninteractive, port 1143, STARTTLS auto-signé).
-# Identifiants dans le trousseau (rien dans le dépôt):
+# IMAP IDLE listening on the local Proton bridge (protonmail-bridge --noninteractive, port 1143, self-signed STARTTLS).
+# Credentials in the keyring (nothing in the repository):
 #   secret-tool store --label="Proton bridge user" service proton-bridge-user
 #   secret-tool store --label="Proton bridge pass" service proton-bridge-pass
-# Le test de connectivité vise le pont local (par défaut ubuntu.com:80, injoignable en IPv6 ici)
+# The connectivity check targets the local bridge (default ubuntu.com:80, unreachable over IPv6 here)
 connectivityHosts:
   - 127.0.0.1:1143
 networkCheckInterval: 120

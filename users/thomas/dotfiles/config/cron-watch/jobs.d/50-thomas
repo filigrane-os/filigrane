@@ -1,5 +1,5 @@
-# Tâches personnelles (format: voir ~/.local/bin/cron-watch)
+# Personal tasks (format: see ~/.local/bin/cron-watch)
 icloud:1440:watch-icloud:
-# Veille Omarchy et t2linux via Claude Code (propositions pour ce dépôt)
+# Omarchy and t2linux watch through Claude Code (suggestions for this repository)
 omarchy:10080:watch-claude:omarchy
 t2:10080:watch-claude:t2

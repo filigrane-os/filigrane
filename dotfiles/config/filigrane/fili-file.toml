@@ -1,53 +1,53 @@
-# Réglages de fili-file (explorateur). Tout est facultatif: les lignes commentées montrent les défauts.
-# Lu à chaque ouverture de fenêtre. Ce que tu changes à la main dans l'application (vue, colonnes)
-# est gardé dans ~/.local/state/filigrane/ et passe devant ce fichier.
+# Settings of fili-file (Casier, the file manager). Everything is optional: commented lines show the defaults.
+# Read each time a window opens. What you change by hand in the application (view, columns)
+# is kept in ~/.local/state/filigrane/ and takes precedence over this file.
 
-# Présentation au premier lancement: "list" ou "grid"
+# View at first start: "list" or "grid"
 # view = "list"
 
-# Afficher les fichiers cachés
+# Show hidden files
 # show_hidden = false
 
-# Boutons « Fermer » et « Fenêtre » (actions niri) à droite de l'en-tête. Le menu Présentation > Afficher les boutons de fenêtre
-# passe devant ce réglage
+# Close and Window buttons (niri window actions) at the right of the toolbar. View > Show Window Buttons
+# in the menu takes precedence over this setting
 # window_buttons = true
 
-# Tri: name, size, date, kind, created, permissions, owner
+# Sort: name, size, date, kind, created, permissions, owner
 # sort = "name"
 # sort_desc = false
 
-# Colonnes de la vue en liste (parmi les mêmes clés que le clic droit sur l'en-tête)
+# Columns of the list view (same keys as the right click on the header)
 # columns = "size,modified"
 
-# Dossier ouvert sans argument (défaut: le dossier personnel)
+# Folder opened without an argument (default: the home folder)
 # start = "~"
 
-# Réception de fichiers (LocalSend, Bluetooth; menu Fichier > Recevoir…)
-# Dossier où ils arrivent (défaut: Téléchargements)
+# Receiving files (LocalSend, Bluetooth; File > Receive…)
+# Folder where they arrive (default: Downloads)
 # receive_dir = "~/Downloads"
 
-# "ask": une notification Accepter / Refuser à chaque envoi; "always": tout accepter tant que la réception est activée
+# "ask": an Accept / Decline notification for each transfer; "always": accept everything while receiving is on
 # receive_confirm = "ask"
 
-# Couper la réception après ce nombre de minutes (0: jusqu'à ce que tu la coupes)
+# Stop receiving after this many minutes (0: until you stop it)
 # receive_minutes = 0
 
-# Nom sous lequel cet ordinateur apparaît chez les autres appareils (LocalSend)
+# Name under which this computer appears on other devices (LocalSend)
 # receive_name = "FILIGRANE"
 
-# Monter tout seul les clés USB, cartes SD et disques externes à leur branchement (programme fili-automount, lancé avec la session)
+# Mount USB sticks, SD cards and external disks by itself when they are plugged in (fili-automount, started with the session)
 # automount = true
 
-# Thème (couleurs, rayons, bordures, espacements, polices), en anglais, par mode clair / sombre.
-# Les défauts sont dans fili-file/theme.toml (toutes les clés y sont commentées). Ajouter ici seulement ce qui change:
-# [theme]               # les deux modes
+# Theme (colors, radii, borders, spacing, fonts), per light / dark mode.
+# The defaults are in fili-file/theme.toml (every key is commented there). Add here only what changes:
+# [theme]               # both modes
 # radius_control = 8
 # border_width = 1
 # [theme.dark]
 # background = "#101418"
 # [theme.light]
 # accent = "#336699"
-# [theme.accents]       # teintes pour `fili-theme accent <nom>`: [sombre, sombre vif, clair, clair vif]
-# sauge = ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"]
-# Pour changer toutes les applications Filigrane d'un coup: ~/.config/filigrane/theme.toml (mêmes sections);
-# ce fichier-ci passe devant.
+# [theme.accents]       # tones for `fili-theme accent <name>`: [dark, dark bright, light, light bright]
+# sage = ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"]
+# To change every Filigrane application at once: ~/.config/filigrane/theme.toml (same sections);
+# this file takes precedence.

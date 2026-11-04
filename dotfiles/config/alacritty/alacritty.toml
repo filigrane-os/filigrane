@@ -1,4 +1,4 @@
-# Filigrane (brand.md), mêmes couleurs que foot
+# Filigrane (brand.md), same colors as foot
 [font]
 size = 9
 
@@ -9,7 +9,7 @@ family = "JetBrains Mono"
 padding = { x = 10, y = 10 }
 
 [selection]
-# Sélectionner du texte le copie aussi dans le presse-papiers (Ctrl+V / Ctrl+Shift+V)
+# Selecting text also copies it to the clipboard (Ctrl+V / Ctrl+Shift+V)
 save_to_clipboard = true
 
 [colors.primary]

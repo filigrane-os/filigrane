@@ -1,5 +1,5 @@
-# Applications web (Google Chrome --app). Une par ligne :   Nom | URL | icône
-# Icône: nom du thème ou ~/.config/webapps/icons/x.png; vide = web-browser.
-# Ajouter: webapp-add "Nom" URL [icône]. Appliquer à la main: webapp-sync.
+# Web applications (Google Chrome --app). One per line:   Name | URL | icon
+# Icon: theme name or ~/.config/webapps/icons/x.png; empty = web-browser.
+# Add: webapp-add "Name" URL [icon]. Apply by hand: webapp-sync.
 WhatsApp | https://web.whatsapp.com | ~/.config/webapps/icons/whatsapp.png
 Proton Mail | https://mail.proton.me | ~/.config/webapps/icons/proton-mail.png

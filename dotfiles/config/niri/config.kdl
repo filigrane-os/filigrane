@@ -7,7 +7,7 @@
 // Find the full list of options on the wiki:
 // https://niri-wm.github.io/niri/Configuration:-Input
 input {
-    // Mod = Super = Command (défaut de niri sur TTY)
+    // Mod = Super = Command (niri's default on a TTY)
     keyboard {
         xkb {
             // You can set rules, model, layout, variant and options.
@@ -20,9 +20,9 @@ input {
             // If this section is empty, niri will fetch xkb settings
             // from org.freedesktop.locale1. You can control these using
             // localectl set-x11-keymap.
-            // Disposition: ~/.config/niri/keyboard.kdl, écrit par bootstrap.sh depuis config.env (XKB_*)
+            // Layout: ~/.config/niri/keyboard.kdl, written by bootstrap.sh from config.env (XKB_*)
         }
-        // Comme Omarchy: répétition 40/s après 600 ms
+        // Like Omarchy: repeat 40/s after 600 ms
         repeat-delay 600
         repeat-rate 40
 
@@ -33,18 +33,18 @@ input {
     // Next sections include libinput settings.
     // Omitting settings disables them, or leaves them at their default values.
     // All commented-out settings here are examples, not defaults.
-    // Réglages repris d'Omarchy (Hyprland): tap, pas de défilement naturel, clic droit à deux doigts
+    // Settings taken from Omarchy (Hyprland): tap, no natural scrolling, two-finger right click
     touchpad {
         // tap: 1 doigt = clic, 2 doigts = clic droit, 3 doigts = clic milieu.
-        // Sélection/glisser: double tap et garder le doigt posé; drag-lock laisse lever
-        // le doigt un court instant pour repositionner. dwt contre les clics de paume.
+        // Select/drag: double tap and keep the finger down; drag-lock lets you lift
+        // the finger for a short moment to reposition. dwt against palm clicks.
         tap
         tap-button-map "left-right-middle"
         drag true
         drag-lock
         dwt
         click-method "clickfinger"
-        // 0.2 (Omarchy) rendait le défilement poussif dans foot et Quickshell; 1 = défaut de niri
+        // 0.2 (Omarchy) made scrolling sluggish in foot and Quickshell; 1 = niri's default
         scroll-factor 0.5
         accel-speed -0.15
     }
@@ -52,7 +52,7 @@ input {
     mouse {
         // off
         // natural-scroll
-        // MX Master sur Omarchy (niri ne règle pas par appareil)
+        // MX Master on Omarchy (niri does not set this per device)
         accel-speed -0.7
         // accel-profile "flat"
         // scroll-method "no-scroll"
@@ -280,45 +280,45 @@ layout {
 // which may be more convenient to use.
 // See the binds section below for more spawn examples.
 
-// Variables d'environnement des applications lancées par niri (shell Quickshell, terminaux...).
-// Chromium: le wrapper Void lit CHROME_FLAGS. Wayland natif + partage d'écran via pipewire.
+// Environment variables of the applications started by niri (Quickshell shell, terminals...).
+// Chromium: the Void wrapper reads CHROME_FLAGS. Native Wayland + screen sharing through pipewire.
 environment {
     CHROME_FLAGS "--ozone-platform=wayland --enable-features=WebRTCPipeWireCapturer"
     ELECTRON_OZONE_PLATFORM_HINT "auto"
-    // Pas de GOOGLE_API_KEY/GOOGLE_DEFAULT_CLIENT_*: ils remplaceraient les clés de Google Chrome (synchronisation cassée).
-    // Sans niri-session, rien ne les définit: les portails ignoreraient niri-portals.conf, et Google Chrome
-    // (qui ne lit pas CHROME_FLAGS) choisirait X11 avec XDG_SESSION_TYPE=tty, puis quitterait.
+    // No GOOGLE_API_KEY/GOOGLE_DEFAULT_CLIENT_*: they would replace Google Chrome's keys (sync would break).
+    // Without niri-session nothing defines them: the portals would ignore niri-portals.conf, and Google Chrome
+    // (which does not read CHROME_FLAGS) would pick X11 with XDG_SESSION_TYPE=tty, then quit.
     XDG_CURRENT_DESKTOP "niri"
     XDG_SESSION_TYPE "wayland"
 }
 
-// Les programmes lancés à la demande par D-Bus (trousseau, portails, demandes de mot de passe)
-// doivent savoir sur quel écran s'afficher: la session D-Bus est créée avant niri.
+// Programs started on demand by D-Bus (keyring, portals, password prompts)
+// must know which display to use: the D-Bus session is created before niri.
 spawn-at-startup "dbus-update-activation-environment" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP" "XDG_SESSION_TYPE" "DISPLAY" "LANG"
 spawn-at-startup "pipewire"
-// Réglages du DSP haut-parleurs (sound-tune), réappliqués quand le filtre apparaît
+// Speaker DSP settings (sound-tune), applied again when the filter appears
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/sound-tune --apply"
-// fili-shell (Quickshell, ~/.config/quickshell): fili-bar, fili-notification et fili-launcher en un processus.
-// Relancé s'il s'arrête (écran débranché, plantage)
+// fili-shell (Quickshell, ~/.config/quickshell): fili-bar, fili-notification and fili-launcher in one process.
+// Restarted if it stops (display unplugged, crash)
 spawn-sh-at-startup "while :; do quickshell; sleep 1; done"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
-// Profils d'écrans automatiques (config: ~/.config/kanshi/config)
+// Automatic display profiles (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
-// Monte clés USB, cartes SD et disques externes à leur branchement (désactivable: automount = false dans ~/.config/filigrane/fili-file.toml)
+// Mounts USB sticks, SD cards and external disks when plugged in (can be disabled: automount = false in ~/.config/filigrane/fili-file.toml)
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/fili-automount"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
-// Notifications des webapps listées dans ~/.config/webapps/notify (WhatsApp...): indicateur de la barre, voir ~/.local/bin/webapp-notify
+// Notifications of the webapps listed in ~/.config/webapps/notify (WhatsApp...): bar indicator, see ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
-// Mini-cron: tâches de ~/.config/cron-watch/jobs.d/ (MAJ Void toutes les 6 h...), voir ~/.local/bin/cron-watch
+// Mini-cron: tasks of ~/.config/cron-watch/jobs.d/ (Void update every 6 h...), see ~/.local/bin/cron-watch
 spawn-sh-at-startup "$HOME/.local/bin/cron-watch"
-// Verrouillage auto (swayidle): 5 min verrou, 10 min écran éteint, pas de veille auto (comme Omarchy: la veille S3 longue sur batterie perd la session, voir hardware/mac-t2/README.md); bascule dans la barre
+// Auto lock (swayidle): lock after 5 min, screen off after 10 min, no auto suspend (like Omarchy: a long S3 suspend on battery loses the session, see hardware/mac-t2/README.md); toggle in the bar
 spawn-sh-at-startup "$HOME/.local/bin/bar-toggle idle start"
-// Capot: verrou et écran éteint, veille après 5 min capot fermé (elogind ignore le capot), voir ~/.local/bin/lid
+// Lid: lock and screen off, suspend after 5 min with the lid closed (elogind ignores the lid), see ~/.local/bin/lid
 switch-events {
     lid-close { spawn "sh" "-c" "$HOME/.local/bin/lid close"; }
     lid-open { spawn "sh" "-c" "$HOME/.local/bin/lid open"; }
 }
-// Historique du presse-papiers pour le menu (cliphist), texte et images
+// Clipboard history for the menu (cliphist), text and images
 spawn-sh-at-startup "wl-paste --type text --watch cliphist store"
 spawn-sh-at-startup "wl-paste --type image --watch cliphist store"
 
@@ -327,7 +327,7 @@ spawn-sh-at-startup "wl-paste --type image --watch cliphist store"
 
 hotkey-overlay {
     // Uncomment this line to disable the "Important Hotkeys" pop-up at startup.
-    // Remplacé par la fenêtre des raccourcis du fili-shell (FiliHotkeys.qml, Mod+K)
+    // Replaced by the fili-shell shortcuts window (FiliHotkeys.qml, Mod+K)
     skip-at-startup
 }
 
@@ -363,7 +363,7 @@ animations {
 
 // Work around WezTerm's initial configure bug
 // by setting an empty default-column-width.
-// Flou du fond derrière le fili-launcher: sa fenêtre plein écran (calque fili-launcher), présente seulement menu ouvert
+// Background blur behind the fili-launcher: its fullscreen window (fili-launcher layer), present only while the menu is open
 layer-rule {
     match namespace="^fili-launcher$"
     background-effect {
@@ -401,13 +401,13 @@ window-rule {
     // block-out-from "screencast"
 }
 
-// Coins arrondis (8 px) pour toutes les fenêtres: coût négligeable (pas d'ombre ni d'effet)
+// Rounded corners (8 px) for all windows: negligible cost (no shadow or effect)
 window-rule {
     geometry-corner-radius 8
     clip-to-geometry true
 }
 
-// Dialogues de fichiers du portail gtk (Enregistrer sous, Ouvrir...): flottants
+// File dialogs of the gtk portal (Save as, Open...): floating
 window-rule {
     match app-id=r#"^xdg-desktop-portal-gtk$"#
     open-floating true
@@ -416,7 +416,7 @@ window-rule {
 }
 
 
-// Sélecteur de fichiers de fili-file (portail FileChooser): flottant
+// File picker of fili-file (FileChooser portal): floating
 window-rule {
     match app-id=r#"^fili-file-picker$"#
     open-floating true
@@ -424,7 +424,7 @@ window-rule {
     default-window-height { fixed 600; }
 }
 
-// TUI lancées depuis la barre (bar-tui): fenêtre flottante
+// TUIs started from the bar (bar-tui): floating window
 window-rule {
     match app-id=r#"^bar-tui$"#
     open-floating true
@@ -432,7 +432,7 @@ window-rule {
     default-window-height { fixed 600; }
 }
 
-// Aperçu rapide de fili-file (~/.local/bin/quicklook, touche Espace): fenêtre flottante
+// Quick look of fili-file (~/.local/bin/quicklook, Space key): floating window
 window-rule {
     match app-id=r#"^quicklook$"#
     open-floating true
@@ -461,9 +461,9 @@ binds {
     Mod+Shift+Y hotkey-overlay-title="AI agent in a terminal (fili-ai)" { spawn "bash" "-lc" "exec ~/.local/bin/fili-ai key"; }
     Mod+E hotkey-overlay-title="Casier" { spawn-sh "$HOME/.local/bin/fili-file"; }
     Mod+P hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
-    // Panneaux de la barre au clavier: ←/→ panneau voisin, ↑/↓ élément, Entrée agir, Échap fermer (FiliPanel.qml)
+    // Bar panels from the keyboard: ←/→ neighboring panel, ↑/↓ item, Enter act, Escape close (FiliPanel.qml)
     Mod+A hotkey-overlay-title="Bar panels" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }
-    // Menu de l'application active au clavier (AppMenu.qml): ↑/↓ entrée, →/← sous-menu ou menu voisin, Entrée agir, Échap fermer
+    // Menu of the active application from the keyboard (AppMenu.qml): ↑/↓ entry, →/← submenu or neighboring menu, Enter act, Escape close
     Mod+F10 hotkey-overlay-title="Application menu" { spawn-sh "$HOME/.local/bin/fili-shell appmenu"; }
     Mod+Ctrl+P hotkey-overlay-title="Displays: save the profile" { spawn-sh "$HOME/.local/bin/display-save"; }
     Mod+Ctrl+A hotkey-overlay-title="Audio (wiremix)" { spawn-sh "$HOME/.local/bin/bar-tui wiremix"; }
@@ -473,7 +473,7 @@ binds {
     Mod+Ctrl+D hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     Mod+D hotkey-overlay-title="Run an Application" { spawn-sh "$HOME/.local/bin/menu apps"; }
     Mod+Space hotkey-overlay-title="Menu: apps, clipboard, emoji, system... (press again to close)" { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
-    // Cmd+Espace: keyd traduit Cmd en Ctrl (hardware/mac-t2/keyd*.conf), donc Ctrl+Space.
+    // Cmd+Space: keyd translates Cmd to Ctrl (hardware/mac-t2/keyd*.conf), so Ctrl+Space.
     Ctrl+Space hotkey-overlay-title=null { spawn-sh "$HOME/.local/bin/fili-shell launcher close || exec $HOME/.local/bin/menu"; }
     Mod+L hotkey-overlay-title="Lock the screen" { spawn-sh "$HOME/.local/bin/lock"; }
 
@@ -501,14 +501,14 @@ binds {
     // Example brightness key mappings for brightnessctl.
     // You can use regular spawn with multiple arguments too (to avoid going through "sh"),
     // but you need to manually put each argument in separate "" quotes.
-    // Rétroéclairage clavier (Mac T2: apple::kbd_backlight); sans effet s'il n'existe pas
+    // Keyboard backlight (Mac T2: apple::kbd_backlight); no effect if it does not exist
     XF86KbdBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "+10%"; }
     XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "10%-"; }
     Mod+Tab hotkey-overlay-title="Windows: go to" { spawn-sh "$HOME/.local/bin/menu windows"; }
     Mod+B hotkey-overlay-title="Notifications: on/off" { spawn-sh "$HOME/.local/bin/fili-shell notification dnd toggle"; }
     Mod+Shift+B hotkey-overlay-title="Notifications: close all" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
     Mod+Shift+Space hotkey-overlay-title="Shortcuts help" { spawn-sh "$HOME/.local/bin/menu keys"; }
-    // Écran: pas de 1%, Shift pour un pas fin de 30 unités (~0,17%, max 17777)
+    // Display: 1% steps, Shift for a fine step of 30 units (~0.17%, max 17777)
     XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set +1%; $HOME/.local/bin/fili-shell bar refresh 23"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set 1%-; $HOME/.local/bin/fili-shell bar refresh 23"; }
     Shift+XF86MonBrightnessUp allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set +30; $HOME/.local/bin/fili-shell bar refresh 23"; }
@@ -550,7 +550,7 @@ binds {
     Mod+End  { focus-column-last; }
     Mod+Ctrl+Home { move-column-to-first; }
     Mod+Ctrl+End  { move-column-to-last; }
-    // Équivalents sans Home/End (claviers Mac): < premier, > dernier
+    // Equivalents without Home/End (Mac keyboards): < first, > last
     Mod+Shift+Comma  { focus-column-first; }
     Mod+Shift+Period { focus-column-last; }
     Mod+Ctrl+Comma   { move-column-to-first; }
@@ -640,9 +640,9 @@ binds {
     //
     // For example, with 2 workspaces + 1 empty, indices 3, 4, 5 and so on
     // will all refer to the 3rd workspace.
-    // Rangée de chiffres bépo: les touches physiques 1-9 sont écrites avec leur symbole bépo sans Maj
+    // Bépo number row: the physical keys 1-9 are written with their bépo symbol without Shift
     // (quotedbl=1 guillemotleft=2 guillemotright=3 parenleft=4 parenright=5 at=6 plus=7 minus=8 slash=9),
-    // pour que Mod+touche se comporte comme Mod+chiffre sur un clavier non bépo.
+    // so that Mod+key behaves like Mod+digit on a non-bépo keyboard.
     Mod+quotedbl { focus-workspace 1; }
     Mod+guillemotleft { focus-workspace 2; }
     Mod+guillemotright { focus-workspace 3; }
@@ -661,7 +661,7 @@ binds {
     Mod+Ctrl+plus { move-column-to-workspace 7; }
     Mod+Ctrl+minus { move-column-to-workspace 8; }
     Mod+Ctrl+slash { move-column-to-workspace 9; }
-    // Même chose en layout qwerty australien (bascule: icône clavier de la barre): les chiffres sont alors de vrais chiffres
+    // Same thing in the Australian qwerty layout (toggle: keyboard icon of the bar): the digits are then real digits
     Mod+1 { focus-workspace 1; }
     Mod+2 { focus-workspace 2; }
     Mod+3 { focus-workspace 3; }
@@ -731,7 +731,7 @@ binds {
     // * adjust width as a percentage of screen width: "-10%" or "+10%"
     // Pixel sizes use logical, or scaled, pixels. I.e. on an output with scale 2.0,
     // set-column-width "100" will make the column occupy 200 physical screen pixels.
-    // Mod+minus est pris par le workspace 8 (touche bépo du 8): réduire la largeur passe sur Mod+Ctrl+Equal
+    // Mod+minus is taken by workspace 8 (bépo key of 8): reducing the width moves to Mod+Ctrl+Equal
     Mod+Ctrl+Equal { set-column-width "-10%"; }
     Mod+Equal { set-column-width "+10%"; }
 
@@ -756,9 +756,9 @@ binds {
     // Mod+Space       { switch-layout "next"; }
     // Mod+Shift+Space { switch-layout "prev"; }
 
-    // Captures (outil intégré à niri, 0 Mo). Enregistrées dans ~/Screenshots (local, hors iCloud) et copiées dans le presse-papiers.
-    // Alternatives sans touche Print (claviers Mac): Mod+Shift+3 écran, 4 zone, 5 interface.
-    // Raccourcis macOS (Mod = Cmd, touches 3/4/5 en symboles bépo): 3 écran, 4 zone, 5 interface de capture (zone/écran/fenêtre), Ctrl+4 fenêtre
+    // Screenshots (niri's built-in tool, 0 MB). Saved in ~/Screenshots (local, outside iCloud) and copied to the clipboard.
+    // Alternatives without a Print key (Mac keyboards): Mod+Shift+3 screen, 4 area, 5 interface.
+    // macOS shortcuts (Mod = Cmd, keys 3/4/5 as bépo symbols): 3 screen, 4 area, 5 capture interface (area/screen/window), Ctrl+4 window
     Mod+Shift+guillemotright { screenshot-screen; }
     Mod+Shift+parenleft { screenshot; }
     Mod+Shift+parenright { screenshot; }
@@ -787,25 +787,25 @@ binds {
 }
 prefer-no-csd
 
-// Terminal: le scroll-factor 0.2 du touchpad est trop faible pour zellij (foot ne transmet
-// la molette qu'au-delà d'un seuil): facteur 5 dans foot, soit une vitesse normale.
+// Terminal: the touchpad scroll-factor 0.2 is too low for zellij (foot only forwards
+// the wheel beyond a threshold): factor 5 in foot, which is a normal speed.
 window-rule {
     match app-id="^foot$"
     scroll-factor 5.0
 }
 
-// Lancé par `dbus-run-session niri` (sans --session, pas de systemd): sans ceci niri ne publie pas
-// org.gnome.Mutter.ScreenCast, et xdg-desktop-portal-gnome n'offre pas le partage d'écran entier
-// (Chrome/Meet/Chromecast: seuls les onglets passaient). Lu au démarrage de niri seulement.
+// Started by `dbus-run-session niri` (without --session, no systemd): without this niri does not publish
+// org.gnome.Mutter.ScreenCast, and xdg-desktop-portal-gnome does not offer full-screen sharing
+// (Chrome/Meet/Chromecast: only tabs went through). Read only when niri starts.
 debug {
     dbus-interfaces-in-non-session-instances
 }
 
-// Couches: disposition clavier générée par bootstrap.sh, couleurs du mode clair/sombre écrites par fili-theme, puis
-// réglages personnels (users/<login>/dotfiles/config/niri/local.kdl). Absents = ignorés. Les réglages inclus après
-// remplacent ceux d'avant.
+// Layers: keyboard layout generated by bootstrap.sh, light/dark mode colors written by fili-theme, then
+// personal settings (users/<login>/dotfiles/config/niri/local.kdl). Missing = ignored. Settings included after
+// override the earlier ones.
 include optional=true "keyboard.kdl"
 include optional=true "theme.kdl"
-// Langue des applications lancées par niri (LANG), générée par fili-lang
+// Language of the applications started by niri (LANG), generated by fili-lang
 include optional=true "locale.kdl"
 include optional=true "local.kdl"
