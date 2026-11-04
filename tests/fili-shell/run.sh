@@ -16,9 +16,12 @@ case "$WAYLAND_DISPLAY" in /*) wl="$WAYLAND_DISPLAY" ;; *) wl="${XDG_RUNTIME_DIR
 mkdir -m 700 "$T/run" "$T/bin" "$T/state"
 cp -r "$ROOT/dotfiles/config/quickshell" "$T/config"
 cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
-# Scripts du dépôt, et binaires compilés de apps/ (bar-stats): $FILI_APPS (build en cours) sinon ~/.local/bin
+# Repo scripts, and compiled apps/ binaries (bar-stats): $FILI_APPS (build in progress), else ~/.local/bin, then /usr/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
-for f in "${FILI_APPS:-$HOME/.local/bin}"/bar-stats "${FILI_APPS:-$HOME/.local/bin}"/fili-ai-session "${FILI_APPS:-$HOME/.local/bin}"/fili-appmenu; do [ -e "$f" ] && ln -sf "$f" "$T/bin/"; done
+# Packaged tools (fili-apps) are in /usr/bin; a local build or ~/.local/bin wins when present
+for n in bar-stats fili-ai-session fili-appmenu; do
+    for d in "${FILI_APPS:-$HOME/.local/bin}" /usr/bin; do [ -e "$d/$n" ] && { ln -sf "$d/$n" "$T/bin/"; break; }; done
+done
 
 FILI_TEST=1 FILI_APPMENU_DIR="$ROOT/dotfiles/config/filigrane/appmenu" FILI_NIRI_DIR="$ROOT/dotfiles/config/niri" LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1
