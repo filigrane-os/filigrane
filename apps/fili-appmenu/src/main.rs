@@ -71,13 +71,7 @@ impl Atspi {
     /// Le bus d'accessibilité est un bus à part, dont la session donne l'adresse
     fn connect() -> zbus::Result<Self> {
         let session = Connection::session()?;
-        let reply = session.call_method(
-            Some("org.a11y.Bus"),
-            "/org/a11y/bus",
-            Some("org.a11y.Bus"),
-            "GetAddress",
-            &(),
-        )?;
+        let reply = session.call_method(Some("org.a11y.Bus"), "/org/a11y/bus", Some("org.a11y.Bus"), "GetAddress", &())?;
         let address: String = reply.body().deserialize()?;
         let c = Builder::address(address.as_str())?.build()?;
         Ok(Self { c, started: Instant::now() })
@@ -93,13 +87,7 @@ impl Atspi {
 
     fn name(&self, svc: &str, path: &str) -> String {
         self.c
-            .call_method(
-                Some(svc),
-                path,
-                Some("org.freedesktop.DBus.Properties"),
-                "Get",
-                &(ACCESSIBLE, "Name"),
-            )
+            .call_method(Some(svc), path, Some("org.freedesktop.DBus.Properties"), "Get", &(ACCESSIBLE, "Name"))
             .ok()
             .and_then(|m| m.body().deserialize::<OwnedValue>().ok())
             .and_then(|v| String::try_from(v).ok())
@@ -205,20 +193,14 @@ impl Atspi {
         if self.role(svc, path) == ROLE_MENU_BAR {
             return Some((svc.to_owned(), path.to_owned()));
         }
-        self.children(svc, path)
-            .into_iter()
-            .take(MAX_CHILDREN)
-            .find_map(|(s, p)| self.find_menubar(&s, &p, depth + 1))
+        self.children(svc, path).into_iter().take(MAX_CHILDREN).find_map(|(s, p)| self.find_menubar(&s, &p, depth + 1))
     }
 
     fn item(&self, svc: &str, path: &str, depth: u32) -> Item {
         let role = self.role(svc, path);
         let state = self.state(svc, path);
-        let kids = if depth < FETCH_DEPTH && self.started.elapsed() < WATCHDOG / 2 {
-            self.children(svc, path)
-        } else {
-            Vec::new()
-        };
+        let kids =
+            if depth < FETCH_DEPTH && self.started.elapsed() < WATCHDOG / 2 { self.children(svc, path) } else { Vec::new() };
         let mut item = Item {
             label: self.name(svc, path),
             kind: if role == ROLE_SEPARATOR { "sep" } else { "item" },
@@ -234,11 +216,7 @@ impl Atspi {
         if item.kind != "sep" && role != ROLE_MENU_BAR && role != ROLE_MENU {
             item.keys = shortcut(&self.key_binding(svc, path));
         }
-        item.children = kids
-            .into_iter()
-            .take(MAX_CHILDREN)
-            .map(|(s, p)| self.item(&s, &p, depth + 1))
-            .collect();
+        item.children = kids.into_iter().take(MAX_CHILDREN).map(|(s, p)| self.item(&s, &p, depth + 1)).collect();
         if !item.children.is_empty() || role == ROLE_MENU || role == ROLE_MENU_BAR {
             item.kind = "sub";
         }
@@ -470,10 +448,14 @@ mod tests {
 
     #[test]
     fn json_arbre() {
-        let it = Item { label: "A".into(), kind: "item", enabled: true, svc: ":1.2".into(), path: "/p".into(), ..Item::default() };
+        let it =
+            Item { label: "A".into(), kind: "item", enabled: true, svc: ":1.2".into(), path: "/p".into(), ..Item::default() };
         let mut s = String::new();
         json_items(&[it], &mut s);
-        assert_eq!(s, "[{\"label\":\"A\",\"kind\":\"item\",\"enabled\":true,\"check\":0,\"lazy\":false,\"keys\":\"\",\"svc\":\":1.2\",\"path\":\"/p\",\"children\":[]}]");
+        assert_eq!(
+            s,
+            "[{\"label\":\"A\",\"kind\":\"item\",\"enabled\":true,\"check\":0,\"lazy\":false,\"keys\":\"\",\"svc\":\":1.2\",\"path\":\"/p\",\"children\":[]}]"
+        );
     }
 
     #[test]

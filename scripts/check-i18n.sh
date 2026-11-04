@@ -27,6 +27,7 @@ echo "${#scripts[@]} scripts, ${#messages[@]} messages"
 
 count() { local s="${1//%%/}"; s="${s//[^%]/}"; echo "${#s}"; }
 
+all_messages="$(printf '%s\n' "${messages[@]}")"
 rc=0
 for catalog in lib/i18n/*.sh; do
     lang="$(basename "$catalog" .sh)"
@@ -40,7 +41,7 @@ for catalog in lib/i18n/*.sh; do
         if [ "$(count "$m")" != "$(count "$_t_fmt")" ]; then echo "$lang: placeholders differ: $m"; rc=1; fi
     done
     while IFS= read -r key; do
-        printf '%s\n' "${messages[@]}" | grep -qxF -- "$key" || { echo "$lang: unused entry: $key"; rc=1; }
+        grep -qxF -- "$key" <<<"$all_messages" || { echo "$lang: unused entry: $key"; rc=1; }
     done < <(sed -n "s/^    '\\(.*\\)') _t_fmt=.*/\\1/p" "$catalog")
 done
 # fili-shell: catalogues JSON partagés par le QML et bar-stats

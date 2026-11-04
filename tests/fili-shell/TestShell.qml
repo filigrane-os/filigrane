@@ -853,7 +853,7 @@ ShellRoot {
             () => {
                 const c = FiliAbout.card;
                 const names = c.sections.map(s => s.name);
-                ok(typeof c.host === "string" && ["Filigrane", "System", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections Filigrane/System/Machine }", JSON.stringify(names));
+                ok(typeof c.host === "string" && ["System", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections System/Machine }", JSON.stringify(names));
                 ok(c.sections.every(s => s.rows.every(r => r.length === 2 && r[1] !== "")), "fili-about: lignes [libellé, valeur] non vides");
                 FiliTheme.ran = [];
                 FiliAbout.copy();

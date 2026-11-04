@@ -379,7 +379,16 @@ _t_lookup() {
     'Saved settings reloaded') _t_fmt='Réglages sauvegardés rechargés' ;;
     'Filter %s not found (speaker DSP not loaded?)') _t_fmt='Filtre %s introuvable (DSP haut-parleurs non chargé ?)' ;;
     'Keyboard shortcuts') _t_fmt='Raccourcis clavier' ;;
-    'AI agent (fili-ai)') _t_fmt='Agent IA (fili-ai)' ;;
+    'AI agent in a terminal (fili-ai)') _t_fmt='Agent IA dans un terminal (fili-ai)' ;;
+    'AI chat (fili-chat)') _t_fmt='Chat IA (fili-chat)' ;;
+    'Application menu') _t_fmt='Menu des applications' ;;
+    'git missing: %s not built') _t_fmt='git absent: %s non compilé' ;;
+    'icon-theme failed') _t_fmt='icon-theme a échoué' ;;
+    'ip6tables-restore failed') _t_fmt='ip6tables-restore a échoué' ;;
+    'iptables-restore failed') _t_fmt='iptables-restore a échoué' ;;
+    'Native tools (%s-apps, published repository)') _t_fmt='Outils natifs (%s-apps, dépôt publié)' ;;
+    'SKIP: default browser already set (%s)') _t_fmt='SKIP: navigateur par défaut déjà défini (%s)' ;;
+    'Source of %s not available (network?)') _t_fmt='Source de %s indisponible (réseau ?)' ;;
     'Casier') _t_fmt='Casier' ;;
     'Displays: panel') _t_fmt='Écrans: panneau' ;;
     'Bar panels') _t_fmt='Panneaux de la barre' ;;

@@ -110,7 +110,7 @@ jobs:
       - name: Paquets
         run: |
           xbps-install -Syu xbps || true
-          xbps-install -Sy bash git cargo niri sway quickshell mesa-dri dbus jq impala bluetui wiremix htop foot brightnessctl libnotify libxkbcommon-tools python3
+          xbps-install -Sy bash git cargo niri sway quickshell mesa-dri dbus jq impala bluetui wiremix htop foot brightnessctl libnotify libxkbcommon-tools python3 gcc make pkg-config qt6-base-devel qt6-declarative-devel qt6-svg-devel qt6-wayland shared-mime-info glib adwaita-icon-theme util-linux tar gzip zip 7zip
       - name: Utilisateur de test (bootstrap.sh refuse root)
         run: |
           useradd -m fili
@@ -119,7 +119,9 @@ jobs:
       - name: Tests
         run: |
           su fili -c 'set -e; cd ~/filigrane
-            cargo build -q --locked --release --manifest-path apps/bar-stats/Cargo.toml --target-dir /tmp/apps
+            for a in bar-stats fili-ai-session fili-appmenu; do
+              cargo build -q --locked --release --manifest-path apps/$a/Cargo.toml --target-dir /tmp/apps
+            done
             ./bootstrap.sh --fili-shell --profile baremetal --machine generic --cpu other --gpu none --arch x86_64
             FILI_APPS=/tmp/apps/release tests/fili-shell/ci.sh -v'
 

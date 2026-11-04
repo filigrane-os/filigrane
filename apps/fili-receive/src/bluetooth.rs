@@ -55,9 +55,8 @@ impl Agent {
         let name: String = prop(&self.query, &tpath, "org.bluez.obex.Transfer1", "Name").unwrap_or_else(|| "file".into());
         let size: u64 = prop(&self.query, &tpath, "org.bluez.obex.Transfer1", "Size").unwrap_or(0);
         let session: Option<OwnedObjectPath> = prop(&self.query, &tpath, "org.bluez.obex.Transfer1", "Session");
-        let mac: String = session
-            .and_then(|s| prop(&self.query, s.as_str(), "org.bluez.obex.Session1", "Destination"))
-            .unwrap_or_default();
+        let mac: String =
+            session.and_then(|s| prop(&self.query, s.as_str(), "org.bluez.obex.Session1", "Destination")).unwrap_or_default();
         let sender = if mac.is_empty() { "Bluetooth".to_string() } else { device_name(&mac) };
         let names = vec![name.clone()];
         if !self.always {
@@ -80,7 +79,12 @@ impl Agent {
                 match status.as_deref() {
                     Some("complete") => {
                         journal("bluetooth", &sender, &format!("{dir}/{name}"), size);
-                        announce(&trf("Received from %1", &[&sender]), &summary(std::slice::from_ref(&name), size), &dir, &[format!("{dir}/{name}")]);
+                        announce(
+                            &trf("Received from %1", &[&sender]),
+                            &summary(std::slice::from_ref(&name), size),
+                            &dir,
+                            &[format!("{dir}/{name}")],
+                        );
                         return;
                     }
                     Some("error") => {
@@ -105,7 +109,10 @@ pub fn run(dir: String, always: bool) {
         Err(e) => return eprintln!("fili-receive: D-Bus: {e}"),
     };
     let agent = Agent { query, dir, always };
-    let conn = match zbus::blocking::connection::Builder::session().and_then(|b| b.serve_at(AGENT_PATH, agent)).and_then(|b| b.build()) {
+    let conn = match zbus::blocking::connection::Builder::session()
+        .and_then(|b| b.serve_at(AGENT_PATH, agent))
+        .and_then(|b| b.build())
+    {
         Ok(c) => c,
         Err(e) => return eprintln!("fili-receive: agent: {e}"),
     };
