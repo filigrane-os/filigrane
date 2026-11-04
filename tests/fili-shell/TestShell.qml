@@ -190,7 +190,7 @@ ShellRoot {
                 const was0 = FiliTheme.mode;
                 FiliTheme.mode = "dark";
                 FiliTheme.parsed = FiliTheme.parseToml("[theme]\nradius_control = 9 # px\nsize = big\ntext = \"#fff\"\n[theme.dark]\nradius_control = 3\n[theme.accents]\nsauge = [\"#111111\", \"#222222\", \"#333333\", \"#444444\"]\n");
-                ok(FiliTheme.radiusControl === 3 && FiliTheme.size === 13 && FiliTheme.brume.toString() === "#ffffff" && FiliTheme.accentTones.sauge[0] === "#111111",
+                ok(FiliTheme.radiusControl === 3 && FiliTheme.size === 14 && FiliTheme.brume.toString() === "#ffffff" && FiliTheme.accentTones.sauge[0] === "#111111",
                    "theme global: mode devant [theme], valeur invalide ignorée, accents fusionnés", FiliTheme.radiusControl + " " + FiliTheme.size + " " + FiliTheme.brume);
                 FiliTheme.parsed = keep;
                 FiliTheme.mode = was0;
@@ -694,11 +694,11 @@ ShellRoot {
                 ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel écrans: retour au sombre", JSON.stringify(FiliTheme.ran));
                 FiliPanel.close();
             },
-            // fili-panel écrans, couleur d'accentuation: voile par défaut, le choix change l'accent du shell et lance fili-theme accent
+            // fili-panel écrans, couleur d'accentuation: sable par défaut, le choix change l'accent du shell et lance fili-theme accent
             () => {
                 FiliPanel.view = "display";
                 const acc = t.find(FiliPanel.loaded, "accent");
-                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#dbe7f4"), "fili-panel écrans: accent par défaut: brume en sombre", acc ? FiliTheme.accent : "introuvable");
+                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-panel écrans: accent par défaut: sable en sombre", acc ? FiliTheme.accent : "introuvable");
                 FiliTheme.ran = [];
                 acc.pick("sable");
                 ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-panel écrans: accent sable dans le shell", String(FiliTheme.voile));
@@ -708,10 +708,10 @@ ShellRoot {
                 FiliTheme.mode = "dark";
                 FiliTheme.mode = "light";
                 FiliTheme.accent = "default";
-                ok(Qt.colorEqual(FiliTheme.voile, "#1c222b"), "accent par défaut en mode clair: noir", String(FiliTheme.voile));
+                ok(Qt.colorEqual(FiliTheme.voile, "#4f6884"), "accent par défaut en mode clair: ardoise", String(FiliTheme.voile));
                 FiliTheme.mode = "dark";
                 FiliTheme.accent = "inconnu";
-                ok(Qt.colorEqual(FiliTheme.voile, "#dbe7f4"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));
                 FiliTheme.accent = "default";
                 FiliPanel.close();
             },

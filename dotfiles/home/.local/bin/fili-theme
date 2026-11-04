@@ -2,7 +2,7 @@
 # Mode sombre (défaut) ou clair de Filigrane, et couleur d'accentuation.
 # Usage: fili-theme [get|dark|light|toggle|apply] | accent [default|voile|ardoise|sauge|sable|cendre|brume]
 # Choisi dans le fili-panel écrans (APPARENCE). État: $XDG_STATE_HOME/filigrane/theme (absent = sombre) et .../accent
-# (absent = défaut: brume en sombre, noir en clair), relus en direct par la fili-shell et fili-file (FiliTheme.qml). "apply" (bootstrap.sh) réapplique l'état enregistré. Appliqué à:
+# (absent = défaut: sable en sombre, ardoise en clair), relus en direct par la fili-shell et fili-file (FiliTheme.qml). "apply" (bootstrap.sh) réapplique l'état enregistré. Appliqué à:
 #   portail xdg (gsettings color-scheme): Chromium, GTK4/libadwaita (~/.config/gtk-4.0/gtk.css suit la préférence)
 #   GTK3: thème Adwaita ou Adwaita-dark, icônes Filigrane-Icons, couleurs Filigrane et accent (~/.config/gtk-3.0/theme.css, généré)
 #   GTK4: accent dans ~/.config/gtk-4.0/accent.css (généré, importé par gtk.css)
@@ -25,7 +25,7 @@ tones() {
         cendre) echo "#c98f93 #9a4f55" ;;
         brume) echo "#dbe7f4 #4f5e70" ;;
         voile) echo "#9dbbd6 #3f5a78" ;;
-        *) echo "#dbe7f4 #1c222b" ;;
+        *) echo "#d2bf92 #4f6884" ;;
     esac
 }
 acc=$(cat "$dir/accent" 2>/dev/null)

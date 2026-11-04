@@ -11,7 +11,7 @@ The interface follows the Filigrane desktop HIG: classic desktop conventions fro
 
 - Desktop first: mouse and keyboard, never a touch/mobile model. Compact controls, useful density, readable text.
 - Code, comments, identifiers, commit messages and UI source strings are English (open source); translations go in the language files. New token or component names are English too.
-- Apple's typography and layout values (13 px Regular body, 8 px between controls, 20 px window margins...) are in `references/tokens.md`. Reuse a token before inventing a value; an unlisted value is a "décision à valider", said as such.
+- Apple's typography and layout values (14 px Regular body, 8 px between controls, 20 px window margins...) are in `references/tokens.md`. Reuse a token before inventing a value; an unlisted value is a "décision à valider", said as such.
 - One function, one look and one behaviour everywhere: same states (normal, hover, keyboard focus, pressed, selected, disabled, loading, error), same card layout, same keys.
 - Everything works from the keyboard: logical order, visible focus (`FocusRing`), Esc closes, Enter acts.
 - Colour is never the only signal (state also in a word: `MUTE`, `OFF`, `ASK`, or an icon).

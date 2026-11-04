@@ -312,7 +312,7 @@ Singleton {
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.nuit3
                             selectedTextColor: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle; weight: Font.Light }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle + 2; weight: Font.Light }
                             clip: true
                             onTextChanged: launcher.filter()
                             Text {
@@ -429,7 +429,7 @@ Singleton {
                                     textFormat: Text.StyledText
                                     elide: Text.ElideRight
                                     color: row.sel ? FiliTheme.brume : FiliTheme.brume2
-                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size + 1 }
                                 }
                                 KeyCap {
                                     visible: row.e.key !== ""
