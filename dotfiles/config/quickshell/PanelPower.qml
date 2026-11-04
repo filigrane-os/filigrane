@@ -60,4 +60,13 @@ ColumnLayout {
             onClicked: { FiliPanel.close(); FiliTheme.run("setsid -f " + FiliTheme.bin + "/menu system '" + modelData[2] + "'"); }
         }
     }
+
+    // Foot: the idle delays are in the settings window, on the page of this module
+    PanelSection { text: FiliI18n.tr("MORE") }
+    PanelButton {
+        objectName: "open-settings"
+        glyph: ""
+        label: FiliI18n.tr("Power settings…")
+        onClicked: FiliSettings.show("power")
+    }
 }

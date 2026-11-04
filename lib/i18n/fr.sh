@@ -126,7 +126,8 @@ _t_lookup() {
     'Done: ~/Videos') _t_fmt='Terminé: ~/Videos' ;;
     'Started (click the indicator to stop)') _t_fmt='Démarré (clic sur l'\''indicateur pour arrêter)' ;;
     'Auto lock') _t_fmt='Verrouillage auto' ;;
-    'On (5 min, screen off at 10 min, no automatic sleep)') _t_fmt='Activé (5 min, écran éteint à 10 min, pas de veille automatique)' ;;
+    'On (lock: %s, screen off: %s, sleep: %s)') _t_fmt='Activé (verrouillage: %s, écran éteint: %s, veille: %s)' ;;
+    'never') _t_fmt='jamais' ;;
     'Off') _t_fmt='Désactivé' ;;
     'Airplane mode') _t_fmt='Mode avion' ;;
     'On (Wi-Fi and Bluetooth off)') _t_fmt='Activé (Wi-Fi et Bluetooth coupés)' ;;

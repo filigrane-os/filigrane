@@ -307,5 +307,14 @@
  "click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent": "clic : panneau de l'agent · Super+clic ou clic milieu : aller à ce qui attend · clic droit : choisir l'agent",
  "Display": "Écran",
  "Display settings…": "Réglages d'affichage…",
- "MORE": "PLUS"
+ "MORE": "PLUS",
+ "Power": "Énergie",
+ "Never": "Jamais",
+ "%1 min": "%1 min",
+ "Time without activity before each step. Caffeine, in the power panel, pauses them all.": "Temps sans activité avant chaque étape. La caféine, dans le panneau d'alimentation, les suspend toutes.",
+ "LOCK AFTER": "VERROUILLER APRÈS",
+ "TURN THE SCREEN OFF AFTER": "ÉTEINDRE L'ÉCRAN APRÈS",
+ "SLEEP AFTER": "METTRE EN VEILLE APRÈS",
+ "The screen locks before going to sleep. On some laptops a long sleep on battery can lose the session.": "L'écran se verrouille avant la veille. Sur certains portables, une longue veille sur batterie peut perdre la session.",
+ "Power settings…": "Réglages d'énergie…"
 }
