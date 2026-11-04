@@ -1,4 +1,0 @@
-[portal]
-DBusName=org.freedesktop.impl.portal.desktop.filigrane
-Interfaces=org.freedesktop.impl.portal.FileChooser;
-UseIn=niri
