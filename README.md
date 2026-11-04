@@ -28,7 +28,7 @@ A *filigrane* is a watermark: visible when you look for it, invisible when you r
 
 - **Void Linux**: xbps packages, runit services, no systemd, rolling release.
 - **niri + Quickshell**: bar, global application menu, notifications, launcher, panels, all in one coherent shell (the *fili-shell*) with foot as terminal.
-- **Fili apps**: small native tools that share one standard: an *About* card, their own icon, a global menu exposed to the bar, and an editable config file (`~/.config/filigrane/<app>.toml`) for settings and theme. The first is **Casier**, the file manager.
+- **Fili apps**: small native tools that share one standard: an *About* card, their own icon, a global menu exposed to the bar, and an editable config file (`~/.config/filigrane/<app>.toml`) for settings and theme. The first is **Casier**, the file manager; **Archiveur** (`fili-archive`, `archiveur`) is its compress and extract engine without a window, shipped in the same binary.
 - **Layered configuration**: distribution → hardware → personal.
 - **AI agent built in**: Claude Code, Codex, opencode or local models (Ollama). `Mod+Y` opens a chat drawer (sessions kept while hidden); `Mod+Shift+Y` starts the agent in a terminal.
 
