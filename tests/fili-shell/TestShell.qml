@@ -699,6 +699,7 @@ ShellRoot {
                 FiliPanel.view = "display";
                 const acc = t.find(FiliPanel.loaded, "accent");
                 ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-panel écrans: accent par défaut: sable en sombre", acc ? FiliTheme.accent : "introuvable");
+                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-panel écrans: pas d'entrée Défaut, le sable est la couleur choisie par défaut", FiliTheme.accentName);
                 FiliTheme.ran = [];
                 acc.pick("sable");
                 ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-panel écrans: accent sable dans le shell", String(FiliTheme.voile));
@@ -709,6 +710,7 @@ ShellRoot {
                 FiliTheme.mode = "light";
                 FiliTheme.accent = "default";
                 ok(Qt.colorEqual(FiliTheme.voile, "#4f6884"), "accent par défaut en mode clair: ardoise", String(FiliTheme.voile));
+                ok(FiliTheme.accentName === "ardoise", "accent par défaut en mode clair: l'ardoise est la pastille choisie", FiliTheme.accentName);
                 FiliTheme.mode = "dark";
                 FiliTheme.accent = "inconnu";
                 ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));

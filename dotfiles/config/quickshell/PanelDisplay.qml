@@ -431,9 +431,9 @@ ColumnLayout {
         id: accents
         objectName: "accent"
         spacing: FiliTheme.space2
-        readonly property var names: ["default", "voile", "ardoise", "sauge", "sable", "cendre", "brume"]
-        readonly property var labels: ({ default: FiliI18n.tr("Default"), voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
-        property int cursor: Math.max(0, names.indexOf(FiliTheme.accent))
+        readonly property var names: ["voile", "ardoise", "sauge", "sable", "cendre", "brume"]
+        readonly property var labels: ({ voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
+        property int cursor: Math.max(0, names.indexOf(FiliTheme.accentName))
         function pick(n) {
             FiliTheme.accent = n;
             FiliTheme.run(FiliTheme.bin + "/fili-theme accent " + n);
@@ -449,7 +449,7 @@ ColumnLayout {
                 id: dot
                 required property string modelData
                 required property int index
-                readonly property bool on: modelData === FiliTheme.accent
+                readonly property bool on: modelData === FiliTheme.accentName
                 width: 22
                 height: 22
                 radius: width / 2
@@ -475,7 +475,7 @@ ColumnLayout {
         }
         Text {
             anchors.verticalCenter: parent.verticalCenter
-            text: accents.labels[FiliTheme.accent] ?? accents.labels.default
+            text: accents.labels[FiliTheme.accentName]
             color: FiliTheme.brume2
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
         }
