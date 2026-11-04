@@ -20,17 +20,18 @@ Tout ce qui renomme, déplace, supprime ou crée des fichiers pour l'utilisateur
 - Les journaux sont dans `~/.local/state/filigrane/tx/<id>/journal` (20 transactions gardées).
 - Limites: seuls les fichiers du volume du home vont à la corbeille avec annulation; pas de tabulation ni de saut de ligne dans un chemin; pas d'échange (a→b et b→a). Un `mv`/`rm` direct échappe au journal: pas d'annulation.
 
-## Compresser et décompresser: `fili-archive`
+## Compresser et décompresser: `fili-archive` (Archiveur)
 
-Pour une archive, `fili-archive` (jamais `zip`/`tar`/`7z` à la main): il n'écrase rien, n'écrit le résultat qu'une fois fini, et chaque appel est une transaction `fili-tx` (« `fili-tx undo` pour annuler »).
+Archiveur (commandes `fili-archive` et `archiveur`) est le moteur d'archivage de Casier sans fenêtre: ce sont d'autres noms du binaire `fili-file` (alias comme `casier`), le code vit dans le dépôt de Casier (`src/archive.rs`, `~/Projects/fili-file`). Pour une archive, `fili-archive` (jamais `zip`/`tar`/`7z` à la main): il n'écrase rien, n'écrit le résultat qu'une fois fini, et chaque appel est une transaction `fili-tx` (« `fili-tx undo` pour annuler »).
 
 | Besoin | Commande |
 | --- | --- |
 | Compresser un ou plusieurs fichiers ou dossiers | `fili-archive pack [-f zip\|7z\|tar.gz\|tar.xz\|tar.zst] [-l fast\|normal\|best] [--no-hidden] [-o SORTIE] CHEMIN...` (zip par défaut, niveau normal, à côté des fichiers; `-q`: sans transaction ni notification, pour Casier qui a son panneau « Compresser… » et son propre défaire) |
 | Extraire | `fili-archive unpack [-o DOSSIER] ARCHIVE...` (dans un dossier à part, à côté de l'archive) |
 | Voir le contenu | `fili-archive list ARCHIVE` |
+| Fiche « À propos » (sans fenêtre, donc en ligne de commande) | `fili-archive about` |
 
-Sortie: un chemin créé par ligne. Un double-clic sur une archive (Casier, `xdg-open`) lance `fili-archive open`. Mots de passe: pas encore pris en charge.
+Sortie: un chemin créé par ligne. Un double-clic sur une archive (Casier, `xdg-open`) lance `fili-archive open`. Mot de passe: `--password-stdin` (première ligne de l'entrée standard, jamais en argument).
 
 ## Dire à l'utilisateur comment revenir en arrière
 
