@@ -70,7 +70,7 @@ Singleton {
         id: reader
         running: true
         // Tuyau recréé à chaque démarrage, lecteur tué avec Quickshell (sinon un ancien lecteur volerait les commandes)
-        command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; [ -x "$2/bar-stats" ] && exec "$2/bar-stats" "$f"; exec setpriv --pdeathsig TERM cat 0<>"$f"',
+        command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; for d in "$2" /usr/bin; do [ -x "$d/bar-stats" ] && exec "$d/bar-stats" "$f"; done; exec setpriv --pdeathsig TERM cat 0<>"$f"',
             "sh", shell.fifo, FiliTheme.bin]
         // Catalogue des traductions de bar-stats: celui du fili-shell (FiliI18n)
         environment: ({ FILI_I18N: Quickshell.shellDir + "/i18n" })
