@@ -12,9 +12,9 @@
 # in the menu takes precedence over this setting
 # window_buttons = true
 
-# Sort: name, size, date, kind, created, permissions, owner
-# sort = "name"
-# sort_desc = false
+# Sort: name, size, date (modified), kind, created, permissions, owner. Default: most recently modified first
+# sort = "date"
+# sort_desc = true
 
 # Columns of the list view (same keys as the right click on the header)
 # columns = "size,modified"
