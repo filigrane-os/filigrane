@@ -96,7 +96,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 
 ## 10. Typographie
 
-- Échelle d'Apple transposée à Jost (`tokens.md`) : 13 Regular pour le texte et les contrôles, 12 pour les listes, 11 pour le secondaire, 10 pour les étiquettes ; gras (Jost 600) seulement pour l'accent rare. **[Apple]**
+- Échelle d'Apple transposée à Jost (`tokens.md`) : 14 Regular pour le texte et les contrôles, 13 pour les listes, 12 pour le secondaire, 11 pour les étiquettes (Apple +1 px : Jost a un petit œil) ; gras (Jost 600) seulement pour l'accent rare. **[Apple]**
 - Hiérarchie par la taille, le poids et l'espacement ; une seule police d'interface. Light réservé aux grands titres (≥ 18 px). **[Filigrane]**
 - Pas de taille minuscule pour faire tenir plus. Textes longs à largeur confortable. Dates, nombres, unités selon la langue (`FiliI18n`). Tester accents, textes longs (allemand), troncature avec infobulle. **[Apple]**
 

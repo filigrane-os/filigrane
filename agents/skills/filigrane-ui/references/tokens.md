@@ -4,19 +4,19 @@ Valeurs communes au fili-shell, aux outils `fili-*` et aux thèmes. Provenance :
 
 ## Typographie
 
-Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains Mono. Les tailles et les poids reprennent les polices système d'Apple, avec Jost à la place de Lucida Grande. **[Apple]** Le gras d'Apple devient Jost SemiBold 600 : Jost, plus fin et à petit œil, y pèse autant que Lucida Grande Bold sans alourdir le texte sur fond sombre. **[Filigrane]**
+Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains Mono. Les rôles et les poids reprennent les polices système d'Apple, avec Jost à la place de Lucida Grande ; les tailles sont celles d'Apple **+1 px**, car Jost a une hauteur d'x de 0,46 em contre ~0,53 pour Lucida Grande : à taille égale il paraît plus petit (13 px Jost se lit comme ~12 px Lucida). **[Filigrane, validé à l'usage le 2026-11-03]** **[Apple]** Le gras d'Apple devient Jost SemiBold 600 : Jost, plus fin et à petit œil, y pèse autant que Lucida Grande Bold sans alourdir le texte sur fond sombre. **[Filigrane]**
 
 | Rôle | Taille | Poids | Usage |
 |---|---:|---|---|
-| Système | 13 | Regular 400 | texte courant, menus, contrôles, contenu des fiches, valeurs de la fili-bar (`FiliTheme.size`; échelle : `size`, `sizeList`, `sizeSmall`, `sizeLabel`, `sizeTitle`, accent `weightAccent`) |
-| Système accentué | 13 | SemiBold 600 | message d'une alerte, avec parcimonie |
-| Vue | 12 | Regular 400 | lignes des listes et tableaux (menu, notifications, historique) |
-| Petit | 11 | Regular 400 | texte secondaire, en-têtes de colonnes, infobulles, petits contrôles, précisions sous un réglage |
-| Petit accentué | 11 | SemiBold 600 | titre d'un groupe de réglages sans cadre, texte bref sous un champ ; avec parcimonie |
-| Étiquette | 10 | Regular 400 | libellés sous les icônes d'une barre d'outils, graduations de curseur ; rare |
-| Mini | 9 | Regular 400 | contrôles mini ; à éviter dans le shell (Jost a un petit œil) |
+| Système | 14 | Regular 400 | texte courant, menus, contrôles, contenu des fiches, valeurs de la fili-bar (`FiliTheme.size`; échelle : `size`, `sizeList`, `sizeSmall`, `sizeLabel`, `sizeTitle`, accent `weightAccent`) |
+| Système accentué | 14 | SemiBold 600 | message d'une alerte, avec parcimonie |
+| Vue | 13 | Regular 400 | lignes des listes et tableaux (menu, notifications, historique) |
+| Petit | 12 | Regular 400 | texte secondaire, en-têtes de colonnes, infobulles, petits contrôles, précisions sous un réglage |
+| Petit accentué | 12 | SemiBold 600 | titre d'un groupe de réglages sans cadre, texte bref sous un champ ; avec parcimonie |
+| Étiquette | 11 | Regular 400 | libellés sous les icônes d'une barre d'outils, graduations de curseur ; rare |
+| Mini | 10 | Regular 400 | contrôles mini ; à éviter dans le shell (Jost a un petit œil) |
 
-- Intertitres de section des fili-panel et étiquettes : capitales espacées (0,12-0,16 em), 11 px, couleur ardoise (`PanelSection`). **[Filigrane]**
+- Intertitres de section des fili-panel et étiquettes : capitales espacées (0,12-0,16 em), 12 px, couleur ardoise (`PanelSection`). **[Filigrane]**
 - Grands titres et nom (fili-about, écran d'accueil, ≥ 18 px) : Jost Light 300. Le Light ne descend pas sous 18 px. **[Filigrane]**
 - Terminaux (foot, alacritty) : JetBrains Mono 12 px (9 pt), pas 13. À taille égale JetBrains Mono paraît plus grand que Jost (hauteur d'x 0,55 em contre 0,46, capitales 0,73 contre 0,70) : à 12 px sa hauteur d'x vaut 6,6 px et ses capitales 8,8 px, contre 6,0 et 9,1 pour Jost 13. Les polices en points (`size=` de foot, `size` d'alacritty, `gtk-font-name`) valent 4/3 px : Jost 10 pt de GTK = 13,3 px, déjà l'échelle système ; foot s'écrit en `pixelsize=` pour rester en pixels. **[Filigrane]**
 - Police du système (`fontconfig/conf.d/61-fili-sans.conf`) : `sans-serif` et `system-ui` donnent Jost, `monospace` donne JetBrains Mono, pour que les applications tierces (Chrome, GTK, Qt) restent dans la seule police d'interface. Une application qui demande une police précise la garde ; le texte des pages web reste celui du site. **[Filigrane]**
@@ -77,7 +77,7 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 - Les noms gardent leur rôle d'un mode à l'autre (`nuit` = fond, `brume` = texte, `voile` = accent). Mode clair optionnel : `fili-theme light|dark`, choisi dans le fili-panel écrans (APPARENCE). Contraste des états clairs ≥ 4,8:1 sur papier.
 - Valeurs dans `dotfiles/config/quickshell/FiliTheme.qml`, `[colors-light]` de `foot.ini`, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond clair `filigrane-clair.png`. Alacritty, zellij, swaylock et Plymouth restent sombres.
 - Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par alacritty, nvim via catppuccin `color_overrides`, zellij).
-- Couleur d'accentuation (`fili-theme accent <nom>`, fili-panel écrans, état `~/.local/state/filigrane/accent`): `voile` et `voileVif` suivent `FiliTheme.accentTones`. Choix: `default` (brume en sombre, noir en clair), `voile`, `ardoise`, `sauge`, `sable`, `cendre`, `brume`. Elle colore aussi l'anneau de focus niri (`theme.kdl` généré), les dossiers et la barre latérale de fili-file. Elle colore aussi le curseur de foot (fenêtres nouvelles), le verrou et la sélection GTK3/GTK4 (accent.css, relu au redémarrage des applications GTK4).
+- Couleur d'accentuation (`fili-theme accent <nom>`, fili-panel écrans, état `~/.local/state/filigrane/accent`): `voile` et `voileVif` suivent `FiliTheme.accentTones`. Choix: `default` (sable en sombre, ardoise en clair), `voile`, `ardoise`, `sauge`, `sable`, `cendre`, `brume`. Elle colore aussi l'anneau de focus niri (`theme.kdl` généré), les dossiers et la barre latérale de fili-file. Elle colore aussi le curseur de foot (fenêtres nouvelles), le verrou et la sélection GTK3/GTK4 (accent.css, relu au redémarrage des applications GTK4).
 - Icônes: thème `Filigrane-Icons` (`scripts/icon-theme.sh`: dossiers et glyphes de Nordic-Slot-Dark-Icons, le reste d'Adwaita en symboliques recolorés par fili-file). Pas de Papirus.
 - Un composant prend un token ; jamais une couleur littérale quand un token convient.
 
@@ -95,3 +95,5 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 
 Le survol n'est jamais le seul moyen d'accéder à une information ou une action. **[Apple]**
 - Thème de fili-file personnalisable: défauts dans `fili-file/theme.toml` (clés en anglais; `[theme]` commun, `[theme.dark]` / `[theme.light]` par mode, `[theme.accents]`), surchargés clé par clé par `~/.config/filigrane/theme.toml` (global) puis `~/.config/filigrane/fili-file.toml`. Un test garde les défauts identiques à `FiliTheme.qml` du shell. Les `border.color`/`border.width` passent par `FiliTheme.border`/`borderWidth`.
+
+- Fili-launcher : texte des lignes en `size + 1` (15 px) et champ de recherche en `sizeTitle + 2` (20 px, Light), car c'est une surface de recherche aérée (lignes de 40 px) et non une liste dense. **[Filigrane]**
