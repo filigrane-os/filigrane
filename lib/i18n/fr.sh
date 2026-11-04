@@ -218,6 +218,7 @@ _t_lookup() {
     'AI: Open agent') _t_fmt='IA: Ouvrir l'\''agent' ;;
     'AI: Update agents') _t_fmt='IA: Mettre à jour les agents' ;;
     'About') _t_fmt='À propos' ;;
+    'Settings') _t_fmt='Réglages' ;;
     'Add an entry') _t_fmt='Ajouter une entrée' ;;
     'Addresses › ') _t_fmt='Adresses › ' ;;
     'Applications ›') _t_fmt='Applications ›' ;;
@@ -320,6 +321,7 @@ _t_lookup() {
     'System ›') _t_fmt='Système ›' ;;
     'System › ') _t_fmt='Système › ' ;;
     'System: About') _t_fmt='Système: À propos' ;;
+    'System: Settings') _t_fmt='Système: Réglages' ;;
     'System: Lock') _t_fmt='Système: Verrouiller' ;;
     'System: Log out') _t_fmt='Système: Quitter la session' ;;
     'System: Power off') _t_fmt='Système: Éteindre' ;;

@@ -38,6 +38,8 @@ ShellRoot {
                 FiliChat.act(action || "toggle", args);
             else if (target === "about")
                 FiliAbout.toggle();
+            else if (target === "settings")
+                FiliSettings.toggle(action);
             else if (target === "reload")
                 Quickshell.reload(false);
         }

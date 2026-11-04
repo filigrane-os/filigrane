@@ -304,5 +304,8 @@
  "Show the chat": "Afficher le chat",
  "New terminal session": "Nouvelle session de terminal",
  "Choose the agent": "Choisir l'agent",
- "click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent": "clic : panneau de l'agent · Super+clic ou clic milieu : aller à ce qui attend · clic droit : choisir l'agent"
+ "click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent": "clic : panneau de l'agent · Super+clic ou clic milieu : aller à ce qui attend · clic droit : choisir l'agent",
+ "Display": "Écran",
+ "Display settings…": "Réglages d'affichage…",
+ "MORE": "PLUS"
 }

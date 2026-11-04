@@ -567,39 +567,54 @@ ShellRoot {
                     ok(FiliPanel.loaded === null, "fili-panel " + v + ": vue libérée à la fermeture");
                 }
             },
-            // fili-panel écrans: fixture de deux sorties, aimantation, commandes niri, confirmation et retour en arrière
+            // fili-settings écran: fixture de deux sorties, aimantation, commandes niri, confirmation et retour en arrière
             () => {
-                FiliPanel.view = "display";
-                const d = FiliPanel.loaded;
+                FiliSettings.show("display");
+                const d = FiliSettings.loaded;
                 const mode = (w, h, r) => ({ width: w, height: h, refresh_rate: r, is_preferred: false });
                 const out = (name, x, scale, modes) => ({ name, make: "T", model: name, logical: { x, y: 0, width: Math.round(modes[0].width / scale), height: Math.round(modes[0].height / scale), scale, transform: "Normal" }, modes, current_mode: 0, vrr_supported: true, vrr_enabled: false });
                 d.outputs = [out("A-1", 0, 2, [mode(2560, 1600, 60001), mode(1920, 1200, 60000), mode(1920, 1200, 120000)]), out("B-1", 1280, 1, [mode(1920, 1080, 60000)])];
                 d.sel = "A-1";
-                ok(d.active.length === 2 && d.resolutions.length === 2, "fili-panel écrans: sorties et définitions", d.resolutions.length);
-                ok(d.refreshes.length === 1, "fili-panel écrans: une seule fréquence, pas de choix", d.refreshes.length);
+                ok(d.active.length === 2 && d.resolutions.length === 2, "fili-settings écran: sorties et définitions", d.resolutions.length);
+                ok(d.refreshes.length === 1, "fili-settings écran: une seule fréquence, pas de choix", d.refreshes.length);
                 const b = d.outputs[1];
                 const p = d.snapPos(b, 1300, 30);
-                ok(p.x === 1280 && p.y === 0, "fili-panel écrans: aimantation au bord voisin", JSON.stringify(p));
+                ok(p.x === 1280 && p.y === 0, "fili-settings écran: aimantation au bord voisin", JSON.stringify(p));
                 FiliTheme.ran = [];
                 d.setResolution(d.outputs[0], d.resolutions[1]);
-                ok(FiliTheme.ran[0] === "niri msg output 'A-1' mode 1920x1200@120.000", "fili-panel écrans: définition -> plus haute fréquence", JSON.stringify(FiliTheme.ran));
-                ok(d.snap !== null && d.secs === 15, "fili-panel écrans: changement à confirmer", d.secs);
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' mode 1920x1200@120.000", "fili-settings écran: définition -> plus haute fréquence", JSON.stringify(FiliTheme.ran));
+                ok(d.snap !== null && d.secs === 15, "fili-settings écran: changement à confirmer", d.secs);
                 d.setTransform(d.outputs[0], "90");
-                ok(d.snap.name === "A-1" && d.snap.current_mode === 0, "fili-panel écrans: l'état d'avant reste le premier", d.snap.current_mode);
+                ok(d.snap.name === "A-1" && d.snap.current_mode === 0, "fili-settings écran: l'état d'avant reste le premier", d.snap.current_mode);
                 FiliTheme.ran = [];
                 d.revert();
-                ok(d.snap === null && FiliTheme.ran[0].indexOf("mode 2560x1600@60.001") > 0 && FiliTheme.ran[0].indexOf("position set 0 0") > 0 && FiliTheme.ran[0].indexOf("scale 2") > 0, "fili-panel écrans: annuler -> état d'avant", JSON.stringify(FiliTheme.ran));
+                ok(d.snap === null && FiliTheme.ran[0].indexOf("mode 2560x1600@60.001") > 0 && FiliTheme.ran[0].indexOf("position set 0 0") > 0 && FiliTheme.ran[0].indexOf("scale 2") > 0, "fili-settings écran: annuler -> état d'avant", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 d.move(b, 1290, 5);
-                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-panel écrans: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-settings écran: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 d.setScale(d.outputs[0], 1.5);
-                ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-panel écrans: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-settings écran: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
                 d.keep();
-                ok(d.snap === null, "fili-panel écrans: garder");
-                FiliPanel.close();
+                ok(d.snap === null, "fili-settings écran: garder");
+                FiliSettings.close();
             },
-            // fili-panel Bluetooth, partage de fichiers: protocoles grisés si indisponibles, même interface, commande d'envoi
+            // fili-settings: liste des pages, page chargée à l'ouverture et libérée à la fermeture, pied du panneau écran
+            () => {
+                FiliPanel.view = "display";
+                t.find(FiliPanel.loaded, "open-settings").press(Qt.LeftButton);
+                ok(FiliSettings.open && !FiliPanel.open && FiliSettings.page === "display", "fili-settings: le pied du panneau écran ouvre la page Écran, panneau fermé", FiliSettings.page);
+                ok(FiliSettings.loaded !== null && FiliSettings.pages.length > 0 && FiliSettings.pages.every(p => p.label !== ""), "fili-settings: page chargée, pages nommées");
+                FiliSettings.show("inconnue");
+                ok(FiliSettings.page === "display", "fili-settings: page inconnue ignorée", FiliSettings.page);
+                FiliShell.popupOpened("about");
+                ok(!FiliSettings.open && FiliSettings.loaded === null, "fili-settings: fermée par une autre fenêtre, page libérée");
+                FiliSettings.toggle("display");
+                ok(FiliSettings.open, "fili-settings: toggle ouvre");
+                FiliSettings.toggle();
+                ok(!FiliSettings.open, "fili-settings: toggle ferme");
+            },
+            // fili-panel Bluetooth, partage: protocoles grisés si indisponibles, même interface, commande d'envoi
             () => {
                 FiliPanel.view = "bluetooth";
                 const bt = FiliPanel.loaded;
@@ -715,16 +730,16 @@ ShellRoot {
                 ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel écrans: retour au sombre", JSON.stringify(FiliTheme.ran));
                 FiliPanel.close();
             },
-            // fili-panel écrans, couleur d'accentuation: sable par défaut, le choix change l'accent du shell et lance fili-theme accent
+            // fili-settings écran, couleur d'accentuation: sable par défaut, le choix change l'accent du shell et lance fili-theme accent
             () => {
-                FiliPanel.view = "display";
-                const acc = t.find(FiliPanel.loaded, "accent");
-                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-panel écrans: accent par défaut: sable en sombre", acc ? FiliTheme.accent : "introuvable");
-                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-panel écrans: pas d'entrée Défaut, le sable est la couleur choisie par défaut", FiliTheme.accentName);
+                FiliSettings.show("display");
+                const acc = t.find(FiliSettings.loaded, "accent");
+                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-settings écran: accent par défaut: sable en sombre", acc ? FiliTheme.accent : "introuvable");
+                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-settings écran: pas d'entrée Défaut, le sable est la couleur choisie par défaut", FiliTheme.accentName);
                 FiliTheme.ran = [];
                 acc.pick("sable");
-                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-panel écrans: accent sable dans le shell", String(FiliTheme.voile));
-                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-panel écrans: fili-theme accent sable lancé", JSON.stringify(FiliTheme.ran));
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-settings écran: accent sable dans le shell", String(FiliTheme.voile));
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-settings écran: fili-theme accent sable lancé", JSON.stringify(FiliTheme.ran));
                 FiliTheme.mode = "light";
                 ok(Qt.colorEqual(FiliTheme.voile, "#80662b"), "accent sable en mode clair", String(FiliTheme.voile));
                 FiliTheme.mode = "dark";
@@ -736,7 +751,7 @@ ShellRoot {
                 FiliTheme.accent = "inconnu";
                 ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));
                 FiliTheme.accent = "default";
-                FiliPanel.close();
+                FiliSettings.close();
             },
             // Panneau ouvert: l'action d'un module part à l'appui (un seul clic), pas deux fois au relâchement
             () => {
@@ -817,11 +832,10 @@ ShellRoot {
                 kb.page = "layouts";
                 FiliPanel.close();
             },
-            () => FiliPanel.summon("display"),
-            wait(() => {}, () => FiliPanel.loaded && t.find(FiliPanel.loaded, "scale")),
+            () => FiliSettings.show("display"),
+            wait(() => {}, () => FiliSettings.loaded && t.find(FiliSettings.loaded, "scale")),
             () => {
-                const d = FiliPanel.loaded;
-                const chips = t.find(d, "scale");
+                const chips = t.find(FiliSettings.loaded, "scale");
                 const values = chips.model.filter(c => !c.off);
                 if (values.length > 1) {
                     chips.cursor = chips.model.indexOf(values[0]);
@@ -829,6 +843,9 @@ ShellRoot {
                     FiliTheme.ran = [];
                     ok(chips.cursor === chips.model.indexOf(values[1]) && FiliTheme.ran.length === 0, "clavier: → dans une rangée de choix déplace le curseur sans appliquer", chips.cursor);
                 }
+                FiliSettings.close();
+                FiliPanel.summon("display");
+                const d = FiliPanel.loaded;
                 const sl = t.find(d, "screen");
                 if (sl.visible) {
                     FiliTheme.ran = [];

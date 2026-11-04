@@ -8,6 +8,7 @@ pragma Singleton
 //   appmenu toggle | close               menu de l'application active au clavier (AppMenu, Mod+F10)
 //   chat [ACTION]                         tiroir fili-chat (FiliChat, Mod+Y): toggle (défaut), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
 //   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
+//   settings [PAGE]                       fenêtre Réglages (FiliSettings), sur la page PAGE (display...)
 //   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
 //   reload
 // Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
