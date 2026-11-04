@@ -1,4 +1,4 @@
-# Verrou swaylock, Filigrane (brand.md) (léger: pas de flou, pas d'effets). Image ajoutée par ~/.local/bin/lock
+# swaylock lock screen, Filigrane (brand.md) (light: no blur, no effects). Image added by ~/.local/bin/lock
 color=1c222b
 scaling=fill
 font=Jost

@@ -1,13 +1,13 @@
-# fili-chat (le chat de la fili-bar). Le menu View de la fili-bar (chat ouvert) change le mode et la largeur;
-# ce choix est gardé dans ~/.local/state/filigrane/chat-view et passe devant ce fichier (le supprimer pour revenir ici).
+# fili-chat (the chat of the fili-bar). The View menu of the fili-bar (chat open) changes the mode and the width;
+# that choice is kept in ~/.local/state/filigrane/chat-view and takes precedence over this file (delete it to come back here).
 
-# dock: à droite de chaque fenêtre (elles se rétrécissent). float: au-dessus des fenêtres, sans les toucher.
+# dock: at the right of every window (they shrink). float: above the windows, without touching them.
 mode = "dock"
 
-# Largeur en pixels (300 à 900)
+# Width in pixels (300 to 900)
 width = 440
 
-# Reprise de la session liée à l'application active, à l'ouverture du chat seulement.
-# app: une session par application (créée en écrivant avec la note de contexte). window: par application et titre de
-# fenêtre. off: pas de lien, le chat rouvre la dernière session.
+# Resuming the session linked to the active application, only when the chat opens.
+# app: one session per application (created when you write with the context note). window: per application and window
+# title. off: no link, the chat reopens the last session.
 follow = "app"

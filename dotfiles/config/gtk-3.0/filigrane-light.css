@@ -1,4 +1,4 @@
-/* Filigrane (brand.md), mode clair sur Adwaita: papier, texte nuit, accent ardoise (importé par gtk.css via theme.css) */
+/* Filigrane (brand.md), light mode on Adwaita: paper, night text, slate accent (imported by gtk.css through theme.css) */
 @define-color theme_bg_color #f3f1ec;
 @define-color theme_base_color #f8f7f3;
 @define-color theme_fg_color #1c222b;

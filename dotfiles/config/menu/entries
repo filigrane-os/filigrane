@@ -1,10 +1,10 @@
-# Entrées personnalisées du menu (Mod+Space).
-# Format, une entrée par ligne :   Libellé | mode | commande
+# Custom menu entries (Mod+Space).
+# Format, one entry per line:   Label | mode | command
 #
-# Modes :
-#   term  terminal qui se ferme quand la commande se termine
-#   hold  terminal laissé ouvert à la fin ("Entrée pour fermer")
-#   run   lance en arrière-plan, sans terminal (applications graphiques)
+# Modes:
+#   term  terminal that closes when the command ends
+#   hold  terminal left open at the end ("Enter to close")
+#   run   runs in the background, without a terminal (graphical applications)
 #
-# Ajouter depuis le menu : Entrées perso > Ajouter une entrée. Les lignes # sont ignorées.
+# Add from the menu: Custom entries > Add an entry. Lines starting with # are ignored.
 
