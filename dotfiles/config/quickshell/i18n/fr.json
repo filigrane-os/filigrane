@@ -316,5 +316,8 @@
  "TURN THE SCREEN OFF AFTER": "ÉTEINDRE L'ÉCRAN APRÈS",
  "SLEEP AFTER": "METTRE EN VEILLE APRÈS",
  "The screen locks before going to sleep. On some laptops a long sleep on battery can lose the session.": "L'écran se verrouille avant la veille. Sur certains portables, une longue veille sur batterie peut perdre la session.",
- "Power settings…": "Réglages d'énergie…"
+ "Power settings…": "Réglages d'énergie…",
+ "Language": "Langue",
+ "Language settings…": "Réglages de langue…",
+ "The language of the shell, the bar, the menu and the scripts changes at once; apps opened afterwards follow it.": "La langue du shell, de la barre, du menu et des scripts change tout de suite ; les applications ouvertes ensuite la suivent."
 }
