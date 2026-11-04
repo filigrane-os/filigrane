@@ -40,14 +40,14 @@ case "$1" in
             printf '{"text":"\\uf0f4","class":"active","tooltip":"%s"}\n' "$(t 'Kept awake: no auto lock (click: turn back on)')"
         fi ;;
     batwatch)
-        # Lancé par bar-stats (sous 10 % sur batterie, puis au retour du chargeur), sortie ignorée.
-        # Alerte batterie faible (<=10 %) puis arrêt propre (<=1 %) après 1 min sauf si le chargeur est branché,
-        # une seule fois par décharge; aucun affichage. Pas de veille: en S3 la batterie finit de se vider (coupure brutale).
+        # Run by bar-stats (below 10% on battery, then once when the charger returns); output ignored.
+        # Low battery alert (<=10%, stays until closed), then a clean power off (<=1%) after 1 min unless the charger is plugged in,
+        # once per discharge; nothing displayed. No suspend: in S3 the battery would finish draining (hard cut).
         printf '{"text":""}\n'
         b=/sys/class/power_supply/BAT0; [ -r "$b/capacity" ] || exit 0
         f="${XDG_RUNTIME_DIR:-/tmp}/battery-notified"
         if [ "$(cat "$b/status")" = "Discharging" ] && [ "$(cat "$b/capacity")" -le 10 ]; then
-            [ -e "$f" ] || { notify-send -u critical "$(t 'Low battery')" "$(t '%s%%: plug in the charger' "$(cat "$b/capacity")")"; : > "$f"; }
+            [ -e "$f" ] || { notify-send -a fili-battery -u critical "$(t 'Low battery')" "$(t '%s%%: plug in the charger' "$(cat "$b/capacity")")"; : > "$f"; }
             if [ "$(cat "$b/capacity")" -le 1 ] && [ ! -e "$f.off" ]; then
                 : > "$f.off"
                 notify-send -u critical -t 60000 "$(t 'Critical battery: power off in 1 min')" "$(t 'Plug in the charger to cancel')"
