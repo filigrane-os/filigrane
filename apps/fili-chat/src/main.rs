@@ -121,14 +121,14 @@ struct Session {
     state: &'static str, // idle | working
     updated: i64,
     started: bool, // l'agent a déjà reçu un message: reprise avec --resume
-    link: String, // application (ou fenêtre) à laquelle la session est liée, "" = aucune
+    link: String,  // application (ou fenêtre) à laquelle la session est liée, "" = aucune
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     epoch: u64, // numéro du processus courant (la fin d'un ancien processus est ignorée)
     asks: Vec<Ask>,
-    icon: i64, // code du glyphe de sujet (police Fili Icons), 0 = pas encore choisi
-    naming: bool, // titre et icône en cours de demande à l'IA
-    archived: bool, // archivée: gardée avec son historique, listée à part, restaurable
+    icon: i64,                  // code du glyphe de sujet (police Fili Icons), 0 = pas encore choisi
+    naming: bool,               // titre et icône en cours de demande à l'IA
+    archived: bool,             // archivée: gardée avec son historique, listée à part, restaurable
     queue: Vec<(String, bool)>, // messages écrits pendant un tour (texte, avec contexte), envoyés à la fin du tour
 }
 
@@ -289,7 +289,10 @@ fn ask_json(id: &str, rid: &str, tool: &str, summary: &str, status: &str) -> Jso
 
 // Tranche une demande: la réponse part au serveur MCP, le résultat est gardé dans l'historique
 fn resolve_ask(d: &mut Daemon, rid: &str, status: &str) {
-    let Some((sid, i)) = d.sessions.iter().find_map(|s| s.asks.iter().position(|a| a.rid == rid).map(|i| (s.id.clone(), i))) else { return };
+    let Some((sid, i)) = d.sessions.iter().find_map(|s| s.asks.iter().position(|a| a.rid == rid).map(|i| (s.id.clone(), i)))
+    else {
+        return;
+    };
     let ask = d.session(&sid).map(|s| s.asks.remove(i));
     let Some(mut ask) = ask else { return };
     if status != "cancelled" {
@@ -370,7 +373,15 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     d.next_epoch += 1;
     let epoch = d.next_epoch;
     let mut cmd = Command::new("claude");
-    cmd.args(["-p", "--input-format", "stream-json", "--output-format", "stream-json", "--verbose", "--include-partial-messages"]);
+    cmd.args([
+        "-p",
+        "--input-format",
+        "stream-json",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--include-partial-messages",
+    ]);
     cmd.args(if started { ["--resume", id] } else { ["--session-id", id] });
     cmd.arg("--add-dir").arg(&c.dir);
     // Permissions: l'agent demande au tiroir (fili-chat mcp) quand il aurait demandé à l'utilisateur
@@ -519,10 +530,72 @@ fn kill_agent(s: &mut Session) {
 // ───── titre et icône par l'IA ─────
 // Icônes de sujet: noms Lucide, code 0xF2000 + position dans la police Fili Icons (scripts/fili-icons.py, TOPICS, même ordre)
 const TOPICS: [&str; 66] = [
-    "message-circle", "terminal", "code", "bug", "git-branch", "package", "wrench", "settings", "wifi", "volume-2", "monitor", "keyboard", "hard-drive", "cpu",
-    "database", "shield", "key", "globe", "mail", "calendar", "file-text", "folder", "image", "music", "video", "book-open", "palette", "printer", "download",
-    "search", "lightbulb", "rocket", "map", "shopping-cart", "graduation-cap", "calculator", "clock", "sparkles", "archive", "battery-full", "bluetooth",
-    "languages", "car", "plane", "house", "heart-pulse", "wallet", "shirt", "utensils", "trees", "sun", "dumbbell", "gamepad-2", "smartphone", "briefcase", "bike", "train-front", "paw-print", "flask-conical", "landmark", "scale", "hammer", "plug", "tv", "film", "baby",
+    "message-circle",
+    "terminal",
+    "code",
+    "bug",
+    "git-branch",
+    "package",
+    "wrench",
+    "settings",
+    "wifi",
+    "volume-2",
+    "monitor",
+    "keyboard",
+    "hard-drive",
+    "cpu",
+    "database",
+    "shield",
+    "key",
+    "globe",
+    "mail",
+    "calendar",
+    "file-text",
+    "folder",
+    "image",
+    "music",
+    "video",
+    "book-open",
+    "palette",
+    "printer",
+    "download",
+    "search",
+    "lightbulb",
+    "rocket",
+    "map",
+    "shopping-cart",
+    "graduation-cap",
+    "calculator",
+    "clock",
+    "sparkles",
+    "archive",
+    "battery-full",
+    "bluetooth",
+    "languages",
+    "car",
+    "plane",
+    "house",
+    "heart-pulse",
+    "wallet",
+    "shirt",
+    "utensils",
+    "trees",
+    "sun",
+    "dumbbell",
+    "gamepad-2",
+    "smartphone",
+    "briefcase",
+    "bike",
+    "train-front",
+    "paw-print",
+    "flask-conical",
+    "landmark",
+    "scale",
+    "hammer",
+    "plug",
+    "tv",
+    "film",
+    "baby",
 ];
 
 fn first_line_title(text: &str) -> String {
@@ -560,13 +633,22 @@ fn start_naming(d: &mut Daemon, id: &str) {
 
 fn first_user_text(id: &str) -> String {
     let text = fs::read_to_string(log_path(id)).unwrap_or_default();
-    text.lines().filter_map(Json::parse).find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some("user")).and_then(|j| j.get("text").str().map(String::from)).unwrap_or_default()
+    text.lines()
+        .filter_map(Json::parse)
+        .find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some("user"))
+        .and_then(|j| j.get("text").str().map(String::from))
+        .unwrap_or_default()
 }
 
 fn name_session(id: &str) -> Option<(i64, Option<String>)> {
     let text = fs::read_to_string(log_path(id)).unwrap_or_default();
     let items: Vec<Json> = text.lines().filter_map(Json::parse).collect();
-    let find = |role: &str| items.iter().find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some(role)).and_then(|j| j.get("text").str().map(|t| t.chars().take(600).collect::<String>()));
+    let find = |role: &str| {
+        items
+            .iter()
+            .find(|j| j.get("ev").str() == Some("msg") && j.get("role").str() == Some(role))
+            .and_then(|j| j.get("text").str().map(|t| t.chars().take(600).collect::<String>()))
+    };
     let (user, assistant) = (find("user")?, find("assistant").unwrap_or_default());
     let prompt = format!(
         "Tu nommes une conversation. Réponds par UNE seule ligne, sans rien d'autre: ICONE|TITRE\n\
@@ -677,7 +759,10 @@ fn op_history(d: &mut Daemon, client: u64, id: &str) {
     j.set("items", Json::Arr(items));
     let state = d.session(id).map(|s| s.state).unwrap_or("idle");
     d.send_to(client, &j.to_string());
-    let asks: Vec<String> = d.session(id).map(|s| s.asks.iter().map(|a| ask_json(id, &a.rid, &a.tool, &a.summary, "pending").to_string()).collect()).unwrap_or_default();
+    let asks: Vec<String> = d
+        .session(id)
+        .map(|s| s.asks.iter().map(|a| ask_json(id, &a.rid, &a.tool, &a.summary, "pending").to_string()).collect())
+        .unwrap_or_default();
     for a in asks {
         d.send_to(client, &a);
     }
@@ -694,7 +779,22 @@ fn handle(client: u64, line: &str) {
     with(|d| match req.get("op").str().unwrap_or("") {
         "new" => {
             let id = uuid();
-            d.sessions.push(Session { id: id.clone(), title: String::new(), state: "idle", updated: now(), started: false, link: String::new(), child: None, stdin: None, epoch: 0, asks: Vec::new(), icon: 0, naming: false, archived: false, queue: Vec::new() });
+            d.sessions.push(Session {
+                id: id.clone(),
+                title: String::new(),
+                state: "idle",
+                updated: now(),
+                started: false,
+                link: String::new(),
+                child: None,
+                stdin: None,
+                epoch: 0,
+                asks: Vec::new(),
+                icon: 0,
+                naming: false,
+                archived: false,
+                queue: Vec::new(),
+            });
             d.publish_sessions();
             let mut j = Json::obj();
             j.set("ev", "created");
@@ -729,9 +829,13 @@ fn handle(client: u64, line: &str) {
         }
         "stop" => {
             if d.session(&id).is_some_and(|s| s.state != "idle") {
-                let pending: Vec<String> = d.session(&id).map(|s| s.asks.iter().map(|a| a.rid.clone()).collect()).unwrap_or_default();
+                let pending: Vec<String> =
+                    d.session(&id).map(|s| s.asks.iter().map(|a| a.rid.clone()).collect()).unwrap_or_default();
                 for rid in pending {
-                    let (tool, summary) = d.session(&id).and_then(|s| s.asks.iter().find(|a| a.rid == rid).map(|a| (a.tool.clone(), a.summary.clone()))).unwrap_or_default();
+                    let (tool, summary) = d
+                        .session(&id)
+                        .and_then(|s| s.asks.iter().find(|a| a.rid == rid).map(|a| (a.tool.clone(), a.summary.clone())))
+                        .unwrap_or_default();
                     store(d, &ask_json(&id, &rid, &tool, &summary, "cancelled"));
                 }
                 if let Some(s) = d.session(&id) {
@@ -792,7 +896,8 @@ fn serve(stream: UnixStream) {
     with(|d| {
         d.clients.retain(|(c, _)| *c != client);
         // Serveur MCP disparu (agent arrêté): ses demandes ne sont plus attendues
-        let rids: Vec<String> = d.sessions.iter().flat_map(|s| s.asks.iter().filter(|a| a.client == client).map(|a| a.rid.clone())).collect();
+        let rids: Vec<String> =
+            d.sessions.iter().flat_map(|s| s.asks.iter().filter(|a| a.client == client).map(|a| a.rid.clone())).collect();
         for rid in rids {
             resolve_ask(d, &rid, "cancelled");
         }
@@ -954,7 +1059,11 @@ fn main() {
             let _ = fs::create_dir_all(state_dir());
             let out = Command::new(format!("{}/.local/bin/fili-context", home())).output();
             let _ = fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default());
-            Command::new(format!("{}/.local/bin/fili-shell", home())).args(["chat", "toggle"]).status().map(|_| ()).map_err(|e| e.to_string())
+            Command::new(format!("{}/.local/bin/fili-shell", home()))
+                .args(["chat", "toggle"])
+                .status()
+                .map(|_| ())
+                .map_err(|e| e.to_string())
         }
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("status") => connect().and_then(|s| {

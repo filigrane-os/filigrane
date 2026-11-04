@@ -107,7 +107,14 @@ pub fn announce(title: &str, body: &str, dir: &str, files: &[String]) {
     }
     actions.push(("folder", tr("Open Folder").to_string()));
     let detached = |program: &str, arg: &str| {
-        let _ = Command::new(program).arg(arg).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn().map(|mut c| std::thread::spawn(move || c.wait()));
+        let _ = Command::new(program)
+            .arg(arg)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .process_group(0)
+            .spawn()
+            .map(|mut c| std::thread::spawn(move || c.wait()));
     };
     // Le serveur de notifications du shell n'affiche pas d'icône: ✓ dans le titre
     match ask_quiet(&format!("✓ {title}"), body, &actions, 12000).as_deref() {
@@ -186,15 +193,14 @@ mod tests {
     #[test]
     fn summaries() {
         assert_eq!(summary(&["a.txt".into()], 6), "a.txt (6 B)");
-        assert_eq!(
-            summary(&["a".into(), "b".into(), "c".into(), "d".into()], 4000),
-            "4 files (4.0 kB): a, b, c…"
-        );
+        assert_eq!(summary(&["a".into(), "b".into(), "c".into(), "d".into()], 4000), "4 files (4.0 kB): a, b, c…");
     }
 
     #[test]
     fn settings_file() {
-        let s = parse_settings("# x\nreceive_dir = \"~/Recus\"\nreceive_confirm = \"always\"\nreceive_minutes = 15 # quart d'heure\n");
+        let s = parse_settings(
+            "# x\nreceive_dir = \"~/Recus\"\nreceive_confirm = \"always\"\nreceive_minutes = 15 # quart d'heure\n",
+        );
         assert!(s.dir.ends_with("/Recus"));
         assert!(s.always);
         assert_eq!(s.minutes, 15);

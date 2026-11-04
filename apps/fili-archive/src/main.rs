@@ -307,7 +307,7 @@ fn unpack_one(archive: &Path, into: Option<&Path>, password: Option<&str>) -> Re
     if !archive.is_file() {
         return Err(format!("“{name}” is not a file"));
     }
-    let (stem, ext) = split_ext(&name).map(|(s, e)| (s, e)).unwrap_or_else(|| (name.clone(), ""));
+    let (stem, ext) = split_ext(&name).unwrap_or_else(|| (name.clone(), ""));
     let dir = into.map(Path::to_path_buf).unwrap_or_else(|| archive.parent().unwrap().to_path_buf());
     if !dir.is_dir() {
         return Err(format!("“{}” is not a folder", dir.display()));

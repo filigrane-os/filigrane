@@ -22,7 +22,13 @@ fn main() {
         Some("localsend") => localsend::run(s.dir, s.always),
         Some("bluetooth") => bluetooth::run(s.dir, s.always),
         Some("settings") => {
-            println!("dir={}\nconfirm={}\nminutes={}\nname={}", s.dir, if s.always { "always" } else { "ask" }, s.minutes, s.name);
+            println!(
+                "dir={}\nconfirm={}\nminutes={}\nname={}",
+                s.dir,
+                if s.always { "always" } else { "ask" },
+                s.minutes,
+                s.name
+            );
         }
         Some("received") => {
             let n = args.get(2).and_then(|n| n.parse().ok()).unwrap_or(20);

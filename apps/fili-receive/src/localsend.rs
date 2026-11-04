@@ -35,19 +35,21 @@ pub fn run(dir: String, always: bool) {
     let sessions: Sessions = Arc::default();
     {
         let (sessions, dir) = (sessions.clone(), dir.clone());
-        thread::spawn(move || loop {
-            thread::sleep(Duration::from_secs(1));
-            let done: Vec<Session> = {
-                let mut m = sessions.lock().unwrap();
-                let ids: Vec<String> = m
-                    .iter()
-                    .filter(|(_, s)| s.total.is_none() && s.last.elapsed() > IDLE && s.ok.len() + s.failed > 0)
-                    .map(|(k, _)| k.clone())
-                    .collect();
-                ids.iter().filter_map(|k| m.remove(k)).collect()
-            };
-            for s in done {
-                finish(&dir, s);
+        thread::spawn(move || {
+            loop {
+                thread::sleep(Duration::from_secs(1));
+                let done: Vec<Session> = {
+                    let mut m = sessions.lock().unwrap();
+                    let ids: Vec<String> = m
+                        .iter()
+                        .filter(|(_, s)| s.total.is_none() && s.last.elapsed() > IDLE && s.ok.len() + s.failed > 0)
+                        .map(|(k, _)| k.clone())
+                        .collect();
+                    ids.iter().filter_map(|k| m.remove(k)).collect()
+                };
+                for s in done {
+                    finish(&dir, s);
+                }
             }
         });
     }
@@ -166,6 +168,11 @@ fn finish(dir: &str, s: Session) {
     if s.failed > 0 {
         notify(&format!("✕ {}", trf("Reception from %1 failed", &[&s.sender])), &summary(&names, size));
     } else if !names.is_empty() {
-        announce(&trf("Received from %1", &[&s.sender]), &summary(&names, size), dir, &names.iter().map(|n| format!("{dir}/{n}")).collect::<Vec<_>>());
+        announce(
+            &trf("Received from %1", &[&s.sender]),
+            &summary(&names, size),
+            dir,
+            &names.iter().map(|n| format!("{dir}/{n}")).collect::<Vec<_>>(),
+        );
     }
 }

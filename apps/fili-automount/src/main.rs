@@ -6,7 +6,6 @@
 #![allow(dead_code)]
 #[path = "../../bar-stats/src/i18n.rs"]
 mod i18n;
-#[path = "../../fili-file/src/volumes.rs"]
 mod volumes;
 
 use i18n::{tr, trf};
@@ -45,7 +44,11 @@ fn new_volume(props: &std::collections::HashMap<String, String>) -> Option<Strin
         "change" => get("DISK_MEDIA_CHANGE") == "1",
         _ => false,
     };
-    if !fresh || get("ID_FS_USAGE") != "filesystem" || get("ID_FS_TYPE").is_empty() || !["partition", "disk"].contains(&get("DEVTYPE")) {
+    if !fresh
+        || get("ID_FS_USAGE") != "filesystem"
+        || get("ID_FS_TYPE").is_empty()
+        || !["partition", "disk"].contains(&get("DEVTYPE"))
+    {
         return None;
     }
     Some(get("DEVNAME").to_string()).filter(|d| !d.is_empty())
@@ -60,7 +63,9 @@ fn handle(dev: &str) {
     }
     match volumes::mount(dev) {
         Ok(path) => notify(&trf("%1 mounted", &[&v.name]), &path, false),
-        Err(e) => notify(&trf("Cannot mount %1", &[&v.name]), if e.is_empty() { tr("the tool reported an error") } else { &e }, true),
+        Err(e) => {
+            notify(&trf("Cannot mount %1", &[&v.name]), if e.is_empty() { tr("the tool reported an error") } else { &e }, true)
+        }
     }
 }
 
@@ -101,7 +106,13 @@ mod tests {
 
     #[test]
     fn detects_new_volumes_only() {
-        let usb = [("ACTION", "add"), ("DEVTYPE", "partition"), ("DEVNAME", "/dev/sdb1"), ("ID_FS_USAGE", "filesystem"), ("ID_FS_TYPE", "vfat")];
+        let usb = [
+            ("ACTION", "add"),
+            ("DEVTYPE", "partition"),
+            ("DEVNAME", "/dev/sdb1"),
+            ("ID_FS_USAGE", "filesystem"),
+            ("ID_FS_TYPE", "vfat"),
+        ];
         assert_eq!(new_volume(&ev(&usb)).as_deref(), Some("/dev/sdb1"));
         // pas de système de fichiers (table de partitions, disque vide) ou événement qui n'est pas un branchement
         assert_eq!(new_volume(&ev(&[("ACTION", "add"), ("DEVTYPE", "disk"), ("DEVNAME", "/dev/sdb")])), None);
