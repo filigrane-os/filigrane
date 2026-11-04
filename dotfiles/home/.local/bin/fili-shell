@@ -19,7 +19,7 @@
 #   fili-shell appmenu [close]                        ouvre au clavier le menu de l'application active (Mod+F10), ou le ferme
 #   fili-shell hotkeys                                ouvre/ferme la fenêtre des raccourcis clavier (fili-hotkeys)
 #   fili-shell chat [ACTION]                          tiroir fili-chat: toggle (défaut), show, close, new, sessions, rename, stop, float, dock... (Mod+Y: `fili-chat toggle`, qui note aussi l'application active)
-#   fili-shell settings [PAGE]                        opens/closes the Settings window (fili-settings), on page PAGE (display, power)
+#   fili-shell settings [PAGE]                        opens/closes the Settings window (fili-settings), on page PAGE (display, language, power)
 #   fili-shell about                                  ouvre/ferme la fenêtre « À propos » (fili-about: Filigrane, système, machine)
 #   fili-shell lang                                   relit la langue choisie (fili-lang)
 #   fili-shell reload                                 recharge la config

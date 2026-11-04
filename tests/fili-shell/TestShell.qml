@@ -599,6 +599,17 @@ ShellRoot {
                 ok(d.snap === null, "fili-settings écran: garder");
                 FiliSettings.close();
             },
+            // fili-settings language: the choices of fili-lang list, a choice runs fili-lang set
+            () => {
+                FiliSettings.show("language");
+                const d = FiliSettings.loaded;
+                d.languages = [{ code: "en", name: "English", available: true }, { code: "fr", name: "Français", available: false }];
+                ok(t.find(d, "language").model.length === 2, "fili-settings language: choices", t.find(d, "language").model.length);
+                FiliTheme.ran = [];
+                d.pick("fr");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings power: idle delays, a choice writes the three delays with bar-toggle idle set
             () => {
                 FiliSettings.show("power");
