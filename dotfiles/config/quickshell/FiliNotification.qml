@@ -34,6 +34,10 @@ Singleton {
             a.invoke();
         close(n, "dismiss");
     }
+    // Low-battery alert (bar-status batwatch): stays until the user closes it
+    function sticky(n) {
+        return n.appName === "fili-battery";
+    }
     function timeout(n) {
         if (buttons(n).length > 0)
             return n.expireTimeout > 0 ? n.expireTimeout : 60000;
@@ -177,7 +181,7 @@ Singleton {
         clip: true
 
         Timer {
-            running: !area.containsMouse && !closeBtn.hovered
+            running: !area.containsMouse && !closeBtn.hovered && !notifs.sticky(card.n)
             interval: notifs.timeout(card.n)
             onTriggered: notifs.close(card.n, "expire")
         }
