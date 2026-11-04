@@ -45,11 +45,12 @@ create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [o
     local name="$1" ver="$2" arch="$3" desc="$4" deps="$5" dest="$6"; shift 6
     # FILI_REUSE=1 (CI de publication): un paquet déjà là à cette version reste tel quel, pour que son empreinte
     # dans l'index reste celle du fichier déjà en ligne
-    if [ -n "${FILI_REUSE:-}" ] && [ -f "$OUT/$name-$ver.$arch.xbps" ]; then echo "$name-$ver.$arch"; return 0; fi
+    if [ -n "${FILI_REUSE:-}" ] && [ -f "$OUT/$name-$ver.$arch.xbps" ]; then echo "$name-$ver.$arch"; echo "$name-$ver.$arch.xbps" >>"$WORK/made.txt"; return 0; fi
     rm -f "$OUT/$name-$ver.$arch.xbps"
     (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-$ver" -s "$desc" -D "$deps" \
         -H "$DISTRO_HOMEPAGE" -l "${LICENSE_OF:-MIT}" -m "$DISTRO" "$@" "$dest")
     echo "$name-$ver.$arch"
+    echo "$name-$ver.$arch.xbps" >>"$WORK/made.txt"
 }
 
 # Nom du paquet: le dossier de apps/, préfixé par <distro>- s'il ne l'est pas (budget -> fili-budget, évite les collisions avec Void)
@@ -82,7 +83,7 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
     override="FILI_SRC_$(printf '%s' "$app" | tr 'a-z-' 'A-Z_')"
     [ -n "${!override:-}" ] && dirty=1
     if [ -z "$dirty" ] && [ -f "$OUT/$pkg-$ver.$ARCH.xbps" ]; then
-        echo "==> $pkg-$ver: déjà construit"; return 0
+        echo "==> $pkg-$ver: déjà construit"; echo "$pkg-$ver.$ARCH.xbps" >>"$WORK/made.txt"; return 0
     fi
     echo "==> $pkg-$ver"
     # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Défaut: un binaire Rust qui ne lie que la libc.
@@ -150,6 +151,13 @@ else
 fi
 
 echo "==> Index"
+# Full build: a package nobody builds any more (tool removed from apps/, renamed) must leave the repository, or it stays
+# published forever and can conflict with the package that took over its files
+if [ -z "$ONLY" ] && [ -s "$WORK/made.txt" ]; then
+    for f in "$OUT"/*.xbps; do
+        grep -qxF "$(basename "$f")" "$WORK/made.txt" || { echo "removed (not built any more): $(basename "$f")"; rm -f "$f" "$f.sig2"; }
+    done
+fi
 # Index refait depuis les fichiers présents: un paquet reconstruit sous la même version aurait sinon gardé l'ancienne empreinte
 rm -f "$OUT"/*-repodata "$OUT"/*-stagedata
 xbps-rindex -a "$OUT"/*.xbps >/dev/null
