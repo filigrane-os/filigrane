@@ -8,6 +8,10 @@
 # Afficher les fichiers cachés
 # show_hidden = false
 
+# Boutons « Fermer » et « Fenêtre » (actions niri) à droite de l'en-tête. Le menu Présentation > Afficher les boutons de fenêtre
+# passe devant ce réglage
+# window_buttons = true
+
 # Tri: name, size, date, kind, created, permissions, owner
 # sort = "name"
 # sort_desc = false
