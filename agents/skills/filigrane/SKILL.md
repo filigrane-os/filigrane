@@ -1,6 +1,6 @@
 ---
 name: filigrane
-description: Use, configure, update and troubleshoot Filigrane, this Void Linux + niri distribution (xbps, runit, niri/Quickshell bar, network, audio, boot, AI agent), and apply its visual identity (logo, colours, Jost typography, icons). Use to install or remove a package, enable or debug a service, update the system or Filigrane itself, change a setting (keyboard, timezone, autologin, AI agent or model), fix network/audio/display/boot, change the desktop (keys, menu, waybar, wallpaper), before installing anything (resource budget), and for any visual work (wallpaper, waybar/menu styling, plymouth, ISO, README, website, icons). Void + runit, not Debian/Arch/systemd.
+description: Use, configure, update and troubleshoot Filigrane, this Void Linux + niri distribution (xbps, runit, niri/Quickshell bar, network, audio, boot, AI agent), and apply its visual identity (logo, colours, Jost typography, icons). Use to install or remove a package, enable or debug a service, update the system or Filigrane itself, change a setting (keyboard, timezone, autologin, AI agent or model), fix network/audio/display/boot, change the desktop (keys, menu, waybar, wallpaper), before installing anything (resource budget), and for brand work (wallpaper, plymouth, ISO, README, website, icons; interface design is the filigrane-ui skill). Void + runit, not Debian/Arch/systemd.
 ---
 
 # Filigrane
@@ -17,8 +17,10 @@ Void Linux (glibc, xbps, runit) + niri, described by a git repo that `bootstrap.
 
 - xbps, never apt/pacman/dnf/brew/nix/flatpak. runit (`sv`, `/var/service`), never systemctl/journalctl. Root via `sudo`; if sudo asks for a password you cannot type, give the user the exact command (`! <command>` in Claude Code).
 - Diagnose read-only first, cause in one or two sentences, then fix.
+- Everything written in the repository is in English (open source): code, identifiers, comments, commit messages, docs, CLI output, UI strings (translations live in the language files). Only the replies to the user stay in French. Translate leftover French in any file you touch.
 - Durable change = in the repo, in the right layer (in doubt: personal), then `./bootstrap.sh` (idempotent), then show `git diff` when the repo is a git checkout. Nothing personal (account, service URL, `/home/<login>`) in the distribution layer.
 - `niri validate` before saving niri config.
+- Changing the user's files (rename, move, delete, create, batch): `fili-tx`, never bare `mv`/`rm`/`cp`; `fili-tx undo` reverts a whole request (`references/files.md`).
 - Never: `install-void.sh`, `mkfs`, `wipefs`, `parted`, `dd` on a disk, editing `/etc/sudoers*`, `~/.ssh`, agent credentials (`~/.claude/.credentials.json`, `~/.codex/auth.json`, `~/.local/share/opencode/auth.json`).
 - Ask first: system update (`xbps-install -Su`), `sv restart/stop` of system services, `rm` outside the repo and the agent's work dir, editing `/etc`, bootloader, reboot.
 
@@ -36,6 +38,8 @@ After a durable install: `budget save avant` before, `budget diff avant` after, 
 - `references/usage.md`: everyday tasks: packages, services, settings (`config.env`), personal layer, updating the system, Filigrane and the AI agent (`fili-ai`), where to find help (keys, menu).
 - `references/system.md`: runit, logs, network (iwd), audio, session, boot, memory.
 - `references/niri.md`: niri config, keybinds, menu, Quickshell shell (bar, notifications), wallpaper.
+- `references/files.md`: `fili-tx`, transactions on files with undo/redo; how to revert quickly.
 - `references/resources.md`: measuring, chosen light tools, home-made Rust tools in `apps/`.
 - `references/brand.md`: logo files, colours, typography, icon and greyscale rules. Read before any visual change.
+- Interface design (fili-shell modules, panels, cards, controls, sizes, spacing, colour tokens, states, keyboard): the `filigrane-ui` skill.
 - `hardware/<machine>/README.md` when the machine has one (`./bootstrap.sh --plan` prints `hardware/<machine>`). Mac T2: `hardware/mac-t2/README.md` (audio, keyboard, Touch Bar, dual boot, Limine, kernels).

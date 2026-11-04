@@ -22,7 +22,7 @@ Paths are relative to `$FILIGRANE_DIR`. `<layer>` is `users/<login>/` from `.use
 | Variable | Role |
 |---|---|
 | `KEYMAP`, `XKB_LAYOUT`, `XKB_VARIANT`, `XKB_OPTIONS` | console keymap, niri keyboard (generated `~/.config/niri/keyboard.kdl`) |
-| `TIMEZONE`, `LOCALE` | time zone, language |
+| `TIMEZONE`, `LOCALE`, `LOCALES` | time zone, system language, glibc locales generated for `fili-lang` (switch the session language live: `fili-lang set fr\|en\|system`) |
 | `AUTOLOGIN` | `1`/`0`/`auto` (auto = VM only) |
 | `USER_GROUPS` | groups added to the user |
 | `FILI_AI`, `FILI_AI_MODEL`, `FILI_AI_WORKDIR`, `FILI_AI_ARGS` | AI agent (below) |
@@ -35,9 +35,10 @@ Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), bar/noti
 - **Filigrane** (repo): if `$FILIGRANE_DIR/.git` exists: `git -C "$FILIGRANE_DIR" status` (local changes must be committed or belong in `users/`), `git -C "$FILIGRANE_DIR" pull --ff-only`, summarise `git log --oneline ORIG_HEAD..`, then `./bootstrap.sh`. No `.git` (copy installed from the ISO): offer to turn it into a clone of `DISTRO_GIT` (`distro/distro.env`), asking first since distribution files edited in place are overwritten (`users/` survives): `git init -q && git remote add origin <DISTRO_GIT> && git fetch -q origin && git checkout -f -B main origin/main`.
 - **AI agent**: `fili-ai update` (Claude Code also updates itself).
 
-## AI agent (`fili-ai`)
+## AI agent (`fili-ai`, `fili-chat`)
 
-- `fili-ai` (`Mod+Y`, menu › AI) starts the chosen agent in its work dir (`~/work` by default, `FILI_AI_WORKDIR`), with `FILIGRANE_DIR` exported and the repo writable.
+- `Mod+Y` shows/hides the chat drawer (`fili-chat`, `FiliChat.qml`, daemon `apps/fili-chat`): Claude Code in stream mode, sessions and history kept while the drawer is hidden (`~/.local/state/filigrane/chat/`), prompt `agents/chat-prompt.md`. Clicking the AI icon of the bar toggles it too (ASK/DONE on the icon). Sessions are linked to applications (`follow` in `fili-chat.toml`: `app` default, `window`, `off`): opening the drawer resumes the session of the active application. The bar menu (Chat, Session, View) shows while the drawer has the keyboard focus; View = dock beside windows (default, windows shrink) or float above them, width; actions are `fili-shell chat ACTION`, defaults in `~/.config/filigrane/fili-chat.toml`. Permissions the agent asks for appear as Allow/Deny cards in the drawer (`fili-chat mcp`, the `--permission-prompt-tool`). `Mod+Shift+Y` is the terminal agent below. Daemon down or stuck: `pkill -f 'fili-chat daemon'`, the drawer restarts it.
+- `fili-ai` (`Mod+Shift+Y`, menu › AI) starts the chosen agent in its work dir (`~/work` by default, `FILI_AI_WORKDIR`), with `FILIGRANE_DIR` exported and the repo writable.
 - `fili-ai use <agent>` switches and installs if needed: `claude` (Anthropic, Claude Code), `codex` (OpenAI, Codex CLI), `ollama` (local models: Codex CLI on Ollama, nothing leaves the machine), `opencode` (other providers: Mistral, Gemini, OpenRouter, DeepSeek...), `none`. The choice lives in `~/.config/filigrane/ai.env`; to make it durable put `FILI_AI` in `<layer>/config.env` (a layer value wins at the next `bootstrap.sh`).
 - `fili-ai status`, `fili-ai update`, `fili-ai install <agent>`. Binaries in `~/.local/opt/<agent>-<version>`, linked in `~/.local/bin`.
 - Sign in: Claude Code `/login`, Codex `codex login`, opencode `/connect` (or `opencode auth login`). Never read or copy the credential files.
@@ -46,6 +47,6 @@ Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), bar/noti
 
 ## Help for the user
 
-- Keys: `Mod+K` shows them; `Mod+Space` menu (search everything), `Mod+D` apps, `Mod+Return` terminal, `Mod+Y` AI agent.
+- Keys: `Mod+K` shows them; `Mod+Space` menu (search everything), `Mod+D` apps, `Mod+Return` terminal, `Mod+Y` AI chat, `Mod+Shift+Y` AI agent in a terminal.
 - Resource use: `budget` (system vs user work), `budget check`.
 - Docs: `README.md` (desktop), `distro/README.md` (ISO, xbps repo), `hardware/<machine>/README.md`.

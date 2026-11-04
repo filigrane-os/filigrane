@@ -1,7 +1,6 @@
 # Bureau niri (tous profils)
 niri
-# Navigateur: l'application principale, natif Wayland (CHROME_FLAGS posé par niri), sert aussi aux webapps (webapp)
-chromium
+# Navigateur: chromium n'est installé par bootstrap.sh que si aucun navigateur par défaut n'existe (natif Wayland, CHROME_FLAGS posé par niri, sert aux webapps)
 # Shell Quickshell (dotfiles/config/quickshell): barre, notifications et sélecteur du menu (remplace Waybar, mako, fuzzel)
 quickshell
 foot
@@ -52,28 +51,25 @@ wf-recorder
 # Verrouillage auto et écran éteint au repos (38 Ko, bascule dans la barre)
 swayidle
 
-# Gestionnaire de fichiers, visionneuse, USB sans daemon (udisks2 à la demande), santé du disque
-yazi
+# Visionneuse, USB sans daemon (udisks2 à la demande), santé du disque (le gestionnaire de fichiers est fili-file, apps/)
 imv
-poppler  # pdftoppm: pages PDF en image pour l'aperçu rapide de Thunar (quicklook)
+poppler  # pdftoppm: pages PDF en image pour l'aperçu rapide (quicklook)
 pspg  # tableaux CSV/TSV dans l'aperçu rapide (343 Ko + postgresql-libs 1,4 Mo)
 udisks2
 smartmontools
 nvme-cli
 rtkit
 
-# Explorateur graphique: Thunar, montage auto des disques externes (volman) via gvfs; gvfs/thunar démarrent à la demande, pas de daemon résident
-Thunar
-thunar-volman
+# Lecteurs réseau de Casier (Se connecter au serveur…, Ctrl+K): gvfs (SFTP, WebDAV, FTP, NFS) et son backend SMB; démarrent à la demande par D-Bus, pas de daemon résident
 gvfs
-# Archives: xarchiver (GTK3, sans daemon) + clic droit Extraire/Compresser dans Thunar; zip pour créer, 7zip pour 7z/rar
-xarchiver
-thunar-archive-plugin
+gvfs-smb
+# Téléphones et appareils photo MTP (Casier: apparaissent dans les emplacements, un clic les monte); 1 Mo, sans daemon
+gvfs-mtp
+# Archives (fili-archive): zip pour créer, 7zip pour 7z/rar
 zip
 7zip
-# Icônes du Thunar/GTK (fichiers statiques, ~100 Mo disque)
-papirus-icon-theme
-papirus-folders  # couleur des dossiers: sudo papirus-folders -C violet -t Papirus-Dark (à relancer après mise à jour des icônes)
+# Icônes: Adwaita (adwaita-icon-theme, dépendance de GTK) pour les types de fichiers; dossiers et glyphes du thème Filigrane-Icons
+# (scripts/icon-theme.sh, lancé par bootstrap.sh). Plus de Papirus.
 
 # VPN Proton via WireGuard (wg-quick, sans daemon; script dotfiles/home/.local/bin/vpn)
 wireguard-tools

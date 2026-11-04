@@ -1,0 +1,77 @@
+name: Dépôt xbps
+
+# Construit les paquets de la distribution dans un conteneur Void (même glibc que les machines), les signe et les publie
+# comme assets de la release « repo » (adresse stable: .../releases/download/repo/). Incrémental: les paquets déjà publiés
+# sont téléchargés d'abord, build-repo.sh ne reconstruit que ceux dont la version a changé; seuls les nouveaux sont envoyés.
+# Secret requis: XBPS_PRIVKEY (clé RSA PEM). Sans lui, rien n'est publié (jamais de dépôt non signé en ligne).
+on:
+  push:
+    branches: [main, develop]
+    paths: ['apps/**', 'packages/**', 'distro/build-repo.sh', 'distro/distro.env', '.github/workflows/repo.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo
+  cancel-in-progress: false
+
+env:
+  TAG: repo
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # la révision d'un paquet compte les commits de l'outil
+      - name: Clé de signature présente
+        env:
+          XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
+        run: |
+          test -n "$XBPS_PRIVKEY" || { echo '::error::secret XBPS_PRIVKEY absent, pas de publication non signee'; exit 1; }
+      - uses: actions/cache@v4
+        with:
+          path: .cache/cargo-target
+          key: cargo-target-${{ hashFiles('apps/*/Cargo.lock') }}
+          restore-keys: cargo-target-
+      - name: Release « repo » et paquets déjà publiés
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p distro/out/repo
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title 'Dépôt xbps' --latest=false \
+            --notes 'Dépôt xbps de la distribution. Ne pas télécharger à la main: voir le paquet fili-repo.'
+          gh release download "$TAG" --dir distro/out/repo --pattern '*' || true
+          ls distro/out/repo | head -50
+      - name: Construction (conteneur Void)
+        env:
+          XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
+        run: |
+          printf '%s\n' "$XBPS_PRIVKEY" > "$RUNNER_TEMP/key.pem"
+          docker run --rm -v "$PWD":/src -v "$RUNNER_TEMP/key.pem":/key.pem:ro -w /src \
+            -e FILI_TARGET_DIR=/src/.cache/cargo-target -e FILI_REUSE=1 ghcr.io/void-linux/void-glibc-full:latest sh -exc '
+              xbps-install -Syu xbps || true
+              xbps-install -Syu
+              xbps-install -y bash git cargo make gcc qt6-base-devel qt6-declarative-devel qt6-svg-devel pkg-config
+              git config --global --add safe.directory /src
+              XBPS_PRIVKEY=/key.pem bash distro/build-repo.sh'
+          rm -f "$RUNNER_TEMP/key.pem"
+          sudo chown -R "$(id -u):$(id -g)" distro/out .cache 2>/dev/null || true
+          ls -la distro/out/repo
+      - name: Publication (paquets d'abord, index en dernier, nettoyage ensuite)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd distro/out/repo
+          gh release view "$TAG" --json assets --jq '.assets[].name' | sort > "$RUNNER_TEMP/remote.txt"
+          ls | sort > "$RUNNER_TEMP/local.txt"
+          # 1. nouveaux paquets et leurs signatures (le nom contient la version: jamais d'écrasement)
+          comm -13 "$RUNNER_TEMP/remote.txt" "$RUNNER_TEMP/local.txt" | grep -v 'repodata' | xargs -r gh release upload "$TAG"
+          # 2. index et sa signature: le dépôt bascule d'un coup
+          gh release upload "$TAG" --clobber ./*repodata*
+          # 3. anciennes versions
+          comm -23 "$RUNNER_TEMP/remote.txt" "$RUNNER_TEMP/local.txt" | xargs -r -n1 gh release delete-asset "$TAG" --yes

@@ -1,5 +1,5 @@
-# Plafonds de thomas: ceux de la distribution, plus les démons personnels résidents
-# (protonmail-bridge ~70-200 Mo, rclone ~90 Mo, whatsapp-unreadd ~25 Mo, keyd). Format: dotfiles/config/budget/limits
+# thomas's ceilings: the distribution's, plus the resident personal daemons
+# (protonmail-bridge ~70-200 MB, rclone ~90 MB, whatsapp-unreadd ~25 MB, keyd). Format: dotfiles/config/budget/limits
 system 1536
 process 150
 limit niri 250

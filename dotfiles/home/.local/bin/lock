@@ -9,7 +9,17 @@ if [ "$1" = auto ] && [ -f "$HOME/.config/lock-trusted" ]; then
     [ -n "$ssid" ] && grep -qxF "$ssid" "$HOME/.config/lock-trusted" && exit 0
 fi
 img=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper" 2>/dev/null)
-if [ -f "$img" ]; then swaylock -f -i "$img"; else swaylock -f; fi || exit
+# Couleur d'accentuation (fili-theme accent), teinte sombre (le verrou reste sombre): anneau, touches et texte de saisie
+case "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/accent" 2>/dev/null)" in
+    voile) acc=9dbbd6 ;;
+    ardoise) acc=7f9ab6 ;;
+    sauge) acc=a3bfa8 ;;
+    sable) acc=d2bf92 ;;
+    cendre) acc=c98f93 ;;
+    *) acc=dbe7f4 ;;
+esac
+set -- --ring-ver-color "$acc" --key-hl-color "$acc" --text-ver-color "$acc"
+if [ -f "$img" ]; then swaylock -f -i "$img" "$@"; else swaylock -f "$@"; fi || exit
 # Verrouillé et sans activité: écran éteint au bout d'une minute (celui de swayidle, 10 min, compte depuis la
 # dernière activité, pas depuis le verrou). Ce swayidle-là s'arrête au déverrouillage (fin de swaylock).
 pid=$(pgrep -nx swaylock) || exit 0

@@ -29,6 +29,18 @@ SCALE = 0.85
 CENTER_Y = 350
 ADVANCE = 950
 
+# Icônes de sujet des sessions de fili-chat: l'IA en choisit une par son nom (apps/fili-chat, TOPICS, même ordre), le code
+# est 0xF2000 + position. 0xF2F00 et suivants: boutons du tiroir (liste des sessions, réglages).
+TOPICS = [
+    "message-circle", "terminal", "code", "bug", "git-branch", "package", "wrench", "settings", "wifi", "volume-2",
+    "monitor", "keyboard", "hard-drive", "cpu", "database", "shield", "key", "globe", "mail", "calendar",
+    "file-text", "folder", "image", "music", "video", "book-open", "palette", "printer", "download", "search",
+    "lightbulb", "rocket", "map", "shopping-cart", "graduation-cap", "calculator", "clock", "sparkles", "archive",
+    "battery-full", "bluetooth", "languages",
+    # sujets de la vie courante (ajouter à la fin: les icônes déjà choisies gardent leur code)
+    "car", "plane", "house", "heart-pulse", "wallet", "shirt", "utensils", "trees", "sun", "dumbbell", "gamepad-2", "smartphone", "briefcase", "bike", "train-front", "paw-print", "flask-conical", "landmark", "scale", "hammer", "plug", "tv", "film", "baby",
+]
+
 MAP = {
     # fili-bar et scripts de la barre
     0xF002: "search", 0xF021: "refresh-cw", 0xF023: "lock", 0xF026: "volume", 0xF027: "volume-1",
@@ -47,8 +59,12 @@ MAP = {
     0xF1FC: "paintbrush", 0xF1B2: "package", 0xF005: "star", 0xF08B: "log-out", 0xF01E: "rotate-cw",
     0xF025: "headphones", 0xF0AC: "globe", 0xF03E: "image", 0xF1F8: "trash-2", 0xF019: "download",
     0xF12D: "eraser", 0xF120: "terminal", 0xF121: "code", 0xF080: "chart-column", 0xF0DB: "columns-2",
-    0xF030: "camera", 0xF2D0: "app-window", 0xF0EB: "lightbulb",
+    0xF030: "camera", 0xF2D0: "app-window", 0xF0EB: "lightbulb", 0xF05A: "info", 0xF06A9: "bot",
 }
+
+
+MAP.update({0xF2000 + i: n for i, n in enumerate(TOPICS)})
+MAP.update({0xF2F00: "list", 0xF2F01: "settings"})
 
 
 def fetch(dest):

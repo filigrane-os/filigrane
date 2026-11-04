@@ -3,7 +3,7 @@ pragma Singleton
 // moniteur), inspirée des panneaux d'Omarchy. Une vue à la fois, chargée à l'ouverture et libérée à la fermeture
 // (rien ne tourne panneau fermé). Fermeture: Échap, clic sur une fenêtre (perte du focus), clic sur la barre ou même
 // élément recliqué.
-// Utilisation: FiliPanel.toggle(item, "network"|"audio"|"bluetooth"|"power"|"monitor"|"keyboard"|"display", fenêtreDeLaBarre)
+// Utilisation: FiliPanel.toggle(item, "network"|"audio"|"bluetooth"|"power"|"agent"|"monitor"|"keyboard"|"display", fenêtreDeLaBarre)
 // Clavier: Mod+A (`fili-shell panel toggle`) ouvre le dernier panneau ou ferme; ←/→ (Maj+←/→ sur un curseur, une rangée
 // de choix ou un champ) passe au panneau voisin dans l'ordre de la barre, fili-notification-center compris (ring);
 // ↑/↓ ou Tab/Maj+Tab d'élément en élément, Entrée ou Espace pour agir, Échap pour fermer.
@@ -23,13 +23,13 @@ Singleton {
     property alias loaded: loader.item
     readonly property var views: ({
         network: "PanelNetwork.qml", audio: "PanelAudio.qml", bluetooth: "PanelBluetooth.qml",
-        power: "PanelPower.qml", monitor: "PanelMonitor.qml", keyboard: "PanelKeyboard.qml", display: "PanelDisplay.qml"
+        power: "PanelPower.qml", agent: "PanelAgent.qml", monitor: "PanelMonitor.qml", keyboard: "PanelKeyboard.qml", display: "PanelDisplay.qml"
     })
 
     // Dernier panneau ouvert (Mod+A le rouvre)
     property string last: "monitor"
     // Ordre des panneaux au clavier (←/→): celui des modules de la barre; "center" = fili-notification-center
-    readonly property var ring: ["monitor", "audio", "keyboard", "display", "bluetooth", "network", "center", "power"]
+    readonly property var ring: ["monitor", "agent", "audio", "keyboard", "display", "bluetooth", "network", "center", "power"]
     // Module de la barre de chaque panneau, par écran: le panneau ouvert au clavier se place sous lui
     property var modules: ({})
     function register(name, item, win) {
@@ -163,13 +163,13 @@ Singleton {
                 width: 340
                 height: (loader.item ? loader.item.implicitHeight : 0) + 28
                 color: FiliTheme.nuit
-                border.color: FiliTheme.nuit4
-                border.width: 1
-                radius: 10
+                border.color: FiliTheme.border
+                border.width: FiliTheme.borderWidth
+                radius: FiliTheme.radiusWindow
                 Loader {
                     id: loader
                     objectName: "panel-view"
-                    anchors { fill: parent; margins: 14 }
+                    anchors { fill: parent; margins: FiliTheme.space5 }
                     source: panel.open ? panel.views[panel.view] : ""
                     onLoaded: if (FiliShell.keyNav) Qt.callLater(() => panel.focusFirst(scope))
                 }

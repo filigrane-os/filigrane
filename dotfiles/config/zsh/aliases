@@ -1,6 +1,6 @@
-# Repris du Mac (~/zsh/aliases), adapté à Void
+# Taken from the Mac (~/zsh/aliases), adapted to Void
 
-# Fichiers
+# Files
 if command -v eza &> /dev/null; then
   alias ls='eza -lh --group-directories-first --icons=auto'
   alias lsa='ls -a'
@@ -23,15 +23,15 @@ if command -v zoxide &> /dev/null; then
   }
 fi
 
-# Dossiers
+# Folders
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ....='cd ../../..'
 
-# Outils
+# Tools
 alias d='podman'
 n() { if [ "$#" -eq 0 ]; then nvim .; else nvim "$@"; fi; }
-# zellij à la demande (plus lancé automatiquement); zj attache ou crée la session "main"
+# zellij on demand (no longer started automatically); zj attaches to or creates the "main" session
 alias zj='zellij attach -c main'
 
 # Git

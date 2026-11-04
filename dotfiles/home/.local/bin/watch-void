@@ -1,5 +1,9 @@
 #!/bin/bash
 # Notifie quand des mises à jour xbps sont disponibles. Ne notifie qu'à chaque changement du nombre.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 STATE="$HOME/.local/state/watch"
 mkdir -p "$STATE"
 sudo -n xbps-install -S >/dev/null 2>&1 || true   # rafraîchit l'index (autorisé sans mot de passe)
@@ -10,6 +14,6 @@ printf '%s\n' "$n" >"$STATE/void.count"
 "$HOME/.local/bin/fili-shell" bar refresh 16   # rafraîchit l'icône (bar-update)
 if [ "$n" -gt 0 ] && [ "$n" != "$last" ]; then
     pkgs="$(printf '%s\n' "$list" | awk '{print $1}' | head -5 | tr '\n' ' ')"
-    notify-send -a void-update "Void: $n mises à jour" "$pkgs... Clic sur l'icône de la barre pour mettre à jour."
+    notify-send -a void-update "$(t 'Void: %s updates' "$n")" "$(t '%s... Click the bar icon to update.' "$pkgs")"
 fi
 exit 0

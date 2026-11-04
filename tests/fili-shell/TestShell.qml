@@ -3,7 +3,7 @@
 // "not ok N - ...", puis "# fin: X échec(s)".
 // Couvre: clics de chaque module de la fili-bar, canal fili-shell (bar refresh, notification, launcher),
 // fili-launcher (découpe des lignes, filtre, réponses), fili-notification (bulles, croix, historique),
-// fili-tooltip et FiliInfo.
+// fili-tooltip, FiliInfo et fili-about.
 //@ pragma Env QT_QUICK_BACKEND=software
 import QtQuick
 import Quickshell
@@ -29,6 +29,16 @@ ShellRoot {
             failures++;
             console.log("not ok " + count + " - " + name + (detail !== undefined ? " # " + detail : ""));
         }
+    }
+    function findAll(item, name, out) {
+        out = out ?? [];
+        if (!item)
+            return out;
+        if (item.objectName === name)
+            out.push(item);
+        for (const c of item.children ?? [])
+            findAll(c, name, out);
+        return out;
     }
     function find(item, name) {
         if (!item)
@@ -82,6 +92,13 @@ ShellRoot {
         FiliBar {}
     }
     property var cards: ({})
+    // Catalogue français du fili-shell (test de FiliI18n)
+    property var frCatalog: ({})
+    FileView {
+        path: Quickshell.shellDir + "/i18n/fr.json"
+        blockLoading: true
+        onLoaded: t.frCatalog = JSON.parse(text())
+    }
     Connections {
         target: FiliInfo
         function onReady(topic, card) {
@@ -146,8 +163,6 @@ ShellRoot {
             () => {
                 expectClick("logo", L, "/menu");
                 expectClick("logo", R, "foot");
-                expectClick("window", R, "close-window");
-                expectClick("window", M, "close-window");
                 expectClick("mail", L, "bar-alert open mail");
                 expectClick("whatsapp", L, "bar-alert open whatsapp");
                 expectClick("cal", L, "bar-alert open cal");
@@ -157,20 +172,50 @@ ShellRoot {
                 expectClick("update", L, "bar-update run");
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
-                expectClick("clock", L, "calendar.proton.me");
+                // Horloge: le clic épingle le calendrier, il n'ouvre plus Proton Calendar
+                const clk = act("clock", L);
+                ok(clk === "", "fili-bar clock, clic -> aucune commande (calendrier épinglé)", JSON.stringify(clk));
+                act("clock", L);
+                const card = t.find(t.bar.contentItem, "clock").parent.card;
+                ok(card.title && card.rows.length >= 3 && card.rows.every(r => r[0] && r[1]), "horloge: fiche (date, heure, fuseau, semaine)", JSON.stringify(card));
                 // Ressources, son, Bluetooth, réseau, batterie: clic = fili-panel (vue ouverte, puis fermée)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"]]) {
+                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"], ["ai", "agent"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", clic -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
                 }
+                // Panneau de l'agent: une ligne par session (clic = sa fenêtre), message de la demande, actions
+                BarState.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
+                FiliPanel.view = "agent";
+                const ag = FiliPanel.loaded;
+                FiliTheme.ran = [];
+                ok(t.findAll(ag, "agent-session").length === 2 && t.find(ag, "agent-message").visible && t.find(ag, "agent-message").text === "Bash?", "fili-panel agent: sessions et message de la demande");
+                t.findAll(ag, "agent-session")[0].press(L);
+                ok(FiliTheme.ran.join("\n").indexOf("fili-ai-session focus a1") >= 0 && FiliPanel.view === "", "fili-panel agent: clic sur une session -> sa fenêtre, panneau fermé", JSON.stringify(FiliTheme.ran));
+                BarState.aiData = { sessions: [], limits: null };
                 expectClick("volume", R, "wiremix --tab output");
                 expectClick("keyboard", M, "switch-layout next");
-                expectClick("display", "up", "brightnessctl -q set 5%+");
-                expectClick("display", "down", "brightnessctl -q set 5%-");
+                expectClick("display", "up", "brightnessctl -q set 3%+");
+                expectClick("display", "down", "brightnessctl -q set 3%-");
                 expectClick("network", R, "menu network");
                 expectClick("power", R, "menu system");
+                // Agent IA: clic = panneau (ci-dessus), milieu et Mod+clic = ce qui attend (session de terminal ou fili-ai), droit = choix de l'agent
+                expectClick("ai", M, "fili-ai-session focus");
+                t.find(t.bar.contentItem, "ai").hover.meta = true;
+                expectClick("ai", L, "fili-ai-session focus");
+                t.find(t.bar.contentItem, "ai").hover.meta = false;
+                expectClick("ai", R, "fili-ai pick");
+                // Thème global (~/.config/filigrane/theme.toml): le mode passe devant [theme], valeur invalide ignorée, # entre guillemets
+                const keep = FiliTheme.parsed;
+                const was0 = FiliTheme.mode;
+                FiliTheme.mode = "dark";
+                FiliTheme.parsed = FiliTheme.parseToml("[theme]\nradius_control = 9 # px\nsize = big\ntext = \"#fff\"\n[theme.dark]\nradius_control = 3\n[theme.accents]\nsauge = [\"#111111\", \"#222222\", \"#333333\", \"#444444\"]\n");
+                ok(FiliTheme.radiusControl === 3 && FiliTheme.size === 14 && FiliTheme.brume.toString() === "#ffffff" && FiliTheme.accentTones.sauge[0] === "#111111",
+                   "theme global: mode devant [theme], valeur invalide ignorée, accents fusionnés", FiliTheme.radiusControl + " " + FiliTheme.size + " " + FiliTheme.brume);
+                FiliTheme.parsed = keep;
+                FiliTheme.mode = was0;
+                ok(FiliTheme.radiusControl === 6, "theme global: sans fichier, les défauts reviennent");
                 // Cloche: clic = fili-notification-center, clic droit = ne pas déranger (remis en l'état)
                 const was = FiliNotification.dnd;
                 act("notifications", L);
@@ -182,7 +227,7 @@ ShellRoot {
                 FiliTheme.ran = [];
             },
             // Les commandes des clics existent (scripts du dépôt)
-            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
+            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats fili-ai fili-ai-session; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts appelés par la fili-bar présents dans " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installés
@@ -205,22 +250,161 @@ ShellRoot {
                 ok(t.find(t.bar.contentItem, "network").text !== "", "bar-stats: module réseau rempli (stat net)");
                 // Niri: flux d'événements lu sur le socket de niri
                 ok(Niri.workspaces.length > 0, "niri: espaces de travail reçus par le socket", Niri.workspaces.length);
+                // Fenêtre d'un lecteur MPRIS (clic droit sur le média)
+                const mw = { 1: { id: 1, pid: 50, app_id: "chrome", title: "Autre onglet" }, 2: { id: 2, pid: 50, app_id: "chrome", title: "Chanson - YouTube" }, 4: { id: 4, pid: 70, app_id: "chrome-mail.x__-Default", title: "Mail" }, 5: { id: 5, pid: 70, app_id: "google-chrome", title: "Page" }, 3: { id: 3, pid: 60, app_id: "Spotify", title: "Spotify" } };
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance50", "", "Chanson") === 2, "niri: lecteur navigateur -> fenêtre du pid dont le titre contient la piste");
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance50", "", "") === 1, "niri: lecteur navigateur sans piste -> première fenêtre du pid");
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.chromium.instance70", "", "Vidéo en fond") === 5, "niri: piste dans un onglet de fond -> fenêtre du navigateur, pas la PWA");
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.spotify", "spotify", "x") === 3, "niri: lecteur par entrée de bureau");
+                ok(Niri.playerWindow(mw, "org.mpris.MediaPlayer2.mpv", "mpv", "x") === null, "niri: lecteur sans fenêtre -> null");
+            },
+            // AppMenu (menu global): repli par application (pid 0 = pas de requête AT-SPI), puis menus AT-SPI simulés
+            () => {
+                Niri.setWindows({ 7: { id: 7, pid: 0, app_id: "foot", title: "foot" } });
+                Niri.focusedId = 7;
+            },
+            wait(() => {}, () => AppMenu.appId === "foot" && AppMenu.source === "fallback" && AppMenu.menus.length === 5),
+            () => {
+                const labels = AppMenu.menus.map(m => m.label);
+                ok(labels.join(",") === "Terminal,Shell,Go,Help,Window", "appmenu: foot -> application, menus de repli, Fenêtre", labels.join(","));
+                ok(AppMenu.menus[0].children[0].label === "Quit %1", "appmenu: menu de l'application -> Quitter");
+                const title = t.find(t.bar.contentItem, "appmenu-1");
+                const host = t.find(t.bar.contentItem, "appmenu");
+                ok(title && host && host.visible && host.shown, "appmenu: titres des menus dans la fili-bar", host ? host.visible : "introuvable");
+                AppMenu.openAt(1, title, t.bar);
+                ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: clic sur un titre -> menu ouvert");
+                ok(AppMenu.levels[0][0].keys === "Super+Return", "appmenu: raccourci d'une entrée de repli = bind niri de la même commande", AppMenu.levels[0][0].keys);
+                ok(AppMenu.menus[0].children[0].keys === "Super+Q", "appmenu: Quitter -> raccourci de close-window", AppMenu.menus[0].children[0].keys);
+                const pb = AppMenu.parseBinds('binds {\n    // Mod+X { nope; }\n    Mod+Ctrl+W hotkey-overlay-title="a" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }\n    Mod+V       { toggle-window-floating; }\n    Mod+1 { focus-workspace 1; }\n    Mod+B { spawn "foot" "-e" "btop"; }\n}\nlayout { Mod+Z { x; } }\n');
+                ok(pb["exec:bar-tui impala"] === "Super+Ctrl+W" && pb["niri:toggle-window-floating"] === "Super+V" && pb["niri:focus-workspace 1"] === "Super+1" && pb["exec:foot -e btop"] === "Super+B" && Object.keys(pb).length === 4, "appmenu: lecture des binds niri (spawn, spawn-sh, actions, arguments, commentaires)", JSON.stringify(pb));
+                FiliTheme.ran = [];
+                AppMenu.activate(AppMenu.levels[0][0]);
+                ok(!AppMenu.open && FiliTheme.ran.join() === "foot", "appmenu: entrée -> commande lancée, menu fermé", FiliTheme.ran.join());
+                AppMenu.openAt(4, title, t.bar);
+                const win = AppMenu.levels[0];
+                ok(win[0].label === "Close window" && win[1].kind === "sep", "appmenu: menu Fenêtre -> actions niri, séparateurs");
+                FiliTheme.ran = [];
+                AppMenu.activate(win[0]);
+                ok(FiliTheme.ran.join() === "niri msg action close-window", "appmenu: action niri", FiliTheme.ran.join());
+                // Clavier: fili-shell appmenu ouvre le premier menu au clavier, un second appel le ferme
+                AppMenu.summon("toggle");
+                ok(AppMenu.open && AppMenu.keyboard && AppMenu.openIndex === 0 && AppMenu.sel[0] === 0, "appmenu clavier: fili-shell appmenu -> premier menu, premier élément choisi", JSON.stringify(AppMenu.sel));
+                AppMenu.summon("toggle");
+                ok(!AppMenu.open && !AppMenu.keyboard, "appmenu clavier: second appel -> fermeture");
+                // Autres applications: fichier de repli par app-id, sinon menus communs
+                Niri.setWindows({ 8: { id: 8, pid: 0, app_id: "google-chrome", title: "Page" } });
+                Niri.focusedId = 8;
+            },
+            wait(() => {}, () => AppMenu.appId === "google-chrome" && AppMenu.menus.length === 6),
+            () => {
+                ok(AppMenu.menus[0].label === "Chrome" && AppMenu.menus[1].children[0].exec === "google-chrome-stable --new-window", "appmenu: Chrome -> liens utiles", AppMenu.menus.map(m => m.label).join(","));
+                Niri.setWindows({ 10: { id: 10, pid: 4242, app_id: "fili-file", title: "thomas" } });
+                Niri.focusedId = 10;
+            },
+            wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 6),
+            () => {
+                ok(AppMenu.source === "fallback" && AppMenu.noMenu["fili-file"] === undefined, "appmenu: un fichier de repli passe devant AT-SPI (aucune requête)", AppMenu.source);
+                ok(AppMenu.menus.map(m => m.label).join() === "Casier,File,Edit,View,Go,Window" && AppMenu.menus[1].children[0].keys === "Super+E", "appmenu: fili-file -> menus de la barre, raccourci du bind niri", AppMenu.menus.map(m => m.label).join());
+                const copy = AppMenu.menus[2].children[3];
+                ok(copy.label === "Copy" && copy.keys === "Ctrl+C", "appmenu: fili-file -> Copier avec son raccourci", copy.label + " " + copy.keys);
+                ok(copy.enabled === true, "appmenu: fili-file -> Copier actif par défaut");
+                // L'application publie les commandes impossibles (rien de sélectionné): la barre les grise, puis les réactive
+                AppMenu.onState(JSON.stringify({ disabled: ["copy", "cut", "trash"] }));
+                const grey = AppMenu.menus[2].children;
+                ok(grey[3].label === "Copy" && grey[3].enabled === false && grey[2].enabled === false && grey[4].label === "Paste" && grey[4].enabled === true, "appmenu: fili-file -> commandes impossibles grisées (Cut, Copy), les autres actives (Paste)", grey.map(g => g.enabled).join());
+                AppMenu.onState("pas du json");
+                ok(AppMenu.menus[2].children[3].enabled === true, "appmenu: état illisible -> tout actif");
+                FiliTheme.ran = [];
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                AppMenu.activate(copy);
+                ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: commande de contrôle visant le processus de la fenêtre (%pid)", FiliTheme.ran.join());
+                ok(AppMenu.menus[4].children[8].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> aller à un dossier par fili-file ctl goto");
+                // «…»: les menus qui ne tiennent pas dans la place libre passent dans un titre, en sous-menus
+                const h = t.find(t.bar.contentItem, "appmenu");
+                h.maxWidth = 200;
+                ok(h.fit >= 1 && h.fit < 6 && h.overflow && h.titleAt(h.fit) === t.find(t.bar.contentItem, "appmenu-more"), "appmenu: place réduite -> premiers titres et «…»", "fit " + h.fit);
+                AppMenu.openAt(h.fit, h.titleAt(h.fit), t.bar, h);
+                ok(AppMenu.more && AppMenu.levels[0].length === 6 - h.fit && AppMenu.levels[0][0].label === AppMenu.menus[h.fit].label, "appmenu: «…» -> liste des menus restants", AppMenu.levels[0].length);
+                AppMenu.enter(0, AppMenu.levels[0][0], 0, 0);
+                ok(AppMenu.levels.length === 2 && AppMenu.levels[1] === AppMenu.menus[h.fit].children || AppMenu.levels[1].length === AppMenu.menus[h.fit].children.length, "appmenu: «…» -> un menu s'ouvre en sous-menu");
+                AppMenu.close();
+                ok(!AppMenu.more, "appmenu: «…» refermé");
+                h.maxWidth = 100000;
+                ok(!h.overflow && h.fit === 6 && h.titleAt(6) === null, "appmenu: place suffisante -> tous les titres, pas de «…»", "fit " + h.fit);
+                Niri.setWindows({ 9: { id: 9, pid: 0, app_id: "org.exemple.Inconnu", title: "x" } });
+                Niri.focusedId = 9;
+            },
+            wait(() => {}, () => AppMenu.appId === "org.exemple.Inconnu" && AppMenu.menus.length === 2),
+            () => {
+                ok(AppMenu.menus.map(m => m.label).join() === "Inconnu,Window", "appmenu: application inconnue -> nom tiré de l'app-id, menu Fenêtre", AppMenu.menus.map(m => m.label).join());
+                // Réponse de fili-appmenu: menu GTK3 paresseux, entrée AT-SPI
+                AppMenu.pending = true;
+                AppMenu.onMenu(AppMenu.gen, JSON.stringify({ items: [
+                    { label: "File", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/1", children: [] },
+                    { label: "Edit", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/2", children: [
+                        { label: "Copy", kind: "item", enabled: true, check: 0, keys: "Ctrl+C", svc: ":1.2", path: "/m/3", children: [] },
+                        { label: "", kind: "sep", enabled: true, check: 0, svc: ":1.2", path: "/m/4", children: [] },
+                        { label: "Wrap", kind: "item", enabled: false, check: 2, svc: ":1.2", path: "/m/5", children: [] },
+                        { label: "Find", kind: "sub", enabled: true, check: 0, svc: ":1.2", path: "/m/6", children: [
+                            { label: "Next", kind: "item", enabled: true, check: 0, svc: ":1.2", path: "/m/7", children: [] }] }] }] }));
+                ok(AppMenu.source === "atspi" && AppMenu.menus.map(m => m.label).join() === "Inconnu,File,Edit,Window", "appmenu: menus AT-SPI -> entre le menu de l'application et Fenêtre", AppMenu.menus.map(m => m.label).join());
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                const edit = AppMenu.levels[0];
+                ok(edit.length === 4 && edit[1].kind === "sep" && edit[2].check === 2 && !edit[2].enabled && edit[3].kind === "sub", "appmenu: menu AT-SPI -> séparateur, case cochée, entrée grisée, sous-menu");
+                ok(edit[0].keys === "Ctrl+C" && edit[2].keys === "", "appmenu: raccourci d\x27une entrée AT-SPI conservé", edit[0].keys);
+                FiliTheme.ran = [];
+                AppMenu.activate(edit[2]);
+                ok(AppMenu.open && FiliTheme.ran.length === 0, "appmenu: entrée grisée -> rien");
+                AppMenu.activate(edit[0]);
+                ok(FiliTheme.ran.join() === FiliTheme.bin + "/fili-appmenu do :1.2 /m/3", "appmenu: entrée AT-SPI -> fili-appmenu do", FiliTheme.ran.join());
+                // Clavier: ↑/↓ saute séparateurs et entrées grisées, → ouvre le sous-menu, ← le referme
+                AppMenu.close();
+                AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
+                AppMenu.keyboard = true;
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 0, "appmenu clavier: ↓ -> première entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 3, "appmenu clavier: ↓ saute le séparateur et l\x27entrée grisée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(1);
+                ok(AppMenu.sel[0] === 0, "appmenu clavier: ↓ boucle sur la première entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyMove(-1);
+                ok(AppMenu.sel[0] === 3, "appmenu clavier: ↑ revient à la dernière entrée", JSON.stringify(AppMenu.sel));
+                AppMenu.keyRight();
+                ok(AppMenu.levels.length === 2 && AppMenu.levels[1][0].label === "Next" && AppMenu.sel[1] === 0, "appmenu clavier: → ouvre le sous-menu, premier élément choisi", JSON.stringify(AppMenu.sel));
+                AppMenu.keyLeft();
+                ok(AppMenu.levels.length === 1 && AppMenu.openIndex === 2, "appmenu clavier: ← referme le sous-menu", AppMenu.levels.length);
+                AppMenu.keyLeft();
+                ok(AppMenu.openIndex === 1 && AppMenu.keyboard, "appmenu clavier: ← au premier niveau -> menu précédent (resté au clavier)", AppMenu.openIndex);
+                AppMenu.keyRight();
+                ok(AppMenu.openIndex === 2, "appmenu clavier: → sur une entrée simple -> menu suivant", AppMenu.openIndex);
+                AppMenu.close();
+                ok(!AppMenu.open && AppMenu.levels.length === 0 && !AppMenu.keyboard, "appmenu: fermeture");
             },
             // BarState: états lus dans leurs fichiers (alertes, agenda, minuteur, tiroir), sans script
             () => {
                 const now = 1000000;
                 const m = BarState.alert("mail", "Alice\tBonjour\nBob\tSalut\n", null, now);
-                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.startsWith("Alice: Bonjour\nBob: Salut"), "BarState: alerte mail", JSON.stringify(m));
+                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "BarState: alerte mail", JSON.stringify(m));
                 const c = BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
-                ok(c.text === " Réunion 11:00" && c.tooltip.indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
+                ok(c.text === " Réunion 11:00" && JSON.stringify(c.tooltip).indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
                 ok(BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n", null, now).text === "", "BarState: agenda expiré masqué");
                 const w = BarState.alert("whatsapp", "", "3\n", now);
-                ok(w.text.endsWith(" 3") && w.tooltip.indexOf("3 non lu(s)") >= 0, "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(w.text.endsWith(" 3") && w.tooltip.title === "WhatsApp" && w.tooltip.rows[0][1] === "3", "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
                 ok(BarState.alert("whatsapp", "x\ty\n", "0", now).text === "", "BarState: compteur à 0 masque l'alerte");
                 ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: chronomètre", BarState.timerFor("S", now - 65, now).text);
                 const r = BarState.timerFor("T", now + 3700, now);
                 ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
                 ok(BarState.timerFor("T", now - 1, now)["class"] === "done" && BarState.timerFor("", 0, now)["class"] === "idle", "BarState: minuteur écoulé / au repos");
+                // Agent IA (fili-ai-session): repos, au travail, question en attente, tour fini sans être regardé
+                ok(BarState.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: agent IA sans session");
+                const lim = { five_hour: { used_percentage: 34.4, resets_at: now + 3600 }, seven_day: { used_percentage: 12 }, seen: now };
+                const busy = BarState.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } }, now);
+                ok(busy["class"] === "working" && busy.tooltip.rows[0][0] === "Icône IA" && busy.tooltip.rows[0][1].indexOf("context 43 %") >= 0
+                   && busy.tooltip.rows.some(r => r[0] === "5-hour limit" && r[1].startsWith("34 %") && Math.abs(r[2].value - 0.344) < 1e-6 && Math.abs(r[2].mark - 0.8) < 0.01), "BarState: agent IA au travail, fiche (titre, contexte, limites et jauges)", JSON.stringify(busy));
+                const ask = BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
+                ok(ask.text.endsWith(" ASK") && ask["class"] === "waiting" && ask.tooltip.rows.some(r => r[1] === "Bash?"), "BarState: agent IA en attente (ASK)", JSON.stringify(ask));
+                ok(BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: agent IA regardé, plus mis en avant");
+                ok(BarState.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: agent IA, tour fini (DONE)");
             },
             wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
                  () => BarState.timerFile.kind === "S" && BarState.trayOpen),
@@ -263,6 +447,8 @@ ShellRoot {
                 const q = FiliLauncher.parse("Google Chrome");
                 ok(q.glyph === "" && q.text === "Google Chrome" && !q.sub && q.key === "", "fili-launcher ligne simple", JSON.stringify(q));
                 ok(FiliLauncher.match("Night light", ["nig"]) !== null && FiliLauncher.match("Night light", ["xyz"]) === null, "fili-launcher correspondance");
+                ok(FiliLauncher.match("Casier", ["file"], " files fichiers file ") !== null && FiliLauncher.match("Casier", ["file"], "") === null
+                    && FiliLauncher.match("Rob", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Rob", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher mots-clés (Casier <- file, Rob <- ia)");
             },
             wait(() => t.shell("printf 'Alpha\\nBeta app\\nGamma › sous\\n' | " + t.bin + "/fili-shell launcher --prompt 'Style › '; echo \"rc=$?\""),
                  () => FiliLauncher.open && FiliLauncher.entries.length === 3),
@@ -318,6 +504,16 @@ ShellRoot {
                 ok(FiliTheme.ran.filter(c => c === "sound notification").length <= 2, "fili-sound: pas de son en ne pas déranger", FiliTheme.ran.filter(c => c.indexOf("sound") === 0).length);
                 FiliNotification.dnd = false;
             },
+            // Boutons d'action (notify-send -A): la réponse revient à l'appli, la bulle reste 60 s pour laisser le temps
+            wait(() => t.shell("notify-send -a test -t 30000 -A allow=Autoriser -A deny=Refuser 'Question' 'Autoriser ?'"), () => FiliNotification.popups.length === 1),
+            () => {
+                const n = FiliNotification.popups[0].n;
+                ok(FiliNotification.buttons(n).map(a => a.identifier).join() === "allow,deny", "fili-notification: deux boutons d'action", JSON.stringify(FiliNotification.buttons(n).map(a => a.identifier)));
+                ok(FiliNotification.timeout(n) === 30000, "fili-notification: une bulle à boutons reste le délai demandé (30 s)", String(FiliNotification.timeout(n)));
+                FiliNotification.answer(n, "deny");
+            },
+            wait(() => {}, () => t.shellOut !== null),
+            () => ok(t.shellOut.out.trim() === "deny" && FiliNotification.popups.length === 0, "fili-notification: la réponse revient à notify-send et ferme la bulle", JSON.stringify(t.shellOut.out)),
             // fili-sound: chargeur branché (son au branchement seulement), réglages de coupure
             () => {
                 FiliTheme.ran = [];
@@ -358,7 +554,7 @@ ShellRoot {
                     const c = t.cards[topic];
                     ok(c && c.title && Array.isArray(c.rows) && c.hint, "FiliInfo " + topic + ": titre, lignes, aide", JSON.stringify(c));
                 }
-                ok(t.cards.monitor.title === "Système" && t.cards.monitor.rows.length > 4, "FiliInfo monitor: fiche", JSON.stringify(t.cards.monitor));
+                ok(t.cards.monitor.title === "System" && t.cards.monitor.rows.length > 4, "FiliInfo monitor: fiche", JSON.stringify(t.cards.monitor));
                 ok(t.cards.display.rows.length > 0, "FiliInfo display: sorties de niri", JSON.stringify(t.cards.display));
             },
 
@@ -396,7 +592,9 @@ ShellRoot {
                 FiliTheme.ran = [];
                 d.move(b, 1290, 5);
                 ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-panel écrans: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
                 d.setScale(d.outputs[0], 1.5);
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-panel écrans: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
                 d.keep();
                 ok(d.snap === null, "fili-panel écrans: garder");
                 FiliPanel.close();
@@ -517,6 +715,29 @@ ShellRoot {
                 ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel écrans: retour au sombre", JSON.stringify(FiliTheme.ran));
                 FiliPanel.close();
             },
+            // fili-panel écrans, couleur d'accentuation: sable par défaut, le choix change l'accent du shell et lance fili-theme accent
+            () => {
+                FiliPanel.view = "display";
+                const acc = t.find(FiliPanel.loaded, "accent");
+                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-panel écrans: accent par défaut: sable en sombre", acc ? FiliTheme.accent : "introuvable");
+                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-panel écrans: pas d'entrée Défaut, le sable est la couleur choisie par défaut", FiliTheme.accentName);
+                FiliTheme.ran = [];
+                acc.pick("sable");
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-panel écrans: accent sable dans le shell", String(FiliTheme.voile));
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-panel écrans: fili-theme accent sable lancé", JSON.stringify(FiliTheme.ran));
+                FiliTheme.mode = "light";
+                ok(Qt.colorEqual(FiliTheme.voile, "#80662b"), "accent sable en mode clair", String(FiliTheme.voile));
+                FiliTheme.mode = "dark";
+                FiliTheme.mode = "light";
+                FiliTheme.accent = "default";
+                ok(Qt.colorEqual(FiliTheme.voile, "#4f6884"), "accent par défaut en mode clair: ardoise", String(FiliTheme.voile));
+                ok(FiliTheme.accentName === "ardoise", "accent par défaut en mode clair: l'ardoise est la pastille choisie", FiliTheme.accentName);
+                FiliTheme.mode = "dark";
+                FiliTheme.accent = "inconnu";
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "accent inconnu: repli sur le défaut", String(FiliTheme.voile));
+                FiliTheme.accent = "default";
+                FiliPanel.close();
+            },
             // Panneau ouvert: l'action d'un module part à l'appui (un seul clic), pas deux fois au relâchement
             () => {
                 const logo = t.find(t.bar.contentItem, "logo");
@@ -568,7 +789,10 @@ ShellRoot {
                 FiliPanel.summon("toggle");
                 ok(FiliPanel.view === "monitor" && FiliShell.keyNav, "clavier: Mod+A ouvre le dernier panneau, contours actifs", FiliPanel.view);
                 FiliPanel.step(1);
-                ok(FiliPanel.view === "audio", "clavier: → panneau voisin (son)", FiliPanel.view);
+                ok(FiliPanel.view === "agent", "clavier: → panneau voisin (agent IA)", FiliPanel.view);
+                FiliPanel.step(1);
+                ok(FiliPanel.view === "audio", "clavier: → encore (son)", FiliPanel.view);
+                FiliPanel.step(-1);
                 FiliPanel.step(-1);
                 FiliPanel.step(-1);
                 ok(FiliPanel.view === "power", "clavier: ← depuis le premier boucle sur le dernier (alimentation)", FiliPanel.view);
@@ -620,6 +844,266 @@ ShellRoot {
                 FiliNotification.copy({ summary: "test copie", body: "" });
                 ok(FiliTheme.ran[0] === "wl-copy test copie" && !FiliNotification.centerOpen, "clavier: Entrée sur une notification du centre = copie et fermeture", JSON.stringify(FiliTheme.ran));
             },
+            // fili-about: clic milieu du logo, fiche lue par fili-about, copie en texte, canal `about toggle`
+            () => {
+                act("logo", Qt.MiddleButton);
+                ok(FiliAbout.open, "fili-bar logo, clic milieu -> fenêtre À propos");
+            },
+            wait(() => {}, () => FiliAbout.card.sections.length > 0, 10000),
+            () => {
+                const c = FiliAbout.card;
+                const names = c.sections.map(s => s.name);
+                ok(typeof c.host === "string" && ["System", "Machine"].every(n => names.includes(n)), "fili-about: JSON { host, sections System/Machine }", JSON.stringify(names));
+                ok(c.sections.every(s => s.rows.every(r => r.length === 2 && r[1] !== "")), "fili-about: lignes [libellé, valeur] non vides");
+                FiliTheme.ran = [];
+                FiliAbout.copy();
+                ok(FiliTheme.ran[0]?.startsWith("wl-copy Filigrane · ") && FiliTheme.ran[0].indexOf("Kernel: ") > 0 && !FiliAbout.open, "fili-about: C copie la fiche en texte et ferme", JSON.stringify(FiliTheme.ran));
+                FiliAbout.toggle();
+                ok(FiliAbout.open, "fili-about: toggle rouvre");
+                FiliShell.popupOpened("panel");
+                ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
+            },
+            // fili-chat: tiroir, sessions, événements du démon (sans démon: les requêtes sont enregistrées)
+            () => {
+                FiliTheme.ran = [];
+                FiliChat.toggle();
+                ok(FiliChat.open, "fili-chat: toggle ouvre le tiroir");
+                FiliChat.send("bonjour");
+                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pending === "bonjour", "fili-chat: sans session, le premier message en crée une", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "sessions", sessions: [] });
+                FiliChat.receive({ ev: "created", id: "s1" });
+                ok(FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"bonjour"}' && FiliChat.current === "s1" && FiliChat.pending === "", "fili-chat: la session créée reçoit le message en attente", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "msg", id: "s1", role: "user", text: "bonjour" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "delta", id: "s1", text: "sal" });
+                FiliChat.receive({ ev: "delta", id: "s1", text: "ut" });
+                ok(FiliChat.working && FiliChat.busy && FiliChat.live === "salut", "fili-chat: texte en cours et état « travaille »", FiliChat.live);
+                FiliTheme.ran = [];
+                FiliChat.send("encore");
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0] === 'chat {"op":"send","id":"s1","text":"encore"}', "fili-chat: message écrit pendant un tour: envoyé au démon, qui le met en file", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "queue", id: "s1", items: ["encore"] });
+                ok(FiliChat.queuedNow.length === 1, "fili-chat: file d'attente affichée");
+                FiliChat.receive({ ev: "queue", id: "s1", items: [] });
+                FiliChat.receive({ ev: "tool", id: "s1", name: "Bash", summary: "sv status iwd" });
+                FiliChat.receive({ ev: "msg", id: "s1", role: "assistant", text: "Salut." });
+                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
+                ok(FiliChat.log.map(i => i.kind).join() === "user,tool,assistant" && FiliChat.live === "" && !FiliChat.working && !FiliChat.busy, "fili-chat: fil (message, outil, réponse) et fin du tour", FiliChat.log.map(i => i.kind).join());
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s2", title: "Wi-Fi", state: "idle", updated: 2 }, { id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
+                ok(FiliChat.current === "s1" && FiliChat.title === "bonjour", "fili-chat: titre de la session courante", FiliChat.title);
+                FiliTheme.ran = [];
+                FiliChat.openSession("s2");
+                ok(FiliChat.current === "s2" && FiliTheme.ran[0] === 'chat {"op":"open","id":"s2"}', "fili-chat: changer de session demande son historique", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "history", id: "s2", items: [{ ev: "msg", id: "s2", role: "assistant", text: "Avant" }] });
+                ok(FiliChat.log.length === 1 && FiliChat.items["s1"].length === 3, "fili-chat: historique par session");
+                // Permission demandée: carte dans le fil, état « attend », pastille ASK, réponse
+                FiliChat.openSession("s1");
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "pending" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "waiting" });
+                ok(FiliChat.log[FiliChat.log.length - 1].kind === "ask" && FiliChat.attention === "waiting" && FiliChat.working, "fili-chat: permission demandée (carte, attend, ASK)", FiliChat.attention);
+                ok(BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" ASK"), "fili-chat: pastille IA ASK");
+                FiliTheme.ran = [];
+                FiliChat.answerFirst(true);
+                ok(FiliTheme.ran[0] === 'chat {"op":"answer","rid":"r1","allow":true}', "fili-chat: Ctrl+Retour autorise la première demande", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "allowed" });
+                ok(FiliChat.log.filter(i => i.kind === "ask").length === 1 && FiliChat.log[FiliChat.log.length - 1].status === "allowed", "fili-chat: la demande tranchée remplace la carte");
+                // Réponse finie pendant que le tiroir est caché: DONE jusqu'à l'ouverture
+                FiliChat.hide();
+                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
+                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
+                ok(FiliChat.attention === "done" && BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" DONE"), "fili-chat: réponse non lue (DONE)", FiliChat.attention);
+                // Onglets: rouge (attend) et vert (fini, non lu) se lisent dans states / unread de chaque session
+                ok(FiliChat.unread["s1"] === true && FiliChat.tabsOpen, "fili-chat: onglet de s1 vert (fini, non lu)");
+                FiliChat.act("sessions");
+                ok(!FiliChat.tabsOpen && FiliChat.open, "fili-chat: Sessions… cache les onglets");
+                FiliChat.act("sessions");
+                ok(FiliChat.tabsOpen, "fili-chat: Sessions… les remontre");
+                // Suppression confirmée; les supprimées restent dans la liste complète
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                ok(FiliChat.sessions.length === 1 && FiliChat.allSessions.length === 2, "fili-chat: les supprimées sont hors des onglets mais dans la liste complète");
+                FiliChat.askArchive("s1");
+                ok(FiliChat.confirmId === "s1", "fili-chat: supprimer demande confirmation");
+                FiliChat.confirmArchive(false);
+                ok(FiliChat.confirmId === "" && FiliChat.sessions.length === 1, "fili-chat: annuler garde la session");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "", icon: 0xF2001 }] });
+                ok(FiliChat.sessions[0].icon === 0xF2001, "fili-chat: l'icône de sujet choisie par l'IA arrive avec la session");
+                FiliChat.receive({ ev: "agent", ok: false });
+                ok(!FiliChat.agentOk, "fili-chat: sans agent IA, la bannière d'installation s'affiche");
+                FiliChat.receive({ ev: "agent", ok: true });
+                ok(FiliChat.agentOk, "fili-chat: agent installé, bannière retirée");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                // 20 onglets au plus, les plus anciennes restent dans la liste complète; la courante garde son onglet
+                FiliChat.receive({ ev: "sessions", sessions: Array.from({ length: 25 }, (_, i) => ({ id: "t" + i, title: "T" + i, state: "idle", link: "", updated: 100 - i })) });
+                ok(FiliChat.tabSessions.length === 20 && FiliChat.allSessions.length === 25, "fili-chat: 20 onglets au plus, toutes les sessions dans la liste");
+                FiliChat.current = "t24";
+                ok(FiliChat.tabSessions.length === 20 && FiliChat.tabSessions.some(x => x.id === "t24"), "fili-chat: la session ouverte depuis la liste garde son onglet");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
+                FiliChat.askArchive("s2");
+                ok(FiliChat.confirmId === "", "fili-chat: pas de confirmation pour une session déjà supprimée");
+                // Contexte (Mod+Y): joint une fois au message
+                FiliChat.show();
+                ok(FiliChat.attention === "", "fili-chat: ouvrir le tiroir lit la réponse");
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxOn = true;
+                ok(FiliChat.ctxLabel === "foot · ~", "fili-chat: puce de contexte", FiliChat.ctxLabel);
+                FiliTheme.ran = [];
+                FiliChat.send("ceci");
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"s1","key":"foot"}' && FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: le contexte part avec le message, une fois (et lie la session)", JSON.stringify(FiliTheme.ran));
+                FiliChat.setMode("float");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChat.open, "fili-chat: flottant, fermé quand un panneau de la barre s'ouvre");
+                FiliChat.setMode("dock");
+            },
+            // fili-chat: présentation (flottant / ancré), largeur, renommage
+            () => {
+                FiliTheme.ran = [];
+                ok(FiliChat.mode === "dock" && FiliChat.dock && FiliChat.viewWidth === 440, "fili-chat: ancré, 440 px par défaut", FiliChat.mode);
+                FiliChat.show();
+                FiliShell.popupOpened("panel");
+                ok(FiliChat.open, "fili-chat: ancré, un panneau de la barre ne le ferme pas");
+                FiliChat.act("width-wide");
+                ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
+                FiliChat.act("float");
+                ok(!FiliChat.dock && FiliChat.viewWidth === 560 && FiliTheme.ran[1] === "chat-view float 560", "fili-chat: menu View > flottant, choix gardé", JSON.stringify(FiliTheme.ran));
+                FiliChat.act("width-medium");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChat.open, "fili-chat: flottant, un panneau de la barre le ferme");
+                FiliChat.act("dock");
+                ok(FiliChat.dock, "fili-chat: menu View > ancré");
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
+                FiliChat.current = "s1";
+                FiliTheme.ran = [];
+                FiliChat.act("rename");
+                ok(FiliChat.open && FiliChat.renaming, "fili-chat: Renommer ouvre le champ de titre");
+                FiliChat.commitRename("  Wi-Fi  ");
+                ok(!FiliChat.renaming && FiliTheme.ran[0] === 'chat {"op":"rename","id":"s1","title":"Wi-Fi"}', "fili-chat: renommage envoyé au démon", JSON.stringify(FiliTheme.ran));
+                FiliChat.hide();
+                FiliChat.act("toggle");
+                ok(FiliChat.open, "fili-chat: act toggle");
+                FiliChat.act("close");
+            },
+            // fili-chat: sessions liées aux applications (follow = "app"): reprise à l'ouverture, lien à l'envoi, nouvelle session liée
+            () => {
+                FiliChat.hide();
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a2", title: "Terminal", state: "idle", updated: 2, link: "foot" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "" }] });
+                FiliChat.current = "a3";
+                FiliChat.items = Object.assign({}, FiliChat.items, { a1: [], a2: [], a3: [] });
+                ok(FiliChat.follow === "app" && FiliChat.linkKey({ window: { app_id: "foot", title: "~" } }) === "foot", "fili-chat: follow = app par défaut, clé = app_id", FiliChat.follow);
+                // Ouverture: le contexte (application active) et la liste sont là -> la session liée est reprise
+                FiliTheme.ran = [];
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "google-chrome", title: "Toyota" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: l'ouverture reprend la session liée à l'application active", FiliChat.current);
+                // Pas de reprise pendant que le tiroir est ouvert (changement de fenêtre), ni si le tour travaille
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: un changement de fenêtre tiroir ouvert ne change pas de session");
+                FiliChat.hide();
+                FiliChat.receive({ ev: "state", id: "a1", state: "working" });
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: pas de reprise pendant un tour en cours");
+                FiliChat.receive({ ev: "state", id: "a1", state: "idle" });
+                // Application sans session liée: la session courante reste
+                FiliChat.hide();
+                FiliChat.show();
+                FiliChat.ctx = { window: { app_id: "niri-inconnu", title: "" } };
+                FiliChat.ctxReady = true;
+                FiliChat.sessionsFresh = true;
+                FiliChat.tryFollow();
+                ok(FiliChat.current === "a1", "fili-chat: application sans session liée, la dernière reste");
+                // Lien à l'envoi: session sans lien + puce de contexte
+                FiliChat.openSession("a3");
+                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
+                FiliChat.ctxOn = true;
+                FiliTheme.ran = [];
+                FiliChat.send("bonjour");
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a3","key":"foot"}' && FiliTheme.ran[1].includes('"op":"send"'), "fili-chat: envoyer avec la puce de contexte lie la session", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
+                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
+                // Déjà liée: pas de second lien; puce retirée: pas de lien
+                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "foot" }] });
+                FiliChat.ctxOn = true;
+                FiliTheme.ran = [];
+                FiliChat.send("encore");
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0].includes('"op":"send"'), "fili-chat: une session déjà liée ne se relie pas", JSON.stringify(FiliTheme.ran));
+                // Nouvelle session pour cette application
+                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
+                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
+                FiliChat.ctx = { window: { app_id: "fili-file", title: "Casier" } };
+                FiliTheme.ran = [];
+                FiliChat.act("new-here");
+                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pendingLink === "fili-file", "fili-chat: Nouvelle session pour cette application", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "created", id: "a4" });
+                ok(FiliTheme.ran[1] === 'chat {"op":"link","id":"a4","key":"fili-file"}' && FiliChat.pendingLink === "", "fili-chat: la session créée est liée", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                FiliChat.act("unlink");
+                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a4","key":""}', "fili-chat: Unlink retire le lien", JSON.stringify(FiliTheme.ran));
+                FiliChat.hide();
+            },
+            // fili-chat: son menu remplace celui de la fenêtre quand le tiroir a le focus clavier (sans menus Quitter/Fenêtre de niri)
+            wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Rob" && AppMenu.menus.length > 0, 5000),
+            () => {
+                const labels = AppMenu.menus.map(m => m.label);
+                ok(labels.join() === "Rob,Session,View", "fili-chat: menu de la fili-bar = Rob, Session, View (ni Fenêtre ni Quitter)", labels.join());
+                ok(AppMenu.menus[0].children.some(c => c.label === "About Rob" && c.exec === "fili-shell chat about"), "fili-chat: menu Rob > About Rob");
+                const session = AppMenu.menus.find(m => m.label === "Session");
+                ok(session && session.children.some(c => c.label === "Rename Session…" && c.keys === "F2" && c.exec === "fili-shell chat rename"), "fili-chat: Session > Rename Session… (F2)");
+                // Appui sur un titre de la barre: niri rend le focus à la fenêtre précédente, le menu du chat reste
+                AppMenu.pressTitle();
+                FiliChat.focused = false;
+                ok(AppMenu.chatFocus && AppMenu.appId === "fili-chat", "fili-chat: le menu reste pendant l'appui sur un titre (focus rendu à la fenêtre)");
+            },
+            wait(() => {}, () => !AppMenu.chatFocus, 5000),
+            () => {
+                ok(AppMenu.appId !== "fili-chat", "fili-chat: sans focus ni menu ouvert, la barre revient à la fenêtre active");
+                FiliChat.hide();
+            },
+            // fili-chat: fiche « À propos de Rob » (icône robot, nom Rob), fermée par un autre panneau
+            () => {
+                FiliChat.hide();
+                FiliChat.act("about");
+                ok(FiliChatAbout.open && FiliChatAbout.name === "Rob" && FiliChatAbout.icon.codePointAt(0) === 0xf06a9, "fili-chat: À propos de Rob (icône robot, nom Rob)");
+                const labels = FiliChatAbout.rows.map(r => r[0]);
+                ok(["Also known as", "Part of", "Agent", "Model", "Sessions", "View", "Follow", "Settings"].every(l => labels.includes(l)) && FiliChatAbout.rows.every(r => r[1] !== ""), "fili-chat: fiche = aka, appartenance, agent, modèle, sessions, présentation, lien, réglages", labels.join());
+                ok(FiliChatAbout.rows[0][0] === "Also known as" && FiliChatAbout.rows[0][1] === "fili-chat", "fili-chat: la fiche dit « aka fili-chat »");
+                ok(!FiliChat.open, "fili-chat: la fiche n'ouvre pas le tiroir");
+                FiliShell.popupOpened("panel");
+                ok(!FiliChatAbout.open, "fili-chat: fiche fermée par un autre panneau");
+                FiliChatAbout.toggle();
+                ok(FiliChatAbout.open, "fili-chat: la fiche se rouvre");
+                FiliChatAbout.close();
+            },
+            // FiliI18n: tests en anglais (LANG=C.UTF-8, run.sh); catalogue français chargé à la main
+            () => {
+                ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3" && FiliI18n.num(1.5, 1) === "1.5", "FiliI18n: anglais sans catalogue, %1 remplacé", FiliI18n.lang);
+                const saved = FiliI18n.catalog;
+                FiliI18n.catalog = t.frCatalog;
+                ok(FiliI18n.tr("Workspace %1", 3) === "Espace 3" && FiliI18n.num(1.5, 1) === "1,5" && FiliI18n.tr("not in catalog") === "not in catalog", "FiliI18n: catalogue fr.json (traduction, séparateur décimal, repli anglais)", FiliI18n.tr("Workspace %1", 3));
+                FiliI18n.catalog = saved;
+            },
+            // fili-lang: changement de langue en direct (état dans $XDG_STATE_HOME, locale.kdl de niri dans un dossier de test)
+            wait(() => t.shell('XDG_CONFIG_HOME="$XDG_STATE_HOME/cfg" "$0" set fr && cat "$XDG_STATE_HOME/filigrane/locale" "$XDG_STATE_HOME/cfg/niri/locale.kdl"'.replace('"$0"', t.bin + "/fili-lang")), () => t.shellOut !== null),
+            () => ok(t.shellOut.code === 0 && t.shellOut.out.indexOf("fr_") >= 0 && t.shellOut.out.indexOf("Généré par fili-lang") >= 0, "fili-lang set fr: choix enregistré, locale.kdl de niri écrit", t.shellOut.out),
+            wait(() => {}, () => FiliI18n.lang === "fr", 5000),
+            () => ok(FiliI18n.lang === "fr" && FiliI18n.tr("Workspace %1", 3) === "Espace 3", "FiliI18n: suit fili-lang en direct (fr)", FiliI18n.lang),
+            wait(() => t.shell(t.bin + "/fili-lang list"), () => t.shellOut !== null),
+            () => {
+                let l = [];
+                try {
+                    l = JSON.parse(t.shellOut.out);
+                } catch (e) {}
+                ok(l.some(x => x.code === "en") && l.some(x => x.code === "fr" && x.current && x.name === "Français"), "fili-lang list: en et fr, fr en cours", t.shellOut.out);
+            },
+            wait(() => t.shell('XDG_CONFIG_HOME="$XDG_STATE_HOME/cfg" ' + t.bin + "/fili-lang set system"), () => t.shellOut !== null),
+            wait(() => {}, () => FiliI18n.lang === "en", 5000),
+            () => ok(FiliI18n.lang === "en" && FiliI18n.tr("Workspace %1", 3) === "Workspace 3", "fili-lang set system: retour à la langue du système (en)", FiliI18n.lang),
             wait(() => t.shell(t.bin + "/fili-net list"), () => t.shellOut !== null, 15000),
             () => {
                 let n = null;

@@ -18,7 +18,7 @@ There are three ways in:
 2. Get the repository:
    ```
    xbps-install -Sy git
-   git clone https://github.com/thooams/filigrane && cd filigrane
+   git clone https://github.com/filigrane-os/filigrane && cd filigrane
    ```
 3. Install, choosing the disk, your login and the machine name:
    ```
@@ -34,7 +34,7 @@ It accepts the same hardware options as `bootstrap.sh` (`--profile`, `--machine`
 ## On an existing Void Linux system
 
 ```
-git clone https://github.com/thooams/filigrane ~/filigrane && cd ~/filigrane
+git clone https://github.com/filigrane-os/filigrane ~/filigrane && cd ~/filigrane
 ./bootstrap.sh                  # everything (asks for the sudo password)
 ./bootstrap.sh --dotfiles-only  # symlinks and Rust tools only, no packages or services
 ./bootstrap.sh --plan           # print what would be applied, change nothing

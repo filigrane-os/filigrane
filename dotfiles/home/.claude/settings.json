@@ -17,6 +17,8 @@
       "Bash(wpctl status *)",
       "Bash(niri validate *)",
       "Bash(niri msg *)",
+      "Bash(fili-tx *)",
+      "Bash(fili-file ctl *)",
       "Bash(sudo xbps-remove *)",
       "Bash(rm /tmp/claude-*/*)",
       "Bash(rm -f /tmp/claude-*/*)",
@@ -83,11 +85,89 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ],
+        "matcher": "permission_prompt|elicitation_dialog"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-ask",
+            "timeout": 45
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
     "type": "command",
-    "command": "/bin/bash \"$HOME/.claude/statusline-command.sh\""
+    "command": "fili-ai-session statusline"
   },
   "theme": "dark",
   "skipDangerousModePermissionPrompt": true

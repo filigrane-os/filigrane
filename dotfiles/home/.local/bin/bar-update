@@ -1,12 +1,16 @@
 #!/bin/sh
 # Indicateur de la barre: nombre de mises à jour xbps en attente (vide si aucune, donc module masqué).
 # `bar-update run` lance la mise à jour dans un terminal flottant.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 if [ "$1" = run ]; then
-    exec "$HOME/.local/bin/bar-tui" sh -c 'sudo xbps-install -Su; printf "\nTerminé, Entrée pour fermer."; read -r _'
+    exec "$HOME/.local/bin/bar-tui" sh -c 'sudo xbps-install -Su; printf "\n%s" "$1"; read -r _' sh "$(t 'Done, press Enter to close.')"
 fi
 n="$(xbps-install -un 2>/dev/null | wc -l)"
 if [ "$n" -gt 0 ]; then
-    printf '{"text":"\\uf021 %s","tooltip":"%s mises à jour disponibles (clic: mettre à jour)"}\n' "$n" "$n"
+    printf '{"text":"\\uf021 %s","tooltip":"%s"}\n' "$n" "$(t '%s updates available (click: update)' "$n")"
 else
     printf '{"text":""}\n'
 fi

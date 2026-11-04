@@ -1,0 +1,14 @@
+{
+  "name": "Proton Mail",
+  "menus": [
+    {
+      "label": "Go",
+      "children": [
+        { "label": "Mail", "exec": "webapp https://mail.proton.me" },
+        { "label": "Calendar", "exec": "webapp https://calendar.proton.me" },
+        { "sep": true },
+        { "label": "WhatsApp", "exec": "webapp https://web.whatsapp.com" }
+      ]
+    }
+  ]
+}

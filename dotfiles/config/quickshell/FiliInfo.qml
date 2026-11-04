@@ -20,11 +20,11 @@ Singleton {
     function display(outputs, screen) {
         const rows = Object.values(outputs).sort((a, b) => a.name.localeCompare(b.name)).map(o => {
             const m = o.modes?.[o.current_mode ?? 0] ?? {};
-            return [o.name, (o.make ?? "") + " " + (o.model ?? "") + "  ·  " + m.width + "×" + m.height + " à " + Math.round((m.refresh_rate ?? 0) / 1000) + " Hz, échelle " + (o.logical?.scale ?? 1)];
+            return [o.name, (o.make ?? "") + " " + (o.model ?? "") + "  ·  " + FiliI18n.tr("%1×%2 at %3 Hz, scale %4", m.width, m.height, Math.round((m.refresh_rate ?? 0) / 1000), FiliI18n.num(o.logical?.scale ?? 1, (o.logical?.scale ?? 1) % 1 ? 2 : 0))];
         });
         if (screen >= 0)
-            rows.push(["Luminosité", screen + " %"]);
-        return { title: "Écrans", hint: "clic: panneau écrans · molette: luminosité", rows: rows };
+            rows.push([FiliI18n.tr("Brightness"), screen + " %"]);
+        return { title: FiliI18n.tr("Displays"), hint: FiliI18n.tr("click: displays panel · wheel: brightness"), rows: rows };
     }
 
     Connections {

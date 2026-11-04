@@ -2,6 +2,10 @@
 # Raccourcis niri à afficher (fili-hotkeys, FiliHotkeys.qml): les binds de binds { } qui ont un hotkey-overlay-title
 # (config.kdl, puis local.kdl qui complète ou remplace), en JSON [{"key": "Super+Ctrl+W", "title": "Wi-Fi (impala)"}].
 # Mod devient Super; hotkey-overlay-title=null masque la ligne.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 dir="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
 cat "$dir/config.kdl" "$dir/local.kdl" 2>/dev/null | awk '
     /^binds[[:space:]]*\{/ {b=1; next}
@@ -11,5 +15,7 @@ cat "$dir/config.kdl" "$dir/local.kdl" 2>/dev/null | awk '
         if (match($0, /hotkey-overlay-title=null/)) { printf "%s\t\n", key; next }
         if (match($0, /hotkey-overlay-title="[^"]*"/)) printf "%s\t%s\n", key, substr($0, RSTART+22, RLENGTH-23)
     }' |
+    # Titres traduits (anglais dans config.kdl, catalogue lib/i18n)
+    while IFS="$(printf '\t')" read -r key title; do printf '%s\t' "$key"; [ -z "$title" ] || t "$title"; printf '\n'; done |
     jq -Rn '[inputs | split("\t") | {key: (.[0] | sub("^Mod\\+"; "Super+") | gsub("\\+Mod\\+"; "+Super+")), title: (.[1] // "")}]
         | reduce .[] as $e ([]; map(select(.key != $e.key)) + [$e]) | map(select(.title != ""))'

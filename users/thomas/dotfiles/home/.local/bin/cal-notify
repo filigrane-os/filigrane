@@ -2,7 +2,8 @@
 # Notifications Proton Calendar sans webapp ouverte: lit le lien ICS privé (Partager via un lien, lecture seule)
 # toutes les 5 min et notifie LEAD minutes avant chaque événement. Lancé par niri (boucle, pas de daemon).
 # Les URL sont des secrets: ~/.config/proton-calendar.url (hors dépôt), une par ligne (lignes vides et # ignorées). Le lien ICS de Proton est mis à jour avec du retard.
-# Hors ligne: dernier ICS en cache. Événements récurrents: RRULE/EXDATE gérés, modifications d'une occurrence ignorées.
+# Écrit aussi les prochains événements (30 jours, 5 au plus) dans ~/.local/state/agenda, lus par la fiche de l'horloge
+# de la fili-bar: une ligne "début epoch<TAB>titre<TAB>lieu". Hors ligne: dernier ICS en cache. Événements récurrents: RRULE/EXDATE gérés, modifications d'une occurrence ignorées.
 URL_FILE="$HOME/.config/proton-calendar.url"
 STATE="$HOME/.local/state/cal-notify"
 mkdir -p "$STATE"
@@ -71,6 +72,31 @@ for ev in events:
                                     f"{s.astimezone():%H:%M}", str(ev.get("SUMMARY", "(sans titre)")).replace("\t", " ")])
     except Exception:
         continue
+# prochains événements pour la fiche de l'horloge
+upcoming = []
+horizon = now + dt.timedelta(days=30)
+for ev in events:
+    try:
+        start = aware(ev.decoded("DTSTART"))
+        if start is None:
+            continue
+        starts = [start]
+        if "RRULE" in ev:
+            starts = rrulestr(ev["RRULE"].to_ical().decode(), dtstart=start).between(now, horizon, inc=True)
+            ex = ev.get("EXDATE")
+            if ex:
+                ex = ex if isinstance(ex, list) else [ex]
+                skip = {aware(d.dt) for e in ex for d in e.dts}
+                starts = [s for s in starts if s not in skip]
+        for s in starts:
+            if now <= s <= horizon:
+                upcoming.append((s, str(ev.get("SUMMARY", "(sans titre)")).replace("\t", " "), str(ev.get("LOCATION", "")).strip().replace("\t", " ").replace("\n", " ")))
+    except Exception:
+        continue
+upcoming.sort(key=lambda u: u[0])
+agenda = os.path.join(os.path.dirname(state), "agenda")
+open(agenda + ".new", "w").write("".join(f"{int(s.timestamp())}\t{t}\t{l}\n" for s, t, l in upcoming[:5]))
+os.replace(agenda + ".new", agenda)
 # on ne garde que les clés encore dans la fenêtre (évite la croissance et le renvoi)
 open(seen_file, "w").write("\n".join(new_seen))
 PY

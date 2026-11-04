@@ -7,7 +7,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var devices: adapter ? adapter.devices.values.filter(d => d.name && (d.paired || d.connected || adapter.discovering)) : []
 
@@ -16,7 +16,7 @@ ColumnLayout {
         Text {
             text: "Bluetooth"
             color: FiliTheme.voile
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         Item { Layout.fillWidth: true }
         PanelSwitch {
@@ -28,7 +28,7 @@ ColumnLayout {
     }
     Text {
         visible: !view.adapter
-        text: "Aucun adaptateur Bluetooth détecté (contrôleur absent ou micrologiciel non chargé)"
+        text: FiliI18n.tr("No Bluetooth adapter found (no controller, or firmware not loaded)")
         wrapMode: Text.Wrap
         Layout.fillWidth: true
         Layout.maximumWidth: 300
@@ -39,11 +39,11 @@ ColumnLayout {
         objectName: "scan"
         visible: !!view.adapter && view.adapter.enabled
         glyph: ""
-        label: view.adapter?.discovering ? "Recherche en cours…" : "Rechercher des appareils"
-        detail: view.adapter?.discovering ? "arrêter" : ""
+        label: view.adapter?.discovering ? FiliI18n.tr("Searching…") : FiliI18n.tr("Search for devices")
+        detail: view.adapter?.discovering ? FiliI18n.tr("stop") : ""
         onClicked: view.adapter.discovering = !view.adapter.discovering
     }
-    PanelSection { visible: view.devices.length > 0; text: "APPAREILS" }
+    PanelSection { visible: view.devices.length > 0; text: FiliI18n.tr("DEVICES") }
     Repeater {
         model: view.adapter?.enabled ? view.devices : []
         PanelButton {
@@ -53,8 +53,8 @@ ColumnLayout {
             label: modelData.name
             sel: modelData.connected
             dim: !modelData.paired && !modelData.connected
-            detail: modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : "connecté")
-                : modelData.paired ? "appairé" : "nouveau"
+            detail: modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
+                : modelData.paired ? FiliI18n.tr("paired") : FiliI18n.tr("new")
             // clic: connecter / déconnecter (appairer d'abord si nouveau); clic droit: oublier
             onClicked: b => {
                 if (b === Qt.RightButton) {
@@ -71,10 +71,10 @@ ColumnLayout {
     }
     Text {
         visible: view.devices.length > 0
-        Layout.topMargin: 4
-        text: "clic: connecter / déconnecter · clic droit: oublier"
+        Layout.topMargin: FiliTheme.space1
+        text: FiliI18n.tr("click: connect / disconnect · right click: forget")
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
     // ───── partage de fichiers (fili-share) ─────
@@ -108,7 +108,7 @@ ColumnLayout {
         receiving = on;
         FiliTheme.run(share + " receive " + proto + " " + (on ? "on" : "off"));
     }
-    // Choix des fichiers (yazi) puis envoi, dans une fenêtre à part
+    // Choix des fichiers (fili-file) puis envoi, dans une fenêtre à part
     function sendTo(peer) {
         // commande composée avant la fermeture: fermer le panneau libère la vue
         const cmd = share + " send " + proto + " " + shq(peer.id) + " " + shq(peer.name);
@@ -147,7 +147,7 @@ ColumnLayout {
 
     Rectangle {
         Layout.fillWidth: true
-        Layout.topMargin: 6
+        Layout.topMargin: FiliTheme.space2
         implicitHeight: 1
         color: FiliTheme.nuit4
     }
@@ -155,10 +155,10 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.topMargin: 2
         Text {
-            text: "Partage"
+            text: FiliI18n.tr("Sharing")
             color: FiliTheme.voile
             Layout.fillWidth: true
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         PanelSwitch {
             objectName: "share-receive"
@@ -168,9 +168,9 @@ ColumnLayout {
         }
     }
     Text {
-        text: "Recevoir: visible des appareils proches"
+        text: FiliI18n.tr("Receive: visible to nearby devices")
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     PanelChips {
         objectName: "share-protocols"
@@ -181,18 +181,18 @@ ColumnLayout {
     }
     Text {
         visible: view.current !== null && !view.current.available
-        text: view.current ? view.current.label + " indisponible: " + view.current.why : ""
+        text: view.current ? FiliI18n.tr("%1 unavailable: %2", view.current.label, view.current.why) : ""
         wrapMode: Text.Wrap
         Layout.fillWidth: true
         Layout.maximumWidth: 300
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
     PanelButton {
         objectName: "share-refresh"
         visible: view.shareOk
         glyph: ""
-        label: "Rechercher à proximité"
+        label: FiliI18n.tr("Search nearby")
         onClicked: view.refreshShare()
     }
     Repeater {
@@ -202,7 +202,7 @@ ColumnLayout {
             objectName: "share-peer"
             glyph: ""
             label: modelData.name
-            detail: "envoyer"
+            detail: FiliI18n.tr("send")
             onClicked: view.sendTo(modelData)
         }
     }

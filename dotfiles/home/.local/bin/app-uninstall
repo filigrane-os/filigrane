@@ -3,8 +3,12 @@
 #   app-uninstall FICHIER.desktop
 # Appli web: webapp-remove. Paquet Void: xbps-remove puis retrait de la ligne dans packages/*.txt
 # (état déclaratif du dépôt). Fichier .desktop utilisateur sans paquet: supprimé.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 f="$1"
-[ -f "$f" ] || { echo "usage: app-uninstall FICHIER.desktop" >&2; exit 1; }
+[ -f "$f" ] || { echo "usage: app-uninstall FILE.desktop" >&2; exit 1; }
 ROOT="$(readlink -f "$0")"; ROOT="${ROOT%/dotfiles/*}"
 base="$(basename "$f")"
 name="$(sed -n 's/^Name=//p' "$f" | head -1)"
@@ -14,16 +18,16 @@ case "$base" in
 esac
 owner="$(xbps-query -o "$f" 2>/dev/null | head -1 | sed -E 's/-[^-]+_[0-9]+:.*//')"
 if [ -z "$owner" ]; then
-    echo "Aucun paquet ne possède $f"
+    t 'No package owns %s\n' "$f"
     rm -v "$f"; exit $?
 fi
-echo "Application: $name"
-echo "Paquet:      $owner"
+t 'Application: %s\n' "$name"
+t 'Package:     %s\n' "$owner"
 echo
 xbps-query -p installed_size "$owner"
-printf '\nDésinstaller %s ? [o/N] ' "$owner"
+printf '\n'; t 'Uninstall %s? [y/N] ' "$owner"
 read -r rep
-case "$rep" in o|O|y|Y) ;; *) echo annulé; exit 0 ;; esac
+case "$rep" in o|O|y|Y) ;; *) t 'cancelled\n'; exit 0 ;; esac
 sudo xbps-remove -R "$owner" || exit $?
 # Retire la ligne du paquet (commentaire de fin compris) des listes du dépôt
 for l in "$ROOT"/packages/*.txt; do
@@ -31,6 +35,6 @@ for l in "$ROOT"/packages/*.txt; do
     tmp="$(mktemp)"
     grep -vE "^$owner([[:space:]]|\$)" "$l" > "$tmp"
     cat "$tmp" > "$l"; rm -f "$tmp"
-    echo "retiré de ${l#"$ROOT"/}"
+    t 'removed from %s\n' "${l#"$ROOT"/}"
 done
 echo; git -C "$ROOT" diff --stat

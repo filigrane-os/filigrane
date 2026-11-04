@@ -5,6 +5,10 @@ pragma Singleton
 //   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
 //   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
 //   panel NOM | close                    ouvre/ferme un fili-panel
+//   appmenu toggle | close               menu de l'application active au clavier (AppMenu, Mod+F10)
+//   chat [ACTION]                         tiroir fili-chat (FiliChat, Mod+Y): toggle (défaut), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
+//   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
+//   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
 //   reload
 // Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
 //   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), voir BarScript
@@ -67,6 +71,8 @@ Singleton {
         // Tuyau recréé à chaque démarrage, lecteur tué avec Quickshell (sinon un ancien lecteur volerait les commandes)
         command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; [ -x "$2/bar-stats" ] && exec "$2/bar-stats" "$f"; exec setpriv --pdeathsig TERM cat 0<>"$f"',
             "sh", shell.fifo, FiliTheme.bin]
+        // Catalogue des traductions de bar-stats: celui du fili-shell (FiliI18n)
+        environment: ({ FILI_I18N: Quickshell.shellDir + "/i18n" })
         stdinEnabled: true
         stdout: SplitParser {
             onRead: line => {
@@ -100,5 +106,14 @@ Singleton {
         id: again
         interval: 1000
         onTriggered: reader.running = true
+    }
+    // Changement de langue (fili-lang): bar-stats relancé (il lit la langue au démarrage), modules des scripts relus
+    Connections {
+        target: FiliI18n
+        function onLangChanged() {
+            reader.running = false;
+            for (let n = 1; n <= 30; n++)
+                shell.refresh(n);
+        }
     }
 }

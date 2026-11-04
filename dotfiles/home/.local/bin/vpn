@@ -4,6 +4,10 @@
 # NOM: 15 caractères max, commencer par "proton" pour que l'indicateur de la barre le reconnaisse (ex. proton-fr).
 #   vpn            bascule: coupe le VPN actif, sinon connecte (demande lequel s'il y en a plusieurs)
 #   vpn up [NOM] | vpn down | vpn status
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 DIR=/etc/wireguard
 active() { ip -o link show type wireguard up 2>/dev/null | awk -F': ' '{print $2}'; }
 confs() { sudo ls "$DIR" 2>/dev/null | sed -n 's/\.conf$//p'; }   # dossier en 700 root
@@ -12,14 +16,14 @@ up() {
     name="$1"
     if [ -z "$name" ]; then
         list="$(confs)"
-        [ -n "$list" ] || { echo "Aucune config dans $DIR (voir l'en-tête de ce script)" >&2; return 1; }
+        [ -n "$list" ] || { t 'No config in %s (see the header of this script)\n' "$DIR" >&2; return 1; }
         if [ "$(echo "$list" | wc -l)" -eq 1 ]; then
             name="$list"
         else
             echo "$list" | nl -w2 -s') '
-            printf 'Numéro: '; read -r n
+            t 'Number: '; read -r n
             name="$(echo "$list" | sed -n "${n}p")"
-            [ -n "$name" ] || { echo "Choix invalide" >&2; return 1; }
+            [ -n "$name" ] || { t 'Invalid choice\n' >&2; return 1; }
         fi
     fi
     sudo wg-quick up "$name"
@@ -32,7 +36,7 @@ down() {
 case "${1:-toggle}" in
     up) up "$2" ;;
     down) down ;;
-    status) a="$(active)"; if [ -n "$a" ]; then echo "VPN actif: $a"; ip -br addr show "$a"; else echo "VPN coupé"; fi ;;
+    status) a="$(active)"; if [ -n "$a" ]; then t 'VPN on: %s\n' "$a"; ip -br addr show "$a"; else t 'VPN off\n'; fi ;;
     toggle) if [ -n "$(active)" ]; then down; else up; fi; sleep 2 ;;
-    *) echo "usage: vpn [up [NOM]|down|status]" >&2; exit 1 ;;
+    *) echo "usage: vpn [up [NAME]|down|status]" >&2; exit 1 ;;
 esac

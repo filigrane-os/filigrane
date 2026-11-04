@@ -6,7 +6,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     // Caféine: verrouillage automatique coupé (swayidle arrêté, voir bar-toggle idle)
     property bool caffeine: false
 
@@ -18,13 +18,13 @@ ColumnLayout {
     }
 
     PanelInfo { title: true; topic: "power" }
-    PanelSection { text: "CAFÉINE" }
+    PanelSection { text: FiliI18n.tr("CAFFEINE") }
     RowLayout {
         Layout.fillWidth: true
-        Layout.topMargin: 4
-        Layout.leftMargin: 8
-        Layout.rightMargin: 8
-        spacing: 8
+        Layout.topMargin: FiliTheme.space1
+        Layout.leftMargin: FiliTheme.space2
+        Layout.rightMargin: FiliTheme.space2
+        spacing: FiliTheme.space2
         Text {
             text: ""
             color: view.caffeine ? FiliTheme.sable : FiliTheme.brume
@@ -33,7 +33,7 @@ ColumnLayout {
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
         }
         Text {
-            text: "Caféine (pas de verrouillage auto)"
+            text: FiliI18n.tr("Caffeine (no auto lock)")
             color: FiliTheme.brume
             Layout.fillWidth: true
             elide: Text.ElideRight
@@ -48,10 +48,10 @@ ColumnLayout {
             }
         }
     }
-    PanelSection { text: "SYSTÈME" }
+    PanelSection { text: FiliI18n.tr("SYSTEM") }
     // Actions du menu système (menu system <action>: confirmation demandée pour quitter, redémarrer et éteindre)
     Repeater {
-        model: [["", "Verrouiller", "Lock"], ["", "Veille", "Sleep"], ["", "Quitter la session", "Log out"], ["", "Redémarrer", "Reboot"], ["", "Éteindre", "Power off"]]
+        model: [["", FiliI18n.tr("Lock"), "Lock"], ["", FiliI18n.tr("Sleep"), "Sleep"], ["", FiliI18n.tr("Log out"), "Log out"], ["", FiliI18n.tr("Reboot"), "Reboot"], ["", FiliI18n.tr("Power off"), "Power off"]]
         PanelButton {
             required property var modelData
             objectName: "system"

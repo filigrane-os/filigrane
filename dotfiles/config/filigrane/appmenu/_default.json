@@ -1,0 +1,16 @@
+{
+  "app": [
+    { "label": "Quit %1", "niri": ["close-window"] }
+  ],
+  "window": [
+    { "label": "Close window", "niri": ["close-window"] },
+    { "sep": true },
+    { "label": "Full screen", "niri": ["fullscreen-window"] },
+    { "label": "Maximize column", "niri": ["maximize-column"] },
+    { "label": "Centre column", "niri": ["center-column"] },
+    { "label": "Floating window", "niri": ["toggle-window-floating"] },
+    { "sep": true },
+    { "label": "Move to previous workspace", "niri": ["move-window-to-workspace-up"] },
+    { "label": "Move to next workspace", "niri": ["move-window-to-workspace-down"] }
+  ]
+}

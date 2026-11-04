@@ -1,0 +1,102 @@
+#!/bin/sh
+# Langue de la session, changée en direct, sans root ni reconnexion. Usage:
+#   fili-lang [get]          code de la langue en cours (en, fr...)
+#   fili-lang list           langues proposées, en JSON [{code, name, locale, available, current}] (fili-panel clavier, menu)
+#   fili-lang set CODE       fr, en, fr_CA... ou "system" (langue du système, LOCALE de config.env)
+#   fili-lang apply          réécrit ~/.config/niri/locale.kdl depuis le choix enregistré (bootstrap.sh)
+# Choix: $XDG_STATE_HOME/filigrane/locale (une locale, "fr_FR.UTF-8"; vide = système), lu par la fili-shell (FiliI18n.qml,
+# suivi en direct), bar-stats (relancé par la fili-shell), les scripts et le menu (lib/i18n.sh). Les applications
+# lancées ensuite par niri reçoivent LANG (~/.config/niri/locale.kdl, relu par niri) quand la locale glibc existe
+# (LOCALES de config.env, générées par bootstrap.sh); celles déjà ouvertes gardent leur langue jusqu'à leur relance.
+# Langues proposées: l'anglais et chaque catalogue du fili-shell (~/.config/quickshell/i18n/<code>.json, nom: "@name").
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+dir="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane"
+state="$dir/locale"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+cats="$cfg/quickshell/i18n"
+
+# Locale glibc installée pour une langue ou une locale: celle demandée, sinon CODE_CODE (fr_FR), sinon la première
+# de la langue; en: en_US, en_GB, puis C.UTF-8 (toujours là). Sortie vide si aucune.
+installed() {
+    l="${1%%.*}"; code="${l%%_*}"
+    have="$(locale -a 2>/dev/null | sed -n 's/\.\(utf8\|UTF-8\)$//p')"
+    for c in "$l" "${code}_$(printf '%s' "$code" | tr '[:lower:]' '[:upper:]')" en_US en_GB; do
+        case "$c" in "$code"_* | "$code") ;; *) continue ;; esac
+        printf '%s\n' "$have" | grep -qx "$c" && { echo "$c.UTF-8"; return; }
+    done
+    c="$(printf '%s\n' "$have" | grep -m1 "^${code}_")" && { echo "$c.UTF-8"; return; }
+    [ "$code" = en ] && echo C.UTF-8
+}
+current() {
+    { read -r cur < "$state"; } 2>/dev/null || cur=""
+    [ -n "$cur" ] || cur="${LC_ALL:-${LC_MESSAGES:-${LANG:-C}}}"
+    cur="${cur%%[_.@]*}"
+    case "$cur" in '' | *[!a-z]*) cur=en ;; esac
+    echo "$cur"
+}
+# ~/.config/niri/locale.kdl: LANG des applications lancées par niri (vide: celle du système)
+niri_env() {
+    mkdir -p "$cfg/niri"
+    { read -r loc < "$state"; } 2>/dev/null || loc=""
+    [ -z "$loc" ] || loc="$(installed "$loc")"
+    {
+        echo "// Généré par fili-lang, ne pas modifier ici"
+        if [ -n "$loc" ]; then printf 'environment {\n    LANG "%s"\n}\n' "$loc"; else echo "// Langue du système (/etc/locale.conf)"; fi
+    } > "$cfg/niri/locale.kdl"
+    # Programmes lancés par D-Bus (portails, trousseau)
+    [ -z "$loc" ] || [ -z "${WAYLAND_DISPLAY:-}" ] || dbus-update-activation-environment "LANG=$loc" 2>/dev/null
+}
+
+case "${1:-get}" in
+get) current ;;
+list)
+    cur="$(current)"
+    {
+        printf 'en\tEnglish\n'
+        for f in "$cats"/*.json; do
+            [ -r "$f" ] || continue
+            c="${f##*/}"; c="${c%.json}"
+            printf '%s\t%s\n' "$c" "$(jq -r --arg c "$c" '.["@name"] // $c' "$f")"
+        done
+    } | while IFS="$(printf '\t')" read -r code name; do
+        loc="$(installed "$code")"
+        jq -nc --arg c "$code" --arg n "$name" --arg l "$loc" --arg cur "$cur" \
+            '{code: $c, name: $n, locale: $l, available: ($l != ""), current: ($c == $cur)}'
+    done | jq -sc .
+    ;;
+set)
+    [ $# -ge 2 ] || { echo "usage: fili-lang set CODE|system" >&2; exit 2; }
+    mkdir -p "$dir"
+    # Écrit sur place (pas de renommage): la fili-shell suit le fichier par inotify
+    case "$2" in
+    system) : > "$state" ;;
+    *_*) printf '%s\n' "$2" > "$state" ;;
+    *)
+        loc="$(installed "$2")"
+        [ -n "$loc" ] || loc="${2}_$(printf '%s' "$2" | tr '[:lower:]' '[:upper:]').UTF-8"
+        printf '%s\n' "$loc" > "$state"
+        ;;
+    esac
+    niri_env
+    # fili-shell: relit le choix (sans attendre inotify)
+    "${0%/*}/fili-shell" lang 2>/dev/null
+    # Messages dans la nouvelle langue
+    unset FILI_LANG
+    # shellcheck source=/dev/null
+    [ -r "$FILI_LIB/i18n.sh" ] && . "$FILI_LIB/i18n.sh"
+    { read -r loc < "$state"; } 2>/dev/null || loc=""
+    if [ -n "$loc" ] && [ -z "$(installed "$loc")" ]; then
+        msg="$(t 'Filigrane is translated; dates and other apps stay in the system language until ./bootstrap.sh generates %s.' "$loc")"
+    else
+        msg="$(t 'New windows use it; restart open apps to switch them.')"
+    fi
+    [ -z "${WAYLAND_DISPLAY:-}" ] || notify-send -a fili-lang "$(t 'Language: %s' "$(current)")" "$msg" 2>/dev/null
+    printf '%s\n' "$msg"
+    ;;
+apply) niri_env ;;
+*) echo "usage: fili-lang [get|list|set CODE|apply]" >&2; exit 2 ;;
+esac

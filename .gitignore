@@ -1,4 +1,5 @@
 apps/*/target/
+apps/*/.qmlls.ini
 __pycache__/
 distro/out/
 .user-layer

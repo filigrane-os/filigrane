@@ -9,7 +9,7 @@ It is not a Void fork: the distribution stays downstream of Void (same mirrors, 
 |---|---|
 | Git repository (root) | The source: package lists, services, system settings, dotfiles, Rust tools. `bootstrap.sh` applies it |
 | Layers | distribution (root) → hardware (`hardware/<machine>`) → personal (`users/<login>`, never in the ISO) |
-| xbps repository (`build-repo.sh`) | `fili-apps`: the tools from `apps/`, already built, no cargo needed. `fili-<list>`: one meta-package per `packages/<list>.txt` |
+| xbps repository (`build-repo.sh`) | `fili-<app>`: one package per tool in `apps/`, already built, no cargo needed (version from `Cargo.toml`, revision `_N` = commits touching `apps/<app>`, so every change to a tool is an update; dependencies in `apps/<app>/package.env`). `fili-apps`: meta-package depending on all of them. `fili-<list>`: one meta-package per `packages/<list>.txt` |
 | ISO (`build-iso.sh`) | Void console live system (`void-mklive`) with the xbps repository, a generic copy of the git repository and the `fili-install` installer |
 
 Philosophy (see `AGENTS.md`): the OS leaves RAM and CPU to the browser, agents and containers. Native Void packages come first, with no unnecessary daemon, no Electron, JVM or resident Node. Home-made tools are Rust binaries. `budget` measures how well this rule is kept.
@@ -18,6 +18,7 @@ Philosophy (see `AGENTS.md`): the OS leaves RAM and CPU to the browser, agents a
 
 ```
 distro/build-repo.sh              # no root: distro/out/repo (unsigned packages)
+distro/build-repo.sh --app fili-file   # a single tool, no meta-packages (cargo cache kept in FILI_TARGET_DIR)
 sudo distro/build-iso.sh          # root (void-mklive mounts and chroots): distro/out/fili-live-x86_64-<date>.iso
 ```
 
@@ -35,3 +36,7 @@ Boot the ISO (the `anon` session opens automatically), connect the network, then
 - **Unused meta-packages**: `bootstrap.sh` still installs the lists one by one. The `fili-*` meta-packages are ready for the day the repository is published.
 - **Repository copy without git history**: to follow updates, clone `DISTRO_GIT` instead.
 - **x86_64 only** for the ISO, and UEFI only for installation, like `install-void.sh`.
+
+## Publishing the repository
+
+`.github/workflows/repo.yml` builds the packages in a Void container, signs them (`XBPS_PRIVKEY` secret) and uploads them to the assets of the GitHub release `repo`: only new versions are sent, the index goes last, old versions are removed. The address is `DISTRO_REPO_URL` in `distro.env`. Machines do not hard-code it: the `fili-repo` package (a dependency of `fili-base`) installs the `/etc/xbps.d/` configuration and the public signing key (`distro/repo/keys/`), so moving the repository to a domain name is one package update.

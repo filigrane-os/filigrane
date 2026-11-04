@@ -1,5 +1,5 @@
--- Filigrane (brand.md): catppuccin avec sa palette remplacée (nuit, brume, voile, états désaturés).
--- Mode clair (fili-theme): nvim lit le fond de foot (papier), background=light choisit latte, texte nuit, accent ardoise
+-- Filigrane (brand.md): catppuccin with its palette replaced (night, mist, veil, desaturated states).
+-- Light mode (fili-theme): nvim reads foot's background (paper), background=light selects latte, night text, slate accent
 return {
   {
     "catppuccin/nvim",

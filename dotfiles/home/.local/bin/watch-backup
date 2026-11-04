@@ -5,29 +5,33 @@
 #     RESTIC_REPOSITORY=sftp:nas:/Volume1/backup/void     # "nas" = Host de ~/.ssh/config (clé dédiée)
 #     RESTIC_PASSWORD_FILE=$HOME/.config/restic/password
 # Automatique: pas configuré, NAS éteint ou batterie = sortie 1 sans bruit, cron-watch réessaie au tour suivant.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 CONF="$HOME/.config/restic"
 STATE="$HOME/.local/state/watch"
 mkdir -p "$STATE"
 manual=0; [ "$1" = now ] && manual=1
 
 refuse() { # refuse MESSAGE: silencieux en automatique, notifié en manuel
-    [ "$manual" = 1 ] && notify-send -u normal -a backup "Sauvegarde impossible" "$1"
+    [ "$manual" = 1 ] && notify-send -u normal -a backup "$(t 'Backup not possible')" "$1"
     exit 1
 }
 
-[ -r "$CONF/env" ] || refuse "pas configurée (~/.config/restic/env)"
+[ -r "$CONF/env" ] || refuse "$(t 'not configured (~/.config/restic/env)')"
 . "$CONF/env"
 export RESTIC_REPOSITORY RESTIC_PASSWORD_FILE
 
 [ "$manual" = 0 ] && grep -q Discharging /sys/class/power_supply/BAT0/status 2>/dev/null && exit 1
 alias_="${RESTIC_REPOSITORY#sftp:}"; alias_="${alias_%%:*}"
 read -r host port < <(ssh -G "$alias_" 2>/dev/null | awk '$1=="hostname"{h=$2} $1=="port"{p=$2} END{print h, p}')
-[ -n "$host" ] && timeout 3 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null || refuse "NAS injoignable"
-restic cat config >/dev/null 2>"$STATE/backup.err" || refuse "dépôt restic absent ou illisible (restic init ?)"
+[ -n "$host" ] && timeout 3 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null || refuse "$(t 'NAS unreachable')"
+restic cat config >/dev/null 2>"$STATE/backup.err" || refuse "$(t 'restic repository missing or unreadable (restic init?)')"
 
 # Verrou tenu pendant la sauvegarde: bar-backup s'en sert pour afficher "en cours"
 exec 8>"$STATE/backup.lock"
-flock -n 8 || { [ "$manual" = 1 ] && notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
+flock -n 8 || { [ "$manual" = 1 ] && notify-send -u low -a backup "$(t 'Backup')" "$(t 'Already running')"; exit 0; }
 "$HOME/.local/bin/fili-shell" bar refresh 18
 
 if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$HOME/.config/watch/backup-excludes" \
@@ -38,10 +42,10 @@ if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$
     fi
     echo ok >"$STATE/backup.status"; touch "$STATE/backup.stamp"
     "$HOME/.local/bin/fili-shell" bar refresh 18
-    notify-send -u low -a backup "Sauvegarde NAS terminée" "$(tail -n 1 "$STATE/backup.log")"
+    notify-send -u low -a backup "$(t 'NAS backup done')" "$(tail -n 1 "$STATE/backup.log")"
     exit 0
 fi
 echo fail >"$STATE/backup.status"
 "$HOME/.local/bin/fili-shell" bar refresh 18
-notify-send -u critical -a backup "Sauvegarde NAS échouée" "$(tail -n 2 "$STATE/backup.err" | tr '\n' ' ')"
+notify-send -u critical -a backup "$(t 'NAS backup failed')" "$(tail -n 2 "$STATE/backup.err" | tr '\n' ' ')"
 exit 1

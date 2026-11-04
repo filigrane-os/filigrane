@@ -1,0 +1,53 @@
+# Settings of fili-file (Casier, the file manager). Everything is optional: commented lines show the defaults.
+# Read each time a window opens. What you change by hand in the application (view, columns)
+# is kept in ~/.local/state/filigrane/ and takes precedence over this file.
+
+# View at first start: "list" or "grid"
+# view = "list"
+
+# Show hidden files
+# show_hidden = false
+
+# Close and Window buttons (niri window actions) at the right of the toolbar. Window > Show Window Buttons
+# in the menu takes precedence over this setting
+# window_buttons = true
+
+# Sort: name, size, date (modified), kind, created, permissions, owner. Default: most recently modified first
+# sort = "date"
+# sort_desc = true
+
+# Columns of the list view (same keys as the right click on the header)
+# columns = "size,modified"
+
+# Folder opened without an argument (default: the home folder)
+# start = "~"
+
+# Receiving files (LocalSend, Bluetooth; File > Receive…)
+# Folder where they arrive (default: Downloads)
+# receive_dir = "~/Downloads"
+
+# "ask": an Accept / Decline notification for each transfer; "always": accept everything while receiving is on
+# receive_confirm = "ask"
+
+# Stop receiving after this many minutes (0: until you stop it)
+# receive_minutes = 0
+
+# Name under which this computer appears on other devices (LocalSend)
+# receive_name = "FILIGRANE"
+
+# Mount USB sticks, SD cards and external disks by itself when they are plugged in (fili-automount, started with the session)
+# automount = true
+
+# Theme (colors, radii, borders, spacing, fonts), per light / dark mode.
+# The defaults are in fili-file/theme.toml (every key is commented there). Add here only what changes:
+# [theme]               # both modes
+# radius_control = 8
+# border_width = 1
+# [theme.dark]
+# background = "#101418"
+# [theme.light]
+# accent = "#336699"
+# [theme.accents]       # tones for `fili-theme accent <name>`: [dark, dark bright, light, light bright]
+# sage = ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"]
+# To change every Filigrane application at once: ~/.config/filigrane/theme.toml (same sections);
+# this file takes precedence.

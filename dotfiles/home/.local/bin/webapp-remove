@@ -2,13 +2,17 @@
 # Retire une appli web du menu (inverse de webapp-add).
 #   webapp-remove "WhatsApp"
 # Supprime la ligne de ~/.config/webapps/list, son icône si plus personne ne l'utilise, puis webapp-sync.
-[ -n "$1" ] || { echo 'usage: webapp-remove "Nom"' >&2; exit 1; }
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+[ -n "$1" ] || { echo 'usage: webapp-remove "Name"' >&2; exit 1; }
 name="$1"
 list="${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"
-[ -f "$list" ] || { echo "liste introuvable: $list" >&2; exit 1; }
+[ -f "$list" ] || { t 'list not found: %s\n' "$list" >&2; exit 1; }
 pat="^[[:space:]]*$(printf '%s' "$name" | sed 's/[][\.*^$/]/\\&/g')[[:space:]]*\|"
 line="$(grep -iE "$pat" "$list" | head -1)"
-[ -n "$line" ] || { echo "introuvable: $name" >&2; exit 1; }
+[ -n "$line" ] || { t 'not found: %s\n' "$name" >&2; exit 1; }
 icon="$(printf '%s' "$line" | cut -d'|' -f3 | sed 's/^ *//;s/ *$//')"
 # Réécriture par cat: la liste est un lien vers le dépôt, sed -i le remplacerait par un fichier
 tmp="$(mktemp)"
@@ -23,4 +27,4 @@ case "$icon" in
         fi ;;
 esac
 webapp-sync
-echo "retiré: $name (web)"
+t 'removed: %s (web)\n' "$name"

@@ -4,7 +4,7 @@
 #   ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
 #                  [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
 #                  [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<nom>]
-#                  [--system-only | --dotfiles-only | --fili-shell | --plan]
+#                  [--system-only | --dotfiles-only | --fili-shell | --apps | --plan]
 #
 # Trois couches, appliquées dans l'ordre (une couche suivante remplace un fichier de même chemin):
 #   1. la distribution (racine du dépôt: packages/, services/, system/, dotfiles/, apps/), générique;
@@ -14,6 +14,8 @@
 #
 # --fili-shell: ne relie que le fili-shell (config/quickshell, scripts bar-* et fili-*, de chaque couche) et le recharge;
 # sans sudo, pour un nouveau fichier QML ou script.
+# --apps: ne construit et n'installe que les outils de apps/ (Rust maison et tiers, correctifs compris) et relie
+# leurs binaires dans ~/.local/bin; sans sudo.
 # --plan: affiche les listes retenues pour la configuration et quitte, sans rien modifier (CI).
 # --profile: environnement (VM ou machine physique). --machine: matériel, pour tout ce qui est
 # spécifique à un modèle (hardware/<machine>/). --cpu/--gpu: firmware et pilotes (packages/cpu-*.txt,
@@ -50,6 +52,7 @@ DO_SYSTEM=1
 DO_DOTFILES=1
 PLAN=0
 SHELL_ONLY=0
+APPS_ONLY=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --profile) PROFILE="${2:?profil manquant}"; shift 2 ;;
@@ -61,8 +64,9 @@ while [ $# -gt 0 ]; do
         --system-only) DO_DOTFILES=0; shift ;;
         --dotfiles-only) DO_SYSTEM=0; shift ;;
         --fili-shell) DO_SYSTEM=0; DO_DOTFILES=0; SHELL_ONLY=1; shift ;;
+        --apps) DO_SYSTEM=0; DO_DOTFILES=0; APPS_ONLY=1; shift ;;
         --user-layer) USER_LAYER="${2:?couche manquante}"; shift 2 ;;
-        -h|--help) sed -n '2,25p' "$0"; exit 0 ;;
+        -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
         *) die 'Unknown option: %s' "$1" ;;
     esac
 done
@@ -247,11 +251,27 @@ setup_system() {
     fi
     for list in $(layer_package_lists); do install_list "$list"; done
 
-    # Dépôt de la distribution embarqué (ISO: distro/out/repo, construit par distro/build-repo.sh): outils natifs
-    # déjà compilés, sans passer par cargo
-    if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ] && ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
-        log 'Native tools (%s-apps, embedded repository)' "$DISTRO"
-        $SUDO xbps-install -Sy --repository="$ROOT/distro/out/repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+    # Navigateur: Chromium seulement si aucun navigateur par défaut n'existe (ex. Chrome de la couche personnelle)
+    if [ -n "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)" ]; then
+        say 'SKIP: default browser already set (%s)' "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)"
+    else install_pkgs chromium; fi
+
+    # Outils natifs déjà compilés, sans passer par cargo. D'abord le dépôt embarqué (ISO: distro/out/repo, construit par
+    # distro/build-repo.sh), sinon le dépôt publié (DISTRO_REPO_URL): on pose son adresse et sa clé de signature, puis
+    # <distro>-repo (qui les possède ensuite et les tient à jour) et <distro>-apps. En dernier recours, setup_apps compile.
+    if ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
+        if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ]; then
+            log 'Native tools (%s-apps, embedded repository)' "$DISTRO"
+            $SUDO xbps-install -Sy --repository="$ROOT/distro/out/repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+        elif [ -n "${DISTRO_REPO_URL:-}" ]; then
+            log 'Native tools (%s-apps, published repository)' "$DISTRO"
+            if ! xbps-query "$DISTRO-repo" >/dev/null 2>&1 && [ ! -f "/etc/xbps.d/10-$DISTRO.conf" ]; then
+                printf '# Dépôt de la distribution %s (remplacé par le paquet %s-repo)\nrepository=%s\n' "$DISTRO" "$DISTRO" "$DISTRO_REPO_URL" \
+                    | $SUDO install -Dm644 /dev/stdin "/etc/xbps.d/10-$DISTRO.conf"
+                $SUDO install -Dm644 -t /var/db/xbps/keys "$ROOT"/distro/repo/keys/*.plist
+            fi
+            $SUDO xbps-install -Sy "$DISTRO-repo" "$DISTRO-apps" || warn '%s-apps not installed: apps/ will be built' "$DISTRO"
+        fi
     fi
 
     log 'Cleaning the xbps cache (small disk)'
@@ -286,6 +306,10 @@ setup_system() {
     for svc in iptables ip6tables; do
         $SUDO ln -sfn "/etc/sv/$svc" "/etc/runit/runsvdir/default/$svc"
     done
+    # Règles actives tout de suite (le service ne les relit qu'au démarrage); restore est atomique: un fichier
+    # invalide laisse les règles en place
+    $SUDO iptables-restore /etc/iptables/iptables.rules || warn 'iptables-restore failed'
+    $SUDO ip6tables-restore /etc/iptables/ip6tables.rules || warn 'ip6tables-restore failed'
 
     if [ "$PROFILE" != vm ]; then
         log 'CPU profile on battery/mains (udev rule)'
@@ -349,9 +373,17 @@ setup_system() {
     set_rc TIMEZONE "$TIMEZONE"
     $SUDO ln -sfn "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
     echo "LANG=$LOCALE" | $SUDO tee /etc/locale.conf >/dev/null
-    if [ "$LOCALE" != "C.UTF-8" ] && [ -f /etc/default/libc-locales ]; then
-        $SUDO sed -i "s/^#\(${LOCALE//./\\.} \)/\1/" /etc/default/libc-locales
-        $SUDO xbps-reconfigure -f glibc-locales
+    # LOCALE et LOCALES (langues proposées par fili-lang) décommentées, régénérées seulement si l'une manquait
+    if [ -f /etc/default/libc-locales ]; then
+        local loc gen=0
+        for loc in $LOCALE $LOCALES; do
+            [ "$loc" = C.UTF-8 ] && continue
+            if grep -q "^#${loc//./\\.} " /etc/default/libc-locales; then
+                $SUDO sed -i "s/^#\(${loc//./\\.} \)/\1/" /etc/default/libc-locales
+                gen=1
+            fi
+        done
+        [ "$gen" = 0 ] || $SUDO xbps-reconfigure -f glibc-locales
     fi
 
     log 'User %s' "$TARGET_USER"
@@ -414,21 +446,31 @@ run_as_user() {
 # seulement quand les sources changent. Le dossier de compilation (target/) reste hors du dépôt, dans ~/.cache.
 # Avec le paquet <distro>-apps (dépôt xbps de la distribution, voir distro/), les binaires sont déjà dans /usr/bin.
 setup_apps() {
-    local manifest app name sum dir
+    local app name src sum dir alias
     if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"; return 0; fi
-    for manifest in "$ROOT"/apps/*/Cargo.toml; do
-        [ -e "$manifest" ] || return 0
+    for app in "$ROOT"/apps/*/; do
+        app="${app%/}"; name="$(basename "$app")"
+        if [ -f "$app/upstream" ]; then
+            # Tool that lives in its own repository: the pinned version (apps/<name>/upstream, scripts/upstream-dir)
+            command -v git >/dev/null || { warn 'git missing: %s not built' "$name"; continue; }
+            src="$(run_as_user "$ROOT/scripts/upstream-dir" "$name")" || { warn 'Source of %s not available (network?)' "$name"; continue; }
+        elif [ -f "$app/Cargo.toml" ]; then
+            src="$app"
+        else
+            continue
+        fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
-        app="$(dirname "$manifest")"; name="$(basename "$app")"
-        sum="$(cd "$app" && find Cargo.toml Cargo.lock src -type f | sort | xargs cat | sha256sum | cut -c1-12)"
+        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary)
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         if [ ! -x "$dir/$name" ]; then
             log 'Building %s (%s)' "$name" "$sum"
-            if run_as_user env CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
-                    cargo build -q --release --locked --manifest-path "$manifest" \
+            # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
+            if (cd "$src" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
+                    cargo build -q --release --locked --manifest-path "$src/Cargo.toml") \
                 && run_as_user mkdir -p "$dir" \
                 && run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$name" "$dir/$name"; then
-                # anciennes versions
+                # old versions
                 find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-$sum" -exec rm -rf {} +
             else
                 warn 'Build of %s failed' "$name"; run_as_user rm -rf "$dir"; continue
@@ -436,6 +478,10 @@ setup_apps() {
         fi
         run_as_user mkdir -p "$TARGET_HOME/.local/bin"
         run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$name"
+        # Other command names of the same program (ALIASES in package.env, e.g. casier -> fili-file)
+        for alias in $(ALIASES="" && . "$src/package.env" 2>/dev/null && echo "$ALIASES"); do
+            run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$alias"
+        done
     done
     setup_apps_git
 }
@@ -443,21 +489,26 @@ setup_apps() {
 # Outils tiers en Rust (apps/<nom>/source: url, commit, bins): clonés à un commit précis, compilés dans ~/.cache, installés
 # dans ~/.local/opt/<nom>-<commit>, liés dans ~/.local/bin; recompilés seulement quand le commit change.
 setup_apps_git() {
-    local src name url commit bins dir b src_dir
+    local src name url commit bins dir b p src_dir patches sum
     for src in "$ROOT"/apps/*/source; do
         [ -e "$src" ] || return 0
         command -v cargo >/dev/null && command -v git >/dev/null || { warn 'cargo or git missing: %s not built' "$src"; return 0; }
         name="$(basename "$(dirname "$src")")"
         url="$(sed -n 's/^url=//p' "$src")"; commit="$(sed -n 's/^commit=//p' "$src")"; bins="$(sed -n 's/^bins=//p' "$src" | tr -d '"')"
-        dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}"
+        # Correctifs locaux (apps/<nom>/patches/*.patch): appliqués après le checkout; leur empreinte fait partie du nom
+        # du dossier, donc un correctif modifié recompile
+        patches="$(ls "$ROOT/apps/$name/patches/"*.patch 2>/dev/null)"
+        sum=""; [ -z "$patches" ] || sum="-p$(cat $patches | sha256sum | cut -c1-8)"
+        dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}$sum"
         if [ ! -x "$dir/${bins%% *}" ]; then
             log 'Building %s (%s)' "$name" "${commit:0:12}"
             src_dir="$TARGET_HOME/.cache/filigrane-src/$name"
             if run_as_user sh -c 'rm -rf "$1" && mkdir -p "$1" && cd "$1" && git init -q && git fetch -q --depth 1 "$2" "$3" && git checkout -q FETCH_HEAD' sh "$src_dir" "$url" "$commit" \
+                && for p in $patches; do run_as_user git -C "$src_dir" apply "$p" || false; done \
                 && run_as_user env CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps/$name" cargo build -q --release --locked --manifest-path "$src_dir/Cargo.toml" \
                 && run_as_user mkdir -p "$dir" \
                 && for b in $bins; do run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/$name/release/$b" "$dir/$b" || false; done; then
-                find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-${commit:0:12}" -exec rm -rf {} +
+                find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-${commit:0:12}$sum" -exec rm -rf {} +
             else
                 warn 'Build of %s failed' "$name"; run_as_user rm -rf "$dir"; continue
             fi
@@ -612,24 +663,16 @@ setup_dotfiles() {
     run_as_user fc-cache -f "$TARGET_HOME/.local/share/fonts" >/dev/null || warn 'fc-cache failed'
     # .desktop des applications web (liste ~/.config/webapps/list)
     HOME="$TARGET_HOME" sh "$ROOT/dotfiles/home/.local/bin/webapp-sync"
+    # Icônes de l'OS: thème Filigrane-Icons (dossiers et glyphes de Nordic, reste d'Adwaita), avant fili-theme qui le nomme
+    run_as_user sh "$ROOT/scripts/icon-theme.sh" || warn 'icon-theme failed'
     # Mode sombre par défaut, ou clair s'il a été choisi (fili-panel écrans): fichiers inclus par foot, niri et GTK3,
     # gsettings (portail xdg: Chromium, GTK, libadwaita; sans effet hors session D-Bus)
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'
+    run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-lang" apply || warn 'fili-lang apply failed'
     if gsettings set org.gnome.desktop.interface font-name 'Jost 10' 2>/dev/null; then
         gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
     else
         warn 'gsettings: fonts not applied (no D-Bus session)'
-    fi
-    # Thunar: Espace lance l'aperçu rapide (action "quicklook" de uca.xml). Thunar réécrit accels.scm
-    # en quittant (un lien serait remplacé, l'ajout perdu): on le ferme puis on ajoute la ligne.
-    local acc="$TARGET_HOME/.config/Thunar/accels.scm"
-    local ql='(gtk_accel_path "<Actions>/ThunarActions/uca-action-quicklook" "space")'
-    if ! grep -qxF "$ql" "$acc" 2>/dev/null; then
-        log 'Thunar: Space = quick look (quicklook)'
-        run_as_user thunar -q 2>/dev/null || true
-        while pgrep -u "$TARGET_USER" -x Thunar >/dev/null; do sleep 0.2; done
-        run_as_user mkdir -p "${acc%/*}"
-        run_as_user sh -c 'printf "%s\n" "$1" >> "$2"' _ "$ql" "$acc"
     fi
     # Mac T2 (MacBookPro16,2): la route ALSA "Speaker" est cachée par le DSP (hide-parent), donc plus
     # réglable, et un volume bas sur elle atténue tout le DSP. WirePlumber n'a pas de règle de volume
@@ -658,6 +701,7 @@ fi
 if [ "$PLAN" -eq 1 ]; then print_plan; exit; fi
 [ "$DO_SYSTEM" -eq 1 ] && setup_system
 [ "$SHELL_ONLY" -eq 1 ] && setup_fili_shell
+[ "$APPS_ONLY" -eq 1 ] && setup_apps
 [ "$DO_DOTFILES" -eq 1 ] && setup_dotfiles
 [ "$DO_DOTFILES" -eq 1 ] && setup_apps
 [ "$DO_SYSTEM" -eq 1 ] && setup_ai

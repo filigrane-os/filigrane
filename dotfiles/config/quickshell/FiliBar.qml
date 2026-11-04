@@ -55,10 +55,11 @@ PanelWindow {
 
     // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
     RowLayout {
+        id: leftRow
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
 
-        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu
+        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu, clic milieu: À propos
         Item {
             Layout.leftMargin: 10
             implicitWidth: 44
@@ -72,9 +73,10 @@ PanelWindow {
             BarHover {
                 objectName: "logo"
                 anchors.fill: parent
-                tip: ({ title: "Filigrane", hint: "clic: menu · clic droit: terminal" })
+                tip: ({ title: "Filigrane", hint: FiliI18n.tr("click: menu · right click: terminal · middle click: about") })
                 click: "setsid -f " + bar.b + "/menu"
                 rclick: "setsid -f foot"
+                onMiddleClicked: FiliAbout.show()
             }
         }
 
@@ -108,9 +110,9 @@ PanelWindow {
                             const id = parent.modelData.id;
                             const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
                             return {
-                                title: "Espace " + parent.modelData.idx,
-                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", "aucune fenêtre"]],
-                                hint: "clic: y aller · molette: précédent / suivant"
+                                title: FiliI18n.tr("Workspace %1", parent.modelData.idx),
+                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
+                                hint: FiliI18n.tr("click: go there · wheel: previous / next")
                             };
                         }
                         onLeftClicked: Niri.action("focus-workspace", String(parent.modelData.idx))
@@ -121,24 +123,20 @@ PanelWindow {
             }
         }
 
-        // Clic milieu ou droit = fermer la fenêtre
-        BarItem {
-            objectName: "window"
-            Layout.maximumWidth: 420
-            text: {
-                const t = Niri.focused?.title ?? "";
-                return t.length > 60 ? t.slice(0, 59) + "…" : t;
-            }
-            color: FiliTheme.brume2
-            tip: Niri.focused ? { title: Niri.focused.app_id, text: Niri.focused.title, hint: "clic droit ou milieu: fermer la fenêtre" } : ""
-            hover.onRightClicked: Niri.action("close-window")
-            hover.onMiddleClicked: Niri.action("close-window")
+        // Menu de l'application active (AppMenu): barre de menus AT-SPI ou menu de repli; remplace le titre de la fenêtre.
+        // Replié sur le nom de l'application seul quand les menus ne tiennent pas avant le premier module de droite
+        BarAppMenu {
+            id: appMenu
+            objectName: "appmenu"
+            bar: bar
+            maxWidth: Math.max(0, rightRow.x - leftRow.x - appMenu.x - FiliTheme.space3)
         }
     }
 
-    // ───────── Centre: indicateurs, tiroir, horloge ─────────
+    // ───────── Droite: indicateurs, tiroir, média, ressources, système, date, batterie ─────────
     RowLayout {
-        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
+        id: rightRow
+        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
 
         // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
@@ -148,15 +146,15 @@ PanelWindow {
             BarScript { objectName: "whatsapp"; value: BarState.whatsapp; click: bar.b + "/bar-alert open whatsapp" }
             BarScript { objectName: "cal"; value: BarState.cal; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
             // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
-            BarScript { objectName: "rec"; cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
+            BarScript { objectName: "rec"; title: FiliI18n.tr("Recording"); cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
             // Session SSH entrante, mode avion (clic = désactiver), VPN: écrits par bar-stats quand l'état change
-            BarScript { objectName: "remote"; stat: "remote"; color: FiliTheme.cendre }
-            BarScript { objectName: "air"; stat: "air"; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
-            BarScript { objectName: "vpn"; stat: "vpn" }
+            BarScript { objectName: "remote"; title: "SSH"; stat: "remote"; color: FiliTheme.cendre }
+            BarScript { objectName: "air"; title: FiliI18n.tr("Airplane mode"); stat: "air"; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
+            BarScript { objectName: "vpn"; title: "VPN"; stat: "vpn" }
             // Rapports de veille non lus, clic = les lire
-            BarScript { objectName: "news"; cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
+            BarScript { objectName: "news"; title: FiliI18n.tr("News"); cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
             // Mises à jour xbps (masqué s'il n'y en a pas), clic = mettre à jour dans un terminal flottant
-            BarScript { objectName: "update"; cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
+            BarScript { objectName: "update"; title: FiliI18n.tr("Updates"); cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
         }
 
         // Tiroir (BarState, bar-tray toggle): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
@@ -198,6 +196,7 @@ PanelWindow {
             // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
             BarScript {
                 objectName: "backup"
+                title: FiliI18n.tr("Backup")
                 value: BarState.backup
                 colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
                 click: bar.b + "/bar-backup run"
@@ -206,96 +205,7 @@ PanelWindow {
             BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
         }
 
-        // Clic = Proton Calendar, survol = calendrier (molette: mois précédent/suivant, clic milieu: mois courant)
-        Item {
-            id: clockItem
-            implicitWidth: clockText.implicitWidth + 2 * FiliTheme.pad
-            implicitHeight: FiliTheme.barHeight
-            SystemClock { id: clock; precision: SystemClock.Minutes }
-            // Minuteur ou chronomètre en cours (bar-timer, état lu par BarState): remplace la date
-            readonly property var timerState: BarState.timer
-            readonly property bool timing: timerState["class"] !== "idle"
-            Label {
-                id: clockText
-                anchors.centerIn: parent
-                text: clockItem.timing ? clockItem.timerState.text : Qt.locale("C").toString(clock.date, "ddd dd MMM  HH:mm")
-                color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
-                // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
-                font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
-                font.weight: Font.Normal
-            }
-            MouseArea {
-                objectName: "clock"
-                anchors.fill: parent
-                hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                onContainsMouseChanged: if (containsMouse) { closeCal.stop(); cal.shift = 0; cal.show(); } else if (!cal.pinned) closeCal.restart()
-                onClicked: m => press(m.button)
-                // Clic (appelé aussi par les tests)
-                function press(button) {
-                    if (button === Qt.LeftButton) {
-                        FiliTheme.run(bar.b + "/webapp https://calendar.proton.me");
-                    } else if (button === Qt.MiddleButton) {
-                        cal.shift = 0;
-                    } else {
-                        cal.pinned = !cal.pinned;
-                        if (cal.pinned)
-                            cal.show();
-                        else
-                            cal.visible = false;
-                    }
-                }
-                onWheel: w => cal.shift += w.angleDelta.y > 0 ? -1 : 1
-            }
-            // Laisse le temps d'aller de l'horloge au calendrier (minuteur cliquable)
-            Timer {
-                id: closeCal
-                interval: 250
-                onTriggered: if (!cal.pinned && !cal.hovered) cal.visible = false
-            }
-            // Calendrier épinglé: un clic ailleurs sur l'écran le ferme. Fenêtre transparente sous la barre, percée à
-            // l'emplacement du calendrier (centré sous l'horloge, 4 px sous la barre) pour que ses boutons restent cliquables.
-            PanelWindow {
-                id: dismiss
-                visible: cal.pinned && cal.visible && !FiliTheme.testing
-                screen: bar.screen
-                anchors { top: true; bottom: true; left: true; right: true }
-                margins.top: FiliTheme.barHeight
-                exclusionMode: ExclusionMode.Ignore
-                WlrLayershell.layer: WlrLayer.Top
-                WlrLayershell.namespace: "fili-calendar-dismiss"
-                color: "transparent"
-                mask: Region {
-                    width: dismiss.width
-                    height: dismiss.height
-                    Region {
-                        x: Math.max(0, clockItem.mapToItem(null, clockItem.width / 2, 0).x - cal.implicitWidth / 2)
-                        y: 4
-                        width: cal.implicitWidth
-                        height: cal.implicitHeight
-                        intersection: Intersection.Subtract
-                    }
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.AllButtons
-                    onPressed: FiliShell.popupOpened("")
-                }
-            }
-            FiliCalendar {
-                id: cal
-                anchor.item: clockItem
-                today: clock.date
-            }
-        }
-    }
-
-    // ───────── Droite: média, ressources, système, batterie ─────────
-    RowLayout {
-        anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
-        spacing: 0
-
-        // Clic = lecture/pause, clic milieu = suivant, molette haut/bas = précédent/suivant
+        // Clic = lecture/pause, clic droit = fenêtre du lecteur, clic milieu = suivant, molette haut/bas = précédent/suivant
         BarItem {
             objectName: "media"
             readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
@@ -312,13 +222,18 @@ PanelWindow {
             }
             tip: !player ? "" : {
                 title: player.identity,
-                rows: [["Titre", player.trackTitle], ["Artiste", player.trackArtist], ["Album", player.trackAlbum],
-                       ["État", player.isPlaying ? "lecture" : "pause"],
-                       ["Position", player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
-                hint: "clic: lecture/pause · clic milieu: suivant · molette: précédent / suivant"
+                rows: [[FiliI18n.tr("Title"), player.trackTitle], [FiliI18n.tr("Artist"), player.trackArtist], [FiliI18n.tr("Album"), player.trackAlbum],
+                       [FiliI18n.tr("State"), player.isPlaying ? FiliI18n.tr("playing") : FiliI18n.tr("paused")],
+                       [FiliI18n.tr("Position"), player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
+                hint: FiliI18n.tr("click: play/pause · right click: player window · middle click: next · wheel: previous / next")
             }
             hover.onLeftClicked: player.togglePlaying()
             hover.onMiddleClicked: player.next()
+            hover.onRightClicked: {
+                const id = player ? Niri.playerWindow(Niri.windows, player.dbusName, player.desktopEntry, player.trackTitle) : null;
+                if (id !== null)
+                    Niri.action("focus-window", "--id", String(id));
+            }
             hover.onWheelUp: player.previous()
             hover.onWheelDown: player.next()
         }
@@ -326,13 +241,13 @@ PanelWindow {
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
         Row {
-            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur"
+            BarScript { objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor")
                 Component.onCompleted: FiliPanel.register("monitor", hover, bar) }
-            BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
-            BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: "clic: moniteur" }
+            BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor") }
+            BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar); hint: FiliI18n.tr("click: monitor") }
             BarScript {
                 objectName: "disk"
-                stat: "disk"; hint: "clic: moniteur"
+                stat: "disk"; hint: FiliI18n.tr("click: monitor")
                 colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "monitor", bar)
             }
@@ -340,6 +255,20 @@ PanelWindow {
 
         // Système: sortie audio, clavier, écrans, Bluetooth, réseau, notifications
         Row {
+            // Agent IA (chat FiliChat et sessions des terminaux, fili-ai-session; état lu par BarState): sable et
+            // clignotant quand l'agent attend une réponse (ASK), DONE quand il a fini sans être regardé; clic =
+            // ouvre le panneau de l'agent (sessions, actions), Mod+clic ou clic milieu = ce qui attend (le chat, sinon la
+            // session de terminal qui attend, sinon la dernière, encore: la suivante; aucune: fili-ai), clic droit = choisir l'agent
+            BarScript {
+                objectName: "ai"
+                value: BarState.ai
+                colors: ({ off: FiliTheme.ardoise, idle: FiliTheme.brume2, working: FiliTheme.brume, waiting: FiliTheme.sable, done: FiliTheme.voile })
+                blinkClass: "waiting"
+                rclick: bar.b + "/fili-ai pick"
+                hover.onLeftClicked: hover.meta ? BarState.aiAsk() : FiliPanel.toggle(hover, "agent", bar)
+                hover.onMiddleClicked: BarState.aiAsk()
+                Component.onCompleted: FiliPanel.register("agent", hover, bar)
+            }
             // Sortie audio: clic = muet, molette = volume, clic droit = mixeur (wiremix), clic milieu = sound-tune
             BarItem {
                 objectName: "volume"
@@ -347,19 +276,19 @@ PanelWindow {
                 readonly property int vol: audio ? Math.round(audio.volume * 100) : 0
                 readonly property string kind: FiliTheme.sinkGlyph(bar.sink?.properties)
                 text: !audio ? "" : (kind || (audio.muted ? "" : vol < 34 ? "" : vol < 67 ? "" : ""))
-                    + (audio.muted ? " muet" : " " + vol + "%")
+                    + (audio.muted ? " " + FiliI18n.tr("muted") : " " + vol + "%")
                 color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
                 tip: !audio ? "" : {
-                    title: audio.muted ? "Son coupé" : "Son",
-                    rows: [["Sortie", bar.sink.description || bar.sink.nickname || bar.sink.name], ["Volume", vol + " %"],
-                           ["Entrée", bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
-                    hint: "clic: panneau son · clic milieu: muet · molette: volume · clic droit: mixeur"
+                    title: audio.muted ? FiliI18n.tr("Sound muted") : FiliI18n.tr("Sound"),
+                    rows: [[FiliI18n.tr("Output"), bar.sink.description || bar.sink.nickname || bar.sink.name], [FiliI18n.tr("Volume"), vol + " %"],
+                           [FiliI18n.tr("Input"), bar.source ? (bar.source.description || bar.source.name) : ""]].filter(r => r[1]),
+                    hint: FiliI18n.tr("click: sound panel · middle click: mute · wheel: volume · right click: mixer")
                 }
                 hover.onLeftClicked: FiliPanel.toggle(hover, "audio", bar)
                 Component.onCompleted: FiliPanel.register("audio", hover, bar)
                 hover.onMiddleClicked: audio.muted = !audio.muted
-                hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.05)
-                hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.05)
+                hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.03)
+                hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.03)
                 hover.rclick: bar.b + "/bar-tui wiremix --tab output"
             }
             // Disposition clavier (bépo / qwerty australien): clic = panneau, clic milieu = disposition suivante
@@ -368,9 +297,9 @@ PanelWindow {
                 readonly property string name: Niri.layouts[Niri.layout] ?? ""
                 text: name ? " " + Niri.shortName(name) : ""
                 tip: ({
-                    title: "Clavier",
+                    title: FiliI18n.tr("Keyboard"),
                     rows: Niri.layouts.map((l, i) => [i === Niri.layout ? "●" : "", l]),
-                    hint: "clic: panneau clavier · clic milieu: disposition suivante"
+                    hint: FiliI18n.tr("click: keyboard panel · middle click: next layout")
                 })
                 hover.onLeftClicked: FiliPanel.toggle(hover, "keyboard", bar)
                 Component.onCompleted: FiliPanel.register("keyboard", hover, bar)
@@ -383,8 +312,8 @@ PanelWindow {
                 tipInfo: "display"
                 hover.onLeftClicked: FiliPanel.toggle(hover, "display", bar)
                 Component.onCompleted: FiliPanel.register("display", hover, bar)
-                scrollUp: "brightnessctl -q set 5%+; " + bar.b + "/fili-shell bar refresh 23"
-                scrollDown: "brightnessctl -q set 5%-; " + bar.b + "/fili-shell bar refresh 23"
+                scrollUp: "brightnessctl -q set 3%+; " + bar.b + "/fili-shell bar refresh 23"
+                scrollDown: "brightnessctl -q set 3%-; " + bar.b + "/fili-shell bar refresh 23"
             }
             // Bluetooth (toujours visible, grisé sans adaptateur): clic = panneau (activer, appairer, connecter, oublier)
             BarItem {
@@ -421,12 +350,12 @@ PanelWindow {
                     return " " + connected.length;
                 }
                 color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
-                tip: !adapter ? { title: "Bluetooth", rows: [["État", "aucun adaptateur détecté"]], hint: "clic: panneau Bluetooth" } : {
+                tip: !adapter ? { title: "Bluetooth", rows: [[FiliI18n.tr("State"), FiliI18n.tr("no adapter found")]], hint: FiliI18n.tr("click: Bluetooth panel") } : {
                     title: "Bluetooth",
-                    rows: [[adapter.name, adapter.enabled ? "activé" : "désactivé"]].concat(
+                    rows: [[adapter.name, adapter.enabled ? FiliI18n.tr("on") : FiliI18n.tr("off")]].concat(
                         adapter.devices.values.filter(d => d.paired || d.connected).map(d => [d.name,
-                            (d.connected ? "connecté" : "appairé") + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
-                    hint: "clic: panneau Bluetooth (appairer, connecter, oublier)"
+                            (d.connected ? FiliI18n.tr("connected") : FiliI18n.tr("paired")) + (d.connected && d.batteryAvailable ? ", " + Math.round(d.battery * 100) + " %" : "")])),
+                    hint: FiliI18n.tr("click: Bluetooth panel (pair, connect, forget)")
                 }
                 hover.onLeftClicked: FiliPanel.toggle(hover, "bluetooth", bar)
             }
@@ -446,13 +375,133 @@ PanelWindow {
                 text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
                 color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
                 tip: ({
-                    title: FiliNotification.dnd ? "Ne pas déranger" : "Notifications",
-                    rows: [["Bulles", FiliNotification.dnd ? "masquées" : "affichées"], ["Historique", FiliNotification.history.length + " notification(s)"]],
-                    hint: "clic: fili-notification-center · clic droit: ne pas déranger"
+                    title: FiliNotification.dnd ? FiliI18n.tr("Do not disturb") : FiliI18n.tr("Notifications"),
+                    rows: [[FiliI18n.tr("Pop-ups"), FiliNotification.dnd ? FiliI18n.tr("hidden") : FiliI18n.tr("shown")], [FiliI18n.tr("History"), FiliI18n.tr("%1 notification(s)", FiliNotification.history.length)]],
+                    hint: FiliI18n.tr("click: fili-notification-center · right click: do not disturb")
                 })
                 hover.onLeftClicked: FiliNotification.toggleCenter()
                 Component.onCompleted: FiliPanel.register("center", hover, bar)
                 hover.onRightClicked: FiliNotification.dnd = !FiliNotification.dnd
+            }
+        }
+
+        // Survol = fiche (date, fuseau, prochains événements), clic (gauche ou droit) = calendrier épinglé comme panneau (molette: mois précédent/suivant, clic milieu: mois courant)
+        Item {
+            id: clockItem
+            implicitWidth: clockText.implicitWidth + (clockIcon.visible ? clockIcon.implicitWidth + FiliTheme.labelGap : 0) + 2 * FiliTheme.pad
+            implicitHeight: FiliTheme.barHeight
+            SystemClock { id: clock; precision: SystemClock.Minutes }
+            // Minuteur ou chronomètre en cours (bar-timer, état lu par BarState): remplace la date
+            readonly property var timerState: BarState.timer
+            readonly property bool timing: timerState["class"] !== "idle"
+            // Fiche du survol: date, heure, fuseau, semaine puis prochains événements de l'agenda (BarState.agenda)
+            readonly property var card: {
+                const d = clock.date;
+                const off = -d.getTimezoneOffset();
+                const hm = n => String(n).padStart(2, "0");
+                const utc = "UTC" + (off < 0 ? "−" : "+") + hm(Math.floor(Math.abs(off) / 60)) + ":" + hm(Math.abs(off) % 60);
+                const day = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - new Date(d.getFullYear(), 0, 0)) / 864e5);
+                // Semaine ISO: celle du jeudi de la semaine
+                const thu = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 3 - (d.getDay() + 6) % 7);
+                const week = Math.floor((thu - new Date(thu.getFullYear(), 0, 1)) / 864e5 / 7) + 1;
+                const rows = [
+                    [FiliI18n.tr("Local time"), FiliI18n.locale.toString(d, "HH:mm")],
+                    [FiliI18n.tr("Time zone"), Qt.formatDateTime(d, "tttt") + " (" + Qt.formatDateTime(d, "t") + ", " + utc + ")"],
+                    [FiliI18n.tr("Week"), FiliI18n.tr("%1 · day %2 of the year", week, day)]
+                ];
+                if (timing)
+                    rows.push([FiliI18n.tr("Timer"), timerState.text.trim()]);
+                const today = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+                const ev = BarState.agenda;
+                if (ev === null)
+                    return { title: FiliI18n.locale.toString(d, "dddd d MMMM yyyy"), rows: rows, hint: FiliI18n.tr("click: calendar") };
+                if (ev.length === 0)
+                    rows.push([FiliI18n.tr("Agenda"), FiliI18n.tr("no upcoming event")]);
+                for (const e of ev) {
+                    const s = new Date(e.start * 1000);
+                    const n = Math.round((new Date(s.getFullYear(), s.getMonth(), s.getDate()).getTime() - today) / 864e5);
+                    const when = n === 0 ? FiliI18n.tr("Today") : n === 1 ? FiliI18n.tr("Tomorrow") : FiliI18n.locale.toString(s, "ddd d MMM");
+                    rows.push([when + " " + FiliI18n.locale.toString(s, "HH:mm"), e.title + (e.place ? "  ·  " + e.place : "")]);
+                }
+                return { title: FiliI18n.locale.toString(d, "dddd d MMMM yyyy"), rows: rows, hint: FiliI18n.tr("click: calendar") };
+            }
+            onCardChanged: if (clockMouse.containsMouse) FiliTooltip.update(clockMouse, card)
+            // Icône agenda devant la date, comme les autres modules (le minuteur porte la sienne)
+            Label {
+                id: clockIcon
+                visible: !clockItem.timing
+                anchors { verticalCenter: parent.verticalCenter; right: clockText.left; rightMargin: FiliTheme.labelGap }
+                text: String.fromCodePoint(0xf073)
+                color: FiliTheme.ardoise
+            }
+            Label {
+                id: clockText
+                anchors.centerIn: parent
+                anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0
+                text: clockItem.timing ? clockItem.timerState.text : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
+                color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
+                // Chiffres de largeur fixe: l'horloge ne bouge pas à chaque seconde
+                font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
+                font.weight: Font.Normal
+            }
+            MouseArea {
+                id: clockMouse
+                objectName: "clock"
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                onContainsMouseChanged: if (containsMouse) FiliTooltip.show(this, clockItem.card); else FiliTooltip.hide(this)
+                onClicked: m => press(m.button)
+                // Clic (appelé aussi par les tests)
+                function press(button) {
+                    FiliTooltip.hide();
+                    if (button === Qt.MiddleButton) {
+                        cal.shift = 0;
+                    } else {
+                        cal.pinned = !cal.pinned;
+                        if (cal.pinned) {
+                            cal.shift = 0;
+                            cal.show();
+                        } else {
+                            cal.visible = false;
+                        }
+                    }
+                }
+                onWheel: w => cal.shift += w.angleDelta.y > 0 ? -1 : 1
+            }
+            // Calendrier épinglé: un clic ailleurs sur l'écran le ferme. Fenêtre transparente sous la barre, percée à
+            // l'emplacement du calendrier (centré sous l'horloge, 4 px sous la barre) pour que ses boutons restent cliquables.
+            PanelWindow {
+                id: dismiss
+                visible: cal.pinned && cal.visible && !FiliTheme.testing
+                screen: bar.screen
+                anchors { top: true; bottom: true; left: true; right: true }
+                margins.top: FiliTheme.barHeight
+                exclusionMode: ExclusionMode.Ignore
+                WlrLayershell.layer: WlrLayer.Top
+                WlrLayershell.namespace: "fili-calendar-dismiss"
+                color: "transparent"
+                mask: Region {
+                    width: dismiss.width
+                    height: dismiss.height
+                    Region {
+                        x: Math.max(0, clockItem.mapToItem(null, clockItem.width / 2, 0).x - cal.implicitWidth / 2)
+                        y: 4
+                        width: cal.implicitWidth
+                        height: cal.implicitHeight
+                        intersection: Intersection.Subtract
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.AllButtons
+                    onPressed: FiliShell.popupOpened("")
+                }
+            }
+            FiliCalendar {
+                id: cal
+                anchor.item: clockItem
+                today: clock.date
             }
         }
 

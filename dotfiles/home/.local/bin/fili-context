@@ -1,0 +1,23 @@
+#!/bin/bash
+# Context of the focused application, for the AI assistant (fili-ai). Prints JSON on stdout.
+#
+#   fili-context          the focused window (niri) and, if the application shares its state, that state
+#   fili-context -h       this help
+#
+# Contract for fili-* applications: write $XDG_RUNTIME_DIR/fili/context/<pid>.json (app, about, location, selection...),
+# atomically, on each change, and remove it on exit. Nothing runs in the background: the file is read on demand.
+set -euo pipefail
+case "${1:-}" in -h|--help) sed -n '2,/^set -e/{/^set -e/!p}' "$0"; exit 0 ;; esac
+command -v niri >/dev/null && command -v jq >/dev/null || { echo '{}'; exit 0; }
+win="$(niri msg -j focused-window 2>/dev/null || echo null)"
+pid="$(jq -r '.pid // empty' <<<"$win")"
+# Files left by applications that were killed
+for f in "${XDG_RUNTIME_DIR:-/run/user/$UID}"/fili/context/*.json; do
+    [ -e "$f" ] || continue; p="${f##*/}"; [ -d "/proc/${p%.json}" ] || rm -f "$f"
+done
+file="${XDG_RUNTIME_DIR:-/run/user/$UID}/fili/context/$pid.json"
+if [ -n "$pid" ] && [ -r "$file" ] && [ -d "/proc/$pid" ]; then
+    jq -c --argjson w "$win" '{window: {app_id: $w.app_id, title: $w.title}} + .' "$file"
+else
+    jq -c '{window: {app_id: .app_id, title: .title}}' <<<"$win" 2>/dev/null || echo '{}'
+fi

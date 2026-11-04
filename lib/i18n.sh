@@ -5,14 +5,17 @@
 #
 #   t 'Installing %s' "$name"      printf-style, prints without a newline
 #
-# Language: FILI_LANG, else the first of LC_ALL, LC_MESSAGES, LANG that is set ("fr_FR.UTF-8" -> fr).
+# Language: FILI_LANG, else the user's choice (fili-lang: $XDG_STATE_HOME/filigrane/locale), else the first of LC_ALL,
+# LC_MESSAGES, LANG that is set ("fr_FR.UTF-8" -> fr).
 # The caller sets FILI_LIB to the lib/ directory before sourcing this file. POSIX sh only: it is sourced
 # by sh and bash scripts alike. To add a language, copy lib/i18n/fr.sh and translate the right-hand sides.
 
 if [ -z "${FILI_LANG:-}" ]; then
-    FILI_LANG=${LC_ALL:-${LC_MESSAGES:-${LANG:-en}}}
-    FILI_LANG=${FILI_LANG%%[_.@]*}
+    # The user's choice (fili-lang), read without a subprocess
+    { read -r FILI_LANG < "${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/locale"; } 2>/dev/null || FILI_LANG=
 fi
+[ -n "${FILI_LANG:-}" ] || FILI_LANG=${LC_ALL:-${LC_MESSAGES:-${LANG:-en}}}
+FILI_LANG=${FILI_LANG%%[_.@]*}
 # Letters only: the code ends up in a file name
 case $FILI_LANG in '' | *[!a-z]*) FILI_LANG=en ;; esac
 

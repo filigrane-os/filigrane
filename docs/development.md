@@ -74,7 +74,26 @@ To add or fix a language:
 2. Run `scripts/check-i18n.sh`: it fails on a missing entry, on a different number of placeholders, and on an entry no script uses any more. CI runs it.
 3. Try it: `LANG=<lang>_XX.UTF-8 ./bootstrap.sh --plan`.
 
-Not translated yet: the menu, the waybar scripts, the niri shortcut titles, `config.env` comments and the agent skill. Documentation is in English only.
+### Switching language
+
+`fili-lang set fr|en|system` (or the LANGUAGE row of the keyboard panel, or menu › System › Language) changes the language of the session live, without root or logging out. The choice is a locale in `$XDG_STATE_HOME/filigrane/locale` (empty = the system language, `LOCALE` of `config.env`), read before `LC_ALL`/`LC_MESSAGES`/`LANG` by `lib/i18n.sh`, `FiliI18n.qml` (which follows it at once: `fili-lang` also sends `fili-shell lang`) and `bar-stats` (restarted by the shell). Apps launched afterwards by niri get `LANG` from `~/.config/niri/locale.kdl`, written by `fili-lang` when the glibc locale exists; `bootstrap.sh` generates `LOCALE` and `LOCALES` (one per shipped language). Apps already open keep their language until restarted. The languages offered are English plus each `dotfiles/config/quickshell/i18n/<lang>.json` (its `@name` key is the language's own name).
+
+### fili-shell
+
+The desktop shell (Quickshell QML in `dotfiles/config/quickshell/`) and `bar-stats` share one catalog per language: `dotfiles/config/quickshell/i18n/<lang>.json`, a flat object `{"English text": "translation"}`. Placeholders are `%1`, `%2`... and may be reordered. The special key `@decimal` is the decimal separator. The language follows the same rule as `lib/i18n.sh`; dates (clock, calendar, notification times) use the Qt locale of that language.
+
+```qml
+text: FiliI18n.tr("Battery %1 %", capacity)   // FiliI18n.qml
+```
+```rust
+trf("Battery %1 %", &[&cap])                  // apps/bar-stats/src/i18n.rs; tr("...") without arguments
+```
+
+The bar scripts (`bar-*`, `fili-*`, notifications of `watch-*`, `captive-portal`...) use `lib/i18n.sh` like `bootstrap.sh`, with the guarded header found at the top of `bar-status`. A Python script (`display-save`) calls it through a small `t()` helper. `scripts/check-i18n.sh` checks the JSON catalogs too. To add a language to the shell, copy `fr.json` to `<lang>.json`; `tests/fili-shell/run.sh` runs in English (`FILI_LANG=en`).
+
+The menu keeps its labels in English inside the script (dispatch, key hints, `menu system Lock` from the power panel) and translates them only for display: `item 'System: Lock' "$GLYPH"` for the main list, `choose 'System › ' N 'Lock' ...` for a sub-menu. The fili-launcher shows the translated first column and returns the English second one (`--with-nth 1 --accept-nth 2`). The niri shortcut titles (`hotkey-overlay-title` in `dotfiles/config/niri/config.kdl`) are English too, translated by `fili-hotkeys` and the menu; titles of a personal `local.kdl` are shown as written.
+
+Not translated: `config.env` comments and the agent skill. Documentation is in English only.
 
 ## Rust tools
 

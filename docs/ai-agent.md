@@ -2,9 +2,19 @@
 
 Filigrane ships with a helper that starts an AI coding agent on your machine. The agent can install packages, enable services, change settings and update the system, following the rules in `AGENTS.md` and the `filigrane` skill.
 
-## Starting it
+## The chat drawer (`Mod+Y`)
 
-`Mod+Y` (or the menu › AI) runs `fili-ai`, which starts the chosen agent in its working directory (`~/work` by default, `FILI_AI_WORKDIR`). The repository path is exported as `FILIGRANE_DIR` and is writable by the agent.
+With Claude Code, `Mod+Y` shows or hides a chat drawer on the right edge of the screen, above any application. The conversation stays when the drawer is hidden: a small daemon (`fili-chat`) keeps the agent and the history of each session, and runs only while the drawer is open or an agent is working (idle agents stop after 30 minutes and resume where they were). The header lists the sessions (`Ctrl+L`), `+` or `Ctrl+N` starts a new one, `Return` sends, `Shift+Return` adds a line, `Ctrl+.` interrupts, `Esc` hides. The agent starts in the repository with the rules of `AGENTS.md` and the chat prompt `agents/chat-prompt.md`; it follows `FILI_AI_MODEL` and `FILI_AI_ARGS`. Sessions and history live in `~/.local/state/filigrane/chat/`.
+
+**Sessions and applications.** A session can be linked to an application. When you open the drawer, the session linked to the active application is resumed (otherwise the last one stays); it never switches while the drawer is open, nor during a turn. The link is created by sending a message with the context chip active, or with *Session › New Session for This Application* (`Ctrl+Shift+N`); *Unlink from Application* removes it, and the session list shows each session's application. `follow = "app"` (default), `"window"` (application and window title) or `"off"` in `fili-chat.toml`.
+
+**Menu.** While the drawer has the keyboard focus, the bar shows its menu (Chat, Session, View): new / list / rename (`F2`) / stop / archive a session (it stays in *All sessions*, the list button at the bottom of the tabs, and can be restored), allow or deny a permission, remove the context note, and the presentation. **View** chooses how the drawer sits on screen: *Dock Beside Windows* (default: it keeps its place at the right of the screen and the windows shrink to its left) or *Float Above Windows* (over the windows without moving them), and its width (narrow 360, medium 440, wide 560). The choice is remembered (`~/.local/state/filigrane/chat-view`); defaults go in `~/.config/filigrane/fili-chat.toml` (`mode = "dock"`, `width = 440`, `follow = "app"`; delete `chat-view` to go back to the file), opened by *Settings…*. The same commands exist as `fili-shell chat ACTION` (`new`, `sessions`, `rename`, `stop`, `float`, `dock`...).
+
+Clicking the AI icon in the bar shows or hides the drawer too (middle click goes to a terminal session, right click chooses the agent). The icon shows `ASK` (blinking) when the agent waits for a permission and `DONE` when an answer was finished while the drawer was hidden. When the agent needs a permission it would ask for in a terminal, a card with Allow / Deny appears in the thread (`Ctrl+Return` allows, `Ctrl+Backspace` denies); with `--dangerously-skip-permissions` in `FILI_AI_ARGS` nothing is asked, except what the `guard-destructive` hook flags. `Mod+Y` also notes the active application: a context chip above the input (click × to drop it) is joined to your next message.
+
+## Starting it in a terminal
+
+`Mod+Shift+Y` (or the menu › AI) runs `fili-ai`, which starts the chosen agent in its working directory (`~/work` by default, `FILI_AI_WORKDIR`). The repository path is exported as `FILIGRANE_DIR` and is writable by the agent.
 
 ```
 fili-ai [prompt]          start the agent, optionally with a first prompt

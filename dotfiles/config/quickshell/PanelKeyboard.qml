@@ -1,5 +1,5 @@
-// fili-panel clavier: dispositions xkb de la session niri (Niri.layouts), choix direct ou retour à la précédente,
-// visualiseur de clavier (clic = frappe via wtype) et sélecteur d'emoji (clic = copie dans le presse-papiers et frappe)
+// fili-panel clavier: dispositions xkb de la session niri (Niri.layouts), choix direct ou retour à la précédente, langue
+// de la session (fili-lang), visualiseur de clavier (clic = frappe via wtype) et sélecteur d'emoji (clic = copie dans le presse-papiers et frappe)
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -7,7 +7,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     // "layouts" | "viewer" | "emoji"
     property string page: "layouts"
     // Le visualiseur ne prend pas le focus clavier: la frappe de wtype doit arriver dans la fenêtre d'avant (voir FiliPanel)
@@ -109,7 +109,7 @@ ColumnLayout {
             visible: view.page !== "layouts"
             text: "‹"
             color: FiliTheme.brume2
-            font { family: FiliTheme.font; pixelSize: 16 }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
             MouseArea {
                 objectName: "back"
                 anchors { fill: parent; margins: -6 }
@@ -118,16 +118,16 @@ ColumnLayout {
             }
         }
         Text {
-            text: view.page === "viewer" ? "Visualiseur de clavier" : view.page === "emoji" ? "Emoji" : "Clavier"
+            text: view.page === "viewer" ? FiliI18n.tr("Keyboard viewer") : view.page === "emoji" ? FiliI18n.tr("Emoji") : FiliI18n.tr("Keyboard")
             color: FiliTheme.voile
-            font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
     }
 
     // ───── dispositions ─────
     // Rétroéclairage du clavier (stat display de bar-stats, en %), -1: absent
     property real keys: (FiliShell.stats.display?.kbd ?? -1) < 0 ? -1 : FiliShell.stats.display.kbd / 100
-    PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: "DISPOSITIONS" }
+    PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: FiliI18n.tr("LAYOUTS") }
     Repeater {
         model: view.page === "layouts" ? Niri.layouts : []
         PanelButton {
@@ -145,37 +145,75 @@ ColumnLayout {
         objectName: "previous"
         visible: view.page === "layouts" && view.hasPrevious
         glyph: "↺"
-        label: "Disposition précédente"
+        label: FiliI18n.tr("Previous layout")
         detail: view.hasPrevious ? Niri.shortName(Niri.layouts[Niri.previousLayout]) : ""
         onClicked: Niri.selectLayout(Niri.previousLayout)
     }
     Text {
         visible: view.page === "layouts" && Niri.layouts.length === 0
-        text: "Aucune disposition détectée"
+        text: FiliI18n.tr("No layout found")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
-    PanelSection { visible: view.page === "layouts"; text: "OUTILS" }
+    // Langue de la session (fili-lang): le shell, la barre, le menu et les scripts basculent tout de suite
+    property var languages: []
+    Process {
+        id: langs
+        running: true
+        command: [FiliTheme.bin + "/fili-lang", "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    view.languages = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    Connections {
+        target: FiliI18n
+        function onLangChanged() {
+            langs.running = true;
+        }
+    }
+    readonly property var language: languages.find(l => l.code === FiliI18n.lang) ?? null
+    PanelSection { visible: view.page === "layouts" && view.languages.length > 1; text: FiliI18n.tr("LANGUAGE") }
+    PanelChips {
+        objectName: "language"
+        visible: view.page === "layouts" && view.languages.length > 1
+        model: view.languages.map(l => ({ label: l.name, value: l.code }))
+        current: FiliI18n.lang
+        onPicked: v => FiliTheme.run(FiliTheme.bin + "/fili-lang set " + v)
+    }
+    Text {
+        visible: view.page === "layouts" && view.language !== null && !view.language.available
+        Layout.fillWidth: true
+        Layout.maximumWidth: 300
+        wrapMode: Text.Wrap
+        text: FiliI18n.tr("Dates and other apps: run ./bootstrap.sh to install this language")
+        color: FiliTheme.ardoise
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+    }
+    PanelSection { visible: view.page === "layouts"; text: FiliI18n.tr("TOOLS") }
     PanelButton {
         objectName: "open-viewer"
         visible: view.page === "layouts"
         glyph: ""
-        label: "Visualiseur de clavier"
+        label: FiliI18n.tr("Keyboard viewer")
         onClicked: view.page = "viewer"
     }
     PanelButton {
         objectName: "open-emoji"
         visible: view.page === "layouts"
         glyph: ""
-        label: "Emoji"
+        label: FiliI18n.tr("Emoji")
         onClicked: view.page = "emoji"
     }
     PanelButton {
         objectName: "open-hotkeys"
         visible: view.page === "layouts"
         glyph: "\uf11c"
-        label: "Raccourcis clavier"
-        detail: "Super+Maj+/"
+        label: FiliI18n.tr("Keyboard shortcuts")
+        detail: FiliI18n.tr("Super+Shift+/")
         onClicked: {
             FiliPanel.close();
             FiliHotkeys.show();
@@ -183,10 +221,10 @@ ColumnLayout {
     }
     Text {
         visible: view.page === "layouts" && Niri.layouts.length > 1
-        Layout.topMargin: 4
-        text: "Dispositions: XKB_LAYOUT dans config.env"
+        Layout.topMargin: FiliTheme.space1
+        text: FiliI18n.tr("Layouts: XKB_LAYOUT in config.env")
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
     // ───── visualiseur ─────
@@ -208,14 +246,14 @@ ColumnLayout {
                         readonly property var lv: modelData.l[view.level][0] !== "NoSymbol" ? modelData.l[view.level] : modelData.l[0]
                         objectName: "key"
                         width: view.unit - 2; height: view.unit - 2
-                        radius: 4
+                        radius: FiliTheme.radiusControl
                         color: keyArea.pressed ? FiliTheme.nuit4 : keyArea.containsMouse ? FiliTheme.nuit3 : "transparent"
-                        border { color: FiliTheme.nuit4; width: 1 }
+                        border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                         Text {
                             anchors.centerIn: parent
                             text: key.lv[1] || (key.lv[0] !== "NoSymbol" ? "◌" : "")
                             color: key.lv[1] ? FiliTheme.brume : FiliTheme.ardoise
-                            font { family: FiliTheme.font; pixelSize: 12 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }
                         MouseArea {
                             id: keyArea
@@ -234,22 +272,22 @@ ColumnLayout {
         spacing: 2
         Repeater {
             model: [
-                { id: "shift", label: "Maj", w: 2 }, { id: "altgr", label: "AltGr", w: 2 },
-                { id: "space", label: "Espace", w: 5.5 }, { id: "BackSpace", label: "⌫", w: 1.5 }, { id: "Return", label: "⏎", w: 1.5 }
+                { id: "shift", label: FiliI18n.tr("Shift"), w: 2 }, { id: "altgr", label: "AltGr", w: 2 },
+                { id: "space", label: FiliI18n.tr("Space"), w: 5.5 }, { id: "BackSpace", label: "⌫", w: 1.5 }, { id: "Return", label: "⏎", w: 1.5 }
             ]
             Rectangle {
                 required property var modelData
                 objectName: "mod-" + modelData.id
                 readonly property bool on: modelData.id === "shift" ? view.shift : modelData.id === "altgr" ? view.altgr : false
                 width: modelData.w * view.unit - 2; height: view.unit - 2
-                radius: 4
+                radius: FiliTheme.radiusControl
                 color: on ? FiliTheme.voile : modAreaCol.containsMouse ? FiliTheme.nuit3 : "transparent"
-                border { color: FiliTheme.nuit4; width: 1 }
+                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                 Text {
                     anchors.centerIn: parent
                     text: modelData.label
                     color: parent.on ? FiliTheme.nuit : FiliTheme.brume
-                    font { family: FiliTheme.font; pixelSize: 12 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                 }
                 MouseArea {
                     id: modAreaCol
@@ -269,12 +307,12 @@ ColumnLayout {
     }
     Text {
         visible: view.page === "viewer"
-        Layout.topMargin: 4
-        text: "clic: tape la touche dans la fenêtre active · Maj / AltGr: niveau suivant"
+        Layout.topMargin: FiliTheme.space1
+        text: FiliI18n.tr("click: types the key in the active window · Shift / AltGr: next level")
         wrapMode: Text.Wrap
         Layout.fillWidth: true
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
     // ───── emoji ─────
@@ -282,12 +320,12 @@ ColumnLayout {
         visible: view.page === "emoji"
         Layout.fillWidth: true
         implicitHeight: 28
-        radius: 6
+        radius: FiliTheme.radiusControl
         color: FiliTheme.nuit3
         TextInput {
             id: search
             objectName: "search"
-            anchors { fill: parent; leftMargin: 8; rightMargin: 8 }
+            anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
             verticalAlignment: TextInput.AlignVCenter
             color: FiliTheme.brume
             selectionColor: FiliTheme.ardoise
@@ -300,7 +338,7 @@ ColumnLayout {
             Text {
                 visible: !search.text
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Rechercher (smile, heart, thumbs…)"
+                text: FiliI18n.tr("Search (smile, heart, thumbs…)")
                 color: FiliTheme.ardoise
                 font: search.font
             }
@@ -316,7 +354,7 @@ ColumnLayout {
                 id: cell
                 objectName: "emoji"
                 width: 39; height: 36
-                radius: 6
+                radius: FiliTheme.radiusControl
                 color: emojiArea.containsMouse ? FiliTheme.nuit3 : "transparent"
                 // Clavier: ←/→ (comme ↑/↓) d'emoji en emoji, Entrée ou Espace = choisir
                 activeFocusOnTab: true
@@ -345,15 +383,15 @@ ColumnLayout {
     property string hovered: ""
     Text {
         visible: view.page === "emoji"
-        text: view.hovered || (view.found.length === 0 ? "Aucun résultat" : "clic: copie et tape dans la fenêtre active")
+        text: view.hovered || (view.found.length === 0 ? FiliI18n.tr("No result") : FiliI18n.tr("click: copies and types in the active window"))
         elide: Text.ElideRight
         Layout.fillWidth: true
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 12 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
     // Rétroéclairage du clavier: tout en bas de la page des dispositions
-    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: "RÉTROÉCLAIRAGE" }
+    PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: FiliI18n.tr("BACKLIGHT") }
     PanelSlider {
         objectName: "keys"
         visible: view.page === "layouts" && view.keys >= 0

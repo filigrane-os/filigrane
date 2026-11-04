@@ -1,6 +1,6 @@
-# Tâches périodiques de la distribution (format: voir ~/.local/bin/cron-watch)
+# Periodic tasks of the distribution (format: see ~/.local/bin/cron-watch)
 void:360:watch-void:
-# Sauvegarde restic: sortie silencieuse tant que ~/.config/restic/env n'existe pas
+# restic backup: silent output as long as ~/.config/restic/env does not exist
 backup:1440:watch-backup:
-# Plafonds de budget (apps/budget): notification si dépassés, deux fois par jour
+# Budget ceilings (apps/budget): notification when exceeded, twice a day
 budget:720:budget:check --notify

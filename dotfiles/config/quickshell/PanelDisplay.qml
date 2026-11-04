@@ -1,7 +1,8 @@
 // fili-panel écrans (inspiré de omarchy-hyprmoncfg): les écrans en canvas (glisser pour les placer, aimantation aux
 // bords), puis pour l'écran choisi allumage, définition, fréquence, échelle, rotation et VRR. Les changements passent
-// par `niri msg output` (temporaires, appliqués tout de suite); définition, échelle, rotation et extinction sont à
-// confirmer sous 15 s, sinon retour à l'état d'avant. « Enregistrer » écrit le profil kanshi (display-save),
+// par `niri msg output` (temporaires, appliqués tout de suite); définition, rotation et extinction sont à confirmer
+// sous 15 s (ou à la fermeture du panneau), sinon retour à l'état d'avant. L'échelle s'applique sans confirmation: elle
+// ne rend jamais l'écran inutilisable et se rechoisit d'un clic. « Enregistrer » écrit le profil kanshi (display-save),
 // réappliqué à chaque branchement d'écran. En bas: luminosité de l'écran interne (lue par bar-stats, réglée par
 // brightnessctl), apparence sombre/claire (fili-theme) et veilleuse.
 import QtQuick
@@ -10,7 +11,7 @@ import Quickshell.Io
 
 ColumnLayout {
     id: view
-    spacing: 4
+    spacing: FiliTheme.space1
     // Sorties triées par nom (niri msg -j outputs); logical = null pour une sortie éteinte
     property var outputs: []
     property string sel: ""
@@ -133,8 +134,8 @@ ColumnLayout {
             apply(o.name, "mode " + modeArg(m), true);
     }
     function setScale(o, s) {
-        apply(o.name, "scale " + s, true);
         // les voisins se recalent: la taille logique change
+        apply(o.name, "scale " + s, false);
     }
     function setTransform(o, t) {
         apply(o.name, "transform " + t, true);
@@ -199,9 +200,9 @@ ColumnLayout {
     readonly property var transforms: [["normal", "0°"], ["90", "90°"], ["180", "180°"], ["270", "270°"]].map(t => ({ label: t[1], value: t[0] }))
 
     Text {
-        text: "Écrans"
+        text: FiliI18n.tr("Displays")
         color: FiliTheme.voile
-        font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
 
     // Canvas: sorties allumées à l'échelle, glisser pour déplacer
@@ -227,7 +228,7 @@ ColumnLayout {
 
         Rectangle {
             anchors.fill: parent
-            radius: 6
+            radius: FiliTheme.radiusControl
             color: FiliTheme.nuit3
             opacity: 0.4
         }
@@ -242,10 +243,10 @@ ColumnLayout {
                 y: canvas.offY + (r.y - canvas.box.y) * canvas.k
                 width: r.w * canvas.k
                 height: r.h * canvas.k
-                radius: 3
+                radius: FiliTheme.radiusMark
                 color: picked ? FiliTheme.nuit4 : FiliTheme.nuit
                 border.color: picked ? FiliTheme.voile : FiliTheme.ardoise
-                border.width: 1
+                border.width: FiliTheme.borderWidth
                 Text {
                     anchors.centerIn: parent
                     width: parent.width - 4
@@ -253,7 +254,7 @@ ColumnLayout {
                     elide: Text.ElideRight
                     text: tile.modelData.name
                     color: tile.picked ? FiliTheme.voile : FiliTheme.brume2
-                    font { family: FiliTheme.font; pixelSize: 11 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
                 }
                 MouseArea {
                     anchors.fill: parent
@@ -284,7 +285,7 @@ ColumnLayout {
     }
     Text {
         visible: view.outputs.length === 0
-        text: "Aucun écran détecté"
+        text: FiliI18n.tr("No display found")
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
@@ -292,7 +293,7 @@ ColumnLayout {
     // Choix de l'écran quand il y en a plusieurs (ou un éteint)
     PanelChips {
         visible: view.outputs.length > 1
-        model: view.outputs.map(o => ({ label: o.name + (o.logical ? "" : " (éteint)"), value: o.name }))
+        model: view.outputs.map(o => ({ label: o.name + (o.logical ? "" : " " + FiliI18n.tr("(off)")), value: o.name }))
         current: view.sel
         onPicked: v => view.sel = v
     }
@@ -301,13 +302,13 @@ ColumnLayout {
     RowLayout {
         visible: view.cur !== null
         Layout.fillWidth: true
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         Text {
             text: view.cur ? ((view.cur.make ?? "") + " " + (view.cur.model ?? "")).trim() || view.cur.name : ""
             color: FiliTheme.brume
             Layout.fillWidth: true
             elide: Text.ElideRight
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: Font.Medium }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
         PanelSwitch {
             objectName: "power"
@@ -318,7 +319,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { visible: view.curMode !== null; divided: false; text: "DÉFINITION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
         visible: view.curMode !== null
@@ -326,7 +327,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.width + "x" + view.curMode.height : ""
         onPicked: v => view.setResolution(view.cur, view.resolutions.find(r => r.value === v))
     }
-    PanelSection { visible: view.refreshes.length > 1; divided: false; text: "FRÉQUENCE" }
+    PanelSection { visible: view.refreshes.length > 1; divided: false; text: FiliI18n.tr("REFRESH RATE") }
     PanelChips {
         objectName: "refresh"
         visible: view.refreshes.length > 1
@@ -334,7 +335,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.refresh_rate : 0
         onPicked: v => view.setRefresh(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: "ÉCHELLE" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("SCALE") }
     PanelChips {
         objectName: "scale"
         visible: view.curMode !== null
@@ -342,7 +343,7 @@ ColumnLayout {
         current: view.cur && view.cur.logical ? view.cur.logical.scale : 0
         onPicked: v => view.setScale(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: "ROTATION" }
+    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("ROTATION") }
     PanelChips {
         objectName: "transform"
         visible: view.curMode !== null
@@ -353,9 +354,9 @@ ColumnLayout {
     RowLayout {
         visible: view.cur !== null && view.cur.vrr_supported && view.cur.logical !== null
         Layout.fillWidth: true
-        Layout.topMargin: 4
+        Layout.topMargin: FiliTheme.space1
         Text {
-            text: "Fréquence variable (VRR)"
+            text: FiliI18n.tr("Variable refresh rate (VRR)")
             color: FiliTheme.brume
             Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }
@@ -372,35 +373,35 @@ ColumnLayout {
         objectName: "confirm"
         visible: view.snap !== null
         Layout.fillWidth: true
-        Layout.topMargin: 6
+        Layout.topMargin: FiliTheme.space2
         implicitHeight: 34
-        radius: 6
+        radius: FiliTheme.radiusControl
         color: FiliTheme.nuit3
         RowLayout {
-            anchors { fill: parent; leftMargin: 10; rightMargin: 6 }
+            anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
             Text {
-                text: "Garder ces réglages ? " + view.secs + " s"
+                text: FiliI18n.tr("Keep these settings? %1 s", view.secs)
                 color: FiliTheme.sable
                 Layout.fillWidth: true
                 font { family: FiliTheme.font; pixelSize: FiliTheme.size }
             }
             PanelChips {
                 Layout.fillWidth: false
-                model: [{ label: "Garder", value: "keep" }, { label: "Annuler", value: "revert" }]
+                model: [{ label: FiliI18n.tr("Keep"), value: "keep" }, { label: FiliI18n.tr("Cancel"), value: "revert" }]
                 onPicked: v => v === "keep" ? view.keep() : view.revert()
             }
         }
     }
 
-    PanelSection { divided: false; text: "PROFIL" }
+    PanelSection { divided: false; text: FiliI18n.tr("PROFILE") }
     PanelButton {
         objectName: "save"
         glyph: ""
-        label: "Enregistrer pour ces écrans"
+        label: FiliI18n.tr("Save for these displays")
         detail: "kanshi"
         onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
     }
-    PanelSection { visible: view.screen >= 0; text: "LUMINOSITÉ" }
+    PanelSection { visible: view.screen >= 0; text: FiliI18n.tr("BRIGHTNESS") }
     PanelSlider {
         objectName: "screen"
         visible: view.screen >= 0
@@ -413,10 +414,10 @@ ColumnLayout {
     }
 
     // Mode sombre (défaut) ou clair: shell, GTK, navigateur (portail), foot, niri, fond d'écran (fili-theme)
-    PanelSection { text: "APPARENCE" }
+    PanelSection { text: FiliI18n.tr("APPEARANCE") }
     PanelChips {
         objectName: "theme"
-        model: [{ label: "Sombre", value: "dark" }, { label: "Clair", value: "light" }]
+        model: [{ label: FiliI18n.tr("Dark"), value: "dark" }, { label: FiliI18n.tr("Light"), value: "light" }]
         current: FiliTheme.mode
         onPicked: v => {
             FiliTheme.mode = v;
@@ -424,11 +425,67 @@ ColumnLayout {
         }
     }
 
-    PanelSection { text: "VEILLEUSE" }
+    // Couleur d'accentuation (fili-theme accent): focus des fenêtres niri, sélections du shell et de fili-file
+    PanelSection { text: FiliI18n.tr("ACCENT COLOR") }
+    Row {
+        id: accents
+        objectName: "accent"
+        spacing: FiliTheme.space2
+        readonly property var names: ["voile", "ardoise", "sauge", "sable", "cendre", "brume"]
+        readonly property var labels: ({ voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
+        property int cursor: Math.max(0, names.indexOf(FiliTheme.accentName))
+        function pick(n) {
+            FiliTheme.accent = n;
+            FiliTheme.run(FiliTheme.bin + "/fili-theme accent " + n);
+        }
+        activeFocusOnTab: true
+        Keys.onLeftPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.max(0, cursor - 1); }
+        Keys.onRightPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.min(names.length - 1, cursor + 1); }
+        Keys.onReturnPressed: pick(names[cursor])
+        Keys.onSpacePressed: pick(names[cursor])
+        Repeater {
+            model: accents.names
+            Rectangle {
+                id: dot
+                required property string modelData
+                required property int index
+                readonly property bool on: modelData === FiliTheme.accentName
+                width: 22
+                height: 22
+                radius: width / 2
+                color: "transparent"
+                border.width: on ? 2 : 0
+                border.color: FiliTheme.brume
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 14
+                    height: 14
+                    radius: 7
+                    color: FiliTheme.accentTones[dot.modelData][FiliTheme.light ? 2 : 0]
+                }
+                FocusRing {
+                    shown: accents.activeFocus && accents.cursor === dot.index
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: accents.pick(dot.modelData)
+                }
+            }
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: accents.labels[FiliTheme.accentName]
+            color: FiliTheme.brume2
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+        }
+    }
+
+    PanelSection { text: FiliI18n.tr("NIGHT LIGHT") }
     RowLayout {
         Layout.fillWidth: true
         Text {
-            text: "Teinte chaude (4500 K)"
+            text: FiliI18n.tr("Warm tint (4500 K)")
             color: FiliTheme.brume
             Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }

@@ -12,10 +12,15 @@
 #   fili-shell notification history                   historique en JSON (champs de makoctl history -j)
 #   fili-shell launcher [options fuzzel]                  fili-launcher façon `fuzzel --dmenu`: entrées sur stdin, choix sur
 #       stdout, code 1 si annulé, 10 pour Maj+Retour arrière. Options: --prompt P, --prompt-only P, --lines N,
-#       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N (colonnes séparées par tabulation);
+#       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N, --search-nth N (colonnes séparées par tabulation; la colonne --search-nth
+#       est cherchée sans être affichée: mots-clés);
 #       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
 #   fili-shell launcher close                             ferme le fili-launcher s'il est ouvert (code 0), sinon code 1
+#   fili-shell appmenu [close]                        ouvre au clavier le menu de l'application active (Mod+F10), ou le ferme
 #   fili-shell hotkeys                                ouvre/ferme la fenêtre des raccourcis clavier (fili-hotkeys)
+#   fili-shell chat [ACTION]                          tiroir fili-chat: toggle (défaut), show, close, new, sessions, rename, stop, float, dock... (Mod+Y: `fili-chat toggle`, qui note aussi l'application active)
+#   fili-shell about                                  ouvre/ferme la fenêtre « À propos » (fili-about: Filigrane, système, machine)
+#   fili-shell lang                                   relit la langue choisie (fili-lang)
 #   fili-shell reload                                 recharge la config
 D="${XDG_RUNTIME_DIR:-/tmp}"
 F="$D/fili-shell"
@@ -33,7 +38,7 @@ request() {
     cat "$r"
     rm -f "$r"
 }
-usage() { sed -n '6,19p' "$0" >&2; exit 2; }
+usage() { sed -n '6,23p' "$0" >&2; exit 2; }
 
 case "$1 $2" in
     "bar refresh") shift 2; send "bar refresh $*"; exit 0 ;;
@@ -43,14 +48,18 @@ case "$1 $2" in
     "panel "*) send "panel $2"; exit 0 ;;
     "notification history") request "notification history"; exit ;;
     "launcher close") [ "$(request "launcher close")" = 1 ]; exit ;;
+    "appmenu "*) send "appmenu ${2:-toggle}"; exit 0 ;;
     "hotkeys "*) send "hotkeys toggle"; exit 0 ;;
+    "about "*) send "about toggle"; exit 0 ;;
+    "chat "*) send "chat ${2:-toggle}${3:+ $3}"; exit 0 ;;
+    "lang "*) send "lang reload"; exit 0 ;;
     "reload "*) send reload; exit 0 ;;
     "launcher "*) shift ;;
     *) usage ;;
 esac
 
 # fili-launcher: options en JSON et entrées dans des fichiers lus par le shell
-prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''
+prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''; search=''
 while [ $# -gt 0 ]; do
     case "$1" in
         --dmenu|--minimal-lines) ;;
@@ -63,6 +72,7 @@ while [ $# -gt 0 ]; do
         --no-sort) nosort=1 ;;
         --with-nth) with="$2"; shift ;;
         --accept-nth) accept="$2"; shift ;;
+        --search-nth) search="$2"; shift ;;
         --placeholder|--nth-delimiter) shift ;;
     esac
     shift
@@ -71,9 +81,9 @@ in="$(mktemp "$D/fili-launcher.XXXXXX")"
 trap 'rm -f "$in" "$in.json"' EXIT
 [ "$only" = 1 ] || cat > "$in"
 jq -nc --arg p "$prompt" --argjson o "$only" --arg l "$lines" --arg w "$width" --arg f "$font" --argjson s "$nosort" \
-    --arg wn "$with" --arg an "$accept" --arg in "$in" \
+    --arg wn "$with" --arg an "$accept" --arg sn "$search" --arg in "$in" \
     '{prompt: $p, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
-      noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), input: $in}' > "$in.json"
+      noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), searchNth: ($sn | tonumber? // 0), input: $in}' > "$in.json"
 out="$(request "launcher open $in.json")" || exit 1
 # Réponse: code de sortie sur la première ligne, sélection ensuite
 rc="${out%%

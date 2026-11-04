@@ -18,7 +18,7 @@ Item {
 
     Rectangle {
         visible: sec.ruled
-        anchors { left: parent.left; right: parent.right; top: parent.top; topMargin: 8 }
+        anchors { left: parent.left; right: parent.right; top: parent.top; topMargin: FiliTheme.space2 }
         height: 1
         color: FiliTheme.nuit4
     }
@@ -26,7 +26,7 @@ Item {
         id: label
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         color: FiliTheme.ardoise
-        font { family: FiliTheme.font; pixelSize: 11; letterSpacing: 1 }
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
     }
 
     // Sans filet seulement la première section visible et collée au titre de la vue (y < 40): après une fiche, un

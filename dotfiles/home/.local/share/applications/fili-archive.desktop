@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Archive
+Name[fr]=Archive
+Comment=Extract archives
+Comment[fr]=Extraire des archives
+Exec=fili-archive open %F
+Icon=package-x-generic
+Categories=System;Archiving;Compression;
+MimeType=application/zip;application/x-7z-compressed;application/vnd.rar;application/x-rar;application/x-tar;application/x-compressed-tar;application/x-bzip-compressed-tar;application/x-xz-compressed-tar;application/x-zstd-compressed-tar;application/zstd;application/gzip;
+NoDisplay=true
+Terminal=false

@@ -1,11 +1,12 @@
 // Fiches des fili-tooltip et fili-panel (réseau, alimentation, moniteur), en JSON {title, hint, rows: [[libellé, valeur]...]}
 // (lignes à valeur vide retirées). Demandées par la barre sur l'entrée standard (`info SUJET`, réponse `info SUJET JSON`)
 // ou en ligne de commande (`bar-stats info SUJET`). Lues dans /proc et /sys; seuls `iw` (Wi-Fi) et `ping` sont lancés.
+use crate::i18n::{self, tr, trf};
 use crate::{Usage, ac_online, counter, default_iface, human, ipv4};
 use std::{fs, net::Ipv4Addr, net::Ipv6Addr, process};
 
 // Chaîne JSON échappée
-fn js(s: &str) -> String {
+pub fn js(s: &str) -> String {
     let mut o = String::from("\"");
     for c in s.chars() {
         match c {
@@ -76,7 +77,9 @@ pub fn ping_cmd(gw: Ipv4Addr) -> process::Command {
     c
 }
 
-const NET_HINT: &str = "clic: panneau réseau · clic droit: menu réseau";
+fn net_hint() -> &'static str {
+    tr("click: network panel · right click: network menu")
+}
 
 // Fiche réseau; ping: temps vers la passerelle s'il est déjà mesuré
 pub fn network(ping: &str) -> String {
@@ -89,19 +92,19 @@ pub fn network(ping: &str) -> String {
             .filter(|n| n != "lo")
             .collect();
         all.sort();
-        return card("Hors ligne", NET_HINT, &[("Interfaces", all.join(" "))]);
+        return card(tr("Offline"), net_hint(), &[(tr("Interfaces"), all.join(" "))]);
     };
     let gw = gateway(&iface).map(|g| g.to_string()).unwrap_or_default();
     let ip4 = ipv4(&iface).map(|(a, p)| format!("{a}/{p}")).unwrap_or_default();
     let common = |mut rows: Vec<(&'static str, String)>| {
         rows.extend([
-            ("Adresse IP", ip4.clone()),
+            (tr("IP address"), ip4.clone()),
             ("IPv6", ipv6(&iface)),
-            ("Passerelle", gw.clone()),
-            ("Ping passerelle", ping.to_string()),
+            (tr("Gateway"), gw.clone()),
+            (tr("Gateway ping"), ping.to_string()),
             ("DNS", dns()),
-            ("Reçu", human(counter(&iface, "rx_bytes") as f64)),
-            ("Envoyé", human(counter(&iface, "tx_bytes") as f64)),
+            (tr("Received"), human(counter(&iface, "rx_bytes") as f64)),
+            (tr("Sent"), human(counter(&iface, "tx_bytes") as f64)),
         ]);
         rows
     };
@@ -116,23 +119,23 @@ pub fn network(ping: &str) -> String {
         let band = freq
             .map(|f| {
                 let (b, c) = if f >= 5925 {
-                    ("6 GHz", (f - 5950) / 5)
+                    ("6".into(), (f - 5950) / 5)
                 } else if f >= 4900 {
-                    ("5 GHz", (f - 5000) / 5)
+                    ("5".into(), (f - 5000) / 5)
                 } else {
-                    ("2,4 GHz", if f == 2484 { 14 } else { (f - 2407) / 5 })
+                    (i18n::num(2.4, 1), if f == 2484 { 14 } else { (f - 2407) / 5 })
                 };
-                format!("{b}, canal {c}")
+                trf("%1 GHz, channel %2", &[&b, &c])
             })
             .unwrap_or_default();
         let two = |k: &str| val(k).split_whitespace().take(2).collect::<Vec<_>>().join(" ");
         let rate = format!("{} ↓  {} ↑", two("rx bitrate:"), two("tx bitrate:"));
-        let rows = common(vec![("Signal", q), ("Bande", band), ("Débit du lien", rate), ("Interface", iface.clone())]);
-        card(&val("SSID:"), NET_HINT, &rows)
+        let rows = common(vec![(tr("Signal"), q), (tr("Band"), band), (tr("Link rate"), rate), (tr("Interface"), iface.clone())]);
+        card(&val("SSID:"), net_hint(), &rows)
     } else {
         let speed = read(&format!("/sys/class/net/{iface}/speed"));
         let speed = if speed.is_empty() || speed.starts_with('-') { String::new() } else { format!("{speed} Mbit/s") };
-        card(&format!("Ethernet {iface}"), NET_HINT, &common(vec![("Vitesse", speed)]))
+        card(&format!("Ethernet {iface}"), net_hint(), &common(vec![(tr("Speed"), speed)]))
     }
 }
 
@@ -141,7 +144,7 @@ pub fn power() -> String {
     let r = |f: &str| read(&format!("{b}/{f}"));
     let cap = r("capacity");
     if cap.is_empty() {
-        return card("Secteur", "clic: menu système", &[]);
+        return card(tr("Mains power"), tr("click: system menu"), &[]);
     }
     let st = r("status");
     let num = |f: &str| r(f).parse::<f64>().ok();
@@ -155,7 +158,7 @@ pub fn power() -> String {
         Some(v) => c * v / 1e12,
         None => c / 1e6,
     };
-    let watts = if w > 0.05 { format!("{w:.1} W") } else { String::new() };
+    let watts = if w > 0.05 { format!("{} W", i18n::num(w, 1)) } else { String::new() };
     let full_v = full.unwrap_or(0.0);
     let t = if c > 0.0 && st == "Discharging" {
         now / c
@@ -168,26 +171,27 @@ pub fn power() -> String {
     let health = design.filter(|d| *d > 0.0).map(|d| format!("{} %", (full_v * 100.0 / d) as i64)).unwrap_or_default();
     let ac = ac_online() == Some(true);
     let (state, tl) = match st.as_str() {
-        "Discharging" => ("Sur batterie".to_string(), "Temps restant"),
-        "Charging" => ("En charge".to_string(), "Pleine dans"),
+        "Discharging" => (tr("On battery").to_string(), tr("Time left")),
+        "Charging" => (tr("Charging").to_string(), tr("Full in")),
         // "Full" sous 99 %: seuil de charge atteint (batterie préservée), comme "Holding" dans Omarchy
-        "Full" => {
-            ((if cap.parse::<u8>().unwrap_or(100) < 99 { "Branchée, charge limitée" } else { "Pleine" }).to_string(), "Temps")
-        }
-        _ => (if ac { "Branchée, charge en pause".to_string() } else { st.clone() }, "Temps"),
+        "Full" => (
+            (if cap.parse::<u8>().unwrap_or(100) < 99 { tr("Plugged in, charge limited") } else { tr("Full") }).to_string(),
+            tr("Time"),
+        ),
+        _ => (if ac { tr("Plugged in, charging paused").to_string() } else { st.clone() }, tr("Time")),
     };
     let model = format!("{} {}", r("manufacturer"), r("model_name"));
     card(
-        &format!("Batterie {cap} %"),
-        "clic: panneau alimentation · clic droit: menu système",
+        &trf("Battery %1 %", &[&cap]),
+        tr("click: power panel · right click: system menu"),
         &[
-            ("État", state),
+            (tr("State"), state),
             (tl, hours),
-            ("Consommation", watts),
-            ("Alimentation", (if ac { "Secteur" } else { "Batterie" }).into()),
-            ("Santé", health),
-            ("Cycles", r("cycle_count")),
-            ("Modèle", model.trim().to_string()),
+            (tr("Power draw"), watts),
+            (tr("Power source"), (if ac { tr("Mains") } else { tr("Battery") }).into()),
+            (tr("Health"), health),
+            (tr("Cycles"), r("cycle_count")),
+            (tr("Model"), model.trim().to_string()),
         ],
     )
 }
@@ -219,8 +223,9 @@ pub fn monitor(usage: &Usage) -> String {
     };
     let gio = 1_048_576.0;
     let (mt, ma, st, sf) = (field("MemTotal:"), field("MemAvailable:"), field("SwapTotal:"), field("SwapFree:"));
-    let mem = format!("{:.1} / {:.1} Gio", (mt - ma) / gio, mt / gio);
-    let swap = if st > 0.0 { format!("{:.1} / {:.1} Gio", (st - sf) / gio, st / gio) } else { String::new() };
+    let mem = trf("%1 / %2 GiB", &[&i18n::num((mt - ma) / gio, 1), &i18n::num(mt / gio, 1)]);
+    let swap =
+        if st > 0.0 { trf("%1 / %2 GiB", &[&i18n::num((st - sf) / gio, 1), &i18n::num(st / gio, 1)]) } else { String::new() };
     // SAFETY: statvfs remplit une structure initialisée à zéro, chemin C valide
     let mut s: libc::statvfs = unsafe { std::mem::zeroed() };
     let disk = if unsafe { libc::statvfs(c"/".as_ptr(), &mut s) } == 0 {
@@ -241,19 +246,19 @@ pub fn monitor(usage: &Usage) -> String {
         .unwrap_or_default();
     let up = read("/proc/uptime").split_whitespace().next().and_then(|v| v.parse::<f64>().ok()).unwrap_or(0.0) as u64;
     let (d, h, m) = (up / 86400, up % 86400 / 3600, up % 3600 / 60);
-    let up = format!("{}{h} h {m:02}", if d > 0 { format!("{d} j ") } else { String::new() });
-    let top: Vec<String> = usage.top.iter().map(|(n, p)| format!("{n} {p:.1} %")).collect();
+    let up = if d > 0 { trf("%1 d %2 h %3", &[&d, &h, &format!("{m:02}")]) } else { trf("%1 h %2", &[&h, &format!("{m:02}")]) };
+    let top: Vec<String> = usage.top.iter().map(|(n, p)| format!("{n} {} %", i18n::num(*p, 1))).collect();
     card(
-        "Système",
+        tr("System"),
         "",
         &[
-            ("Charge", load.join("  ")),
-            ("Mémoire", mem),
-            ("Swap", swap),
-            ("Disque /", disk),
-            ("Température", temp),
-            ("Allumé depuis", up),
-            ("Processus", top.join(", ")),
+            (tr("Load"), load.join("  ")),
+            (tr("Memory"), mem),
+            (tr("Swap"), swap),
+            (tr("Disk /"), disk),
+            (tr("Temperature"), temp),
+            (tr("Uptime"), up),
+            (tr("Processes"), top.join(", ")),
         ],
     )
 }

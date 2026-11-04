@@ -1,4 +1,4 @@
-/* Filigrane (brand.md), mode clair sur Adwaita: papier, texte nuit, accent ardoise (importé par gtk.css via theme.css) */
+/* Filigrane (brand.md), light mode on Adwaita: paper, night text, slate accent (imported by gtk.css through theme.css) */
 @define-color theme_bg_color #f3f1ec;
 @define-color theme_base_color #f8f7f3;
 @define-color theme_fg_color #1c222b;
@@ -23,12 +23,3 @@
 @define-color wm_bg #f3f1ec;
 @define-color wm_title #1c222b;
 
-/* Thunar: barre latérale un ton plus soutenu, lignes aérées, coins arrondis */
-.thunar .sidebar, .thunar .sidebar row, .thunar placessidebar { background-color: #e9e6df; }
-.thunar .sidebar row { border-radius: 6px; margin: 1px 6px; padding: 2px 4px; }
-.thunar .sidebar row:selected { background-color: #dfdbd2; color: #3f5a78; }
-.thunar toolbar, .thunar .toolbar { background-color: #f3f1ec; border: none; padding: 4px; }
-.thunar treeview.view row { padding: 2px 0; }
-.thunar treeview.view:selected, .thunar iconview:selected { background-color: #cdc8bd; color: #1c222b; }
-.thunar paned > separator { background-color: #dfdbd2; }
-.thunar statusbar { color: #4f5e70; }

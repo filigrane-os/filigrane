@@ -6,6 +6,7 @@ pragma Singleton
 //   tiroir    $XDG_RUNTIME_DIR/bar-tray-open          présent = ouvert (bar-tray toggle)
 //   minuteur  $XDG_RUNTIME_DIR/bar-timer              "T <fin>" | "S <début>" | "done" (bar-timer click/add/expire)
 //   sauvegarde                                         stat backup de bar-stats, gardée visible 10 s après la fin
+//   agent IA   $XDG_RUNTIME_DIR/fili-ai/state.json     sessions de Claude Code et limites du forfait (fili-ai-session)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -38,6 +39,9 @@ Singleton {
     Watched { id: whatsappF; path: st.alerts + "/whatsapp" }
     Watched { id: whatsappC; path: st.alerts + "/whatsapp.count" }
     Watched { id: calF; path: st.alerts + "/cal" }
+    // Prochains événements de l'agenda (cal-notify, couche personnelle): null sans fichier
+    Watched { id: agendaF; path: Quickshell.env("HOME") + "/.local/state/agenda" }
+    readonly property var agenda: agendaF.exists ? rows(agendaF.content).filter(r => Number(r[0]) > minute - 60).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" })) : null
     Watched { id: calC; path: st.alerts + "/cal.count" }
 
     // Instant (s) qui fait expirer les événements de l'agenda, avancé chaque minute tant qu'il y en a
@@ -69,13 +73,15 @@ Singleton {
     // count: contenu de <kind>.count (compteur réel de non-lus, prioritaire), null s'il n'existe pas
     function alert(kind, text, count, now) {
         const r = rows(text);
-        const tip = r.slice(-8).map(x => x[0] + ": " + (x[1] ?? "")).join("\n");
+        // Fiches au standard de la fili-tooltip: titre à gauche, lignes expéditeur / sujet à droite
+        const lines = r.slice(-8).map(x => [x[0], x[1] ?? ""]);
         const wa = String.fromCodePoint(0xf05a3);
+        const name = { mail: "Proton Mail", cal: "Proton Calendar", whatsapp: "WhatsApp" }[kind];
         if (count !== null) {
             const n = parseInt(count);
             if (!(n > 0))
                 return empty;
-            return { text: wa + " " + n, class: "active", tooltip: (tip ? tip + "\n" : "") + n + " non lu(s) (clic: ouvrir la webapp)" };
+            return { text: wa + " " + n, class: "active", tooltip: { title: name, rows: [[FiliI18n.tr("Unread"), String(n)]].concat(lines), hint: FiliI18n.tr("click: open the web app") } };
         }
         if (r.length === 0)
             return empty;
@@ -87,23 +93,23 @@ Singleton {
             const title = live[0][2] ?? "";
             const short = title.length > 28 ? title.slice(0, 27) + "…" : title;
             return { text: " " + short + " " + (live[0][1] ?? ""), class: "active",
-                     tooltip: live.map(x => x[1] + " " + x[2]).join("\n") + "\n(clic: ouvrir Proton Calendar)" };
+                     tooltip: { title: name, rows: live.map(x => [x[1], x[2] ?? ""]), hint: FiliI18n.tr("click: open %1", name) } };
         }
         if (kind === "mail")
-            return { text: " " + r.length, class: "active", tooltip: tip + "\n(clic: ouvrir Proton Mail)" };
-        return { text: wa + " " + r.length, class: "active", tooltip: tip + "\n(clic: ouvrir la webapp)" };
+            return { text: " " + r.length, class: "active", tooltip: { title: name, rows: lines, hint: FiliI18n.tr("click: open %1", name) } };
+        return { text: wa + " " + r.length, class: "active", tooltip: { title: name, rows: lines, hint: FiliI18n.tr("click: open the web app") } };
     }
     function drawer(kind, a) {
         if (!trayOpen || a.text !== "")
             return empty;
-        const [g, name] = { mail: ["", "Proton Mail"], cal: ["", "Proton Calendar"] }[kind] ?? [String.fromCodePoint(0xf05a3), kind];
-        return { text: g, class: "idle", tooltip: name + " (clic: ouvrir)" };
+        const [g, name] = { mail: ["", "Proton Mail"], cal: ["", "Proton Calendar"] }[kind] ?? [String.fromCodePoint(0xf05a3), "WhatsApp"];
+        return { text: g, class: "idle", tooltip: { title: name, hint: FiliI18n.tr("click: open") } };
     }
 
     // ───── tiroir ─────
     Watched { id: trayF; path: st.run + "/bar-tray-open" }
     readonly property bool trayOpen: trayF.exists
-    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: "Replier" } : { text: "", tooltip: "Afficher la sauvegarde" }
+    readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: fold") } } : { text: "", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: show the backup") } }
 
     // ───── sauvegarde ─────
     // Repliée, visible seulement en cours ou en échec; repassée au repos, elle reste 10 s (pour pouvoir la relancer
@@ -136,6 +142,119 @@ Singleton {
         // FileView ne voit pas naître un fichier dans un dossier absent
         if (!FiliTheme.testing)
             Quickshell.execDetached(["mkdir", "-p", alerts]);
+    }
+
+    // ───── agent IA ─────
+    // Sessions écrites par fili-ai-session (hooks et status line de Claude Code): état, fenêtre niri, contexte, coût;
+    // limites du forfait gardées après la dernière session. Fenêtre d'une session qui attend regardée: plus de mise en
+    // avant (fili-ai-session seen)
+    Watched { id: aiF; path: st.run + "/fili-ai/state.json" }
+    property var aiData: ({ sessions: [], limits: null })
+    readonly property string aiText: aiF.content
+    onAiTextChanged: {
+        try {
+            aiData = aiText.trim() ? JSON.parse(aiText) : { sessions: [], limits: null };
+        } catch (e) {
+            // Fichier en cours d'écriture: l'état précédent reste
+        }
+        aiSeen();
+    }
+    // Le chat (FiliChat) s'ajoute aux sessions des terminaux: permission demandée = ASK, réponse non lue = DONE
+    readonly property var ai: aiChat(aiFor(aiData, Niri.focusedId, Niri.windows), FiliChat.attention, FiliChat.busy)
+    function aiChat(base, attention, busy) {
+        const icon = String.fromCodePoint(0xf06a9);
+        const rows = base.tooltip.rows.filter(r => r[0] !== FiliI18n.tr("Sessions") || r[1] !== FiliI18n.tr("none"));
+        const chat = attention === "waiting" ? FiliI18n.tr("waiting for you") : busy ? FiliI18n.tr("working") : attention === "done" ? FiliI18n.tr("finished") : "";
+        if (chat)
+            rows.unshift([FiliI18n.tr("Chat"), chat]);
+        const card = Object.assign({}, base.tooltip, { rows: rows });
+        if (attention === "waiting")
+            return { text: icon + " ASK", class: "waiting", tooltip: card };
+        if (base.class === "waiting")
+            return Object.assign({}, base, { tooltip: card });
+        if (attention === "done")
+            return { text: icon + " DONE", class: "done", tooltip: card };
+        if (busy && (base.class === "off" || base.class === "idle"))
+            return { text: base.text, class: "working", tooltip: card };
+        return Object.assign({}, base, { tooltip: card });
+    }
+    // Go to what is asking: the chat when it waits for an answer, else the terminal session that waits (or the next one)
+    function aiAsk() {
+        if (FiliChat.attention === "waiting")
+            FiliChat.show();
+        else
+            FiliTheme.run(FiliTheme.bin + "/fili-ai-session focus");
+    }
+    Connections {
+        target: Niri
+        function onFocusedIdChanged() {
+            st.aiSeen();
+        }
+    }
+    function aiSeen() {
+        for (const s of aiData.sessions ?? [])
+            if (s.attention && s.window !== undefined && s.window === Niri.focusedId)
+                FiliTheme.run(FiliTheme.bin + "/fili-ai-session seen " + s.id);
+    }
+    // Nom d'une session: titre de sa fenêtre (sujet donné par Claude Code, sans son indicateur d'activité ✳ ◐ ⠋...), sinon son dossier
+    function aiName(s, windows) {
+        const title = (windows?.[s.window]?.title ?? "").replace(/^[\u2000-\u2bff\s]+/, "");
+        return title || (s.cwd ?? "").split("/").filter(x => x).pop() || "~";
+    }
+    // Ligne de limite du forfait: usage, remise à zéro, jauge et repère du rythme régulier (part écoulée de la
+    // fenêtre: 5 h ou 7 jours), comme le « pace » du panneau des agents d'Omarchy
+    function aiLimit(label, l, span, fmt, now) {
+        if (!l || l.used_percentage === undefined)
+            return null;
+        const reset = l.resets_at ? " · " + FiliI18n.tr("resets %1", FiliI18n.locale.toString(new Date(l.resets_at * 1000), fmt)) : "";
+        const mark = l.resets_at ? 1 - (l.resets_at - now) / span : -1;
+        return [label, Math.round(l.used_percentage) + " %" + reset, { value: l.used_percentage / 100, mark: mark }];
+    }
+    // now: instant (s), l'heure courante par défaut (fixé par les tests)
+    function aiFor(data, focused, windows, now) {
+        const icon = String.fromCodePoint(0xf06a9);
+        const sessions = data?.sessions ?? [];
+        // Une session regardée en ce moment n'appelle plus l'attention
+        const calls = sessions.filter(s => s.attention && s.window !== focused);
+        const rows = sessions.slice(0, 6).map(s => {
+            const state = { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s.state] ?? FiliI18n.tr("ready");
+            const parts = [state];
+            if (s.ctx !== undefined && s.ctx !== null)
+                parts.push(FiliI18n.tr("context %1 %", Math.round(s.ctx)));
+            if (s.cost)
+                parts.push(FiliI18n.num(s.cost, 2) + " $");
+            if (s.model)
+                parts.push(s.model);
+            return [aiName(s, windows), parts.join(" · ")];
+        });
+        const waitMsg = sessions.find(s => s.state === "waiting" && s.message)?.message;
+        if (waitMsg)
+            rows.push(["", waitMsg]);
+        if (sessions.length === 0)
+            rows.push([FiliI18n.tr("Sessions"), FiliI18n.tr("none")]);
+        const lim = data?.limits;
+        now = now ?? Date.now() / 1000;
+        const five = aiLimit(FiliI18n.tr("5-hour limit"), lim?.five_hour, 5 * 3600, "HH:mm", now);
+        const week = aiLimit(FiliI18n.tr("Weekly limit"), lim?.seven_day, 7 * 86400, "ddd HH:mm", now);
+        if (five)
+            rows.push(five);
+        if (week)
+            rows.push(week);
+        if ((five || week) && lim.seen && now - lim.seen > 900)
+            rows.push(["", FiliI18n.tr("as of %1", FiliI18n.locale.toString(new Date(lim.seen * 1000), "ddd HH:mm"))]);
+        const card = {
+            title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
+            rows: rows,
+            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent")
+        };
+        if (calls.some(s => s.state === "waiting"))
+            return { text: icon + " ASK", class: "waiting", tooltip: card };
+        if (calls.length)
+            return { text: icon + " DONE", class: "done", tooltip: card };
+        const working = sessions.filter(s => s.state === "working").length;
+        if (sessions.length)
+            return { text: icon + (sessions.length > 1 ? " " + sessions.length : ""), class: working ? "working" : "idle", tooltip: card };
+        return { text: icon, class: "off", tooltip: card };
     }
 
     // ───── minuteur / chronomètre ─────
@@ -171,11 +290,11 @@ Singleton {
         const icon = "";
         now = Math.floor(now);
         if (kind === "")
-            return { text: icon, class: "idle", tooltip: "Minuteur / chronomètre (clic: choisir)" };
+            return { text: icon, class: "idle", tooltip: FiliI18n.tr("Timer / stopwatch (click: choose)") };
         if (kind === "S")
-            return { text: icon + " " + fmt(Math.max(0, now - val)), class: "stopwatch", tooltip: "Chronomètre (clic: arrêter)" };
+            return { text: icon + " " + fmt(Math.max(0, now - val)), class: "stopwatch", tooltip: FiliI18n.tr("Stopwatch (click: stop)") };
         if (kind === "T" && val - now > 0)
-            return { text: icon + " " + fmt(val - now), class: "active", tooltip: "Minuteur (clic: annuler, clic droit: +5 min)" };
-        return { text: icon + " 00:00", class: "done", tooltip: "Terminé (clic: acquitter)" };
+            return { text: icon + " " + fmt(val - now), class: "active", tooltip: FiliI18n.tr("Timer (click: cancel, right click: +5 min)") };
+        return { text: icon + " 00:00", class: "done", tooltip: FiliI18n.tr("Done (click: dismiss)") };
     }
 }

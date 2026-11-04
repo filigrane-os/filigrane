@@ -3,6 +3,8 @@ pragma Singleton
 // durée selon l'urgence (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées).
 // fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
 // Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); croix ou clic droit: fermer.
+// Les autres actions de la notification (notify-send -A id=Texte) sont des boutons sous le texte, trois au plus, le
+// premier mis en avant (fili-ai-ask: Autoriser / Refuser); une bulle à boutons reste 60 s, ou le délai demandé (notify-send -t), le temps de répondre.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -21,7 +23,24 @@ Singleton {
     onCenterOpenChanged: FiliShell.centerOpen = centerOpen
     property int serial: 0
 
+    // Actions proposées en boutons (hors « default », le clic sur la bulle)
+    function buttons(n) {
+        return n.actions.filter(a => a.identifier !== "default").slice(0, 3);
+    }
+    // Réponse à une action: l'appli est prévenue (ActionInvoked), la bulle se ferme
+    function answer(n, identifier) {
+        const a = n.actions.find(x => x.identifier === identifier);
+        if (a)
+            a.invoke();
+        close(n, "dismiss");
+    }
+    // Low-battery alert (bar-status batwatch): stays until the user closes it
+    function sticky(n) {
+        return n.appName === "fili-battery";
+    }
     function timeout(n) {
+        if (buttons(n).length > 0)
+            return n.expireTimeout > 0 ? n.expireTimeout : 60000;
         return n.urgency === NotificationUrgency.Critical ? 10000 : n.urgency === NotificationUrgency.Low ? 3000 : 5000;
     }
     function icon(n) {
@@ -135,7 +154,7 @@ Singleton {
         ColumnLayout {
             id: stack
             width: 360
-            spacing: 8
+            spacing: FiliTheme.space2
             Repeater {
                 model: notifs.popups.slice(-4).reverse()
                 Card {
@@ -153,22 +172,24 @@ Singleton {
         readonly property bool low: n.urgency === NotificationUrgency.Low
         readonly property bool critical: n.urgency === NotificationUrgency.Critical
         readonly property string img: notifs.icon(n)
-        implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56))
+        readonly property var btns: notifs.buttons(n)
+        implicitHeight: Math.min(140, Math.max(row.implicitHeight + 28, 56)) + (btns.length > 0 ? 40 : 0)
         color: FiliTheme.nuit
-        radius: 12
-        border.width: 1
-        border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.nuit4
+        radius: FiliTheme.radiusWindow
+        border.width: FiliTheme.borderWidth
+        border.color: critical ? FiliTheme.cendre : low ? FiliTheme.nuit3 : FiliTheme.border
         clip: true
 
         Timer {
-            running: !area.containsMouse && !closeBtn.hovered
+            running: !area.containsMouse && !closeBtn.hovered && !notifs.sticky(card.n)
             interval: notifs.timeout(card.n)
             onTriggered: notifs.close(card.n, "expire")
         }
         RowLayout {
             id: row
-            anchors { fill: parent; margins: 14; rightMargin: 34 }
-            spacing: 12
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space3; rightMargin: 34 }
+            height: Math.min(140, Math.max(row.implicitHeight + 28, 56)) - 2 * FiliTheme.space3
+            spacing: FiliTheme.space3
             IconImage {
                 visible: card.img !== ""
                 source: card.img
@@ -184,7 +205,7 @@ Singleton {
                     text: card.n.summary
                     elide: Text.ElideRight
                     color: card.low ? FiliTheme.brume2 : FiliTheme.brume
-                    font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                 }
                 Text {
                     Layout.fillWidth: true
@@ -196,21 +217,21 @@ Singleton {
                     elide: Text.ElideRight
                     color: card.low ? FiliTheme.brume2 : FiliTheme.brume
                     linkColor: FiliTheme.voile
-                    font { family: FiliTheme.font; pixelSize: 14 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                     onLinkActivated: l => Qt.openUrlExternally(l)
                 }
                 // Barre de progression (indice "value")
                 Rectangle {
                     visible: card.n.hints.value !== undefined
                     Layout.fillWidth: true
-                    Layout.topMargin: 4
+                    Layout.topMargin: FiliTheme.space1
                     implicitHeight: 4
-                    radius: 2
+                    radius: FiliTheme.radiusMark
                     color: FiliTheme.nuit3
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(100, card.n.hints.value ?? 0)) / 100
                         height: parent.height
-                        radius: 2
+                        radius: FiliTheme.radiusMark
                         color: FiliTheme.voile
                     }
                 }
@@ -223,9 +244,43 @@ Singleton {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: m => m.button === Qt.LeftButton ? notifs.activate(card.n) : notifs.close(card.n, "dismiss")
         }
+        // Boutons d'action (au-dessus de la zone de clic de la bulle)
+        Row {
+            z: 2
+            visible: card.btns.length > 0
+            anchors { right: parent.right; bottom: parent.bottom; margins: FiliTheme.space3 }
+            spacing: FiliTheme.space2
+            Repeater {
+                model: card.btns
+                Rectangle {
+                    id: btn
+                    required property var modelData
+                    required property int index
+                    objectName: "notif-action-" + modelData.identifier
+                    height: 24
+                    width: label.implicitWidth + 2 * FiliTheme.space3
+                    radius: FiliTheme.radiusControl
+                    color: index === 0 ? (btnArea.containsMouse ? FiliTheme.voileVif : FiliTheme.voile) : btnArea.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
+                    Text {
+                        id: label
+                        anchors.centerIn: parent
+                        text: btn.modelData.text
+                        color: btn.index === 0 ? FiliTheme.nuit : FiliTheme.brume
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList; weight: FiliTheme.weightAccent }
+                    }
+                    MouseArea {
+                        id: btnArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: notifs.answer(card.n, btn.modelData.identifier)
+                    }
+                }
+            }
+        }
         CloseCross {
             id: closeBtn
-            anchors { top: parent.top; right: parent.right; margins: 8 }
+            anchors { top: parent.top; right: parent.right; margins: FiliTheme.space2 }
             onClicked: notifs.close(card.n, "dismiss")
         }
     }
@@ -237,13 +292,13 @@ Singleton {
         readonly property bool hovered: crossArea.containsMouse
         width: 22
         height: 22
-        radius: 6
+        radius: FiliTheme.radiusControl
         color: hovered ? FiliTheme.nuit3 : "transparent"
         Text {
             anchors.centerIn: parent
             text: "\u2715"
             color: cross.hovered ? FiliTheme.brume : FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: 12 }
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
         }
         MouseArea {
             id: crossArea
@@ -276,7 +331,7 @@ Singleton {
             width: 380
             height: Math.min((centerWin.screen?.height ?? 800) - FiliTheme.barHeight - 24, col.implicitHeight + 28)
             color: FiliTheme.nuit
-            radius: 12
+            radius: FiliTheme.radiusWindow
             border { width: 1; color: FiliTheme.nuit4 }
             focus: true
             Keys.onEscapePressed: notifs.centerOpen = false
@@ -305,20 +360,20 @@ Singleton {
 
             ColumnLayout {
                 id: col
-                anchors { fill: parent; margins: 14 }
-                spacing: 8
+                anchors { fill: parent; margins: FiliTheme.space5 }
+                spacing: FiliTheme.space2
                 RowLayout {
                     Layout.fillWidth: true
                     Text {
                         Layout.fillWidth: true
-                        text: "Notifications" + (notifs.dnd ? "  ·  ne pas déranger" : "")
+                        text: FiliI18n.tr("Notifications") + (notifs.dnd ? "  ·  " + FiliI18n.tr("do not disturb") : "")
                         color: FiliTheme.voile
-                        font { family: FiliTheme.font; pixelSize: 15; weight: Font.Medium }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                     }
                     Text {
                         text: notifs.dnd ? "" : ""
                         color: notifs.dnd ? FiliTheme.sable : FiliTheme.ardoise
-                        font { family: FiliTheme.font; pixelSize: 15 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         MouseArea { anchors.fill: parent; onClicked: notifs.dnd = !notifs.dnd }
                         objectName: "center-dnd"
                         activeFocusOnTab: true
@@ -327,10 +382,10 @@ Singleton {
                         FocusRing { gap: 4 }
                     }
                     Text {
-                        text: "Effacer"
+                        text: FiliI18n.tr("Clear")
                         visible: notifs.history.length > 0
                         color: FiliTheme.ardoise
-                        font { family: FiliTheme.font; pixelSize: 13 }
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         MouseArea { anchors.fill: parent; onClicked: notifs.history = [] }
                         activeFocusOnTab: true
                         Keys.onReturnPressed: notifs.history = []
@@ -340,16 +395,16 @@ Singleton {
                 }
                 Text {
                     visible: notifs.history.length === 0
-                    text: "Aucune notification"
+                    text: FiliI18n.tr("No notifications")
                     color: FiliTheme.ardoise
-                    font { family: FiliTheme.font; pixelSize: 13 }
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                 }
                 ListView {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     implicitHeight: contentHeight
                     clip: true
-                    spacing: 6
+                    spacing: FiliTheme.space2
                     boundsBehavior: Flickable.StopAtBounds
                     model: notifs.history
                     KineticScroll {}
@@ -359,7 +414,7 @@ Singleton {
                         required property int index
                         width: ListView.view.width
                         implicitHeight: Math.max(entry.implicitHeight, 32) + 16
-                        radius: 9
+                        radius: FiliTheme.radiusControl
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
                         // Clavier: Entrée ou Espace = copier (comme le clic), Suppr = retirer; la liste suit le focus
                         objectName: "center-item"
@@ -370,8 +425,8 @@ Singleton {
                         Keys.onDeletePressed: notifs.history = notifs.history.filter(x => x !== item.modelData)
                         FocusRing {}
                         RowLayout {
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: 8; rightMargin: 32 }
-                            spacing: 10
+                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: FiliTheme.space2; rightMargin: 32 }
+                            spacing: FiliTheme.space2
                             // Icône de l'appli ou de l'image de la notification (vide: un carré discret garde l'alignement)
                             IconImage {
                                 implicitSize: 32
@@ -384,13 +439,13 @@ Singleton {
                                 implicitWidth: 32
                                 implicitHeight: 32
                                 Layout.alignment: Qt.AlignTop
-                                radius: 8
+                                radius: FiliTheme.radiusControl
                                 color: FiliTheme.nuit3
                                 Text {
                                     anchors.centerIn: parent
                                     text: ""
                                     color: FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 15 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                 }
                             }
                             ColumnLayout {
@@ -399,16 +454,16 @@ Singleton {
                                 spacing: 1
                                 Text {
                                     Layout.fillWidth: true
-                                    text: item.modelData.app + "  ·  " + Qt.formatTime(item.modelData.time, "HH:mm")
+                                    text: item.modelData.app + "  ·  " + FiliI18n.locale.toString(item.modelData.time, "HH:mm")
                                     color: FiliTheme.ardoise
-                                    font { family: FiliTheme.font; pixelSize: 12 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                                 }
                                 Text {
                                     Layout.fillWidth: true
                                     text: item.modelData.summary
                                     elide: Text.ElideRight
                                     color: FiliTheme.brume
-                                    font { family: FiliTheme.font; pixelSize: 14; weight: Font.Medium }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
                                 }
                                 Text {
                                     Layout.fillWidth: true
@@ -418,7 +473,7 @@ Singleton {
                                     maximumLineCount: 2
                                     elide: Text.ElideRight
                                     color: FiliTheme.brume2
-                                    font { family: FiliTheme.font; pixelSize: 13 }
+                                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                 }
                             }
                         }
@@ -436,7 +491,7 @@ Singleton {
                             }
                         }
                         CloseCross {
-                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: 6 }
+                            anchors { right: parent.right; verticalCenter: parent.verticalCenter; rightMargin: FiliTheme.space2 }
                             visible: hov.containsMouse || hovered
                             onClicked: notifs.history = notifs.history.filter(x => x !== parent.modelData)
                         }
@@ -450,7 +505,7 @@ Singleton {
                 }
                 // Sons (FiliSound): nouvelle notification et chargeur branché
                 Repeater {
-                    model: [["notify", "Son des notifications"], ["plug", "Son du chargeur branché"]]
+                    model: [["notify", FiliI18n.tr("Notification sound")], ["plug", FiliI18n.tr("Charger plugged in sound")]]
                     RowLayout {
                         required property var modelData
                         Layout.fillWidth: true
@@ -458,7 +513,7 @@ Singleton {
                             Layout.fillWidth: true
                             text: parent.modelData[1]
                             color: FiliTheme.brume
-                            font { family: FiliTheme.font; pixelSize: 13 }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         }
                         PanelSwitch {
                             objectName: "sound-" + parent.modelData[0]

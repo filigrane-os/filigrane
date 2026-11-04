@@ -1,6 +1,10 @@
 #!/bin/bash
 # Indicateur de la barre: rapports de veille non lus (Omarchy, T2) écrits par watch-claude (vide si aucun, donc module masqué).
 # `bar-news open` les affiche dans un terminal flottant puis les archive.
+# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 R="$HOME/.local/state/watch/reports"
 shopt -s nullglob
 files=("$R"/*.md)
@@ -25,4 +29,4 @@ fi
 tip=""
 for f in "${files[@]}"; do tip+="$(basename "$f" .md): $(head -1 "$f" | cut -c1-120)"$'\n'; done
 jq -nc --arg t "${#files[@]}" --arg tip "${tip%$'\n'}
-(clic: lire)" '{text: (" " + $t), tooltip: $tip}'
+$(t '(click: read)')" '{text: (" " + $t), tooltip: $tip}'

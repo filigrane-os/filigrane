@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="paper" x1="24" y1="14" x2="101" y2="116" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9FB3C8"/>
+      <stop offset="1" stop-color="#8CA2BA"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="78" y1="15" x2="101" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5F7488"/>
+      <stop offset="1" stop-color="#46586A"/>
+    </linearGradient>
+    <linearGradient id="foldEdge" x1="79" y1="15" x2="101" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B5C6D8"/>
+      <stop offset="1" stop-color="#6F849B"/>
+    </linearGradient>
+    <filter id="shadow" x="5" y="5" width="118" height="119" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+  </defs>
+  <!-- Subtle soft shadow -->
+  <path d="M24 10H77L104 37V103C104 111.284 97.284 118 89 118H24C15.716 118 9 111.284 9 103V25C9 16.716 15.716 10 24 10Z"
+        fill="#000000" opacity=".12" filter="url(#shadow)"/>
+  <!-- Blank document, using the same pale blue-gray family as the folder -->
+  <path d="M24 9H77L104 36V102C104 110.284 97.284 117 89 117H24C15.716 117 9 110.284 9 102V24C9 15.716 15.716 9 24 9Z"
+        fill="url(#paper)"/>
+  <!-- Folded top-right corner -->
+  <path d="M77 9V25C77 31.075 81.925 36 88 36H104L77 9Z" fill="url(#foldEdge)"/>
+  <path d="M77 9V25C77 31.075 81.925 36 88 36H104L77 9Z" fill="url(#fold)"/>
+  <path d="M77 9L104 36H88C81.925 36 77 31.075 77 25V9Z" fill="#94A9C0" opacity=".22"/>
+</svg>

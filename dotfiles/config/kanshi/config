@@ -1,10 +1,10 @@
-# kanshi: profils d'écrans (le premier profil qui correspond aux écrans branchés gagne).
-# Les profils enregistrés par `display-save` vivent dans ~/.config/kanshi/profiles.d/
-# (hors dépôt: ils contiennent les numéros de série des écrans).
+# kanshi: display profiles (the first profile that matches the connected displays wins).
+# Profiles saved by `display-save` live in ~/.config/kanshi/profiles.d/
+# (outside the repository: they contain the displays' serial numbers).
 include ~/.config/kanshi/profiles.d/*.conf
 
-# Repli: n'importe quel écran inconnu est activé à sa résolution préférée,
-# niri le place à droite des autres. Réglage visuel: Mod+P (panneau écrans), puis Mod+Ctrl+P (display-save).
+# Fallback: any unknown display is enabled at its preferred resolution,
+# niri places it to the right of the others. Visual setup: Mod+P (displays panel), then Mod+Ctrl+P (display-save).
 profile fallback {
     output * enable
 }
