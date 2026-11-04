@@ -8,7 +8,7 @@
 # Show hidden files
 # show_hidden = false
 
-# Close and Window buttons (niri window actions) at the right of the toolbar. View > Show Window Buttons
+# Close and Window buttons (niri window actions) at the right of the toolbar. Window > Show Window Buttons
 # in the menu takes precedence over this setting
 # window_buttons = true
 

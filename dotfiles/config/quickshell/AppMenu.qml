@@ -245,7 +245,9 @@ Singleton {
         // Nom recalculé ici: appName (liaison) n'est pas encore à jour quand spec vient de changer
         // Les menus communs (Quitter, Fenêtre) agissent sur la fenêtre active de niri: pas pour le tiroir
         const app = norm({ label: spec.name ?? prettyName(appId), kind: "sub", children: [].concat(spec.app ?? [], chatFocus ? [] : generic.app ?? []) });
-        const w = generic.window && !chatFocus ? [norm({ label: "Window", children: generic.window })] : [];
+        // Menu Fenêtre commun, suivi des entrées de l'application (clé "window" de son fichier de menu)
+        const own_w = spec.window ?? [];
+        const w = generic.window && !chatFocus ? [norm({ label: "Window", children: [].concat(generic.window, own_w.length > 0 ? [{ sep: true }] : [], own_w) })] : [];
         menus = [].concat(app.children.length > 0 ? [app] : [], own, w);
     }
     onSpecChanged: rebuild()
