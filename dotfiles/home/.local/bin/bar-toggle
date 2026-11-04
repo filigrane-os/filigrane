@@ -1,5 +1,5 @@
 #!/bin/sh
-# Actions de la barre qui changent un état, puis rafraîchissent l'indicateur par signal. Usage: bar-toggle night|rec|idle [start]|air|present
+# Actions de la barre qui changent un état, puis rafraîchissent l'indicateur par signal. Usage: bar-toggle night|rec|idle [start|get|set L S Z]|air|present
 # Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
@@ -35,13 +35,37 @@ case "$1" in
         fi
         sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 11 ;;
     idle)
-        if [ "$2" = start ] || ! pgrep -x swayidle >/dev/null; then
-            pgrep -x swayidle >/dev/null || setsid swayidle -w \
-                timeout 300 '$HOME/.local/bin/lock auto' \
-                timeout 600 'niri msg action power-off-monitors' resume 'niri msg action power-on-monitors' \
+        # Delays in seconds, 0 = never: ~/.config/filigrane/power.toml, [idle] lock, screen_off, sleep (written by the
+        # Power page of fili-settings through `bar-toggle idle set`). Defaults: lock 5 min, screen off 10 min, no
+        # automatic sleep (a long S3 sleep on battery can lose the session, see hardware/mac-t2/README.md).
+        conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/power.toml"
+        get() { v=$(sed -n "/^\[idle\]/,/^\[/s/^$1 *= *\([0-9][0-9]*\).*/\1/p" "$conf" 2>/dev/null | head -n1); echo "${v:-$2}"; }
+        lock=$(get lock 300); off=$(get screen_off 600); sleep_after=$(get sleep 0)
+        human() { if [ "$1" -eq 0 ]; then t 'never'; else printf '%s min' $(($1 / 60)); fi; }
+        start() {
+            set --
+            [ "$lock" -gt 0 ] && set -- "$@" timeout "$lock" '$HOME/.local/bin/lock auto'
+            [ "$off" -gt 0 ] && set -- "$@" timeout "$off" 'niri msg action power-off-monitors' resume 'niri msg action power-on-monitors'
+            [ "$sleep_after" -gt 0 ] && set -- "$@" timeout "$sleep_after" 'sudo -n zzz'
+            setsid swayidle -w "$@" \
                 before-sleep '$HOME/.local/bin/lock auto' \
                 after-resume '$HOME/.local/bin/bar-toggle night resume' >/dev/null 2>&1 &
-            [ "$2" = start ] || notify-send -u low "$(t 'Auto lock')" "$(t 'On (5 min, screen off at 10 min, no automatic sleep)')"
+        }
+        case "$2" in
+            get) echo "$lock $off $sleep_after"; exit 0 ;;
+            set)
+                # bar-toggle idle set LOCK SCREEN_OFF SLEEP (seconds, 0 = never)
+                for v in "$3" "$4" "$5"; do case "$v" in '' | *[!0-9]*) echo "usage: bar-toggle idle set LOCK SCREEN_OFF SLEEP" >&2; exit 2 ;; esac; done
+                mkdir -p "${conf%/*}"
+                printf '# Idle delays in seconds, 0 = never (Settings > Power)\n[idle]\nlock = %s\nscreen_off = %s\nsleep = %s\n' "$3" "$4" "$5" >"$conf"
+                lock=$3; off=$4; sleep_after=$5
+                # Applied at once, unless auto lock is off (caffeine, presentation): it starts with these delays
+                if pgrep -x swayidle >/dev/null; then pkill -x swayidle; start; fi
+                exit 0 ;;
+        esac
+        if [ "$2" = start ] || ! pgrep -x swayidle >/dev/null; then
+            pgrep -x swayidle >/dev/null || start
+            [ "$2" = start ] || notify-send -u low "$(t 'Auto lock')" "$(t 'On (lock: %s, screen off: %s, sleep: %s)' "$(human "$lock")" "$(human "$off")" "$(human "$sleep_after")")"
         else
             pkill -x swayidle; notify-send -u low "$(t 'Auto lock')" "$(t 'Off')"
         fi

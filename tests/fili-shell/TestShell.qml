@@ -599,6 +599,17 @@ ShellRoot {
                 ok(d.snap === null, "fili-settings écran: garder");
                 FiliSettings.close();
             },
+            // fili-settings power: idle delays, a choice writes the three delays with bar-toggle idle set
+            () => {
+                FiliSettings.show("power");
+                const d = FiliSettings.loaded;
+                ok(d !== null && d.lock === 300 && d.screenOff === 600 && d.sleep === 0, "fili-settings power: default delays", d ? [d.lock, d.screenOff, d.sleep].join(" ") : "null");
+                ok(d.lockChoices.some(c => c.value === 0) && d.sleepChoices[0].value === 900, "fili-settings power: never and minutes", JSON.stringify(d.sleepChoices));
+                FiliTheme.ran = [];
+                d.apply(d.lock, 120, 1800);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set 300 120 1800" && d.screenOff === 120 && d.sleep === 1800, "fili-settings power: bar-toggle idle set", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings: liste des pages, page chargée à l'ouverture et libérée à la fermeture, pied du panneau écran
             () => {
                 FiliPanel.view = "display";

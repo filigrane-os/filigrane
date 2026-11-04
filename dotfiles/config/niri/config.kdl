@@ -311,7 +311,7 @@ spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
 // Mini-cron: tasks of ~/.config/cron-watch/jobs.d/ (Void update every 6 h...), see ~/.local/bin/cron-watch
 spawn-sh-at-startup "$HOME/.local/bin/cron-watch"
-// Auto lock (swayidle): lock after 5 min, screen off after 10 min, no auto suspend (like Omarchy: a long S3 suspend on battery loses the session, see hardware/mac-t2/README.md); toggle in the bar
+// Auto lock (swayidle): delays in ~/.config/filigrane/power.toml, set in Settings > Power (default: lock after 5 min, screen off after 10 min, no auto suspend: a long S3 suspend on battery can lose the session, see hardware/mac-t2/README.md); caffeine in the bar
 spawn-sh-at-startup "$HOME/.local/bin/bar-toggle idle start"
 // Lid: lock and screen off, suspend after 5 min with the lid closed (elogind ignores the lid), see ~/.local/bin/lid
 switch-events {
