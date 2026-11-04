@@ -3,6 +3,10 @@
   "app": [
     { "label": "About Casier", "exec": "fili-file ctl --pid %pid action about" }
   ],
+  "window": [
+    { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-file ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-file ctl --pid %pid action toggle-window-buttons" }
+  ],
   "menus": [
     {
       "label": "File",
@@ -57,8 +61,6 @@
         { "label": "View as List", "keys": "Ctrl+1", "exec": "fili-file ctl --pid %pid action view-list" },
         { "label": "View as Icons", "keys": "Ctrl+2", "exec": "fili-file ctl --pid %pid action view-icons" },
         { "label": "Show Preview", "keys": "Ctrl+Shift+P", "exec": "fili-file ctl --pid %pid action toggle-preview" },
-        { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-file ctl --pid %pid action window-actions" },
-        { "label": "Show Window Buttons", "exec": "fili-file ctl --pid %pid action toggle-window-buttons" },
         { "label": "Show Hidden Files", "keys": "Ctrl+H", "exec": "fili-file ctl --pid %pid action toggle-hidden" },
         { "sep": true },
         { "label": "Reload", "keys": "F5", "exec": "fili-file ctl --pid %pid action reload" }
