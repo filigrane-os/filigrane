@@ -86,6 +86,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 - Chaque champ a un libellé ; le texte indicatif est un exemple, jamais le seul libellé. **[Apple]**
 - Libellés empilés alignés, deux-points alignés à droite ; cases et boutons radio alignés à gauche ; contrôles de même nature de même largeur ; un contrôle dépendant est indenté sous celui dont il dépend. **[Apple]**
 - Aide et erreur près du champ, avec la correction ; la saisie est conservée en cas d'erreur.
+- **Settings placement** (Filigrane rule): a setting you touch more than once a week, that applies at once and can be undone (volume, brightness, dark/light, night light, Wi-Fi on/off) lives in the fili-panel of its bar module, at most 5 to 7 controls, no tabs (use a chevron that unfolds a section instead). A setting you make once (resolution, scale, layout, accent colour, DNS, time zone) lives in the Settings window (`FiliSettings.qml`, alias "Réglages", `fili-shell settings [PAGE]`), one page per bar module, small page list on the left, no category tree. The foot of each panel has « <Module> settings… » (`PanelButton`, `open-settings`) that opens the matching page, so settings are reached from where the thing lives. Like a panel, the window closes on Esc or focus loss, and a page that applies risky changes reverts them on close.
 - Réglages groupés par sujet sous un intertitre ; interrupteur seulement pour un effet immédiat ; cases, radios, puces ou liste selon la nature du choix, pas selon l'esthétique.
 
 ## 9. Listes et tableaux
