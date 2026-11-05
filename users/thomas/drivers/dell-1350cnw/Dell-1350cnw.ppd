@@ -78,7 +78,7 @@
 *ParamCustomPageSize HeightOffset: 5 points 0 0
 
 *FoomaticIDs: Dell-1250c foo2hbpl1
-*FoomaticRIPCommandLine: "foo2hbpl1-wrapper %A"
+*FoomaticRIPCommandLine: "/usr/local/bin/foo2hbpl1-wrapper %A"
 
 *OpenGroup: General/General
 
