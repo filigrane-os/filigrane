@@ -283,7 +283,8 @@ Singleton {
     function ensure() {
         if (FiliTheme.testing || link.connected)
             return;
-        Quickshell.execDetached([FiliTheme.bin + "/fili-chat", "daemon"]);
+        // The binary is shipped by the fili-apps package (/usr/bin); FiliTheme.bin first (tests, local builds)
+        Quickshell.execDetached(["sh", "-c", 'for d in "$1" /usr/bin; do [ -x "$d/fili-chat" ] && exec "$d/fili-chat" daemon; done', "sh", FiliTheme.bin]);
         tries = 0;
         retry.start();
     }
