@@ -4,7 +4,7 @@ pragma Singleton
 // fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
 // Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); croix ou clic droit: fermer.
 // Les autres actions de la notification (notify-send -A id=Texte) sont des boutons sous le texte, trois au plus, le
-// premier mis en avant (fili-ai-ask: Autoriser / Refuser); une bulle à boutons reste 60 s, ou le délai demandé (notify-send -t), le temps de répondre.
+// premier mis en avant (fili-ai-ask: Allow / Deny, or the options of a question); une bulle à boutons reste 60 s, ou le délai demandé (notify-send -t), le temps de répondre.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
