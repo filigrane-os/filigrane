@@ -305,7 +305,7 @@ spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
 // Automatic display profiles (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
 // Mounts USB sticks, SD cards and external disks when plugged in (can be disabled: automount = false in ~/.config/filigrane/fili-file.toml)
-spawn-at-startup "sh" "-c" "$HOME/.local/bin/fili-automount"
+spawn-at-startup "sh" "-c" "/usr/bin/fili-automount"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
 // Notifications of the webapps listed in ~/.config/webapps/notify (WhatsApp...): bar indicator, see ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
@@ -459,7 +459,7 @@ binds {
     Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
     Mod+Y hotkey-overlay-title="AI chat (fili-chat)" { spawn-sh "fili-chat toggle"; }
     Mod+Shift+Y hotkey-overlay-title="AI agent in a terminal (fili-ai)" { spawn "bash" "-lc" "exec ~/.local/bin/fili-ai key"; }
-    Mod+E hotkey-overlay-title="Casier" { spawn-sh "$HOME/.local/bin/fili-file"; }
+    Mod+E hotkey-overlay-title="Casier" { spawn-sh "/usr/bin/fili-file"; }
     Mod+P hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }
     // Bar panels from the keyboard: ←/→ neighboring panel, ↑/↓ item, Enter act, Escape close (FiliPanel.qml)
     Mod+A hotkey-overlay-title="Bar panels" { spawn-sh "$HOME/.local/bin/fili-shell panel toggle"; }

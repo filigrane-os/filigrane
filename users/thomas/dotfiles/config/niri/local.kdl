@@ -13,5 +13,5 @@ spawn-sh-at-startup "$HOME/.local/bin/cal-notify"
 spawn-sh-at-startup "$HOME/.local/bin/icloud-mount"
 
 binds {
-    Mod+Shift+C hotkey-overlay-title="iCloud Drive (Files)" { spawn-sh "$HOME/.local/bin/fili-file \"$HOME/iCloud\""; }
+    Mod+Shift+C hotkey-overlay-title="iCloud Drive (Files)" { spawn-sh "/usr/bin/fili-file \"$HOME/iCloud\""; }
 }
