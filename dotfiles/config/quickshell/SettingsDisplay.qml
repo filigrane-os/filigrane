@@ -2,7 +2,10 @@
 // the chosen output power, resolution, refresh rate, scale, rotation and VRR, the kanshi profile and the accent
 // colour. Changes go through `niri msg output` (temporary, applied at once); resolution, rotation and power-off must
 // be confirmed within 15 s (or when the window closes), else the previous state comes back. Scale applies without
-// confirmation: it never makes the screen unusable and can be picked again with one click. "Save" writes the kanshi
+// confirmation: it never makes the screen unusable and can be picked again with one click. Dragging only stages the
+// layout; "Apply" commits it (the screens do not move at each drag), "Reset" lines the screens up again and
+// "Identify" shows each output's name on its own screen. All connected outputs are listed, on or off; turning one on
+// beyond what the graphics card drives shows a message (turn another one off first). "Save" writes the kanshi
 // profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
 // the fili-panel (PanelDisplay): they are frequent, instant and reversible.
 import QtQuick
@@ -10,7 +13,7 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: view
-    spacing: FiliTheme.space1
+    spacing: FiliTheme.space2
     // Outputs sorted by name (niri msg -j outputs); logical = null for an output that is off
     property var outputs: []
     property string sel: ""
@@ -18,6 +21,14 @@ ColumnLayout {
     readonly property var active: outputs.filter(o => o.logical)
     // Drag in progress: {name, x, y} in logical pixels
     property var ghost: null
+    // Positions staged by dragging, not applied yet: name -> {x, y}
+    property var pending: ({})
+    readonly property bool dirty: Object.keys(pending).length > 0
+    // Message under the canvas (e.g. too many outputs for the graphics card), and the number of outputs found
+    // drivable at once (0 = not known yet)
+    property string notice: ""
+    property int limit: 0
+    property string enabling: ""
     // State before the first change to confirm, and seconds left
     property var snap: null
     property int secs: 0
@@ -34,7 +45,7 @@ ColumnLayout {
     }
     // Logical size of an output (niri's own; the same while dragging)
     function rect(o) {
-        const g = ghost && ghost.name === o.name ? ghost : o.logical;
+        const g = ghost && ghost.name === o.name ? ghost : pending[o.name] ?? o.logical;
         return { x: g.x, y: g.y, w: o.logical.width, h: o.logical.height };
     }
 
@@ -47,6 +58,14 @@ ColumnLayout {
             view.outputs = Object.values(o).sort((a, b) => a.name.localeCompare(b.name));
             if (!view.cur)
                 view.sel = (view.active[0] ?? view.outputs[0] ?? { name: "" }).name;
+            // An output asked to turn on that stayed off: the graphics card drives no more outputs
+            const e = view.enabling;
+            view.enabling = "";
+            const eo = e ? view.outputs.find(x => x.name === e) : null;
+            if (eo && !eo.logical && view.active.length > 0) {
+                view.limit = view.active.length;
+                view.notice = FiliI18n.tr("Only %1 display(s) can be on at once with this graphics card: turn one off first", view.active.length);
+            }
         });
     }
     Component.onCompleted: {
@@ -101,6 +120,13 @@ ColumnLayout {
     }
 
     function setPower(o, on) {
+        notice = "";
+        if (on && limit > 0 && active.length >= limit) {
+            notice = FiliI18n.tr("Only %1 display(s) can be on at once with this graphics card: turn one off first", limit);
+            return;
+        }
+        if (on)
+            enabling = o.name;
         apply(o.name, on ? "on" : "off", !on);
     }
     // Resolution: keeps the current refresh rate if the new mode has it, else the highest
@@ -134,7 +160,9 @@ ColumnLayout {
         for (const p of active) {
             if (p.name === o.name)
                 continue;
-            const q = p.logical;
+            const q = rect(p);
+            q.width = q.w;
+            q.height = q.h;
             for (const c of [q.x + q.width, q.x - r.w, q.x, q.x + q.width - r.w]) {
                 if (Math.abs(c - x) < dx) { dx = Math.abs(c - x); bx = c; }
             }
@@ -144,10 +172,46 @@ ColumnLayout {
         }
         return { x: Math.round(bx), y: Math.round(by) };
     }
+    // Stages a position (nothing moves until Apply)
     function move(o, x, y) {
         const p = snapPos(o, x, y);
-        apply(o.name, "position set " + p.x + " " + p.y, false);
+        const m = Object.assign({}, pending);
+        if (p.x === o.logical.x && p.y === o.logical.y)
+            delete m[o.name];
+        else
+            m[o.name] = p;
+        pending = m;
         return p;
+    }
+    // Commits the staged positions in one go
+    function applyLayout() {
+        if (!dirty)
+            return;
+        const c = Object.keys(pending).map(n => cmd(n, "position set " + pending[n].x + " " + pending[n].y));
+        pending = ({});
+        FiliTheme.run(c.join("; "));
+        reread.restart();
+    }
+    // Outputs that are on lined up left to right (the internal panel first), tops aligned, applied at once
+    function resetLayout() {
+        pending = ({});
+        notice = "";
+        const list = active.slice().sort((a, b) => (/^eDP/.test(b.name) ? 1 : 0) - (/^eDP/.test(a.name) ? 1 : 0) || a.name.localeCompare(b.name));
+        let x = 0;
+        const c = [];
+        for (const o of list) {
+            c.push(cmd(o.name, "position set " + x + " 0"));
+            x += o.logical.width;
+        }
+        if (c.length)
+            FiliTheme.run(c.join("; "));
+        reread.restart();
+    }
+    function identify() {
+        const l = {};
+        for (const o of outputs)
+            l[o.name] = ((o.make ?? "") + " " + (o.model ?? "")).trim();
+        FiliIdentify.show(l);
     }
 
     // Resolution and refresh rate choices of the chosen output
@@ -275,19 +339,48 @@ ColumnLayout {
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
 
-    // Choice of output when there are several (or one is off)
+    RowLayout {
+        visible: view.active.length > 0
+        Layout.fillWidth: true
+        // Layout actions below the canvas they act on, right-aligned, default action (Apply) last
+        Item { Layout.fillWidth: true }
+        PanelChips {
+            Layout.fillWidth: false
+            model: [{ label: FiliI18n.tr("Identify"), value: "identify" }, { label: FiliI18n.tr("Reset"), value: "reset" }]
+            onPicked: v => v === "identify" ? view.identify() : view.resetLayout()
+        }
+        PanelChips {
+            objectName: "apply"
+            Layout.fillWidth: false
+            opacity: view.dirty ? 1 : 0.4
+            model: [{ label: FiliI18n.tr("Apply"), value: "apply" }]
+            onPicked: view.applyLayout()
+        }
+    }
+    Text {
+        visible: view.notice !== ""
+        objectName: "notice"
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: view.notice
+        color: FiliTheme.sable
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
+
+    // All connected outputs, on or off (the lid closed removes the internal one from the canvas, not from here)
+    PanelSection { visible: view.outputs.length > 0; text: FiliI18n.tr("CONNECTED DISPLAYS") }
     PanelChips {
-        visible: view.outputs.length > 1
-        model: view.outputs.map(o => ({ label: o.name + (o.logical ? "" : " " + FiliI18n.tr("(off)")), value: o.name }))
+        visible: view.outputs.length > 0
+        model: view.outputs.map(o => ({ label: o.name + " · " + (o.logical ? FiliI18n.tr("on") : FiliI18n.tr("off")), value: o.name }))
         current: view.sel
         onPicked: v => view.sel = v
     }
 
     // Chosen output
+    PanelSection { visible: view.cur !== null; text: FiliI18n.tr("SELECTED DISPLAY") }
     RowLayout {
         visible: view.cur !== null
         Layout.fillWidth: true
-        Layout.topMargin: FiliTheme.space1
         Text {
             text: view.cur ? ((view.cur.make ?? "") + " " + (view.cur.model ?? "")).trim() || view.cur.name : ""
             color: FiliTheme.brume
@@ -304,7 +397,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("RESOLUTION") }
+    PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
         visible: view.curMode !== null
@@ -312,7 +405,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.width + "x" + view.curMode.height : ""
         onPicked: v => view.setResolution(view.cur, view.resolutions.find(r => r.value === v))
     }
-    PanelSection { visible: view.refreshes.length > 1; divided: false; text: FiliI18n.tr("REFRESH RATE") }
+    PanelSection { visible: view.refreshes.length > 1; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("REFRESH RATE") }
     PanelChips {
         objectName: "refresh"
         visible: view.refreshes.length > 1
@@ -320,7 +413,7 @@ ColumnLayout {
         current: view.curMode ? view.curMode.refresh_rate : 0
         onPicked: v => view.setRefresh(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("SCALE") }
+    PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("SCALE") }
     PanelChips {
         objectName: "scale"
         visible: view.curMode !== null
@@ -328,7 +421,7 @@ ColumnLayout {
         current: view.cur && view.cur.logical ? view.cur.logical.scale : 0
         onPicked: v => view.setScale(view.cur, v)
     }
-    PanelSection { visible: view.curMode !== null; divided: false; text: FiliI18n.tr("ROTATION") }
+    PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("ROTATION") }
     PanelChips {
         objectName: "transform"
         visible: view.curMode !== null
@@ -378,7 +471,7 @@ ColumnLayout {
         }
     }
 
-    PanelSection { divided: false; text: FiliI18n.tr("PROFILE") }
+    PanelSection { text: FiliI18n.tr("PROFILE") }
     PanelButton {
         objectName: "save"
         glyph: ""

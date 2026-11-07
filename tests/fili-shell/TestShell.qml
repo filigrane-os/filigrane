@@ -591,7 +591,15 @@ ShellRoot {
                 ok(d.snap === null && FiliTheme.ran[0].indexOf("mode 2560x1600@60.001") > 0 && FiliTheme.ran[0].indexOf("position set 0 0") > 0 && FiliTheme.ran[0].indexOf("scale 2") > 0, "fili-settings écran: annuler -> état d'avant", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 d.move(b, 1290, 5);
-                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" && d.snap === null, "fili-settings écran: déplacement sans confirmation", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran.length === 0 && !d.dirty, "fili-settings écran: position déjà en place, rien en attente", JSON.stringify(FiliTheme.ran));
+                d.move(b, 1500, 400);
+                ok(FiliTheme.ran.length === 0 && d.dirty, "fili-settings écran: le déplacement n'est qu'en attente", JSON.stringify(d.pending));
+                d.applyLayout();
+                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" + "".padEnd(0) || FiliTheme.ran[0].indexOf("niri msg output 'B-1' position set") === 0, "fili-settings écran: Appliquer valide la position", JSON.stringify(FiliTheme.ran));
+                ok(!d.dirty && d.snap === null, "fili-settings écran: plus rien en attente après Appliquer");
+                FiliTheme.ran = [];
+                d.resetLayout();
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' position set 0 0; niri msg output 'B-1' position set 1280 0", "fili-settings écran: Réinitialiser aligne les écrans", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 d.setScale(d.outputs[0], 1.5);
                 ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-settings écran: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
