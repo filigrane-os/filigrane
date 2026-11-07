@@ -4,6 +4,8 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell.Bluetooth
 import Quickshell.Io
+import qs.bar
+import qs.controls
 
 ColumnLayout {
     id: view

@@ -20,6 +20,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import qs.bar
 
 Singleton {
     id: am
@@ -116,7 +117,7 @@ Singleton {
 
     // Raccourcis des binds de niri (config.kdl, puis local.kdl qui complète ou remplace): une entrée de repli qui lance
     // la même commande ou la même action que un bind affiche sa touche, sans qu'on la recopie (elle ne peut pas dériver).
-    // Clé: "niri:ACTION ARGS" ou "exec:COMMANDE" (spawn et spawn-sh, sans $HOME/.local/bin/); valeur: "Super+Q".
+    // Clé: "niri:ACTION ARGS" ou "exec:COMMANDE" (spawn et spawn-sh, sans $HOME/.local/bin/ ni /usr/bin/); valeur: "Super+Q".
     readonly property string niriDir: Quickshell.env("FILI_NIRI_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/niri"
     property var bindsMain: ({})
     property var bindsLocal: ({})
@@ -144,7 +145,7 @@ Singleton {
             if (m[2] === "spawn")
                 id = "exec:" + args.join(" ");
             else if (m[2] === "spawn-sh")
-                id = "exec:" + (args[0] ?? "").replace("$HOME/.local/bin/", "");
+                id = "exec:" + (args[0] ?? "").replace("$HOME/.local/bin/", "").replace(/^\/usr\/bin\//, "");
             else
                 id = "niri:" + [m[2]].concat(args).join(" ");
             if (!(id in out))

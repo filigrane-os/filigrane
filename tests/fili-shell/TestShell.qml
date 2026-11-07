@@ -8,6 +8,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs
+import qs.bar
 
 ShellRoot {
     id: t

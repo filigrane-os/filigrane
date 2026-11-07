@@ -2,6 +2,8 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.Pipewire
+import qs.bar
+import qs.controls
 
 ColumnLayout {
     id: view

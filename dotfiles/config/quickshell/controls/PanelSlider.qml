@@ -2,6 +2,7 @@
 // court à gauche (une application du mixeur), vide pour un curseur seul
 import QtQuick
 import QtQuick.Layouts
+import qs
 
 RowLayout {
     id: s

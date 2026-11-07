@@ -7,6 +7,7 @@
 //@ pragma Env QSG_RENDER_LOOP=basic
 import QtQuick
 import Quickshell
+import qs.bar
 
 ShellRoot {
     Variants {

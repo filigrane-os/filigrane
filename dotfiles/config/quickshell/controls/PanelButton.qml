@@ -1,6 +1,7 @@
 // Ligne cliquable des fili-panel: glyphe, libellé, détail à droite; survol = fond nuit3, sel = voile
 import QtQuick
 import QtQuick.Layouts
+import qs
 
 Rectangle {
     id: btn

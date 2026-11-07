@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import qs
 
 Singleton {
     id: panel
@@ -21,9 +22,11 @@ Singleton {
     readonly property bool open: view !== ""
     // Vue chargée (tests)
     property alias loaded: loader.item
+    // Views still live at the shell root during the move to bar/modules (step 3 of the module refactoring)
     readonly property var views: ({
-        network: "PanelNetwork.qml", audio: "PanelAudio.qml", bluetooth: "PanelBluetooth.qml",
-        power: "PanelPower.qml", agent: "PanelAgent.qml", monitor: "PanelMonitor.qml", keyboard: "PanelKeyboard.qml", display: "PanelDisplay.qml"
+        network: Qt.resolvedUrl("../PanelNetwork.qml"), audio: Qt.resolvedUrl("../PanelAudio.qml"), bluetooth: Qt.resolvedUrl("../PanelBluetooth.qml"),
+        power: Qt.resolvedUrl("../PanelPower.qml"), agent: Qt.resolvedUrl("../PanelAgent.qml"), monitor: Qt.resolvedUrl("../PanelMonitor.qml"),
+        keyboard: Qt.resolvedUrl("../PanelKeyboard.qml"), display: Qt.resolvedUrl("../PanelDisplay.qml")
     })
 
     // Dernier panneau ouvert (Mod+A le rouvre)

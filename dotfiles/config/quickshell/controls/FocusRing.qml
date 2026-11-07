@@ -1,6 +1,7 @@
 // Contour de l'élément choisi au clavier dans les fili-panel et le fili-notification-center, visible seulement une
 // fois le clavier utilisé (FiliShell.keyNav): rien ne change pour la souris. Enfant de l'élément (pas dans un Layout).
 import QtQuick
+import qs
 
 Rectangle {
     property Item target: parent

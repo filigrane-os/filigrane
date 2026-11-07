@@ -1,5 +1,6 @@
 // Interrupteur des fili-panel (à droite du titre): checked = allumé, switchable = false le grise (rien à activer)
 import QtQuick
+import qs
 
 Rectangle {
     id: sw

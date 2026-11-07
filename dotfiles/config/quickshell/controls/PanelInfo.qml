@@ -1,6 +1,8 @@
 // Fiche d'informations des fili-panel ({ title, rows }, voir FiliInfo), demandée à l'ouverture et sur refresh()
 import QtQuick
 import QtQuick.Layouts
+import qs
+import qs.bar
 
 ColumnLayout {
     id: info

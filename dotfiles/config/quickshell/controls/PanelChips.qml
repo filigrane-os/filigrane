@@ -3,6 +3,7 @@
 // définition est à confirmer), Entrée ou Espace choisit; Maj+←/→ reste au fili-panel (panneau voisin)
 import QtQuick
 import QtQuick.Layouts
+import qs
 
 Flow {
     id: chips

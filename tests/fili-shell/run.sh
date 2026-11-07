@@ -51,7 +51,8 @@ python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
 # Config live: chaque fichier QML du dépôt doit être lié dans ~/.config/quickshell (bootstrap.sh), sinon la session
 # ne charge plus le shell (type introuvable) alors que ces tests, sur une copie du dépôt, passent
-missing="$(for f in "$ROOT"/dotfiles/config/quickshell/*.qml; do [ -e "$HOME/.config/quickshell/${f##*/}" ] || printf '%s ' "${f##*/}"; done)"
+QS_DIR="$ROOT/dotfiles/config/quickshell"
+missing="$(cd "$QS_DIR" && find . -name '*.qml' | while read -r f; do [ -e "$HOME/.config/quickshell/$f" ] || printf '%s ' "${f#./}"; done)"
 if [ -n "$missing" ]; then
     echo "not ok - non liés dans ~/.config/quickshell (lancer ./bootstrap.sh --dotfiles-only): $missing"
     exit 1

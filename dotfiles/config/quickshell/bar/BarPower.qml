@@ -1,6 +1,7 @@
 // Batterie (sysfs, UPower absent): capacité et état relus chaque minute; avertissement <= 25 %, critique <= 10 %
 import QtQuick
 import Quickshell.Io
+import qs
 
 BarItem {
     id: batt

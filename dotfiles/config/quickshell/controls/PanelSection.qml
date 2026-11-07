@@ -2,6 +2,7 @@
 // (le filet sépare les sections entre elles)
 import QtQuick
 import QtQuick.Layouts
+import qs
 
 Item {
     id: sec

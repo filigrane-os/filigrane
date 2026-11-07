@@ -1,5 +1,6 @@
 // Module natif de la fili-bar: texte + zone de clic et d'infobulle (Hover)
 import QtQuick
+import qs
 
 Item {
     id: nat

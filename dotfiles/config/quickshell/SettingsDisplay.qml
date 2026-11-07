@@ -10,6 +10,7 @@
 // the fili-panel (PanelDisplay): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
+import qs.controls
 
 ColumnLayout {
     id: view

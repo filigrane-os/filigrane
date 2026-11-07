@@ -3,6 +3,7 @@
 // network, power, display), qui remplace tip; rien n'est sondé en continu.
 import QtQuick
 import Quickshell
+import qs
 
 MouseArea {
     id: area

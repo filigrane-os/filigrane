@@ -4,6 +4,7 @@ pragma Singleton
 // luminosité). request(SUJET), puis ready(SUJET, fiche).
 import QtQuick
 import Quickshell
+import qs
 
 Singleton {
     id: info

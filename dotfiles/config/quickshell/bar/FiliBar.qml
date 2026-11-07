@@ -13,6 +13,7 @@ import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
 import Quickshell.Services.Mpris
 import Quickshell.Bluetooth
+import qs
 
 PanelWindow {
     id: bar

@@ -3,6 +3,8 @@
 // State, context, cost and plan limits stay in the fili-tooltip (BarState.aiFor), not repeated here.
 import QtQuick
 import QtQuick.Layouts
+import qs.bar
+import qs.controls
 
 ColumnLayout {
     id: view
