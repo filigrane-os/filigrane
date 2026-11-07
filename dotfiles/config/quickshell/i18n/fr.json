@@ -331,7 +331,7 @@
  "Power settings…": "Réglages d'énergie…",
  "STARTUP": "DÉMARRAGE",
  "Open instantly": "Ouvrir instantanément",
- "Keeps a copy of Casier loaded in the background, so that its window appears in about 0.2 s instead of 0.4 s. It uses about 60 MB of memory, as long as it is on; a new copy loads each time you open Casier. Off: nothing runs while Casier is closed.": "Garde une copie de Casier chargée en arrière-plan: sa fenêtre apparaît en 0,2 s environ au lieu de 0,4 s. Elle occupe environ 60 Mo de mémoire tant que l'option est active; une nouvelle copie se charge à chaque ouverture de Casier. Désactivé: rien ne tourne quand Casier est fermé.",
+ "Keeps a copy of Casier loaded in the background, so that its window appears in about 0.15 s instead of 0.4 s. It uses about 35 MB of memory, as long as it is on; a new copy loads each time you open Casier. Off: nothing runs while Casier is closed.": "Garde une copie de Casier chargée en arrière-plan: sa fenêtre apparaît en 0,15 s environ au lieu de 0,4 s. Elle occupe environ 35 Mo de mémoire tant que l'option est active; une nouvelle copie se charge à chaque ouverture de Casier. Désactivé: rien ne tourne quand Casier est fermé.",
  "Language": "Langue",
  "Language settings…": "Réglages de langue…",
  "The language of the shell, the bar, the menu and the scripts changes at once; apps opened afterwards follow it.": "La langue du shell, de la barre, du menu et des scripts change tout de suite ; les applications ouvertes ensuite la suivent.",

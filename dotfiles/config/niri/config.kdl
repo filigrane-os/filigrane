@@ -306,6 +306,8 @@ spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
 spawn-at-startup "kanshi"
 // Mounts USB sticks, SD cards and external disks when plugged in (can be disabled: automount = false in ~/.config/filigrane/fili-file.toml)
 spawn-at-startup "sh" "-c" "/usr/bin/fili-automount"
+// Resident Casier (Settings > Casier > Open instantly): loads a hidden copy so that Casier opens at once; does nothing when the setting is off
+spawn-at-startup "sh" "-c" "/usr/bin/fili-file spare auto"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
 // Notifications of the webapps listed in ~/.config/webapps/notify (WhatsApp...): bar indicator, see ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"

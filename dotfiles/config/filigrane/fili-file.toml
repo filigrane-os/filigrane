@@ -38,6 +38,10 @@
 # Mount USB sticks, SD cards and external disks by itself when they are plugged in (fili-automount, started with the session)
 # automount = true
 
+# Resident mode: keep a copy of Casier loaded in the background so that it opens at once (about 0.15 s instead of 0.4 s)
+# at the cost of about 35 MB of memory. Settings > Casier > Open instantly takes precedence over this setting
+# resident = false
+
 # Theme (colors, radii, borders, spacing, fonts), per light / dark mode.
 # The defaults are in fili-file/theme.toml (every key is commented there). Add here only what changes:
 # [theme]               # both modes

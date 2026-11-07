@@ -22,7 +22,8 @@ Singleton {
     readonly property var pages: [
         { id: "display", label: FiliI18n.tr("Display"), source: "SettingsDisplay.qml" },
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
-        { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" }
+        { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
+        { id: "files", label: "Casier", source: "SettingsFiles.qml" }
     ]
     readonly property var current: pages.find(p => p.id === page) ?? pages[0]
 
