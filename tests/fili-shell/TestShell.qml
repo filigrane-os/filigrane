@@ -618,6 +618,18 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings Casier: the resident mode switch runs fili-file spare on / off
+            () => {
+                FiliSettings.show("files");
+                const d = FiliSettings.loaded;
+                ok(d !== null && d.resident === false && t.find(d, "resident") !== null, "fili-settings casier: switch, off by default", d ? d.resident : "null");
+                FiliTheme.ran = [];
+                d.setResident(true);
+                ok(FiliTheme.ran[0] === "/usr/bin/fili-file spare on" && d.resident, "fili-settings casier: spare on", JSON.stringify(FiliTheme.ran));
+                d.setResident(false);
+                ok(FiliTheme.ran[1] === "/usr/bin/fili-file spare off" && !d.resident, "fili-settings casier: spare off", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings power: idle delays, a choice writes the three delays with bar-toggle idle set
             () => {
                 FiliSettings.show("power");
@@ -909,6 +921,18 @@ ShellRoot {
                 ok(FiliAbout.open, "fili-about: toggle rouvre");
                 FiliShell.popupOpened("panel");
                 ok(!FiliAbout.open, "fili-about: fermée quand un autre panneau s'ouvre");
+            },
+            // fili-audio-switch: answer keeps or switches, the checkbox remembers the choice per device
+            () => {
+                const fake = { id: -1, name: "bluez_output.AA", description: "Test headset", properties: { "api.bluez5.address": "AA" } };
+                FiliAudioSwitch.candidate = fake;
+                ok(FiliAudioSwitch.open, "fili-audio-switch: a candidate output opens the modal");
+                FiliAudioSwitch.remember = true;
+                FiliAudioSwitch.answer(false);
+                ok(!FiliAudioSwitch.open && FiliAudioSwitch.choices["AA"] === "keep", "fili-audio-switch: Keep + checkbox remembers 'keep'", JSON.stringify(FiliAudioSwitch.choices));
+                FiliAudioSwitch.candidate = fake;
+                FiliAudioSwitch.answer(false);
+                ok(!FiliAudioSwitch.open && FiliAudioSwitch.choices["AA"] === "keep", "fili-audio-switch: without the checkbox nothing changes");
             },
             // fili-chat: tiroir, sessions, événements du démon (sans démon: les requêtes sont enregistrées)
             () => {
