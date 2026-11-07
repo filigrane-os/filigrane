@@ -408,7 +408,7 @@ Singleton {
         }
     }
 
-    // AI agent badge: Filigrane tile with a sparkle, shown when the notification has no image
+    // AI agent badge: Filigrane tile with a robot glyph, shown when the notification has no image
     component AiBadge: Rectangle {
         property int size: 32
         implicitWidth: size
@@ -417,9 +417,9 @@ Singleton {
         color: FiliTheme.voile
         Text {
             anchors.centerIn: parent
-            text: "\u2726"
+            text: String.fromCodePoint(0xF06A9)  // nf-md-robot
             color: FiliTheme.nuit
-            font.pixelSize: parent.size * 0.6
+            font { family: FiliTheme.font; pixelSize: parent.size * 0.6 }
         }
     }
 
