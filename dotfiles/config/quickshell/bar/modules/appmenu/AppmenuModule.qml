@@ -3,6 +3,7 @@
 // titre «…», dont la liste les ouvre en sous-menus. Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre
 // titre l'ouvre.
 import QtQuick
+import qs
 
 Item {
     id: root

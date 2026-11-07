@@ -10,6 +10,7 @@ import Quickshell
 import Quickshell.Io
 import qs
 import qs.bar
+import qs.bar.modules.appmenu
 
 ShellRoot {
     id: t

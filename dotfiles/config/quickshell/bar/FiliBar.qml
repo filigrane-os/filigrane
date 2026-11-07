@@ -8,12 +8,16 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Widgets
-import Quickshell.Services.SystemTray
 import Quickshell.Services.Pipewire
-import Quickshell.Services.Mpris
 import Quickshell.Bluetooth
 import qs
+import qs.bar.modules.appmenu
+import qs.bar.modules.logo
+import qs.bar.modules.media
+import qs.bar.modules.notifications
+import qs.bar.modules.status
+import qs.bar.modules.tray
+import qs.bar.modules.workspaces
 
 PanelWindow {
     id: bar
@@ -31,13 +35,6 @@ PanelWindow {
 
     PwObjectTracker { objects: [bar.sink, bar.source] }
 
-    component Label: Text {
-        color: FiliTheme.brume
-        font.family: FiliTheme.font
-        font.pixelSize: FiliTheme.size
-        verticalAlignment: Text.AlignVCenter
-    }
-
     // Clic sur le fond de la barre (hors modules): ferme fili-panel, calendrier épinglé et centre de notifications
     MouseArea {
         anchors.fill: parent
@@ -54,79 +51,18 @@ PanelWindow {
         color: FiliTheme.nuit3
     }
 
-    // ───────── Gauche: logo, espaces de travail, fenêtre ─────────
+    // ───────── Left: logo, workspaces, application menu ─────────
     RowLayout {
         id: leftRow
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
 
-        // Logo Filigrane (brand/, lié dans ~/.local/share/filigrane par bootstrap.sh): ouvre le menu, clic milieu: À propos
-        Item {
-            Layout.leftMargin: 10
-            implicitWidth: 44
-            implicitHeight: FiliTheme.barHeight
-            Image {
-                anchors.centerIn: parent
-                source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-" + (FiliTheme.light ? "couleur" : "sombre") + ".svg"
-                sourceSize.width: 44
-                fillMode: Image.PreserveAspectFit
-            }
-            BarHover {
-                objectName: "logo"
-                anchors.fill: parent
-                tip: ({ title: "Filigrane", hint: FiliI18n.tr("click: menu · right click: terminal · middle click: about") })
-                click: "setsid -f " + bar.b + "/menu"
-                rclick: "setsid -f foot"
-                onMiddleClicked: FiliAbout.show()
-            }
-        }
+        LogoModule { bar: bar; Layout.leftMargin: 10 }
+        WorkspacesModule { bar: bar; Layout.fillHeight: true }
 
-        // Clic = aller au workspace, molette = précédent/suivant (sans boucler)
-        Row {
-            Layout.fillHeight: true
-            Repeater {
-                model: Niri.workspaces.filter(w => w.output === bar.screen.name)
-                Rectangle {
-                    required property var modelData
-                    implicitWidth: ws.implicitWidth + 2 * FiliTheme.pad
-                    implicitHeight: FiliTheme.barHeight
-                    color: modelData.is_active || wsHover.containsMouse ? FiliTheme.nuit3 : "transparent"
-                    Label {
-                        id: ws
-                        anchors.centerIn: parent
-                        text: parent.modelData.idx
-                        color: parent.modelData.is_active || wsHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
-                    }
-                    Rectangle {
-                        visible: parent.modelData.is_active
-                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                        height: 2
-                        color: FiliTheme.voile
-                    }
-                    BarHover {
-                        id: wsHover
-                        anchors.fill: parent
-                        // Fenêtres de l'espace (app, titre)
-                        tip: {
-                            const id = parent.modelData.id;
-                            const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
-                            return {
-                                title: FiliI18n.tr("Workspace %1", parent.modelData.idx),
-                                rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
-                                hint: FiliI18n.tr("click: go there · wheel: previous / next")
-                            };
-                        }
-                        onLeftClicked: Niri.action("focus-workspace", String(parent.modelData.idx))
-                        onWheelUp: Niri.action("focus-workspace-up")
-                        onWheelDown: Niri.action("focus-workspace-down")
-                    }
-                }
-            }
-        }
-
-        // Menu de l'application active (AppMenu): barre de menus AT-SPI ou menu de repli; remplace le titre de la fenêtre.
-        // Replié sur le nom de l'application seul quand les menus ne tiennent pas avant le premier module de droite
-        BarAppMenu {
+        // Menu of the active application (AppMenu): AT-SPI menu bar or fallback menu; replaces the window title.
+        // Folded to the application name alone when the menus do not fit before the first right-hand module
+        AppmenuModule {
             id: appMenu
             objectName: "appmenu"
             bar: bar
@@ -134,110 +70,21 @@ PanelWindow {
         }
     }
 
-    // ───────── Droite: indicateurs, tiroir, média, ressources, système, date, batterie ─────────
+    // ───────── Right: indicators, drawer, media, resources, system, date, battery ─────────
     RowLayout {
         id: rightRow
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
 
-        // Indicateurs et bascules: mails, WhatsApp, agenda, enregistrement, SSH, avion, VPN, veille, MAJ
-        Row {
-            // Nouveaux mails Proton / événement Proton Calendar imminent (masqués sinon, voir BarState), clic = ouvrir et effacer
-            BarScript { objectName: "mail"; value: BarState.mail; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
-            BarScript { objectName: "whatsapp"; value: BarState.whatsapp; click: bar.b + "/bar-alert open whatsapp" }
-            BarScript { objectName: "cal"; value: BarState.cal; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
-            // Enregistrement d'écran: visible seulement en cours, clic = arrêter (démarrage: menu › Capture)
-            BarScript { objectName: "rec"; title: FiliI18n.tr("Recording"); cmd: bar.b + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: bar.b + "/bar-toggle rec" }
-            // Session SSH entrante, mode avion (clic = désactiver), VPN: écrits par bar-stats quand l'état change
-            BarScript { objectName: "remote"; title: "SSH"; stat: "remote"; color: FiliTheme.cendre }
-            BarScript { objectName: "air"; title: FiliI18n.tr("Airplane mode"); stat: "air"; color: FiliTheme.sable; click: bar.b + "/bar-toggle air" }
-            BarScript { objectName: "vpn"; title: "VPN"; stat: "vpn" }
-            // Rapports de veille non lus, clic = les lire
-            BarScript { objectName: "news"; title: FiliI18n.tr("News"); cmd: bar.b + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: bar.b + "/bar-news open" }
-            // Mises à jour xbps (masqué s'il n'y en a pas), clic = mettre à jour dans un terminal flottant
-            BarScript { objectName: "update"; title: FiliI18n.tr("Updates"); cmd: bar.b + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: bar.b + "/bar-update run" }
-        }
+        // Personal alerts: new Proton mails / imminent Proton Calendar event (hidden otherwise, see BarState), click = open and clear
+        BarScript { objectName: "mail"; value: BarState.mail; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
+        BarScript { objectName: "whatsapp"; value: BarState.whatsapp; click: bar.b + "/bar-alert open whatsapp" }
+        BarScript { objectName: "cal"; value: BarState.cal; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
+        StatusModule { bar: bar }
 
-        // Tiroir (BarState, bar-tray toggle): replié, seuls les indicateurs en cours d'usage restent visibles; clic sur le chevron = tout afficher
-        Row {
-            Repeater {
-                model: SystemTray.items
-                Item {
-                    id: trayItem
-                    required property var modelData
-                    implicitWidth: FiliTheme.iconCell
-                    implicitHeight: FiliTheme.barHeight
-                    IconImage {
-                        anchors.centerIn: parent
-                        implicitSize: 16
-                        source: parent.modelData.icon
-                    }
-                    BarHover {
-                        anchors.fill: parent
-                        tip: parent.modelData.tooltipTitle || parent.modelData.title
-                        onLeftClicked: parent.modelData.onlyMenu ? menuAnchor.open() : parent.modelData.activate()
-                        onRightClicked: if (parent.modelData.hasMenu) menuAnchor.open()
-                        onMiddleClicked: parent.modelData.secondaryActivate()
-                        onWheelUp: parent.modelData.scroll(1, false)
-                        onWheelDown: parent.modelData.scroll(-1, false)
-                    }
-                    QsMenuAnchor {
-                        id: menuAnchor
-                        menu: trayItem.modelData.menu
-                        anchor.item: trayItem
-                        anchor.edges: Edges.Bottom
-                        anchor.gravity: Edges.Bottom
-                    }
-                }
-            }
-            // Mail, WhatsApp, agenda au repos: rangés dans le tiroir (visibles tiroir ouvert), ils sortent dans la barre quand il y a une alerte
-            BarScript { objectName: "mail-idle"; value: BarState.mailIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open mail" }
-            BarScript { objectName: "whatsapp-idle"; value: BarState.whatsappIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open whatsapp" }
-            BarScript { objectName: "cal-idle"; value: BarState.calIdle; color: FiliTheme.ardoise; click: bar.b + "/bar-alert open cal" }
-            // Sauvegarde restic: gris au repos, clignotant en cours, rouge en échec; clic = sauvegarder maintenant
-            BarScript {
-                objectName: "backup"
-                title: FiliI18n.tr("Backup")
-                value: BarState.backup
-                colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
-                click: bar.b + "/bar-backup run"
-            }
-            // Chevron du tiroir: clic = afficher / replier
-            BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: bar.b + "/bar-tray toggle" }
-        }
+        TrayModule { bar: bar }
 
-        // Clic = lecture/pause, clic droit = fenêtre du lecteur, clic milieu = suivant, molette haut/bas = précédent/suivant
-        BarItem {
-            objectName: "media"
-            readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
-            text: {
-                if (!player || !player.trackTitle)
-                    return "";
-                const t = player.isPlaying ? " " + player.trackTitle + (player.trackArtist ? "  ·  " + player.trackArtist : "") : " " + player.trackTitle;
-                return t.length > 40 ? t.slice(0, 39) + "…" : t;
-            }
-            color: FiliTheme.brume2
-            function mmss(s) {
-                s = Math.max(0, Math.round(s));
-                return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
-            }
-            tip: !player ? "" : {
-                title: player.identity,
-                rows: [[FiliI18n.tr("Title"), player.trackTitle], [FiliI18n.tr("Artist"), player.trackArtist], [FiliI18n.tr("Album"), player.trackAlbum],
-                       [FiliI18n.tr("State"), player.isPlaying ? FiliI18n.tr("playing") : FiliI18n.tr("paused")],
-                       [FiliI18n.tr("Position"), player.lengthSupported && player.length > 0 ? mmss(player.position) + " / " + mmss(player.length) : ""]].filter(r => r[1]),
-                hint: FiliI18n.tr("click: play/pause · right click: player window · middle click: next · wheel: previous / next")
-            }
-            hover.onLeftClicked: player.togglePlaying()
-            hover.onMiddleClicked: player.next()
-            hover.onRightClicked: {
-                const id = player ? Niri.playerWindow(Niri.windows, player.dbusName, player.desktopEntry, player.trackTitle) : null;
-                if (id !== null)
-                    Niri.action("focus-window", "--id", String(id));
-            }
-            hover.onWheelUp: player.previous()
-            hover.onWheelDown: player.next()
-        }
+        MediaModule { bar: bar }
 
         // Ressources: CPU et mémoire (top 5 en infobulle); température (dès 50 °C) et disque (dès 90 %) seulement quand ils
         // sont très hauts (bar-stats les vide sinon); clic = moniteur
@@ -370,21 +217,9 @@ PanelWindow {
                 rclick: "setsid -f " + bar.b + "/menu network"
                 tipInfo: "network"
             }
-            // Notifications: clic = historique, clic droit = Ne pas déranger
-            BarItem {
-                objectName: "notifications"
-                text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
-                color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
-                tip: ({
-                    title: FiliNotification.dnd ? FiliI18n.tr("Do not disturb") : FiliI18n.tr("Notifications"),
-                    rows: [[FiliI18n.tr("Pop-ups"), FiliNotification.dnd ? FiliI18n.tr("hidden") : FiliI18n.tr("shown")], [FiliI18n.tr("History"), FiliI18n.tr("%1 notification(s)", FiliNotification.history.length)]],
-                    hint: FiliI18n.tr("click: fili-notification-center · right click: do not disturb")
-                })
-                hover.onLeftClicked: FiliNotification.toggleCenter()
-                Component.onCompleted: FiliPanel.register("center", hover, bar)
-                hover.onRightClicked: FiliNotification.dnd = !FiliNotification.dnd
-            }
         }
+
+        NotificationsModule { bar: bar }
 
         // Survol = fiche (date, fuseau, prochains événements), clic (gauche ou droit) = calendrier épinglé comme panneau (molette: mois précédent/suivant, clic milieu: mois courant)
         Item {
@@ -428,14 +263,14 @@ PanelWindow {
             }
             onCardChanged: if (clockMouse.containsMouse) FiliTooltip.update(clockMouse, card)
             // Icône agenda devant la date, comme les autres modules (le minuteur porte la sienne)
-            Label {
+            BarLabel {
                 id: clockIcon
                 visible: !clockItem.timing
                 anchors { verticalCenter: parent.verticalCenter; right: clockText.left; rightMargin: FiliTheme.labelGap }
                 text: String.fromCodePoint(0xf073)
                 color: FiliTheme.ardoise
             }
-            Label {
+            BarLabel {
                 id: clockText
                 anchors.centerIn: parent
                 anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0

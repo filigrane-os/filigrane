@@ -2,7 +2,7 @@
 import QtQuick
 import qs
 
-Item {
+BarModule {
     id: nat
     property string text
     property color color: FiliTheme.brume

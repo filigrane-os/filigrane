@@ -9,7 +9,7 @@ import Quickshell
 import Quickshell.Io
 import qs
 
-Item {
+BarModule {
     id: mod
     property string cmd
     property string stat

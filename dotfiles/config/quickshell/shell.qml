@@ -8,6 +8,7 @@
 import QtQuick
 import Quickshell
 import qs.bar
+import qs.bar.modules.appmenu
 
 ShellRoot {
     Variants {

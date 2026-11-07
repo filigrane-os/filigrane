@@ -21,6 +21,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import qs.bar
+import qs
 
 Singleton {
     id: am
