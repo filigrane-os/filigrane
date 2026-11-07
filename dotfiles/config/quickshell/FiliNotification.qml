@@ -22,6 +22,34 @@ Singleton {
     property bool centerOpen: false
     onCenterOpenChanged: FiliShell.centerOpen = centerOpen
     property int serial: 0
+    // Sender stacks: app name -> true when its stack is spread out
+    property var expanded: ({})
+
+    // Popups grouped by sender, newest group first, newest popup first: { app, items: [popup] }
+    function groups() {
+        const out = [], idx = {};
+        for (const p of popups.slice().reverse()) {
+            const a = p.n.appName;
+            if (idx[a] === undefined) {
+                idx[a] = out.length;
+                out.push({ app: a, items: [] });
+            }
+            out[idx[a]].items.push(p);
+        }
+        return out;
+    }
+    function toggleStack(app) {
+        const e = Object.assign({}, expanded);
+        if (e[app])
+            delete e[app];
+        else
+            e[app] = true;
+        expanded = e;
+    }
+    function closeGroup(app, how) {
+        for (const p of popups.filter(p => p.n.appName === app))
+            close(p.n, how);
+    }
 
     // Actions proposées en boutons (hors « default », le clic sur la bulle)
     function buttons(n) {
@@ -43,7 +71,13 @@ Singleton {
             return n.expireTimeout > 0 ? n.expireTimeout : 60000;
         return n.urgency === NotificationUrgency.Critical ? 10000 : n.urgency === NotificationUrgency.Low ? 3000 : 5000;
     }
+    // Notifications from AI agents (fili-ai-ask, fili-ai-session, Codex, opencode): drawn as a badge, not a theme icon
+    function isAi(app) {
+        return /^(claude code|fili-ai|codex|opencode)$/i.test(app || "");
+    }
     function icon(n) {
+        if (isAi(n.appName) && !n.image)
+            return "";
         const i = n.image || n.appIcon;
         if (!i)
             return "";
@@ -57,8 +91,10 @@ Singleton {
         if (!n)
             return;
         popups = popups.filter(p => p.n !== n);
+        if (expanded[n.appName] && !popups.some(p => p.n.appName === n.appName))
+            toggleStack(n.appName);
         if (n.appName !== "niri")
-            history = [{ app: n.appName, icon: icon(n), summary: n.summary, body: n.body, time: new Date() }].concat(history).slice(0, 30);
+            history = [{ app: n.appName, ai: isAi(n.appName) && !n.image, icon: icon(n), summary: n.summary, body: n.body, time: new Date() }].concat(history).slice(0, 30);
         if (how === "expire")
             n.expire();
         else
@@ -105,7 +141,15 @@ Singleton {
             }
             if (n.urgency !== NotificationUrgency.Low)
                 FiliSound.notified(n.appName);
-            notifs.popups = notifs.popups.concat([{ n: n, key: ++notifs.serial }]);
+            // Identical repeat (same sender, summary and body): replaces the older one and counts up
+            const old = notifs.popups.find(p => p.n.appName === n.appName && p.n.summary === n.summary && p.n.body === n.body);
+            let count = 1;
+            if (old) {
+                count = old.count + 1;
+                notifs.popups = notifs.popups.filter(p => p !== old);
+                old.n.dismiss();
+            }
+            notifs.popups = notifs.popups.concat([{ n: n, key: ++notifs.serial, count: count }]);
             n.closed.connect(() => notifs.popups = notifs.popups.filter(p => p.n !== n));
         }
     }
@@ -156,10 +200,53 @@ Singleton {
             width: 360
             spacing: FiliTheme.space2
             Repeater {
-                model: notifs.popups.slice(-4).reverse()
+                model: notifs.groups().slice(0, 4)
+                Stack {
+                    required property var modelData
+                    g: modelData
+                    Layout.fillWidth: true
+                }
+            }
+        }
+    }
+
+    // One sender: its newest popup with two edges behind it when several are stacked; the "+N" pill spreads them out
+    component Stack: Item {
+        id: stack
+        property var g
+        readonly property bool open: notifs.expanded[g.app] === true
+        readonly property bool stacked: g.items.length > 1 && !open
+        // Each edge peeks out 8 px below the one in front, like a pile of cards
+        readonly property int edges: stacked ? Math.min(2, g.items.length - 1) : 0
+        implicitHeight: cards.implicitHeight + 8 * edges
+        Repeater {
+            model: stack.edges
+            Rectangle {
+                required property int index
+                z: -1 - index
+                anchors { left: parent.left; right: parent.right; leftMargin: 12 * (index + 1); rightMargin: 12 * (index + 1) }
+                y: cards.implicitHeight - 30 + 8 * (index + 1)
+                height: 30
+                radius: FiliTheme.radiusWindow
+                color: FiliTheme.nuit
+                border { width: FiliTheme.borderWidth; color: FiliTheme.border }
+                opacity: 1 - 0.25 * index
+            }
+        }
+        ColumnLayout {
+            id: cards
+            width: parent.width
+            spacing: FiliTheme.space2
+            Repeater {
+                model: stack.stacked ? [stack.g.items[0]] : stack.g.items.slice(0, 5)
                 Card {
                     required property var modelData
+                    required property int index
                     n: modelData.n
+                    count: modelData.count
+                    groupSize: stack.g.items.length
+                    stacked: stack.stacked
+                    first: index === 0
                     Layout.fillWidth: true
                 }
             }
@@ -169,6 +256,10 @@ Singleton {
     component Card: Rectangle {
         id: card
         property var n
+        property int count: 1
+        property int groupSize: 1
+        property bool stacked: false
+        property bool first: true
         readonly property bool low: n.urgency === NotificationUrgency.Low
         readonly property bool critical: n.urgency === NotificationUrgency.Critical
         readonly property string img: notifs.icon(n)
@@ -181,13 +272,13 @@ Singleton {
         clip: true
 
         Timer {
-            running: !area.containsMouse && !closeBtn.hovered && !notifs.sticky(card.n)
+            running: !area.containsMouse && !closeBtn.hovered && !pill.hovered && !notifs.sticky(card.n)
             interval: notifs.timeout(card.n)
-            onTriggered: notifs.close(card.n, "expire")
+            onTriggered: card.stacked ? notifs.closeGroup(card.n.appName, "expire") : notifs.close(card.n, "expire")
         }
         RowLayout {
             id: row
-            anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space3; rightMargin: 34 }
+            anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space3; rightMargin: pill.visible ? 34 + pill.width + FiliTheme.space2 : 34 }
             height: Math.min(140, Math.max(row.implicitHeight + 28, 56)) - 2 * FiliTheme.space3
             spacing: FiliTheme.space3
             IconImage {
@@ -196,13 +287,18 @@ Singleton {
                 implicitSize: 40
                 Layout.alignment: Qt.AlignTop
             }
+            AiBadge {
+                visible: card.img === "" && notifs.isAi(card.n.appName)
+                size: 40
+                Layout.alignment: Qt.AlignTop
+            }
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignTop
                 spacing: 2
                 Text {
                     Layout.fillWidth: true
-                    text: card.n.summary
+                    text: card.n.summary + (card.count > 1 ? "  \u00d7" + card.count : "")
                     elide: Text.ElideRight
                     color: card.low ? FiliTheme.brume2 : FiliTheme.brume
                     font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
@@ -278,10 +374,52 @@ Singleton {
                 }
             }
         }
+        // Stack button: "N more" spreads the sender's notifications out, the arrow folds them back
+        Rectangle {
+            id: pill
+            z: 2
+            visible: card.first && card.groupSize > 1
+            readonly property bool hovered: pillArea.containsMouse
+            objectName: "notif-stack-" + card.n.appName
+            anchors { top: parent.top; right: closeBtn.left; margins: FiliTheme.space2 }
+            height: 22
+            width: pillLabel.implicitWidth + 2 * FiliTheme.space2
+            radius: FiliTheme.radiusControl
+            color: hovered ? FiliTheme.nuit4 : FiliTheme.nuit3
+            Text {
+                id: pillLabel
+                anchors.centerIn: parent
+                text: card.stacked ? "\u25be " + FiliI18n.tr("%1 more", card.groupSize - 1) : "\u25b4 " + FiliI18n.tr("Collapse")
+                color: FiliTheme.brume
+                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList; weight: FiliTheme.weightAccent }
+            }
+            MouseArea {
+                id: pillArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: notifs.toggleStack(card.n.appName)
+            }
+        }
         CloseCross {
             id: closeBtn
             anchors { top: parent.top; right: parent.right; margins: FiliTheme.space2 }
-            onClicked: notifs.close(card.n, "dismiss")
+            onClicked: card.stacked ? notifs.closeGroup(card.n.appName, "dismiss") : notifs.close(card.n, "dismiss")
+        }
+    }
+
+    // AI agent badge: Filigrane tile with a sparkle, shown when the notification has no image
+    component AiBadge: Rectangle {
+        property int size: 32
+        implicitWidth: size
+        implicitHeight: size
+        radius: size * 0.225
+        color: FiliTheme.voile
+        Text {
+            anchors.centerIn: parent
+            text: "\u2726"
+            color: FiliTheme.nuit
+            font.pixelSize: parent.size * 0.6
         }
     }
 
@@ -434,8 +572,12 @@ Singleton {
                                 source: item.modelData.icon
                                 visible: item.modelData.icon !== ""
                             }
+                            AiBadge {
+                                visible: item.modelData.icon === "" && item.modelData.ai === true
+                                Layout.alignment: Qt.AlignTop
+                            }
                             Rectangle {
-                                visible: item.modelData.icon === ""
+                                visible: item.modelData.icon === "" && item.modelData.ai !== true
                                 implicitWidth: 32
                                 implicitHeight: 32
                                 Layout.alignment: Qt.AlignTop

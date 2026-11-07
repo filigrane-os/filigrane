@@ -256,7 +256,7 @@ fn notify(n: Notice) {
     let exe = env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "fili-ai-session".into());
     let _ = Command::new("setsid")
         .args(["-f", "sh", "-c"])
-        .arg(r#"r="$(notify-send -a fili-ai -i utilities-terminal -u "$2" -A default="$5" "$3" "$4")" && [ "$r" = default ] && exec "$0" focus "$1""#)
+        .arg(r#"r="$(notify-send -a fili-ai -u "$2" -A default="$5" "$3" "$4")" && [ "$r" = default ] && exec "$0" focus "$1""#)
         .args([exe.as_str(), &n.id, n.urgency, &n.summary, &n.body, tr("Open")])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
