@@ -53,11 +53,16 @@ ColumnLayout {
             label: modelData.name
             sel: modelData.connected
             dim: !modelData.paired && !modelData.connected
-            detail: modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
+            detail: modelData.pairing ? FiliI18n.tr("pairing…")
+                : modelData.state === BluetoothDeviceState.Connecting ? FiliI18n.tr("connecting…")
+                : modelData.state === BluetoothDeviceState.Disconnecting ? FiliI18n.tr("disconnecting…")
+                : modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
                 : modelData.paired ? FiliI18n.tr("paired") : FiliI18n.tr("new")
             // clic: connecter / déconnecter (appairer d'abord si nouveau); clic droit: oublier
             onClicked: b => {
-                if (b === Qt.RightButton) {
+                if (busy) {
+                    return;
+                } else if (b === Qt.RightButton) {
                     modelData.forget();
                 } else if (modelData.connected) {
                     modelData.disconnect();

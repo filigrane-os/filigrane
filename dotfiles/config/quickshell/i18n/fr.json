@@ -324,5 +324,8 @@
  "Power settings…": "Réglages d'énergie…",
  "Language": "Langue",
  "Language settings…": "Réglages de langue…",
- "The language of the shell, the bar, the menu and the scripts changes at once; apps opened afterwards follow it.": "La langue du shell, de la barre, du menu et des scripts change tout de suite ; les applications ouvertes ensuite la suivent."
+ "The language of the shell, the bar, the menu and the scripts changes at once; apps opened afterwards follow it.": "La langue du shell, de la barre, du menu et des scripts change tout de suite ; les applications ouvertes ensuite la suivent.",
+ "connecting…": "connexion…",
+ "disconnecting…": "déconnexion…",
+ "pairing…": "appairage…"
 }
