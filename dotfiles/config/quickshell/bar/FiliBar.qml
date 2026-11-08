@@ -40,7 +40,7 @@ PanelWindow {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
         Repeater {
-            model: BarLayout.left
+            model: BarLayout.ready ? BarLayout.left : []
             BarSlot { bar: barWin; free: rightRow.x - leftRow.x }
         }
     }
@@ -51,7 +51,7 @@ PanelWindow {
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
         Repeater {
-            model: BarLayout.right
+            model: BarLayout.ready ? BarLayout.right : []
             BarSlot { bar: barWin }
         }
     }

@@ -39,24 +39,41 @@ The `tray` module folds the indicators that are not in use. Folded, only the one
 
 ## Choosing and ordering modules
 
-Without any file, the defaults above apply. To change them, create `~/.config/filigrane/fili-bar.toml` (re-read as soon as it changes):
+Every module folder has a manifest, `module.toml`:
+
+```toml
+title = "Clock"
+description = "Date, time and calendar"
+side = "right"   # "left" or "right" (default)
+order = 120      # position in the row, smaller = more to the left (default 50)
+```
+
+The default rows are the manifests of each side sorted by `order`. A module with a manifest joins its row by itself, so a personal module needs nothing else: `order = 1` puts it first of the right row. The manifests are read once when the shell starts.
+
+To change the defaults, create `~/.config/filigrane/fili-bar.toml` (re-read as soon as it changes):
 
 ```toml
 [modules]
 left  = ["logo", "workspaces", "appmenu"]
 right = ["mail", "...", "clock", "power"]
+
+[modules.clock]      # overrides the manifest of one module
+side = "left"
+order = 5
+enabled = false
 ```
 
 - A name is a folder of `bar/modules/`: `my-thing` loads `my-thing/MyThingModule.qml`.
-- The order of the list is the order of the bar, left to right.
-- `"..."` stands for the default modules of that row that are not listed yet, so a personal layer can add its own without restating the rest.
+- An explicit `left` / `right` list is the exact order of the bar, left to right, and wins over `order`.
+- `"..."` stands for the default modules of that row that are not listed yet.
+- `[modules.<name>]` overrides `side`, `order` and `enabled` (`false` removes the module, in the lists too).
 - Names that are invalid (anything but lowercase letters, digits and hyphens) and duplicates are ignored. A module that does not exist leaves a loading error in the log and no gap in the bar.
 
 Your own `fili-bar.toml` belongs to the [personal layer](configuration.md): `users/<login>/dotfiles/config/filigrane/fili-bar.toml`.
 
 ## Writing a module
 
-A module is a folder `bar/modules/<name>/` with `<Name>Module.qml` and, if it opens a panel, `<Name>Panel.qml` next to it. A personal module (an account, a third-party service) goes in `users/<login>/dotfiles/config/quickshell/bar/modules/<name>/`, never in the distribution. After adding a file, run `./bootstrap.sh --fili-shell` (files are linked one by one, a new one is not seen before) and restart Quickshell if it is already running.
+A module is a folder `bar/modules/<name>/` with `<Name>Module.qml` and, if it opens a panel, `<Name>Panel.qml` next to it. Add a `module.toml` (see above) so it is placed without a `fili-bar.toml`. A personal module (an account, a third-party service) goes in `users/<login>/dotfiles/config/quickshell/bar/modules/<name>/`, never in the distribution. After adding a file, run `./bootstrap.sh --fili-shell` (files are linked one by one, a new one is not seen before) and restart Quickshell if it is already running.
 
 The root of the module is one of:
 

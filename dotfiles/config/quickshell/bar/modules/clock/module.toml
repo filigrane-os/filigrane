@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Clock"
+description = "Date, time and calendar"
+side = "right"
+order = 120

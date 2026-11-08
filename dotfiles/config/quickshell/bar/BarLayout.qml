@@ -1,15 +1,21 @@
 pragma Singleton
-// Which modules the fili-bar shows, and in which order. ~/.config/filigrane/fili-bar.toml is optional (the defaults below
-// apply without it) and re-read as soon as it changes:
+// Which modules the fili-bar shows, and in which order. Every module folder has a manifest, module.toml (title,
+// description, side = "left"|"right", order = position in the row, smaller = more to the left, default 50): the default
+// rows are the manifests sorted by order. ~/.config/filigrane/fili-bar.toml is optional and re-read as soon as it changes:
 //   [modules]
 //   left  = ["logo", "workspaces", "appmenu"]
 //   right = ["status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network",
 //            "notifications", "clock", "power"]
+//   [modules.clock]        # per-module override of the manifest
+//   side = "left"
+//   order = 5
+//   enabled = false
 // A name is a folder of bar/modules/ (<name>/<Name>Module.qml, hyphens make camel case: "my-thing" -> MyThingModule),
-// from the distribution or from a user layer. "..." stands for the default modules of the row (the ones not listed yet),
-// so a user layer can add its own without restating the rest: right = ["mail", "..."]. Invalid names (anything but
-// lowercase letters, digits and hyphens) and duplicates are ignored; a module that does not exist leaves a loading
-// error in the log and no gap in the bar.
+// from the distribution or from a user layer. An explicit left / right list gives the exact order of the row; "..."
+// stands for the default modules of the row (the ones not listed yet), so a user layer can add its own without restating
+// the rest: right = ["mail", "..."]. A module with a manifest joins the default row by itself. Invalid names (anything but
+// lowercase letters, digits and hyphens), duplicates and disabled modules are ignored; a module that does not exist
+// leaves a loading error in the log and no gap in the bar. The manifests are read once at start (reload() reads them again).
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -22,11 +28,55 @@ import qs.bar.modules.clock
 
 Singleton {
     id: layout
-    readonly property var defaultLeft: ["logo", "workspaces", "appmenu"]
-    readonly property var defaultRight: ["status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network", "notifications", "clock", "power"]
+    // Manifests by module name: { side, order, title, description }; ready once they are read (the bar waits for it)
+    property var manifests: ({})
+    property bool ready: false
+    readonly property var defaultLeft: row("left")
+    readonly property var defaultRight: row("right")
     property var parsed: ({})
     readonly property var left: pick("left", defaultLeft)
     readonly property var right: pick("right", defaultRight)
+
+    Component.onCompleted: reload()
+    function reload() {
+        scan.running = true;
+    }
+    Process {
+        id: scan
+        command: ["sh", "-c", 'for f in "$1"/modules/*/module.toml; do [ -f "$f" ] || continue; printf "@@%s\\n" "$(basename "$(dirname "$f")")"; cat "$f"; echo; done', "sh", Qt.resolvedUrl(".").toString().replace(/^file:\/\//, "").replace(/\/$/, "")]
+        stdout: StdioCollector {
+            onStreamFinished: layout.load(text)
+        }
+    }
+    // Manifests from the text of scan: "@@name" lines followed by the content of each module.toml
+    function load(text) {
+        const out = {};
+        for (const part of text.split("@@").slice(1)) {
+            const nl = part.indexOf("\n");
+            const name = part.slice(0, nl).trim();
+            if (/^[a-z][a-z0-9-]*$/.test(name))
+                out[name] = parseToml(part.slice(nl + 1));
+        }
+        manifests = out;
+        ready = true;
+    }
+    function parseToml(text) {
+        return FiliTheme.parseToml(text)[""] ?? ({});
+    }
+    // Value of a key for a module: [modules.<name>] of fili-bar.toml, then its manifest, then the fallback
+    function setting(name, key, fallback) {
+        return parsed["modules." + name]?.[key] ?? manifests[name]?.[key] ?? fallback;
+    }
+    function enabled(name) {
+        return setting(name, "enabled", "true") !== "false";
+    }
+    // Default modules of a row: the enabled manifests of that side, by order then name
+    function row(side) {
+        const order = n => { const v = parseInt(setting(n, "order", "50")); return isNaN(v) ? 50 : v; };
+        return Object.keys(manifests)
+            .filter(n => enabled(n) && setting(n, "side", "right") === side)
+            .sort((x, y) => order(x) - order(y) || (x < y ? -1 : 1));
+    }
 
     FileView {
         path: FiliTheme.testing ? "" : (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/fili-bar.toml"
@@ -44,7 +94,7 @@ Singleton {
         const out = [];
         for (const n of v)
             for (const m of n === "..." ? def : [n])
-                if (/^[a-z][a-z0-9-]*$/.test(m) && out.indexOf(m) < 0)
+                if (/^[a-z][a-z0-9-]*$/.test(m) && out.indexOf(m) < 0 && enabled(m))
                     out.push(m);
         return out;
     }

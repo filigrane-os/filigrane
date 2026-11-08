@@ -1212,11 +1212,16 @@ ShellRoot {
                 } catch (e) {}
                 ok(n && typeof n.device === "string" && Array.isArray(n.networks), "fili-net list: JSON { device, networks }", t.shellOut.out);
             },
-            // fili-bar layout (~/.config/filigrane/fili-bar.toml, optional; defaults in BarLayout)
+            // fili-bar layout (module.toml manifests, ~/.config/filigrane/fili-bar.toml optional)
+            wait(() => {}, () => BarLayout.ready, 5000),
             () => {
                 const p = FiliTheme.parseToml('[modules]\nleft = ["logo",\n    "workspaces", # comment\n]\nright = ["power", "clock"]\n');
                 ok(JSON.stringify(p.modules.left) === '["logo","workspaces"]' && JSON.stringify(p.modules.right) === '["power","clock"]', "FiliTheme.parseToml: tableau sur plusieurs lignes", JSON.stringify(p));
-                ok(BarLayout.left.join() === "logo,workspaces,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: sans fichier, modules par défaut", BarLayout.left.join());
+                ok(BarLayout.ready && BarLayout.left.join() === "logo,workspaces,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: sans fichier, modules par défaut (manifestes)", BarLayout.left.join());
+                BarLayout.parsed = FiliTheme.parseToml('[modules.clock]\nside = "left"\norder = 5\n[modules.power]\nenabled = false\n');
+                ok(BarLayout.left.join() === "clock,logo,workspaces,appmenu", "BarLayout: [modules.<nom>] change côté et ordre", BarLayout.left.join());
+                ok(BarLayout.right.indexOf("clock") < 0 && BarLayout.right.indexOf("power") < 0, "BarLayout: enabled = false retire le module", BarLayout.right.join());
+                BarLayout.parsed = ({});
                 BarLayout.parsed = FiliTheme.parseToml('[modules]\nright = ["mail", "..."]\n');
                 ok(BarLayout.right.join() === "mail," + BarLayout.defaultRight.join(), "BarLayout: « ... » = les modules par défaut", BarLayout.right.join());
                 BarLayout.parsed = FiliTheme.parseToml('[modules]\nleft = ["logo", "logo"]\nright = ["power", "clock", "../etc", "Nope", "ghost"]\n');

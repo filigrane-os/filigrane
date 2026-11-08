@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Logo"
+description = "Filigrane logo, opens the menu"
+side = "left"
+order = 10
