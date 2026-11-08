@@ -1,10 +1,10 @@
 #!/bin/sh
-# VPN Proton via WireGuard (wg-quick), sans daemon: le tunnel vit dans le noyau.
-# Configs: /etc/wireguard/NOM.conf (600, root), à télécharger sur account.proton.me (VPN > WireGuard), jamais dans le dépôt.
-# NOM: 15 caractères max, commencer par "proton" pour que l'indicateur de la barre le reconnaisse (ex. proton-fr).
-#   vpn            bascule: coupe le VPN actif, sinon connecte (demande lequel s'il y en a plusieurs)
-#   vpn up [NOM] | vpn down | vpn status
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# VPN through WireGuard (wg-quick), without a daemon: the tunnel lives in the kernel.
+# Configs: /etc/wireguard/NAME.conf (600, root), downloaded from the provider's account page (VPN > WireGuard), never in the repository.
+# NAME: 15 characters max, start with "proton" so that the bar indicator recognises it (e.g. proton-fr).
+# vpn            toggle: turns off the active VPN, otherwise connects (asks which one if there are several)
+# vpn up [NAME] | vpn down | vpn status
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

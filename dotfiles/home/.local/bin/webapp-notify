@@ -1,19 +1,19 @@
 #!/bin/sh
-# Notifications d'applications web -> indicateur de la barre + clic qui ouvre/focalise la webapp (WhatsApp Web n'a pas à être ouvert).
-# Écoute les appels Notify sur le bus D-Bus de session (dbus-monitor + awk, aucun interpréteur résident de plus). Une notification
-# est rattachée à une webapp de ~/.config/webapps/list suivie dans ~/.config/webapps/notify ("Nom | émetteur", un par ligne):
-#   - émetteur natif (WhatsApp | whatsapp-unreadd): client sans navigateur, reconnu par son nom d'application
-#   - sans émetteur: webapp ouverte (Chrome), reconnue par son nom ou son hôte dans l'appli émettrice, le titre ou le corps
-# La notification d'origine est retirée puis ré-émise sous le nom de la webapp (notif-focus la focalise ou la rouvre au clic)
-# et poussée dans bar-alert (kind = nom en minuscules sans espace).
-# Notifications Chrome non reconnues: consignées dans $XDG_RUNTIME_DIR/webapp-notify.log. Proton Mail a déjà mail-notify.
-# Lancé par niri au démarrage (boucle de relance).
+# Web application notifications -> bar indicator + click that opens/focuses the webapp (WhatsApp Web does not have to be open).
+# Listens to the Notify calls on the session D-Bus bus (dbus-monitor + awk, no extra resident interpreter). A notification
+# is attached to a webapp of ~/.config/webapps/list followed in ~/.config/webapps/notify ("Name | sender", one per line):
+# - native sender (WhatsApp | whatsapp-unreadd): client without a browser, recognised by its application name
+# - no sender: open webapp (Chrome), recognised by its name or host in the sending app, the title or the body
+# The original notification is removed then re-emitted under the name of the webapp (notif-focus focuses it or reopens it on click)
+# and pushed into bar-alert (kind = lowercase name without spaces).
+# Chrome notifications not recognised: logged in $XDG_RUNTIME_DIR/webapp-notify.log. Proton Mail already has mail-notify.
+# Started by niri at login (restart loop).
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/webapps"
 RUN="${XDG_RUNTIME_DIR:-/tmp}"
 BIN="$HOME/.local/bin"
 US="$(printf '\037')"
 
-# Règles "nom|kind|hôte|icône|émetteur natif" (minuscules sauf nom et icône)
+# Rules "name|kind|host|icon|native sender" (lowercase except name and icon)
 awk -F'|' '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
     FILENAME ~ /notify$/ { if ($0 !~ /^#/ && trim($1) != "") native[tolower(trim($1))] = tolower(trim($2)); next }
@@ -26,9 +26,9 @@ awk -F'|' '
 ' "$CONF/notify" "$CONF/list" >"$RUN/webapp-notify.rules" 2>/dev/null
 [ -s "$RUN/webapp-notify.rules" ] || exit 0
 
-# dbus-monitor -> awk: un enregistrement "nom<US>kind<US>icône<US>hôte<US>titre<US>corps" par notification reconnue
+# dbus-monitor -> awk: one record "name<US>kind<US>icon<US>host<US>title<US>body" per recognised notification
 dbus-monitor --session "interface='org.freedesktop.Notifications',member='Notify'" 2>/dev/null | awk -v rules="$RUN/webapp-notify.rules" -v lf="$RUN/webapp-notify.log" '
-    function str(s,   p, e) {  # prochaine chaîne D-Bus de s: renvoie la valeur, laisse le reste dans rest
+    function str(s,   p, e) {  # next D-Bus string of s: returns the value, leaves the rest in rest
         p = index(s, "string \""); if (!p) { rest = ""; return "" }
         s = substr(s, p + 8); e = index(s, "\"\n"); if (!e) e = length(s) + 1
         rest = substr(s, e + 1); return substr(s, 1, e - 1)
@@ -51,7 +51,7 @@ dbus-monitor --session "interface='org.freedesktop.Notifications',member='Notify
         blk = ""
     }
 ' | while IFS="$US" read -r name kind icon summary body; do
-    sleep 0.15   # laisse le shell afficher la notification d'origine
+    sleep 0.15   # let the shell display the original notification
     "$BIN/fili-shell" notification dismiss "$summary"
     notify-send -a "$name" -i "$icon" "$summary" "$body"
     "$BIN/bar-alert" push "$kind" "$summary" "$body"

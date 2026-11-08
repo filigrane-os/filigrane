@@ -1,9 +1,9 @@
 #!/bin/sh
-# Désinstalle une application (équivalent du « Uninstall » d'Omarchy), à lancer dans un terminal.
-#   app-uninstall FICHIER.desktop
-# Appli web: webapp-remove. Paquet Void: xbps-remove puis retrait de la ligne dans packages/*.txt
-# (état déclaratif du dépôt). Fichier .desktop utilisateur sans paquet: supprimé.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Uninstalls an application (equivalent of the Omarchy "Uninstall"), to run in a terminal.
+# app-uninstall FILE.desktop
+# Web app: webapp-remove. Void package: xbps-remove then remove the line in packages/*.txt
+# (declarative state of the repository). User .desktop file without a package: deleted.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
@@ -29,7 +29,7 @@ printf '\n'; t 'Uninstall %s? [y/N] ' "$owner"
 read -r rep
 case "$rep" in o|O|y|Y) ;; *) t 'cancelled\n'; exit 0 ;; esac
 sudo xbps-remove -R "$owner" || exit $?
-# Retire la ligne du paquet (commentaire de fin compris) des listes du dépôt
+# Removes the line of the package (trailing comment included) from the lists of the repository
 for l in "$ROOT"/packages/*.txt; do
     grep -qE "^$owner([[:space:]]|\$)" "$l" || continue
     tmp="$(mktemp)"

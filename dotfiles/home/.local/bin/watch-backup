@@ -1,11 +1,11 @@
 #!/bin/bash
-# Sauvegarde restic de ~ vers le NAS (réseau local seulement). Lancé par cron-watch (1 fois par jour, rattrapage)
-# ou à la main depuis la barre (`watch-backup now`, via bar-backup: ignore la batterie et signale les échecs).
-# Config HORS dépôt (secrets): ~/.config/restic/env, par exemple
-#     RESTIC_REPOSITORY=sftp:nas:/Volume1/backup/void     # "nas" = Host de ~/.ssh/config (clé dédiée)
-#     RESTIC_PASSWORD_FILE=$HOME/.config/restic/password
-# Automatique: pas configuré, NAS éteint ou batterie = sortie 1 sans bruit, cron-watch réessaie au tour suivant.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# restic backup of ~ to the NAS (local network only). Started by cron-watch (once a day, catching up)
+# or by hand from the bar (`watch-backup now`, through bar-backup: ignores the battery and reports failures).
+# Config OUTSIDE the repository (secrets): ~/.config/restic/env, for example
+# RESTIC_REPOSITORY=sftp:nas:/Volume1/backup/void     # "nas" = Host of ~/.ssh/config (dedicated key)
+# RESTIC_PASSWORD_FILE=$HOME/.config/restic/password
+# Automatic: not configured, NAS off or on battery = silent exit 1, cron-watch retries next round.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
@@ -14,7 +14,7 @@ STATE="$HOME/.local/state/watch"
 mkdir -p "$STATE"
 manual=0; [ "$1" = now ] && manual=1
 
-refuse() { # refuse MESSAGE: silencieux en automatique, notifié en manuel
+refuse() { # refuse MESSAGE: silent when automatic, notified when manual
     [ "$manual" = 1 ] && notify-send -u normal -a backup "$(t 'Backup not possible')" "$1"
     exit 1
 }
@@ -29,14 +29,14 @@ read -r host port < <(ssh -G "$alias_" 2>/dev/null | awk '$1=="hostname"{h=$2} $
 [ -n "$host" ] && timeout 3 bash -c "exec 3<>/dev/tcp/$host/$port" 2>/dev/null || refuse "$(t 'NAS unreachable')"
 restic cat config >/dev/null 2>"$STATE/backup.err" || refuse "$(t 'restic repository missing or unreadable (restic init?)')"
 
-# Verrou tenu pendant la sauvegarde: bar-backup s'en sert pour afficher "en cours"
+# Lock held during the backup: bar-backup uses it to show "running"
 exec 8>"$STATE/backup.lock"
 flock -n 8 || { [ "$manual" = 1 ] && notify-send -u low -a backup "$(t 'Backup')" "$(t 'Already running')"; exit 0; }
 "$HOME/.local/bin/fili-shell" bar refresh 18
 
 if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$HOME/.config/watch/backup-excludes" \
         --tag auto >"$STATE/backup.log" 2>>"$STATE/backup.err"; then
-    # Oubli des vieux instantanés: purge (lourde en SFTP) seulement le dimanche
+    # Forget old snapshots: prune (heavy over SFTP) only on Sunday
     if [ "$(date +%u)" = 7 ]; then
         restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune >>"$STATE/backup.log" 2>>"$STATE/backup.err"
     fi

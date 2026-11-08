@@ -1,6 +1,6 @@
 #!/bin/sh
-# Tiroir de la barre à gauche de l'horloge (sauvegarde, mail, WhatsApp, agenda au repos, tray système): `bar-tray toggle`
-# l'ouvre ou le replie. État: présence de $XDG_RUNTIME_DIR/bar-tray-open, lue par la barre (BarState.qml), sans daemon.
+# Drawer of the bar left of the clock (backup, mail, WhatsApp, calendar at rest, system tray): `bar-tray toggle`
+# opens or folds it. State: presence of $XDG_RUNTIME_DIR/bar-tray-open, read by the bar (BarState.qml), without a daemon.
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-open"
 case "$1" in
     toggle) if [ -e "$f" ]; then rm -f "$f"; else : >"$f"; fi ;;

@@ -1,8 +1,8 @@
 #!/bin/sh
-# Raccourcis niri à afficher (fili-hotkeys, FiliHotkeys.qml): les binds de binds { } qui ont un hotkey-overlay-title
-# (config.kdl, puis local.kdl qui complète ou remplace), en JSON [{"key": "Super+Ctrl+W", "title": "Wi-Fi (impala)"}].
-# Mod devient Super; hotkey-overlay-title=null masque la ligne.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# niri shortcuts to display (fili-hotkeys, FiliHotkeys.qml): the binds of binds { } that have a hotkey-overlay-title
+# (config.kdl, then local.kdl which completes or replaces), as JSON [{"key": "Super+Ctrl+W", "title": "Wi-Fi (impala)"}].
+# Mod becomes Super; hotkey-overlay-title=null hides the line.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

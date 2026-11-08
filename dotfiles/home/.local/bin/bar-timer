@@ -1,9 +1,9 @@
 #!/bin/bash
-# Minuteur / chronomètre de la barre, sans daemon: l'état est un petit fichier dans $XDG_RUNTIME_DIR/bar-timer
-# ("T <fin>" minuteur, "S <début>" chronomètre, "done" minuteur terminé), lu et décompté par la barre (BarState.qml).
-# Usage: bar-timer click (choisir / arrêter / acquitter) | add (+5 min au minuteur) | expire (minuteur écoulé, appelé par la barre)
-# Durées du minuteur: 5 (minutes), 90s, 10m, 1h.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Bar timer / stopwatch, without a daemon: the state is a small file in $XDG_RUNTIME_DIR/bar-timer
+# ("T <end>" timer, "S <start>" stopwatch, "done" finished timer), read and counted down by the bar (BarState.qml).
+# Usage: bar-timer click (choose / stop / acknowledge) | add (+5 min on the timer) | expire (timer elapsed, called by the bar)
+# Timer durations: 5 (minutes), 90s, 10m, 1h.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

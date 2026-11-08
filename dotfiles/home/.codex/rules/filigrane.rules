@@ -1,6 +1,6 @@
-# Règles de Filigrane pour Codex (lancé par fili-ai): mêmes interdits que pour Claude Code (AGENTS.md).
-# Le bac à sable impose déjà un accord pour sudo et le réseau; ces règles refusent ce qui efface un disque
-# et demandent confirmation pour ce qui est irréversible, même si une commande a été autorisée « toujours ».
+# Filigrane rules for Codex (started by fili-ai): same prohibitions as for Claude Code (AGENTS.md).
+# The sandbox already requires an agreement for sudo and the network; these rules refuse what erases a disk
+# and ask for confirmation for what is irreversible, even if a command was allowed "always".
 
 prefix_rule(pattern = ["install-void.sh"], decision = "forbidden", justification = "efface un disque entier")
 prefix_rule(pattern = ["./install-void.sh"], decision = "forbidden", justification = "efface un disque entier")

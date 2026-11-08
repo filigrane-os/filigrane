@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Réglage en direct du DSP haut-parleurs (hardware/mac-t2/audio/speakers-j293.json).
-#   sound-tune           panneau TUI (↑↓ choisir, ←→ régler, s sauver, o origine Asahi, r recharger, q quitter)
-#   sound-tune --apply   réapplique ~/.config/t2-audio/tune.conf (ouverture de session niri)
-#   sound-tune --get     réglages enregistrés et bornes, en JSON (égaliseur du fili-panel son)
-#   sound-tune --set clé=valeur... [--save]   applique en direct (et enregistre); --reset: valeurs par défaut, enregistrées
+# Live tuning of the speaker DSP (hardware/mac-t2/audio/speakers-j293.json).
+# sound-tune           TUI panel (↑↓ choose, ←→ adjust, s save, o Asahi original, r reload, q quit)
+# sound-tune --apply   reapplies ~/.config/t2-audio/tune.conf (niri session start)
+# sound-tune --get     saved settings and bounds, as JSON (equalizer of the sound fili-panel)
+# sound-tune --set key=value... [--save]   applies live (and saves); --reset: default values, saved
 import curses, json, os, subprocess, sys, time
 
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh), via le shell; une fois par texte
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh), through the shell; once per text
 FILI_LIB = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../lib")
 _tr = {}
 
@@ -24,7 +24,7 @@ def t(fmt, *args):
 NODE = "audio_effect.t2-speakers"
 CONF = os.path.expanduser("~/.config/t2-audio/tune.conf")
 
-# clé, libellé, min, max, pas, unité, contrôles du graphe
+# key, label, min, max, step, unit, graph controls
 PARAMS = [
     ("bass",      t('Bass (bankstown)'), 0.0,   4.0,    0.1,  "",    ["bassex:amt"]),
     ("mid_gain",  t('Mids'), -6.0,   8.0,    0.5,  "dB",  ["midl:Gain", "midr:Gain"]),
@@ -33,9 +33,9 @@ PARAMS = [
     ("treb_freq", t('Treble: from'), 2000.0, 10000.0, 250.0, "Hz", ["trebl:Freq", "trebr:Freq"]),
     ("loudness",  t('Loudness'), 0.0,   1.0,    1.0,  "",    ["ell:enabled", "elr:enabled"]),
 ]
-# Valeurs Asahi d'origine (sans correction d'aigus ni de médiums)
+# Original Asahi values (without treble or mid correction)
 ORIGIN = {"bass": 1.4, "mid_gain": 0.0, "mid_freq": 1200.0, "treb_gain": 0.0, "treb_freq": 4500.0, "loudness": 1.0}
-# Valeurs par défaut du graphe installé
+# Default values of the installed graph
 DEFAULT = {**ORIGIN, "mid_gain": 3.0, "treb_gain": 5.0}
 
 
@@ -55,7 +55,7 @@ def load():
 
 
 def save(vals):
-    # écriture en place: le fichier est un lien vers le dépôt (hardware/mac-t2/dotfiles/config/t2-audio)
+    # write in place: the file is a link to the repository (hardware/mac-t2/dotfiles/config/t2-audio)
     os.makedirs(os.path.dirname(CONF), exist_ok=True)
     with open(CONF, "w") as f:
         f.write("# Speaker DSP settings, written by sound-tune\n")
@@ -157,7 +157,7 @@ def main():
         cli(sys.argv[1:])
         return
     if "--apply" in sys.argv:
-        # à l'ouverture de session, le filtre apparaît quelques secondes après pipewire
+        # at session start, the filter appears a few seconds after pipewire
         for _ in range(60):
             nid = node_id()
             if nid:

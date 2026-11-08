@@ -1,7 +1,7 @@
 #!/bin/sh
-# Indicateurs de la barre (JSON, protocole des modules custom de Waybar): mic | night | rec | idle | batwatch. Rafraîchis par signal (clic) ou par intervalle.
-# CPU, mémoire, température, disque, réseau, SSH entrant, mode avion et VPN: bar-stats (apps/bar-stats, Rust, résident).
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Bar indicators (JSON, protocol of the custom Waybar modules): mic | night | rec | idle | batwatch. Refreshed by signal (click) or by interval.
+# CPU, memory, temperature, disk, network, incoming SSH, airplane mode and VPN: bar-stats (apps/bar-stats, Rust, resident).
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
@@ -13,9 +13,9 @@ case "$1" in
             *) printf '{"text":"\\uf130","tooltip":"%s"}\n' "$(t 'Microphone on: %s' "$(echo "$v" | awk '{printf "%d%%", $2*100}')")" ;;
         esac ;;
     night)
-        # Active seulement si l'écran est réellement réchauffé (forcé, ou auto en soirée); auto en journée = au repos.
+        # Active only if the screen is really warmed (forced, or auto in the evening); auto during the day = at rest.
         if pgrep -x wlsunset >/dev/null; then
-            # Dernière température appliquée, d'après la sortie de wlsunset (bar-toggle night)
+            # Last applied temperature, from the output of wlsunset (bar-toggle night)
             if pgrep -f 'wlsunset .* -T 4501$' >/dev/null; then k=4500
             else k=$(awk '/^setting temperature to/ { k = $4 } END { print k }' "${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>/dev/null); fi
             if [ "${k:-6500}" -lt 6400 ]; then
@@ -33,7 +33,7 @@ case "$1" in
             printf '{"text":""}\n'
         fi ;;
     idle)
-        # Caféine (comme "Stay Awake" d'Omarchy): tasse jaune = écran jamais verrouillé ni éteint
+        # Caffeine (like Omarchy "Stay Awake"): yellow cup = screen never locked or turned off
         if pgrep -x swayidle >/dev/null; then
             printf '{"text":"\\uf0f4","class":"idle","tooltip":"%s"}\n' "$(t 'Auto lock on (click: keep awake)')"
         else

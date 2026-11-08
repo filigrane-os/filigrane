@@ -1,9 +1,9 @@
 #!/bin/sh
-# Capot (appelé par niri, switch-events). Usage: lid close|open
-# Fermé sans écran externe: verrou et écran éteint, veille seulement si le capot est encore
-# fermé après LID_DELAY secondes. Rouvert avant: réveil immédiat (le Mac T2 ne sort pas de
-# veille à l'ouverture du capot, seul le bouton power le réveille).
-# Avec un écran externe: rien (kanshi gère l'écran interne).
+# Lid (called by niri, switch-events). Usage: lid close|open
+# Closed without an external display: lock and screen off, sleep only if the lid is still
+# closed after LID_DELAY seconds. Reopened before: immediate wake (the T2 Mac does not wake from
+# sleep on lid opening, only the power button wakes it).
+# With an external display: nothing (kanshi handles the internal display).
 LID_DELAY=${LID_DELAY:-300}
 pidf="${XDG_RUNTIME_DIR:-/tmp}/lid-timer.pid"
 

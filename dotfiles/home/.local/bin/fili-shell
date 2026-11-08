@@ -1,36 +1,36 @@
 #!/bin/sh
-# Client du fili-shell (Quickshell: fili-bar, fili-notification, fili-notification-center, fili-launcher, fili-tooltip,
-# fili-calendar). Écrit une ligne dans le tuyau nommé lu par ~/.config/quickshell (FiliShell.qml), sans lancer le
-# client Qt `qs ipc` (plus lourd). Les réponses reviennent par un tuyau propre à la requête. Sans shell en marche,
-# les commandes sans réponse sont ignorées.
+# Client of the fili-shell (Quickshell: fili-bar, fili-notification, fili-notification-center, fili-launcher, fili-tooltip,
+# fili-calendar). Writes a line into the named pipe read by ~/.config/quickshell (FiliShell.qml), without starting the
+# Qt client `qs ipc` (heavier). Replies come back through a pipe of their own for the request. Without a running shell,
+# commands without a reply are ignored.
 # Usage:
-#   fili-shell bar refresh N...                       rafraîchit les modules de la fili-bar (ex-`pkill -RTMIN+N waybar`)
-#   fili-shell notification dnd on|off|toggle         ne pas déranger
-#   fili-shell notification dismiss-all | dismiss RÉSUMÉ | center (ouvre/ferme le fili-notification-center)
-#   fili-shell panel network|audio|bluetooth|power|monitor|keyboard|display|close   ouvre/ferme un fili-panel (sous son module)
-#   fili-shell panel toggle                           rouvre le dernier fili-panel ou ferme (Mod+A, navigation au clavier)
-#   fili-shell notification history                   historique en JSON (champs de makoctl history -j)
-#   fili-shell launcher [options fuzzel]                  fili-launcher façon `fuzzel --dmenu`: entrées sur stdin, choix sur
-#       stdout, code 1 si annulé, 10 pour Maj+Retour arrière. Options: --prompt P, --prompt-only P, --lines N,
-#       --width N (caractères), --font F, --no-sort, --with-nth N, --accept-nth N, --search-nth N (colonnes séparées par tabulation; la colonne --search-nth
-#       est cherchée sans être affichée: mots-clés);
-#       les autres options de fuzzel sont ignorées. Icônes: protocole dmenu étendu "texte\0icon\037chemin".
-#   fili-shell launcher close                             ferme le fili-launcher s'il est ouvert (code 0), sinon code 1
-#   fili-shell appmenu [close]                        ouvre au clavier le menu de l'application active (Mod+F10), ou le ferme
-#   fili-shell hotkeys                                ouvre/ferme la fenêtre des raccourcis clavier (fili-hotkeys)
-#   fili-shell chat [ACTION]                          tiroir fili-chat: toggle (défaut), show, close, new, sessions, rename, stop, float, dock... (Mod+Y: `fili-chat toggle`, qui note aussi l'application active)
-#   fili-shell settings [PAGE]                        opens/closes the Settings window (fili-settings), on page PAGE (display, language, power, files, about)
-#   fili-shell about                                  ouvre/ferme la fenêtre « À propos » (fili-about: Filigrane, système, machine)
-#   fili-shell lang                                   relit la langue choisie (fili-lang)
-#   fili-shell reload                                 recharge la config
+# fili-shell bar refresh N...                       refreshes the fili-bar modules (ex-`pkill -RTMIN+N waybar`)
+# fili-shell notification dnd on|off|toggle         do not disturb
+# fili-shell notification dismiss-all | dismiss SUMMARY | center (opens/closes the fili-notification-center)
+# fili-shell panel network|audio|bluetooth|power|monitor|keyboard|display|close   opens/closes a fili-panel (under its module)
+# fili-shell panel toggle                           reopens the last fili-panel or closes (Mod+A, keyboard navigation)
+# fili-shell notification history                   history as JSON (fields of makoctl history -j)
+# fili-shell launcher [fuzzel options]                  fili-launcher in the style of `fuzzel --dmenu`: entries on stdin, choice on
+# stdout, code 1 if cancelled, 10 for Shift+Backspace. Options: --prompt P, --prompt-only P, --lines N,
+# --width N (characters), --font F, --no-sort, --with-nth N, --accept-nth N, --search-nth N (tab-separated columns; the --search-nth column
+# is searched without being displayed: keywords);
+# the other fuzzel options are ignored. Icons: extended dmenu protocol "text\0icon\037path".
+# fili-shell launcher close                             closes the fili-launcher if it is open (code 0), else code 1
+# fili-shell appmenu [close]                        opens the menu of the active application from the keyboard (Mod+F10), or closes it
+# fili-shell hotkeys                                opens/closes the keyboard shortcuts window (fili-hotkeys)
+# fili-shell chat [ACTION]                          fili-chat drawer: toggle (default), show, close, new, sessions, rename, stop, float, dock... (Mod+Y: `fili-chat toggle`, which also notes the active application)
+# fili-shell settings [PAGE]                        opens/closes the Settings window (fili-settings), on page PAGE (display, language, power, files, about)
+# fili-shell about                                  opens/closes the "About" window (fili-about: Filigrane, system, machine)
+# fili-shell lang                                   re-reads the chosen language (fili-lang)
+# fili-shell reload                                 reloads the config
 D="${XDG_RUNTIME_DIR:-/tmp}"
 F="$D/fili-shell"
 
-send() { # ligne sans bloquer: ouverture en lecture-écriture (jamais bloquante sur un tuyau)
+send() { # line without blocking: opened read-write (never blocking on a pipe)
     [ -p "$F" ] || return 1
     { printf '%s\n' "$1" >&3; } 3<>"$F"
 }
-# request COMMANDE: envoie "COMMANDE <tuyau de réponse>" et attend la réponse
+# request COMMAND: sends "COMMAND <reply pipe>" and waits for the reply
 request() {
     [ -p "$F" ] && pgrep -x quickshell >/dev/null || return 1
     r="$(mktemp -u "$D/fili-shell.XXXXXX")"
@@ -60,7 +60,7 @@ case "$1 $2" in
     *) usage ;;
 esac
 
-# fili-launcher: options en JSON et entrées dans des fichiers lus par le shell
+# fili-launcher: options as JSON and entries in files read by the shell
 prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''; search=''
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -87,7 +87,7 @@ jq -nc --arg p "$prompt" --argjson o "$only" --arg l "$lines" --arg w "$width" -
     '{prompt: $p, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
       noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), searchNth: ($sn | tonumber? // 0), input: $in}' > "$in.json"
 out="$(request "launcher open $in.json")" || exit 1
-# Réponse: code de sortie sur la première ligne, sélection ensuite
+# Reply: exit code on the first line, selection after
 rc="${out%%
 *}"
 case "$out" in *'

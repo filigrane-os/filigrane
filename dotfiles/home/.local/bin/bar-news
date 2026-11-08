@@ -1,7 +1,7 @@
 #!/bin/bash
-# Indicateur de la barre: rapports de veille non lus (Omarchy, T2) écrits par watch-claude (vide si aucun, donc module masqué).
-# `bar-news open` les affiche dans un terminal flottant puis les archive.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Bar indicator: unread watch reports (Omarchy, T2) written by watch-claude (empty if none, hence module hidden).
+# `bar-news open` shows them in a floating terminal then archives them.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

@@ -1,4 +1,4 @@
-# .zshrc léger, sans oh-my-zsh (démarrage rapide, peu de RAM)
+# Light .zshrc, without oh-my-zsh (fast start, little RAM)
 
 # Historique
 HISTFILE=~/.zsh_history
@@ -6,7 +6,7 @@ HISTSIZE=50000
 SAVEHIST=50000
 setopt APPEND_HISTORY SHARE_HISTORY HIST_IGNORE_DUPS HIST_IGNORE_SPACE
 
-# Complétion
+# Completion
 autoload -Uz compinit && compinit -C -d ~/.cache/zcompdump
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
@@ -15,7 +15,7 @@ zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
 bindkey -e
 bindkey '^[[H' beginning-of-line '^[[F' end-of-line '^[[3~' delete-char
 
-# Prompt façon robbyrussell: ➜ dossier git:(branche)
+# robbyrussell-style prompt: ➜ folder git:(branch)
 setopt PROMPT_SUBST
 autoload -Uz vcs_info
 zstyle ':vcs_info:*' enable git
@@ -31,6 +31,6 @@ for f in /usr/share/fzf/key-bindings.zsh /usr/share/fzf/completion.zsh; do
 done
 [ -r ~/.config/zsh/aliases ] && . ~/.config/zsh/aliases
 
-# Plugins (la coloration syntaxique doit rester en dernier)
+# Plugins (syntax highlighting must stay last)
 [ -r /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh ] && . /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 [ -r /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ] && . /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh

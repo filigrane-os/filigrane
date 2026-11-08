@@ -1,7 +1,7 @@
 #!/bin/sh
-# Verrouille l'écran (swaylock, fond = fond d'écran courant). Usage: lock [auto]
-# En mode auto (inactivité, mise en veille): pas de verrou si le Wi-Fi courant est dans
-# ~/.config/lock-trusted (un SSID par ligne, fichier local hors dépôt). Le verrou manuel verrouille toujours.
+# Locks the screen (swaylock, background = current wallpaper). Usage: lock [auto]
+# In auto mode (inactivity, sleep): no lock if the current Wi-Fi is in
+# ~/.config/lock-trusted (one SSID per line, local file outside the repository). The manual lock always locks.
 pgrep -x swaylock >/dev/null && exit 0
 if [ "$1" = auto ] && [ -f "$HOME/.config/lock-trusted" ]; then
     dev=$(iwctl station list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/connected/{print $1; exit}')
@@ -9,7 +9,7 @@ if [ "$1" = auto ] && [ -f "$HOME/.config/lock-trusted" ]; then
     [ -n "$ssid" ] && grep -qxF "$ssid" "$HOME/.config/lock-trusted" && exit 0
 fi
 img=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper" 2>/dev/null)
-# Couleur d'accentuation (fili-theme accent), teinte sombre (le verrou reste sombre): anneau, touches et texte de saisie
+# Accent colour (fili-theme accent), dark shade (the lock stays dark): ring, keys and typing text
 case "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/accent" 2>/dev/null)" in
     voile) acc=9dbbd6 ;;
     ardoise) acc=7f9ab6 ;;
@@ -20,8 +20,8 @@ case "$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/accent" 2>/dev/null
 esac
 set -- --ring-ver-color "$acc" --key-hl-color "$acc" --text-ver-color "$acc"
 if [ -f "$img" ]; then swaylock -f -i "$img" "$@"; else swaylock -f "$@"; fi || exit
-# Verrouillé et sans activité: écran éteint au bout d'une minute (celui de swayidle, 10 min, compte depuis la
-# dernière activité, pas depuis le verrou). Ce swayidle-là s'arrête au déverrouillage (fin de swaylock).
+# Locked and idle: screen off after one minute (the swayidle one, 10 min, counts from the last
+# activity, not from the lock). That swayidle stops at unlock (end of swaylock).
 pid=$(pgrep -nx swaylock) || exit 0
 setsid -f sh -c 'swayidle timeout 60 "niri msg action power-off-monitors" resume "niri msg action power-on-monitors" &
     s=$!; tail --pid="$1" -f /dev/null; kill "$s"' _ "$pid" >/dev/null 2>&1

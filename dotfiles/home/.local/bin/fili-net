@@ -1,8 +1,8 @@
 #!/bin/sh
-# Actions Wi-Fi du panneau réseau de la fili-shell (iwd, via iwctl). Sorties en JSON sur stdout.
-# Usage: fili-net list | scan | connect SSID [MOT_DE_PASSE] | forget SSID | power on|off | disconnect
-# Mot de passe lu aussi sur FILI_NET_PASS (évite la ligne de commande visible dans ps).
-# iwd absent ou arrêté: iwctl attend sans fin, d'où le délai (le panneau affiche alors "pas de Wi-Fi")
+# Wi-Fi actions of the network panel of the fili-shell (iwd, through iwctl). JSON outputs on stdout.
+# Usage: fili-net list | scan | connect SSID [PASSWORD] | forget SSID | power on|off | disconnect
+# Password also read from FILI_NET_PASS (avoids the command line visible in ps).
+# iwd missing or stopped: iwctl waits forever, hence the timeout (the panel then shows "no Wi-Fi")
 dev="$(timeout 3 iwctl device list 2>/dev/null | sed 's/\x1b\[[0-9;]*m//g' | awk '/station/ { print $1; exit }')"
 [ -n "$dev" ] || { echo '{"device":"","powered":false,"networks":[]}'; exit 0; }
 strip() { sed 's/\x1b\[[0-9;]*m//g'; }
@@ -11,7 +11,7 @@ case "$1" in
 list)
     powered="$(iwctl device list | strip | awk -v d="$dev" '$1 == d { print ($3 == "on") }')"
     known="$(iwctl known-networks list | strip | awk 'NR > 4 && NF { sub(/^ +/, ""); sub(/ +(psk|open|8021x|wep)( .*)?$/, ""); print }')"
-    # Colonnes: [> ] nom, sécurité, signal (étoiles claires = niveau; les ternes sont retirées avant); noms avec espaces
+    # Columns: [> ] name, security, signal (bright stars = level; the dim ones are removed beforehand); names with spaces
     iwctl station "$dev" get-networks 2>/dev/null | sed "s/\x1b\[1;90m\*\+//g" | strip | awk 'NR > 4 && NF' |
     jq -Rsc --arg dev "$dev" --argjson powered "${powered:-0}" --arg known "$known" '
         ($known | split("\n")) as $k

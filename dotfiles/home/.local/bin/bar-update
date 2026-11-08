@@ -1,7 +1,7 @@
 #!/bin/sh
-# Indicateur de la barre: nombre de mises à jour xbps en attente (vide si aucune, donc module masqué).
-# `bar-update run` lance la mise à jour dans un terminal flottant.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Bar indicator: number of pending xbps updates (empty if none, hence module hidden).
+# `bar-update run` starts the update in a floating terminal.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

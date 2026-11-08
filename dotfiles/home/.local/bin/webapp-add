@@ -1,8 +1,8 @@
 #!/bin/sh
-# Ajoute une appli web au menu.
-#   webapp-add "WhatsApp" https://web.whatsapp.com [icône]
-# icône: nom du thème d'icônes ou fichier PNG/SVG (copié dans le dépôt). Sans icône: web-browser.
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Adds a web app to the menu.
+# webapp-add "WhatsApp" https://web.whatsapp.com [icon]
+# icon: icon theme name or PNG/SVG file (copied into the repository). Without an icon: web-browser.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

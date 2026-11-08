@@ -1,10 +1,10 @@
-# Démarre niri automatiquement sur tty1 (pas de gestionnaire de connexion, 0 Mo en plus).
-# Pas de `exec`: si niri se ferme ou plante, on retombe sur un shell au lieu de boucler.
-# Désactiver: touch ~/.no-niri (ou se connecter sur tty2 à tty6 pour dépanner).
+# Starts niri automatically on tty1 (no login manager, 0 MB more).
+# No `exec`: if niri exits or crashes, we fall back to a shell instead of looping.
+# Disable: touch ~/.no-niri (or log in on tty2 to tty6 to troubleshoot).
 if [[ -z "$WAYLAND_DISPLAY" && -z "$SSH_CONNECTION" && "$(tty)" == /dev/tty1 && ! -e ~/.no-niri ]]; then
     mkdir -p ~/.local/state
     dbus-run-session niri >~/.local/state/niri.log 2>&1
-    # Ce que niri a lancé (pipewire, wa-daemon...) lui survit sans systemd: on l'arrête ici, avant toute nouvelle session
-    # (à l'ouverture, l'arrêt d'un ancien pipewire effacerait la socket du nouveau)
+    # What niri started (pipewire, wa-daemon...) outlives it without systemd: it is stopped here, before any new session
+    # (at login, stopping an old pipewire would delete the socket of the new one)
     ~/.local/bin/session-reap
 fi

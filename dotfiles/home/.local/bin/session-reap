@@ -1,10 +1,10 @@
 #!/bin/sh
-# Arrête les processus laissés par une session niri précédente (déconnexion, plantage): sans systemd, ce que niri lance
-# au démarrage (pipewire, wireplumber, wa-daemon, goimapnotify...) est rattaché à runit et survit, chaque connexion en
-# ajoutait un jeu. Un processus est orphelin si le niri de son NIRI_SOCKET (niri.wayland-1.<pid>.sock) n'existe plus.
-# Ceux sans NIRI_SOCKET (SSH, TTY) ne sont pas touchés. Lancé par ~/.zprofile à la sortie de niri, pas à l'ouverture de la
-# session suivante: un ancien pipewire qui s'arrête efface au passage la socket (même chemin) du nouveau. `-n`: liste sans arrêter.
-# Un seul gawk lit tous les environ (BEGINFILE saute ceux des autres utilisateurs et des processus déjà finis).
+# Stops the processes left by a previous niri session (logout, crash): without systemd, what niri starts
+# at login (pipewire, wireplumber, wa-daemon, goimapnotify...) is attached to runit and survives, each login
+# added a set. A process is orphaned if the niri of its NIRI_SOCKET (niri.wayland-1.<pid>.sock) no longer exists.
+# Those without NIRI_SOCKET (SSH, TTY) are not touched. Started by ~/.zprofile on leaving niri, not when the next
+# session opens: an old pipewire that stops deletes the socket (same path) of the new one on the way. `-n`: list without stopping.
+# A single gawk reads all the environ files (BEGINFILE skips those of other users and of finished processes).
 pids="$(gawk 'BEGIN { RS = "\0" } BEGINFILE { if (ERRNO != "") nextfile }
     /^NIRI_SOCKET=/ {
         n = $0; sub(/\.sock$/, "", n); sub(/.*\./, "", n)
@@ -17,7 +17,7 @@ if [ "$1" = -n ]; then
     for p in $pids; do printf '%s %s\n' "$p" "$(tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | cut -c1-80)"; done
 else
     kill $pids 2>/dev/null
-    # Attendre leur fin (5 s au plus), pour que la session suivante démarre sur une place nette (rclone démonté...)
+    # Wait for their end (5 s at most), so that the next session starts on a clean slate (rclone unmounted...)
     alive() { for p in $pids; do [ -d "/proc/$p" ] && return 0; done; return 1; }
     i=0; while [ "$i" -lt 50 ] && alive; do sleep 0.1; i=$((i + 1)); done
 fi

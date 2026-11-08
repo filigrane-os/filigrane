@@ -1,21 +1,21 @@
 #!/bin/sh
-# Actions de la barre qui changent un état, puis rafraîchissent l'indicateur par signal. Usage: bar-toggle night|rec|idle [start|get|set L S Z]|air|present
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Bar actions that change a state, then refresh the indicator by signal. Usage: bar-toggle night|rec|idle [start|get|set L S Z]|air|present
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 case "$1" in
     night)
-        # wlsunset (ne se réveille que pendant l'aube et le crépuscule, gammastep renvoyait la table gamma toutes les 5 s).
-        # "start" (login): automatique selon le soleil, 4500 K la nuit. Clic: coupe, ou force 4500 K en continu
-        # (-T 4501: wlsunset veut T > t). Position (hors dépôt): ~/.local/state/night-location, "LAT:LON".
-        # "on" force 4500 K, "off" coupe (interrupteur du fili-panel luminosité).
-        # Sa sortie (températures appliquées) sert à l'indicateur (bar-status night).
+        # wlsunset (only wakes up during dawn and dusk, gammastep sent the gamma table every 5 s).
+        # "start" (login): automatic by the sun, 4500 K at night. Click: turns off, or forces 4500 K continuously
+        # (-T 4501: wlsunset wants T > t). Position (outside the repository): ~/.local/state/night-location, "LAT:LON".
+        # "on" forces 4500 K, "off" turns off (switch of the brightness fili-panel).
+        # Its output (applied temperatures) feeds the indicator (bar-status night).
         loc=$(cat "$HOME/.local/state/night-location" 2>/dev/null || echo 48.9:2.3)
         run() { setsid wlsunset -l "${loc%:*}" -L "${loc#*:}" -t 4500 -T "$1" >"${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>&1 & }
         stop() { pkill -x wlsunset; for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x wlsunset >/dev/null || break; sleep 0.5; done; }
         if [ "$2" = resume ]; then
-            # Réveil de veille: relancer le mode auto pour réévaluer l'heure tout de suite
+            # Wake from sleep: restart the auto mode to re-evaluate the time at once
             pgrep -x wlsunset >/dev/null && ! pgrep -f 'wlsunset .* -T 4501$' >/dev/null || exit 0
             stop; run 6500
         elif [ "$2" = start ]; then
@@ -78,7 +78,7 @@ case "$1" in
         fi
         sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 14 ;;
     present)
-        # Mode présentation: ni verrouillage auto ni notifications
+        # Presentation mode: neither automatic lock nor notifications
         if pgrep -x swayidle >/dev/null; then
             pkill -x swayidle; "$HOME/.local/bin/fili-shell" notification dnd on
             notify-send -u low "$(t 'Presentation')" "$(t 'On')"

@@ -1,7 +1,7 @@
 #!/bin/sh
-# Sauvegarde restic immédiate depuis la barre (`bar-backup run`, watch-backup now). L'état affiché (idle, active, failed)
-# est écrit par bar-stats (apps/bar-stats, stat backup).
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# Immediate restic backup from the bar (`bar-backup run`, watch-backup now). The displayed state (idle, active, failed)
+# is written by bar-stats (apps/bar-stats, stat backup).
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi

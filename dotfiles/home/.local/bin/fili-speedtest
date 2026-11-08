@@ -1,7 +1,7 @@
 #!/bin/sh
-# Mesures du panneau moniteur de la fili-shell. Sortie JSON sur stdout.
-# Usage: fili-speedtest net   -> {ping_ms, down_mbps, up_mbps}  (Cloudflare speed.cloudflare.com, ~35 Mo au total)
-#        fili-speedtest disk  -> {write_mbps, read_mbps}        (fichier de 512 Mo dans ~/.cache, en E/S directes)
+# Measurements of the monitor panel of the fili-shell. JSON output on stdout.
+# Usage: fili-speedtest net   -> {ping_ms, down_mbps, up_mbps}  (Cloudflare speed.cloudflare.com, ~35 MB in total)
+# fili-speedtest disk  -> {write_mbps, read_mbps}        (512 MB file in ~/.cache, with direct I/O)
 case "$1" in
 net)
     u=https://speed.cloudflare.com

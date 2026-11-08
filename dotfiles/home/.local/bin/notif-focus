@@ -1,9 +1,9 @@
 #!/bin/sh
-# Clic sur une notification (shell Quickshell, Notifs.qml, après son action par défaut): met le focus sur la fenêtre
-# de l'appli émettrice. Usage: notif-focus <nom de l'appli> [desktop-entry]. Correspondance par nom d'appli ou
-# desktop-entry contre l'app_id ou le titre des fenêtres niri (minuscules, sans ponctuation: "foo-bar" retrouve l'app-id "foobar").
-# Si l'appli porte le nom d'une application web (~/.config/webapps/list), son domaine sert aussi à retrouver la fenêtre
-# (app-id Chrome "chrome-mail.proton.me__-Default"), et la webapp est ouverte si aucune fenêtre n'existe.
+# Click on a notification (Quickshell shell, FiliNotification.qml, after its default action): focuses the window
+# of the sending app. Usage: notif-focus <app name> [desktop-entry]. Matching by app name or
+# desktop-entry against the app_id or the title of the niri windows (lowercase, no punctuation: "foo-bar" finds the app-id "foobar").
+# If the app has the name of a web application (~/.config/webapps/list), its domain is also used to find the window
+# (Chrome app-id "chrome-<host>__-Default"), and the webapp is opened if no window exists.
 app="$1"
 entry="$2"
 [ -n "$app$entry" ] || exit 1

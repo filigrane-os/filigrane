@@ -1,18 +1,18 @@
 #!/bin/sh
-# Partage de fichiers du panneau Bluetooth de la fili-shell: une seule interface, trois protocoles.
-#   airdrop    omdrop (https://github.com/netmojo-systems/omdrop-plugin), radio AWDL (awdl0) requise
-#   bluetooth  OBEX Object Push (bluez-obex: obexd, via D-Bus), appareils appairés
-#   localsend  LocalSend v2 (apps/localsend: lsend pour envoyer, localsendd pour recevoir), même réseau local
+# File sharing of the Bluetooth panel of the fili-shell: a single interface, three protocols.
+# airdrop    omdrop (https://github.com/netmojo-systems/omdrop-plugin), AWDL radio (awdl0) required
+# bluetooth  OBEX Object Push (bluez-obex: obexd, over D-Bus), paired devices
+# localsend  LocalSend v2 (apps/localsend: lsend to send, localsendd to receive), same local network
 # Usage: fili-share protocols                    JSON [{id, label, available, why}]
-#        fili-share peers PROTO                  JSON [{id, name}]
-#        fili-share send PROTO ID NOM            choisit les fichiers (fili-file), les envoie, notifie
-#        fili-share send-files PROTO ID NOM F... envoie ces fichiers (Casier: Partager…), notifie
-#        fili-share receive PROTO on|off|status  status: affiche on ou off
-#        fili-share receive-info                 JSON {dest, confirm, minutes, name, protocols: [{id, label, available, why, on}]}
-#        fili-share received [N]                 JSON des N derniers fichiers reçus (journal de fili-receive)
-# Réception: fili-receive (apps/fili-receive) pose la demande « Accepter / Refuser » et annonce la fin en notification.
-# Réglages facultatifs: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm = ask | always, receive_minutes)
-# Messages en anglais, traduits par lib/i18n/<langue>.sh (voir lib/i18n.sh)
+# fili-share peers PROTO                  JSON [{id, name}]
+# fili-share send PROTO ID NAME           chooses the files (fili-file), sends them, notifies
+# fili-share send-files PROTO ID NAME F... sends these files (Casier: Share…), notifies
+# fili-share receive PROTO on|off|status  status: prints on or off
+# fili-share receive-info                 JSON {dest, confirm, minutes, name, protocols: [{id, label, available, why, on}]}
+# fili-share received [N]                 JSON of the last N received files (journal of fili-receive)
+# Receiving: fili-receive (apps/fili-receive) asks "Accept / Decline" and announces the end in a notification.
+# Optional settings: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm = ask | always, receive_minutes)
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
 FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
 # shellcheck source=/dev/null disable=SC2059
 if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
@@ -27,16 +27,16 @@ LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
 export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
 export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
 
-# Le serveur de notifications du shell n'affiche pas d'icône: l'état est un signe dans le texte (✓ réussi, ✕ échec)
+# The notification server of the shell shows no icon: the state is a sign in the text (✓ success, ✕ failure)
 notify() { notify-send -a fili-share "${2:+$2 }$(t 'Sharing')" "${2:+$2  }$1" 2>/dev/null; }
-# Notification d'un envoi: chaque étape (envoi, attente, fin) remplace la précédente au lieu de s'empiler
+# Notification of a send: each step (sending, waiting, end) replaces the previous one instead of stacking
 NID=""
 status() {
     if [ -n "$NID" ]; then NID="$(notify-send -a fili-share -p -r "$NID" "$(t 'Sharing')" "$1" 2>/dev/null)"
     else NID="$(notify-send -a fili-share -p "$(t 'Sharing')" "$1" 2>/dev/null)"; fi
 }
-# Résultat d'un envoi: notification neuve (remplacer l'étape en cours qui expire au même instant ne réaffiche rien),
-# l'étape en cours est fermée
+# Result of a send: a new notification (replacing the running step that expires at the same moment would show nothing again),
+# the running step is closed
 status_end() {
     if [ -n "$NID" ]; then
         gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications \
@@ -47,7 +47,7 @@ status_end() {
 }
 json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
 
-# Raison de l'indisponibilité d'un protocole (vide = disponible)
+# Reason why a protocol is unavailable (empty = available)
 why() {
     case "$1" in
     airdrop)
@@ -80,7 +80,7 @@ bt_send() { # bt_send MAC FICHIER...
     obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.RemoveSession "$s" >/dev/null 2>&1
     return $rc
 }
-# fili-receive PROTO tourne? (un fichier pid par protocole)
+# is fili-receive PROTO running? (one pid file per protocol)
 fr_running() { [ -r "$FRPID-$1.pid" ] && [ "$(cat "/proc/$(cat "$FRPID-$1.pid")/comm" 2>/dev/null)" = fili-receive ]; }
 fr_start() { # fr_start PROTO
     command -v fili-receive >/dev/null || return 1
@@ -88,13 +88,13 @@ fr_start() { # fr_start PROTO
     setsid -f sh -c 'echo $$ > "$1"; exec fili-receive "$2"' sh "$FRPID-$1.pid" "$1" >/dev/null 2>&1
 }
 fr_stop() { if fr_running "$1"; then kill "$(cat "$FRPID-$1.pid")"; fi; rm -f "$FRPID-$1.pid"; }
-# Réception limitée dans le temps (réglage minutes): coupe le protocole après ce délai
+# Reception limited in time (minutes setting): turns the protocol off after this delay
 auto_off() { # auto_off PROTO
     [ "${MINUTES:-0}" -gt 0 ] 2>/dev/null || return 0
     setsid -f sh -c 'sleep "$1"; exec "$2" receive "$3" off' sh "$((MINUTES * 60))" "$0" "$1" >/dev/null 2>&1
 }
-# Envoi LocalSend. L'application du téléphone ne répond que lorsqu'elle est ouverte au premier plan: tant que la
-# connexion échoue, on réessaie pendant 90 s (en le disant) avant d'abandonner. Un refus de l'autre côté n'est pas retenté.
+# LocalSend send. The phone application only answers when it is open in the foreground: as long as the
+# connection fails, retry for 90 s (saying so) before giving up. A refusal on the other side is not retried.
 ls_send() { # ls_send IP NOM FICHIER...
     ip="$1"; who="$2"; shift 2
     end=$(($(date +%s) + 90)); waiting=0
@@ -120,11 +120,11 @@ peers)
     [ -z "$(why "$2")" ] || { echo '[]'; exit 0; }
     case "$2" in
     airdrop)
-        # Noms répondant à `omdrop peers -n`: lignes sans entête ni « (no response) » / « (anonymous) »
+        # Names answering `omdrop peers -n`: lines without a header or "(no response)" / "(anonymous)"
         omdrop peers -n 2>/dev/null | sed 's/^ *//; s/ *$//' | grep -v -E '^\(|:$|^$' | awk '{ print $0 "\t" $0 }' | json_peers ;;
     bluetooth)
-        # Appareils appairés qui peuvent recevoir un fichier: téléphones, ordinateurs, ou profil Object Push (00001105)
-        # annoncé; pas les souris, casques, claviers...
+        # Paired devices that can receive a file: phones, computers, or the Object Push profile (00001105)
+        # advertised; not mice, headsets, keyboards...
         bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' |
             while IFS="$(printf '\t')" read -r id name; do
                 info="$(bluetoothctl info "$id" 2>/dev/null)"
@@ -133,8 +133,8 @@ peers)
                 esac
             done | json_peers ;;
     localsend)
-        # Pairs que le démon de réception a vus (l'adresse IP sert d'identifiant): rien n'est émis. Sans démon, un scan
-        # multicast de 2 s; l'outil s'y annonce lui-même « lsend-scanner » chez les autres, d'où cette préférence.
+        # Peers the reception daemon has seen (the IP address is the identifier): nothing is emitted. Without the daemon, a
+        # 2 s multicast scan; the tool announces itself as "lsend-scanner" to the others, hence this preference.
         if ls_running; then peers="$(lsend peers --json 2>/dev/null)"; else peers="$(lsend scan --json -d 2 2>/dev/null)"; fi
         printf '%s' "${peers:-[]}" | jq -c --arg me "$ME" '[.[] | select(.alias != $me and .alias != "lsend-scanner") | { id: .ip, name: .alias }]' ;;
     *) echo '[]' ;;
@@ -176,7 +176,7 @@ receive)
         bt_running && exit 0
         mkdir -p "$DEST"
         pkill -x obexd 2>/dev/null
-        # Sans fili-receive (pas d'agent pour poser la question), obexd accepte tout (-a)
+        # Without fili-receive (no agent to ask the question), obexd accepts everything (-a)
         accept=-a; if command -v fili-receive >/dev/null && [ "$CONFIRM" != always ]; then accept=; fi
         setsid -f sh -c 'echo $$ > "$1"; exec "$2" -n $4 -r "$3"' sh "$PIDF" "$OBEXD" "$DEST" "$accept" >/dev/null 2>&1
         fr_start bluetooth
@@ -194,8 +194,8 @@ receive)
     localsend:on)
         ls_running && exit 0
         mkdir -p "$DEST"
-        # fili-receive pose la question (notification Accepter / Refuser) ou accepte seul (confirm = "always"); sans lui,
-        # le démon reçoit tout tant que le mode est actif (comme AirDrop « visible »). `receive localsend off` l'arrête
+        # fili-receive asks the question (Accept / Decline notification) or accepts by itself (confirm = "always"); without it,
+        # the daemon receives everything while the mode is on (like AirDrop "visible"). `receive localsend off` stops it
         mode=always; if command -v fili-receive >/dev/null; then mode=never; fi
         setsid -f sh -c 'echo $$ > "$1"; exec localsendd -d "$2" -a "$3" --auto-accept "$4"' sh "$LSPID" "$DEST" "$ME" "$mode" >/dev/null 2>&1
         fr_start localsend
@@ -207,7 +207,7 @@ receive)
         rm -f "$LSPID"
         ;;
     localsend:status) ls_running && echo on || echo off ;;
-    any:status)  # un des protocoles reçoit (pastille SHARE de la barre)
+    any:status)  # one of the protocols is receiving (SHARE dot of the bar)
         for p in airdrop bluetooth localsend; do
             [ "$("$0" receive "$p" status 2>/dev/null)" = on ] && { echo on; exit 0; }
         done
@@ -215,7 +215,7 @@ receive)
     *:status) echo off ;;
     *) exit 1 ;;
     esac
-    # Pastille SHARE de la fili-bar (signal 24), après le démarrage du démon
+    # SHARE dot of the fili-bar (signal 24), after the start of the daemon
     case "$3" in on|off) setsid -f sh -c 'sleep 1; "$HOME/.local/bin/fili-shell" bar refresh 24' >/dev/null 2>&1 ;; esac
     ;;
 receive-info)
