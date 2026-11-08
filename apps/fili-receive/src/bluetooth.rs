@@ -1,6 +1,6 @@
-// Bluetooth (OBEX Object Push): agent D-Bus de obexd (org.bluez.obex.Agent1). obexd, lancé sans -a, appelle
-// AuthorizePush pour chaque fichier entrant: on demande par notification « Accepter / Refuser », puis on suit le
-// transfert jusqu'à sa fin pour l'annoncer. obexd enregistre dans son dossier racine (voir fili-share receive).
+// Bluetooth (OBEX Object Push): D-Bus agent of obexd (org.bluez.obex.Agent1). obexd, started without -a, calls
+// AuthorizePush for each incoming file: we ask through an "Accept / Decline" notification, then follow the
+// transfer to its end to announce it. obexd saves in its root folder (see fili-share receive).
 use crate::{
     common::{announce, ask, journal, notify, summary},
     i18n::{tr, trf},
@@ -24,7 +24,7 @@ enum AgentError {
 }
 
 struct Agent {
-    // Seconde connexion pour interroger obexd depuis une méthode (la première sert la réponse)
+    // Second connection to query obexd from inside a method (the first one serves the reply)
     query: Connection,
     dir: String,
     always: bool,
@@ -70,7 +70,7 @@ impl Agent {
                 return Err(AgentError::Rejected("Declined".into()));
             }
         }
-        // Suivi jusqu'à la fin (hors de la méthode: obexd attend notre réponse pour démarrer)
+        // Follow-up until the end (outside the method: obexd waits for our answer to start)
         let (c, dir, ret) = (self.query.clone(), self.dir.clone(), name.clone());
         thread::spawn(move || {
             for _ in 0..3600 {
@@ -91,7 +91,7 @@ impl Agent {
                         notify(&format!("✕ {}", trf("Reception from %1 failed", &[&sender])), &name);
                         return;
                     }
-                    // Objet disparu: transfert terminé ou annulé sans état final lisible
+                    // Object gone: transfer finished or cancelled without a readable final state
                     None => return,
                     _ => {}
                 }
@@ -116,7 +116,7 @@ pub fn run(dir: String, always: bool) {
         Ok(c) => c,
         Err(e) => return eprintln!("fili-receive: agent: {e}"),
     };
-    // obexd vient d'être lancé: on attend qu'il prenne son nom
+    // obexd has just been started: we wait for it to take its name
     let mut registered = false;
     for _ in 0..40 {
         let manager = Proxy::new(&conn, "org.bluez.obex", "/org/bluez/obex", "org.bluez.obex.AgentManager1");

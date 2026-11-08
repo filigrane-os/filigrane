@@ -1,8 +1,8 @@
-// fili-automount: monte tout seul les clés USB, cartes SD et disques externes à leur branchement.
-// Écoute les événements udev des disques (`udevadm monitor`, un petit processus, aucune dépendance), puis monte avec
-// udisks (comme le fait le clic dans la barre latérale de Casier) et annonce le résultat par une notification.
-// Lancé au démarrage de la session par niri. Réglage: `automount = false` dans ~/.config/filigrane/fili-file.toml.
-// Ne monte que du neuf: un disque déjà branché au démarrage, ou démonté par l'utilisateur, reste tel quel.
+// fili-automount: mounts USB sticks, SD cards and external disks by itself when they are plugged in.
+// Listens to the udev events of the disks (`udevadm monitor`, a small process, no dependency), then mounts with
+// udisks (as the click in the Casier sidebar does) and announces the result with a notification.
+// Started at the beginning of the session by niri. Setting: `automount = false` in ~/.config/filigrane/fili-file.toml.
+// Only mounts what is new: a disk already plugged in at start, or unmounted by the user, stays as it is.
 #![allow(dead_code)]
 #[path = "../../bar-stats/src/i18n.rs"]
 mod i18n;
@@ -35,12 +35,12 @@ fn notify(title: &str, body: &str, urgent: bool) {
         .status();
 }
 
-// Un événement udev (bloc de lignes « CLE=valeur ») qui annonce un volume neuf avec un système de fichiers
+// A udev event (block of "KEY=value" lines) that announces a new volume with a file system
 fn new_volume(props: &std::collections::HashMap<String, String>) -> Option<String> {
     let get = |k: &str| props.get(k).map(String::as_str).unwrap_or("");
     let fresh = match get("ACTION") {
         "add" => true,
-        // lecteur de cartes: la carte arrive par un « change » du disque
+        // card reader: the card arrives through a "change" of the disk
         "change" => get("DISK_MEDIA_CHANGE") == "1",
         _ => false,
     };
@@ -55,7 +55,7 @@ fn new_volume(props: &std::collections::HashMap<String, String>) -> Option<Strin
 }
 
 fn handle(dev: &str) {
-    // udisks et lsblk ont besoin d'un instant pour voir le volume
+    // udisks and lsblk need a moment to see the volume
     sleep(Duration::from_millis(800));
     let Some(v) = volumes::list().into_iter().find(|v| v.dev == dev) else { return };
     if v.mount.is_some() || !enabled() {
@@ -91,7 +91,7 @@ fn main() {
             }
             let _ = c.wait();
         }
-        // udevadm s'est arrêté (udevd relancé): on réessaie
+        // udevadm stopped (udevd restarted): we try again
         sleep(Duration::from_secs(5));
     }
 }
@@ -114,7 +114,7 @@ mod tests {
             ("ID_FS_TYPE", "vfat"),
         ];
         assert_eq!(new_volume(&ev(&usb)).as_deref(), Some("/dev/sdb1"));
-        // pas de système de fichiers (table de partitions, disque vide) ou événement qui n'est pas un branchement
+        // no file system (partition table, empty disk) or an event that is not a plug-in
         assert_eq!(new_volume(&ev(&[("ACTION", "add"), ("DEVTYPE", "disk"), ("DEVNAME", "/dev/sdb")])), None);
         let mut change = usb.to_vec();
         change[0] = ("ACTION", "change");

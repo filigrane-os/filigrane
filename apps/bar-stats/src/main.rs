@@ -1,13 +1,13 @@
-// Processus unique du fili-shell (Quickshell), lancé par FiliShell.qml: `bar-stats TUYAU`. Un seul thread qui dort
-// dans poll() entre deux échéances; lit /proc et /sys directement, sans lancer top, ps, awk ni udevadm. Une ligne par
-// mise à jour sur la sortie standard:
-//   stat cpu|mem|temp|disk|net|remote|air|vpn|backup JSON   modules de la fili-bar (protocole des modules custom de Waybar)
-//   stat display JSON                                       luminosité (au démarrage et sur `bar refresh 23`), champs screen et kbd en %
-//   ac 0|1                                                  chargeur branché ou non (au démarrage, puis à chaque événement)
-//   info SUJET JSON                                         fiche demandée sur l'entrée standard (`info network|power|monitor`, voir info.rs)
-//   toute ligne écrite dans TUYAU (client fili-shell, scripts), recopiée telle quelle
-// Événements du noyau (netlink uevent) pour le chargeur, le mode avion et les interfaces réseau: rien n'est sondé
-// pour eux. Se termine quand la barre ferme la sortie ou meurt.
+// Single process of the fili-shell (Quickshell), started by FiliShell.qml: `bar-stats PIPE`. A single thread that sleeps
+// in poll() between two deadlines; reads /proc and /sys directly, without running top, ps, awk or udevadm. One line per
+// update on the standard output:
+// stat cpu|mem|temp|disk|net|remote|air|vpn|backup JSON   fili-bar modules (protocol of the custom Waybar modules)
+// stat display JSON                                       brightness (at start and on `bar refresh 23`), screen and kbd fields in %
+// ac 0|1                                                  charger plugged in or not (at start, then at every event)
+// info TOPIC JSON                                         card requested on the standard input (`info network|power|monitor`, see info.rs)
+// any line written in PIPE (fili-shell client, scripts), copied as is
+// Kernel events (netlink uevent) for the charger, airplane mode and network interfaces: nothing is polled
+// for them. Ends when the bar closes the output or dies.
 mod i18n;
 mod info;
 
@@ -41,7 +41,7 @@ fn procs(page_kb: u64) -> HashMap<u32, Proc> {
     for e in dir.flatten() {
         let Some(pid) = e.file_name().to_str().and_then(|s| s.parse::<u32>().ok()) else { continue };
         let Ok(stat) = fs::read_to_string(format!("/proc/{pid}/stat")) else { continue };
-        // nom entre la première « ( » et la dernière « ) » (il peut contenir des espaces ou des parenthèses)
+        // name between the first "(" and the last ")" (it can contain spaces or parentheses)
         let (Some(a), Some(b)) = (stat.find('('), stat.rfind(')')) else { continue };
         let f: Vec<&str> = stat[b + 2..].split_whitespace().collect();
         if f.len() < 22 {
@@ -53,7 +53,7 @@ fn procs(page_kb: u64) -> HashMap<u32, Proc> {
     out
 }
 
-// (occupé, total) en ticks depuis le démarrage; « id » seul compte comme repos (comme top)
+// (busy, total) in ticks since boot; "id" alone counts as idle (like top)
 fn cpu_times() -> (u64, u64) {
     let s = fs::read_to_string("/proc/stat").unwrap_or_default();
     let v: Vec<u64> = s.lines().next().unwrap_or("").split_whitespace().skip(1).filter_map(|x| x.parse().ok()).collect();
@@ -61,7 +61,7 @@ fn cpu_times() -> (u64, u64) {
     (total - v.get(3).copied().unwrap_or(0), total)
 }
 
-// Pango et JSON: on retire ce qui casserait l'un ou l'autre, comme l'ancien script
+// Pango and JSON: remove what would break either, like the old script
 fn clean(s: &str) -> String {
     s.chars().filter(|c| !matches!(c, '&' | '<' | '>' | '"' | '\\')).take(22).collect()
 }
@@ -77,14 +77,14 @@ fn stat(name: &str, json: &str) {
     emit(&format!("stat {name} {json}"));
 }
 
-// CPU et mémoire: un seul parcours de /proc pour les deux (top 5 de chacun en infobulle)
+// CPU and memory: a single walk of /proc for both (top 5 of each in the tooltip)
 struct Usage {
     page_kb: u64,
     hz: f64,
     prev: HashMap<u32, Proc>,
     prev_cpu: (u64, u64),
     prev_t: Instant,
-    // Plus gros consommateurs de CPU du dernier intervalle (nom, %), pour la fiche du moniteur
+    // Biggest CPU consumers of the last interval (name, %), for the monitor card
     top: Vec<(String, f64)>,
 }
 
@@ -93,13 +93,13 @@ impl Usage {
         Usage { page_kb, hz, prev: procs(page_kb), prev_cpu: cpu_times(), prev_t: Instant::now(), top: Vec::new() }
     }
 
-    // % d'un CPU utilisé par le processus depuis le relevé précédent (même pid et même nom)
+    // % of a CPU used by the process since the previous reading (same pid and same name)
     fn pct(&self, pid: u32, p: &Proc, secs: f64) -> f64 {
         let d = p.ticks.saturating_sub(self.prev.get(&pid).filter(|q| q.name == p.name).map_or(p.ticks, |q| q.ticks));
         d as f64 / self.hz / secs * 100.0
     }
 
-    // Classement seul, sans rien écrire (bar-stats info monitor)
+    // Ranking only, writing nothing (bar-stats info monitor)
     fn top_only(&mut self) {
         let now = procs(self.page_kb);
         let secs = self.prev_t.elapsed().as_secs_f64();
@@ -141,7 +141,7 @@ impl Usage {
                 .unwrap_or(0)
         };
         let used = field("MemTotal:").saturating_sub(field("MemAvailable:")) as f64 / 1_048_576.0;
-        // RSS cumulé par nom de processus
+        // RSS summed by process name
         let mut by_name: HashMap<&str, u64> = HashMap::new();
         for p in now.values() {
             *by_name.entry(&p.name).or_default() += p.rss_kb;
@@ -167,8 +167,8 @@ impl Usage {
     }
 }
 
-// Sonde du CPU: hwmon coretemp (Intel), k10temp/zenpower (AMD) ou cpu_thermal (ARM), puis zone x86_pkg_temp; à défaut la
-// première sonde disponible (hwmon*/temp1_input puis thermal_zone*/temp); rien dans une VM. Le premier hwmon est souvent le NVMe.
+// CPU probe: hwmon coretemp (Intel), k10temp/zenpower (AMD) or cpu_thermal (ARM), then zone x86_pkg_temp; failing that the
+// first available probe (hwmon*/temp1_input then thermal_zone*/temp); nothing in a VM. The first hwmon is often the NVMe.
 fn temp_path() -> Option<String> {
     for dir in fs::read_dir("/sys/class/hwmon").into_iter().flatten().flatten() {
         let name = fs::read_to_string(dir.path().join("name")).unwrap_or_default();
@@ -193,7 +193,7 @@ fn temp_path() -> Option<String> {
     None
 }
 
-// Affichée seulement quand la température est élevée: dès 50 °C, masquée de nouveau sous 45 °C (hystérésis)
+// Shown only when the temperature is high: from 50 °C, hidden again below 45 °C (hysteresis)
 struct Temp {
     path: Option<String>,
     shown: bool,
@@ -231,10 +231,10 @@ fn human(b: f64) -> String {
     format!("{} {}", num(v, if i == 0 { 0 } else { 1 }), units[i])
 }
 
-// Espace disque de / (statvfs), comme le module disk de Waybar
-// Affiché seulement quand presque plein: dès 90 %, masqué de nouveau sous 88 % (hystérésis)
+// Disk space of / (statvfs), like the Waybar disk module
+// Shown only when almost full: from 90 %, hidden again below 88 % (hysteresis)
 fn disk(shown: &mut bool) {
-    // SAFETY: statvfs remplit une structure initialisée à zéro, chemin C valide
+    // SAFETY: statvfs fills a zero-initialised structure, valid C path
     let mut s: libc::statvfs = unsafe { std::mem::zeroed() };
     if unsafe { libc::statvfs(c"/".as_ptr(), &mut s) } != 0 {
         return;
@@ -258,7 +258,7 @@ fn disk(shown: &mut bool) {
     );
 }
 
-// Interface de la route par défaut (/proc/net/route, destination 0)
+// Interface of the default route (/proc/net/route, destination 0)
 fn default_iface() -> Option<String> {
     fs::read_to_string("/proc/net/route").ok()?.lines().skip(1).find_map(|l| {
         let f: Vec<&str> = l.split_whitespace().collect();
@@ -266,10 +266,10 @@ fn default_iface() -> Option<String> {
     })
 }
 
-// Première adresse IPv4 de l'interface et longueur de son préfixe (getifaddrs)
+// First IPv4 address of the interface and the length of its prefix (getifaddrs)
 fn ipv4(iface: &str) -> Option<(Ipv4Addr, u32)> {
     let mut list: *mut libc::ifaddrs = std::ptr::null_mut();
-    // SAFETY: liste allouée par getifaddrs, parcourue en lecture puis libérée par freeifaddrs
+    // SAFETY: list allocated by getifaddrs, walked read-only then freed by freeifaddrs
     unsafe {
         if libc::getifaddrs(&mut list) != 0 {
             return None;
@@ -302,8 +302,8 @@ fn counter(iface: &str, name: &str) -> u64 {
     fs::read_to_string(format!("/sys/class/net/{iface}/statistics/{name}")).ok().and_then(|s| s.trim().parse().ok()).unwrap_or(0)
 }
 
-// Réseau, comme le module network de Waybar: n'écrit que si l'état change (débits rafraîchis toutes les 30 s);
-// SSID et fréquence via `iw` seulement quand le lien change (iwd n'expose rien dans /sys)
+// Network, like the Waybar network module: only writes when the state changes (rates refreshed every 30 s);
+// SSID and frequency through `iw` only when the link changes (iwd exposes nothing in /sys)
 #[derive(Default)]
 struct Net {
     last_key: String,
@@ -322,7 +322,7 @@ impl Net {
         let key = format!("{iface:?} {ip:?}");
         let wifi = iface.as_deref().is_some_and(|i| fs::metadata(format!("/sys/class/net/{i}/wireless")).is_ok());
         let changed = key != self.last_key;
-        // Qualité du lien Wi-Fi en % (/proc/net/wireless: sur 70) et palier d'icône: 0 à 3
+        // Wi-Fi link quality in % (/proc/net/wireless: out of 70) and icon step: 0 to 3
         let q = if wifi {
             iface
                 .as_deref()
@@ -382,7 +382,7 @@ impl Net {
                 js(tr("No connection (click: Wi-Fi)"))
             ),
             Some(_) if wifi => {
-                // Icône selon la qualité (codes md-wifi_strength_1..4, police Fili Icons): trait plein = bon signal
+                // Icon by quality (codes md-wifi_strength_1..4, Fili Icons font): solid stroke = good signal
                 let glyph = ['\u{F091F}', '\u{F0922}', '\u{F0925}', '\u{F0928}'][level as usize];
                 let ghz = self.freq.parse::<f64>().map(|f| num(f / 1000.0, 1)).unwrap_or_default();
                 let full = clean(&self.ssid);
@@ -399,7 +399,7 @@ impl Net {
     }
 }
 
-// Sessions SSH entrantes établies (port local 22), comme `ss -Htn state established '( sport = :22 )'`
+// Established incoming SSH sessions (local port 22), like `ss -Htn state established '( sport = :22 )'`
 fn ssh_in() -> usize {
     ["/proc/net/tcp", "/proc/net/tcp6"]
         .iter()
@@ -416,7 +416,7 @@ fn ssh_in() -> usize {
         .sum()
 }
 
-// Mode avion: une radio bloquée par logiciel (`rfkill list` « Soft blocked: yes »)
+// Airplane mode: a software-blocked radio (`rfkill list` "Soft blocked: yes")
 fn airplane() -> bool {
     fs::read_dir("/sys/class/rfkill")
         .into_iter()
@@ -425,7 +425,7 @@ fn airplane() -> bool {
         .any(|e| fs::read_to_string(e.path().join("soft")).is_ok_and(|s| s.trim() == "1"))
 }
 
-// Interfaces VPN levées (IFF_UP)
+// VPN interfaces that are up (IFF_UP)
 fn vpn() -> String {
     let mut up: Vec<String> = fs::read_dir("/sys/class/net")
         .into_iter()
@@ -444,7 +444,7 @@ fn vpn() -> String {
     up.join(" ")
 }
 
-// Verrou flock tenu (sauvegarde en cours), lu dans /proc/locks: le tester avec flock pourrait faire échouer watch-backup
+// flock lock held (backup running), read from /proc/locks: testing it with flock could make watch-backup fail
 fn locked(path: &str) -> bool {
     let Ok(ino) = fs::metadata(path).map(|m| m.ino().to_string()) else { return false };
     fs::read_to_string("/proc/locks")
@@ -453,7 +453,7 @@ fn locked(path: &str) -> bool {
         .any(|l| l.split_whitespace().any(|t| t.matches(':').count() == 2 && t.rsplit(':').next() == Some(ino.as_str())))
 }
 
-// Chargeur branché: alimentation secteur (type Mains) en ligne; None sans alimentation secteur connue (VM, bureau)
+// Charger plugged in: mains power supply (type Mains) online; None without a known mains supply (VM, desktop)
 fn ac_online() -> Option<bool> {
     let mut found = None;
     for e in fs::read_dir("/sys/class/power_supply").into_iter().flatten().flatten() {
@@ -467,7 +467,7 @@ fn ac_online() -> Option<bool> {
 
 // Date locale d'un instant (strftime)
 fn local_time(t: i64, fmt: &CStr) -> String {
-    // SAFETY: structures locales initialisées à zéro, tampon de la taille donnée, format C valide
+    // SAFETY: zero-initialised local structures, buffer of the given size, valid C format
     unsafe {
         let mut tm: libc::tm = std::mem::zeroed();
         libc::localtime_r(&t, &mut tm);
@@ -477,8 +477,8 @@ fn local_time(t: i64, fmt: &CStr) -> String {
     }
 }
 
-// Sauvegarde restic (watch-backup): masquée sans configuration (distribution sans NAS), active pendant la sauvegarde
-// (verrou tenu), failed si le dernier essai a échoué, idle sinon; le tiroir (BarState.qml) la masque au repos
+// restic backup (watch-backup): hidden without configuration (distribution without a NAS), active during the backup
+// (lock held), failed if the last attempt failed, idle otherwise; the drawer (BarState.qml) hides it at rest
 fn backup(dir: &str, env: &str) -> String {
     if fs::metadata(env).is_err() {
         return r#"{"text":""}"#.into();
@@ -497,8 +497,8 @@ fn backup(dir: &str, env: &str) -> String {
     }
 }
 
-// Indicateurs à changement rare, sans sondage de la barre: lus dans /proc et /sys sans rien lancer, écrits seulement
-// quand ils changent (stat): SSH entrant, mode avion, VPN, sauvegarde.
+// Slow-changing indicators, without polling by the bar: read from /proc and /sys without running anything, written only
+// when they change (stat): incoming SSH, airplane mode, VPN, backup.
 struct Watch {
     seen: HashMap<&'static str, String>,
     state: String,
@@ -534,8 +534,8 @@ impl Watch {
         }
     }
 
-    // Modules écrits directement: au démarrage, à chaque tour, et tout de suite après un clic ou watch-backup (bar
-    // refresh) ou un événement du noyau (rfkill, interface réseau)
+    // Modules written directly: at start, at every round, and right after a click or watch-backup (bar
+    // refresh) or a kernel event (rfkill, network interface)
     fn indicators(&mut self, ssh: bool) {
         let j = backup(&self.state, &self.restic);
         self.put("backup", j);
@@ -573,11 +573,11 @@ impl Watch {
 
     fn step(&mut self) {
         self.tick += 1;
-        // /proc/net/tcp* coûte plus cher (sockets parcourues): un tour sur trois
+        // /proc/net/tcp* costs more (sockets walked): one round out of three
         self.indicators(self.tick.is_multiple_of(3));
-        // Batterie faible: alerte et extinction restent dans `bar-status batwatch`, lancé seulement quand l'état
-        // bouge sous 10 % sur batterie, et une fois au retour (chargeur branché) pour réarmer l'alerte.
-        // status interroge le matériel (~1 ms, contre quelques µs pour capacity): lu seulement sous 10 %
+        // Low battery: alert and shutdown stay in `bar-status batwatch`, started only when the state
+        // moves below 10 % on battery, and once on return (charger plugged in) to re-arm the alert.
+        // status queries the hardware (~1 ms, against a few µs for capacity): read only below 10 %
         let cap = fs::read_to_string(format!("{BAT}/capacity")).ok().and_then(|s| s.trim().parse::<u8>().ok()).unwrap_or(100);
         let status =
             if cap <= 10 || self.low { fs::read_to_string(format!("{BAT}/status")).unwrap_or_default() } else { String::new() };
@@ -590,9 +590,9 @@ impl Watch {
     }
 }
 
-// Événements du noyau (comme `udevadm monitor --kernel`): socket netlink, groupe 1
+// Kernel events (like `udevadm monitor --kernel`): netlink socket, group 1
 fn uevent_socket() -> Option<i32> {
-    // SAFETY: appels système sur une structure initialisée à zéro; le descripteur reste ouvert jusqu'à la fin
+    // SAFETY: system calls on a zero-initialised structure; the descriptor stays open until the end
     unsafe {
         let fd = libc::socket(
             libc::AF_NETLINK,
@@ -613,12 +613,12 @@ fn uevent_socket() -> Option<i32> {
     }
 }
 
-// Sous-systèmes des événements en attente (SUBSYSTEM=...), sans bloquer
+// Subsystems of the pending events (SUBSYSTEM=...), without blocking
 fn uevents(fd: i32) -> Vec<String> {
     let mut out = Vec::new();
     let mut buf = [0u8; 8192];
     loop {
-        // SAFETY: lecture dans un tampon local de la taille donnée
+        // SAFETY: read into a local buffer of the given size
         let n = unsafe { libc::recv(fd, buf.as_mut_ptr().cast(), buf.len(), 0) };
         if n <= 0 {
             return out;
@@ -631,11 +631,11 @@ fn uevents(fd: i32) -> Vec<String> {
     }
 }
 
-// Lignes complètes lues sur un descripteur non bloquant (reste gardé dans buf); None à la fin du flux
+// Complete lines read from a non-blocking descriptor (the rest is kept in buf); None at the end of the stream
 fn lines(fd: i32, buf: &mut Vec<u8>) -> Option<Vec<String>> {
     let mut chunk = [0u8; 4096];
     loop {
-        // SAFETY: lecture dans un tampon local de la taille donnée
+        // SAFETY: read into a local buffer of the given size
         let n = unsafe { libc::read(fd, chunk.as_mut_ptr().cast(), chunk.len()) };
         if n == 0 {
             return None;
@@ -654,11 +654,11 @@ fn lines(fd: i32, buf: &mut Vec<u8>) -> Option<Vec<String>> {
 }
 
 fn nonblock(fd: i32) {
-    // SAFETY: drapeaux d'un descripteur ouvert par ce processus
+    // SAFETY: flags of a descriptor opened by this process
     unsafe { libc::fcntl(fd, libc::F_SETFL, libc::fcntl(fd, libc::F_GETFL) | libc::O_NONBLOCK) };
 }
 
-// `bar-stats info SUJET`: une fiche sur la sortie standard (réseau avec le ping, moniteur sur 1 s)
+// `bar-stats info TOPIC`: a card on the standard output (network with the ping, monitor over 1 s)
 fn info_cli(topic: &str, page_kb: u64, hz: f64) {
     let json = match topic {
         "network" => {
@@ -697,16 +697,16 @@ fn main() {
         eprintln!("usage: bar-stats FIFO   (started by the fili-shell, see FiliShell.qml) | bar-stats info TOPIC");
         process::exit(2);
     };
-    // Lancé par `exec` depuis la barre: s'arrête avec elle
-    // SAFETY: prctl ne touche qu'aux attributs de ce processus
+    // Started by `exec` from the bar: stops with it
+    // SAFETY: prctl only touches the attributes of this process
     unsafe { libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) };
-    // Lecture-écriture: jamais de fin de fichier quand un client referme le tuyau (comme `cat 0<>tuyau`)
+    // Read-write: never an end of file when a client closes the pipe (like `cat 0<>pipe`)
     let pipe = fs::OpenOptions::new().read(true).write(true).custom_flags(libc::O_NONBLOCK).open(fifo).unwrap_or_else(|e| {
         eprintln!("bar-stats: {fifo}: {e}");
         process::exit(1);
     });
     let uev = uevent_socket();
-    // Requêtes de la barre sur l'entrée standard; ignorée une fois fermée
+    // Requests of the bar on the standard input; ignored once closed
     let mut stdin_fd = 0;
     nonblock(stdin_fd);
 
@@ -718,10 +718,10 @@ fn main() {
     watch.ac();
     watch.indicators(true);
     stat("display", &info::display());
-    // Ping de la passerelle en cours pour la fiche réseau (renvoyée une seconde fois avec son résultat)
+    // Gateway ping in progress for the network card (sent a second time with its result)
     let mut ping: Option<process::Child> = None;
 
-    // Échéances: CPU et mémoire 10 s (premier affichage rapide), température 15 s, disque 5 min, réseau et indicateurs 5 s
+    // Deadlines: CPU and memory 10 s (quick first display), temperature 15 s, disk 5 min, network and indicators 5 s
     let t0 = Instant::now();
     let mut next = [t0 + Duration::from_millis(500), t0, t0, t0, t0 + Duration::from_secs(5)];
     let every = [10, 15, 300, 5, 5].map(Duration::from_secs);
@@ -750,7 +750,7 @@ fn main() {
             libc::pollfd { fd: stdin_fd, events: libc::POLLIN, revents: 0 },
             libc::pollfd { fd: ping_fd, events: libc::POLLIN, revents: 0 },
         ];
-        // SAFETY: tableau local de pollfd valides (fd négatif ignoré par poll)
+        // SAFETY: local array of valid pollfd (negative fd ignored by poll)
         let r =
             unsafe { libc::poll(fds.as_mut_ptr(), fds.len() as libc::nfds_t, wait.as_millis().min(i32::MAX as u128) as i32 + 1) };
         if r <= 0 {
@@ -758,7 +758,7 @@ fn main() {
         }
         if fds[0].revents & libc::POLLIN != 0 {
             for l in lines(pipe.as_raw_fd(), &mut pipe_buf).unwrap_or_default() {
-                // Clic sur avion, SSH ou VPN (bar-toggle...), début ou fin de sauvegarde (watch-backup): état relu tout de suite
+                // Click on airplane, SSH or VPN (bar-toggle...), start or end of a backup (watch-backup): state re-read at once
                 if l.starts_with("bar refresh") {
                     if l.split_whitespace().any(|n| matches!(n, "14" | "18" | "21" | "22")) {
                         watch.indicators(true);
@@ -786,7 +786,7 @@ fn main() {
                     for topic in reqs.iter().filter_map(|l| l.strip_prefix("info ")) {
                         let json = match topic.trim() {
                             "network" => {
-                                // Fiche tout de suite, puis de nouveau avec le ping de la passerelle
+                                // Card at once, then again with the gateway ping
                                 if ping.is_none() {
                                     let gw = default_iface().and_then(|i| info::gateway(&i));
                                     ping = gw.and_then(|g| {

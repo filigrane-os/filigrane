@@ -1,18 +1,18 @@
-// Traductions (partagé avec fili-file: fili-file/src/main.rs): textes écrits en anglais dans le code (tr("Offline"), trf("Battery %1 %", &[&cap])), traduits par le
-// catalogue du fili-shell (dotfiles/config/quickshell/i18n/<langue>.json, voir FiliI18n.qml), lu une fois. Dossier du
-// catalogue: FILI_I18N (posé par FiliShell.qml), sinon ~/.config/quickshell/i18n. Langue: FILI_LANG, sinon le choix de
-// fili-lang ($XDG_STATE_HOME/filigrane/locale), sinon la première posée de LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX -> en). Pas de catalogue ou pas d'entrée: anglais.
+// Translations (shared with fili-file: fili-file/src/main.rs): texts written in English in the code (tr("Offline"), trf("Battery %1 %", &[&cap])), translated by the
+// catalog of the fili-shell (dotfiles/config/quickshell/i18n/<language>.json, see FiliI18n.qml), read once. Catalog
+// folder: FILI_I18N (set by FiliShell.qml), else ~/.config/quickshell/i18n. Language: FILI_LANG, else the choice of
+// fili-lang ($XDG_STATE_HOME/filigrane/locale), else the first one set of LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX -> en). No catalog or no entry: English.
 use std::{collections::HashMap, env, fmt::Display, fs, sync::OnceLock};
 
 static CATALOG: OnceLock<HashMap<String, String>> = OnceLock::new();
 
 fn lang() -> String {
-    // Les tests attendent les textes anglais du code, quelle que soit la langue choisie par l'utilisateur (le catalogue
-    // est figé par le premier appel: un test qui ne pose pas FILI_LANG ferait échouer les autres)
+    // The tests expect the English texts of the code, whatever the language chosen by the user (the catalog
+    // is frozen by the first call: a test that does not set FILI_LANG would make the others fail)
     if cfg!(test) {
         return "en".into();
     }
-    // Choix de l'utilisateur (fili-lang), après FILI_LANG; le fili-shell relance bar-stats quand il change
+    // Choice of the user (fili-lang), after FILI_LANG; the fili-shell restarts bar-stats when it changes
     let state = env::var("XDG_STATE_HOME").unwrap_or_else(|_| format!("{}/.local/state", env::var("HOME").unwrap_or_default()));
     let choice = fs::read_to_string(format!("{state}/filigrane/locale")).map(|s| s.trim().to_string()).unwrap_or_default();
     let v = env::var("FILI_LANG")
@@ -40,7 +40,7 @@ fn catalog() -> &'static HashMap<String, String> {
     })
 }
 
-// Objet JSON plat {"clé": "valeur", ...}; ce qui n'est pas une paire de chaînes est ignoré
+// Flat JSON object {"key": "value", ...}; whatever is not a pair of strings is ignored
 fn parse(text: &str) -> HashMap<String, String> {
     let mut out = HashMap::new();
     let mut it = text.chars().peekable();
@@ -79,7 +79,7 @@ pub fn tr(s: &str) -> &str {
     catalog().get(s).map(String::as_str).unwrap_or(s)
 }
 
-// Texte traduit, %1, %2... remplacés par les arguments
+// Translated text, %1, %2... replaced by the arguments
 pub fn trf(s: &str, args: &[&dyn Display]) -> String {
     let t = tr(s);
     let mut out = String::with_capacity(t.len() + 16);
@@ -96,7 +96,7 @@ pub fn trf(s: &str, args: &[&dyn Display]) -> String {
     out
 }
 
-// Nombre avec d décimales et le séparateur de la langue (clé "@decimal" du catalogue)
+// Number with d decimals and the separator of the language ("@decimal" key of the catalog)
 pub fn num(v: f64, d: usize) -> String {
     let s = format!("{v:.d$}");
     match catalog().get("@decimal") {

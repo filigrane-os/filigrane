@@ -1,4 +1,4 @@
-// JSON minimal pour les événements de localsendd (`lsend --json watch`, un objet par ligne). Sans dépendance.
+// Minimal JSON for the localsendd events (`lsend --json watch`, one object per line). No dependency.
 use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, PartialEq, Clone)]

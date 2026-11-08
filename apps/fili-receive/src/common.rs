@@ -1,4 +1,4 @@
-// Ce que partagent les deux protocoles: réglages, notifications avec boutons, journal des fichiers reçus.
+// What the two protocols share: settings, notifications with buttons, journal of the received files.
 use crate::i18n::{num, tr, trf};
 use std::os::unix::process::CommandExt;
 use std::{
@@ -17,11 +17,11 @@ pub struct Settings {
     pub dir: String,
     pub always: bool,
     pub minutes: u32,
-    // Nom sous lequel cet ordinateur apparaît chez les autres appareils (LocalSend)
+    // Name under which this computer appears on the other devices (LocalSend)
     pub name: String,
 }
 
-// Réglages de réception, dans ~/.config/filigrane/fili-file.toml (le fichier de Casier, entrée « Settings… »):
+// Reception settings, in ~/.config/filigrane/fili-file.toml (the Casier file, "Settings…" entry):
 // receive_dir, receive_confirm = "ask" | "always", receive_minutes, receive_name
 pub fn settings() -> Settings {
     let config = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
@@ -68,7 +68,7 @@ pub fn human(bytes: u64) -> String {
     format!("{n} {}", tr(units[i]))
 }
 
-// Résumé de fichiers: « a.txt (6 o) » ou « 3 fichiers (12 Mo): a, b, c »
+// Summary of files: "a.txt (6 B)" or "3 files (12 MB): a, b, c"
 pub fn summary(names: &[String], total: u64) -> String {
     match names {
         [] => String::new(),
@@ -86,7 +86,7 @@ pub fn notify(title: &str, body: &str) {
     let _ = Command::new("notify-send").args(["-a", "fili-share", "-i", "emblem-shared", title, body]).status();
 }
 
-// Notification avec boutons (notify-send -A): bloque jusqu'à un clic ou la fermeture; renvoie l'identifiant du bouton
+// Notification with buttons (notify-send -A): blocks until a click or the closing; returns the identifier of the button
 pub fn ask(title: &str, body: &str, actions: &[(&str, String)], timeout_ms: u32) -> Option<String> {
     let mut c = Command::new("notify-send");
     c.args(["-a", "fili-share", "-i", "emblem-shared", "-u", "critical", "-w", "-t", &timeout_ms.to_string()]);
@@ -98,8 +98,8 @@ pub fn ask(title: &str, body: &str, actions: &[(&str, String)], timeout_ms: u32)
     (!id.is_empty()).then_some(id)
 }
 
-// Reçu: notification avec « Ouvrir » (le fichier, s'il n'y en a qu'un) et « Ouvrir le dossier » (Casier, avec le
-// fichier sélectionné quand il est seul)
+// Received: notification with "Open" (the file, if there is only one) and "Open Folder" (Casier, with the
+// file selected when alone)
 pub fn announce(title: &str, body: &str, dir: &str, files: &[String]) {
     let mut actions = Vec::new();
     if files.len() == 1 {
@@ -116,7 +116,7 @@ pub fn announce(title: &str, body: &str, dir: &str, files: &[String]) {
             .spawn()
             .map(|mut c| std::thread::spawn(move || c.wait()));
     };
-    // Le serveur de notifications du shell n'affiche pas d'icône: ✓ dans le titre
+    // The notification server of the shell shows no icon: ✓ in the title
     match ask_quiet(&format!("✓ {title}"), body, &actions, 12000).as_deref() {
         Some("open") => detached("xdg-open", &files[0]),
         Some("folder") => detached("fili-file", files.first().filter(|_| files.len() == 1).map_or(dir, String::as_str)),
@@ -140,7 +140,7 @@ fn journal_path() -> PathBuf {
     PathBuf::from(state).join("filigrane/received.tsv")
 }
 
-// Une ligne par fichier reçu: date (s), protocole, expéditeur, chemin, taille. Lu par « fili-share received »
+// One line per received file: date (s), protocol, sender, path, size. Read by `fili-share received`
 pub fn journal(proto: &str, sender: &str, path: &str, size: u64) {
     let p = journal_path();
     if let Some(d) = p.parent() {
@@ -153,7 +153,7 @@ pub fn journal(proto: &str, sender: &str, path: &str, size: u64) {
     }
 }
 
-// Les n dernières lignes du journal en JSON, la plus récente d'abord
+// The last n lines of the journal as JSON, most recent first
 pub fn received_json(n: usize) -> String {
     let text = fs::read_to_string(journal_path()).unwrap_or_default();
     let esc = |s: &str| s.replace('\\', "\\\\").replace('"', "\\\"");

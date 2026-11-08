@@ -1,20 +1,18 @@
-// Sessions de l'agent IA pour la fili-bar (module IA): état de chaque session Claude Code, fenêtre niri où elle tourne,
-// contexte, coût et limites du forfait; notification et icône mise en avant quand l'agent attend l'utilisateur.
-//
-//   fili-ai-session hook        hook de Claude Code (JSON sur l'entrée): SessionStart, UserPromptSubmit, PostToolUse,
-//                               Notification, Stop, SessionEnd (hooks de ~/.claude/settings.json)
-//   fili-ai-session statusline  status line de Claude Code (JSON sur l'entrée): note contexte, coût et limites, puis
-//                               écrit la ligne (modèle, effort, dossier, branche, remplissage du contexte)
-//   fili-ai-session focus [ID]  clic sur la barre: la session qui attend (sinon la dernière; encore: la suivante) prend
-//                               le focus; aucune session avec une fenêtre: fili-ai comme Mod+Y
-//   fili-ai-session new         nouvelle session (comme Mod+Y)
-//   fili-ai-session seen ID     l'utilisateur a regardé la session ID (sa fenêtre a le focus): plus de mise en avant
-//
-// État: $XDG_RUNTIME_DIR/fili-ai/state.json (tmpfs) {sessions: [...], limits}, lu par la fili-bar (BarState.qml,
-// inotify), réécrit seulement quand il change; un seul écrivain à la fois (verrou). États: working, waiting
-// (permission ou question), done (tour fini sans que la fenêtre ait le focus), idle. Une session dont l'agent est mort
-// disparaît. Rien n'est lu dans les identifiants de l'agent: les limites viennent de la status line de Claude Code.
-// Un processus par événement, sans jq ni niri msg (socket de niri en direct): ~1 ms.
+// AI agent sessions for the fili-bar (AI module): state of each Claude Code session, niri window it runs in,
+// context, cost and plan limits; notification and highlighted icon when the agent waits for the user.
+// fili-ai-session hook        Claude Code hook (JSON on the input): SessionStart, UserPromptSubmit, PostToolUse,
+// Notification, Stop, SessionEnd (hooks of ~/.claude/settings.json)
+// fili-ai-session statusline  Claude Code status line (JSON on the input): notes context, cost and limits, then
+// prints the line (model, effort, folder, branch, context fill)
+// fili-ai-session focus [ID]  click on the bar: the session that waits (else the last one; again: the next) takes
+// the focus; no session with a window: fili-ai like Mod+Y
+// fili-ai-session new         new session (like Mod+Y)
+// fili-ai-session seen ID     the user looked at session ID (its window has the focus): no more highlight
+// State: $XDG_RUNTIME_DIR/fili-ai/state.json (tmpfs) {sessions: [...], limits}, read by the fili-bar (BarState.qml,
+// inotify), rewritten only when it changes; a single writer at a time (lock). States: working, waiting
+// (permission or question), done (turn finished without the window having the focus), idle. A session whose agent died
+// disappears. Nothing is read from the credentials of the agent: the limits come from the Claude Code status line.
+// One process per event, without jq or niri msg (niri socket directly): ~1 ms.
 #[allow(dead_code)]
 #[path = "../../bar-stats/src/i18n.rs"]
 mod i18n;
@@ -37,7 +35,7 @@ fn now() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
 }
 
-// ───── niri (socket IPC: une requête JSON par ligne, une réponse {"Ok": ...}) ─────
+// ───── niri (IPC socket: one JSON request per line, one {"Ok": ...} reply) ─────
 
 fn niri(req: &str) -> Option<Json> {
     let mut s = UnixStream::connect(env::var_os("NIRI_SOCKET")?).ok()?;
@@ -58,11 +56,11 @@ fn focused_window() -> Option<i64> {
 
 fn parent(pid: i64) -> Option<i64> {
     let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    // "pid (comm) état ppid ...": comm peut contenir des espaces
+    // "pid (comm) state ppid ...": comm can contain spaces
     stat.rsplit_once(')')?.1.split_whitespace().nth(1)?.parse().ok()
 }
 
-// PID de l'agent: premier ancêtre nommé claude (hooks et status line sont ses enfants)
+// PID of the agent: first ancestor named claude (hooks and status line are its children)
 fn agent_pid() -> Option<i64> {
     let mut p = std::os::unix::process::parent_id() as i64;
     while p > 1 {
@@ -74,7 +72,7 @@ fn agent_pid() -> Option<i64> {
     None
 }
 
-// Fenêtre niri d'un processus: le premier ancêtre qui en possède une (foot lancé par Mod+Y)
+// niri window of a process: the first ancestor that owns one (foot started by Mod+Y)
 fn window_of(pid: i64) -> Option<i64> {
     let wins = niri("\"Windows\"")?;
     let wins: Vec<(i64, i64)> = match wins.get("Windows") {
@@ -95,7 +93,7 @@ fn alive(pid: i64) -> bool {
     Path::new(&format!("/proc/{pid}")).exists()
 }
 
-// ───── état ─────
+// ───── state ─────
 
 struct Store {
     path: PathBuf,
@@ -105,7 +103,7 @@ struct Store {
 }
 
 impl Store {
-    // Verrouille et lit l'état (vide s'il manque ou s'il est illisible)
+    // Locks and reads the state (empty if missing or unreadable)
     fn open() -> Store {
         let dir = PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into())).join("fili-ai");
         let _ = fs::create_dir_all(&dir);
@@ -134,7 +132,7 @@ impl Store {
         self.sessions().iter_mut().find(|s| s.get("id").str() == Some(id))
     }
 
-    // Session ID, créée au besoin; PID de l'agent et fenêtre remplis tant qu'ils manquent
+    // Session ID, created if needed; PID of the agent and window filled in as long as they are missing
     fn session(&mut self, id: &str) -> &mut Json {
         if self.find(id).is_none() {
             let mut s = Json::obj();
@@ -152,7 +150,7 @@ impl Store {
         s
     }
 
-    // Retire les sessions dont l'agent est mort, trie (la plus récente d'abord) et réécrit le fichier s'il a changé
+    // Removes the sessions whose agent died, sorts (most recent first) and rewrites the file if it changed
     fn save(&mut self) {
         let day = now() - 86400;
         let s = self.sessions();
@@ -163,7 +161,7 @@ impl Store {
         s.sort_by_key(|s| -s.get("updated").int().unwrap_or(0));
         let text = format!("{}\n", self.state);
         if text != self.old {
-            // Réécrit en place (la barre surveille ce fichier); une lecture à moitié écrite est ignorée par BarState
+            // Rewritten in place (the bar watches this file); a half-written read is ignored by BarState
             let _ = fs::write(&self.path, &text);
             self.old = text;
         }
@@ -183,7 +181,7 @@ fn project(cwd: &str) -> String {
     Path::new(cwd).file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_else(|| "~".into())
 }
 
-// Applique un événement de hook à l'état; focused: fenêtre qui a le focus (demandée seulement quand il le faut)
+// Applies a hook event to the state; focused: window that has the focus (requested only when needed)
 fn apply_hook(st: &mut Store, input: &Json, t: i64, focused: impl Fn() -> Option<i64>) -> Option<Notice> {
     let id = input.get("session_id").str()?.to_string();
     let event = input.get("hook_event_name").str().unwrap_or("");
@@ -213,12 +211,12 @@ fn apply_hook(st: &mut Store, input: &Json, t: i64, focused: impl Fn() -> Option
             s.set("started", t);
         }
         "UserPromptSubmit" => set(s, "working", false, ""),
-        // Permission accordée (ou inutile): de nouveau au travail; inchangé sinon (rien à écrire)
+        // Permission granted (or unneeded): working again; unchanged otherwise (nothing to write)
         "PostToolUse" if s.get("state").str() != Some("working") => set(s, "working", false, ""),
         "Notification" => {
             let msg = input.get("message").str().unwrap_or("").to_string();
             let win = s.get("window").int();
-            // L'utilisateur regarde la session: icône calme, pas de notification
+            // The user is looking at the session: calm icon, no notification
             let watched = win.is_some() && win == focused();
             set(s, "waiting", !watched, &msg);
             if !watched {
@@ -251,7 +249,7 @@ fn apply_hook(st: &mut Store, input: &Json, t: i64, focused: impl Fn() -> Option
     None
 }
 
-// Notification; son clic donne le focus à la fenêtre de la session (notify-send attend la réponse, détaché)
+// Notification; its click gives the focus to the window of the session (notify-send waits for the answer, detached)
 fn notify(n: Notice) {
     let exe = env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| "fili-ai-session".into());
     let _ = Command::new("setsid")
@@ -266,8 +264,8 @@ fn notify(n: Notice) {
 
 // ───── status line ─────
 
-// Note contexte, coût, modèle et limites du forfait (gardées après la session, heure du relevé mise à jour quand
-// elles changent ou toutes les 5 min)
+// Notes context, cost, model and plan limits (kept after the session, time of the reading updated when
+// they change or every 5 min)
 fn apply_status(st: &mut Store, input: &Json, t: i64) {
     let Some(id) = input.get("session_id").str() else { return };
     let s = st.session(id);
@@ -303,7 +301,7 @@ fn apply_status(st: &mut Store, input: &Json, t: i64) {
     }
 }
 
-// Branche git du dossier (lue dans .git/HEAD, sans lancer git), sinon le commit abrégé
+// Git branch of the folder (read from .git/HEAD, without running git), else the abbreviated commit
 fn branch(dir: &str) -> Option<String> {
     let mut d = Path::new(dir);
     loop {
@@ -330,7 +328,7 @@ fn kilo(n: i64) -> String {
     if n >= 1000 { format!("{}k", (n as f64 / 1000.0).round() as i64) } else { n.to_string() }
 }
 
-// Ligne de la status line: modèle, effort, dossier, branche, remplissage du contexte (barre de 10 cases)
+// Status line: model, effort, folder, branch, context fill (10-cell bar)
 fn status_line(input: &Json) -> String {
     let model = input.path(&["model", "display_name"]).str().unwrap_or("?");
     let effort = input.path(&["effort", "level"]).str().unwrap_or("");
@@ -365,10 +363,10 @@ fn status_line(input: &Json) -> String {
     out
 }
 
-// ───── clic sur la barre ─────
+// ───── click on the bar ─────
 
-// Session à montrer: ID demandé, sinon celles qui attendent d'abord puis la plus récente; celle qui a déjà le focus
-// passe la main à la suivante. Seulement les sessions qui ont une fenêtre: (id, fenêtre)
+// Session to show: the requested ID, else the ones that wait first then the most recent; the one that already has the focus
+// hands over to the next. Only the sessions that have a window: (id, window)
 fn pick(state: &Json, want: Option<&str>, focused: Option<i64>) -> Option<(String, i64)> {
     let Json::Arr(all) = state.get("sessions") else { return None };
     let with: Vec<&Json> = all.iter().filter(|s| s.get("window").int().is_some()).collect();
@@ -416,7 +414,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("hook") => {
-            // Sessions du tiroir fili-chat (apps/fili-chat): le tiroir montre lui-même l'état, ni module ni notification
+            // Sessions of the fili-chat drawer (apps/fili-chat): the drawer shows the state itself, neither module nor notification
             if env::var_os("FILI_CHAT").is_some() {
                 return;
             }

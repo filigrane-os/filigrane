@@ -1,5 +1,5 @@
-// LocalSend: écoute les événements de localsendd (`lsend --json watch`). Une demande entrante devient une notification
-// « Accepter / Refuser » (lsend accept|reject); en fin de transfert, « Reçu de … » avec « Afficher ».
+// LocalSend: listens to the events of localsendd (`lsend --json watch`). An incoming request becomes an
+// "Accept / Decline" notification (lsend accept|reject); at the end of a transfer, "Received from …" with "Show".
 use crate::{
     common::{announce, ask, journal, notify, summary},
     i18n::{tr, trf},
@@ -14,9 +14,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-// localsendd abandonne la demande après 30 s
+// localsendd abandons the request after 30 s
 const ASK_MS: u32 = 28000;
-// Sans nombre de fichiers connu (session acceptée sans demande), on clôt après ce silence
+// Without a known number of files (session accepted without a request), we close after this silence
 const IDLE: Duration = Duration::from_secs(3);
 
 struct Session {
@@ -69,7 +69,7 @@ pub fn run(dir: String, always: bool) {
             }
         }
         let _ = child.wait();
-        // Le démon s'arrête avec « receive localsend off » (qui nous arrête aussi); sinon on le réessaie un moment
+        // The daemon stops with "receive localsend off" (which stops us too); otherwise we retry it for a while
         failures = if started.elapsed() > Duration::from_secs(10) { 0 } else { failures + 1 };
         if failures > 30 {
             return;
@@ -106,7 +106,7 @@ fn handle(ev: &Json, dir: &str, always: bool, sessions: &Sessions) {
                 } else {
                     trf("%1 wants to send you files", &[&sender])
                 };
-                // Réglage confirm = "always": on accepte sans demander (la fin du transfert est annoncée)
+                // Setting confirm = "always": we accept without asking (the end of the transfer is announced)
                 let choice = if always {
                     Some("accept".to_string())
                 } else {

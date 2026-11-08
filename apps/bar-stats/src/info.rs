@@ -1,11 +1,11 @@
-// Fiches des fili-tooltip et fili-panel (réseau, alimentation, moniteur), en JSON {title, hint, rows: [[libellé, valeur]...]}
-// (lignes à valeur vide retirées). Demandées par la barre sur l'entrée standard (`info SUJET`, réponse `info SUJET JSON`)
-// ou en ligne de commande (`bar-stats info SUJET`). Lues dans /proc et /sys; seuls `iw` (Wi-Fi) et `ping` sont lancés.
+// Cards of the fili-tooltip and fili-panel (network, power, monitor), as JSON {title, hint, rows: [[label, value]...]}
+// (rows with an empty value removed). Requested by the bar on the standard input (`info TOPIC`, reply `info TOPIC JSON`)
+// or on the command line (`bar-stats info TOPIC`). Read from /proc and /sys; only `iw` (Wi-Fi) and `ping` are run.
 use crate::i18n::{self, tr, trf};
 use crate::{Usage, ac_online, counter, default_iface, human, ipv4};
 use std::{fs, net::Ipv4Addr, net::Ipv6Addr, process};
 
-// Chaîne JSON échappée
+// Escaped JSON string
 pub fn js(s: &str) -> String {
     let mut o = String::from("\"");
     for c in s.chars() {
@@ -31,7 +31,7 @@ fn read(p: &str) -> String {
     fs::read_to_string(p).map(|s| s.trim().to_string()).unwrap_or_default()
 }
 
-// Passerelle de la route par défaut (/proc/net/route: adresse en hexadécimal, octets dans l'ordre de la machine)
+// Gateway of the default route (/proc/net/route: address in hexadecimal, bytes in machine order)
 pub fn gateway(iface: &str) -> Option<Ipv4Addr> {
     fs::read_to_string("/proc/net/route").ok()?.lines().skip(1).find_map(|l| {
         let f: Vec<&str> = l.split_whitespace().collect();
@@ -42,7 +42,7 @@ pub fn gateway(iface: &str) -> Option<Ipv4Addr> {
     })
 }
 
-// Première adresse IPv6 globale (/proc/net/if_inet6, portée 00)
+// First global IPv6 address (/proc/net/if_inet6, scope 00)
 fn ipv6(iface: &str) -> String {
     fs::read_to_string("/proc/net/if_inet6")
         .unwrap_or_default()
@@ -62,7 +62,7 @@ fn dns() -> String {
     r.lines().filter_map(|l| l.strip_prefix("nameserver")).map(str::trim).collect::<Vec<_>>().join(", ")
 }
 
-// `ping -c 1` vers la passerelle: "12.3 ms"
+// `ping -c 1` to the gateway: "12.3 ms"
 pub fn ping_time(out: &str) -> String {
     out.split("time=")
         .nth(1)
@@ -81,7 +81,7 @@ fn net_hint() -> &'static str {
     tr("click: network panel · right click: network menu")
 }
 
-// Fiche réseau; ping: temps vers la passerelle s'il est déjà mesuré
+// Network card; ping: time to the gateway if already measured
 pub fn network(ping: &str) -> String {
     let Some(iface) = default_iface() else {
         let mut all: Vec<String> = fs::read_dir("/sys/class/net")
@@ -148,7 +148,7 @@ pub fn power() -> String {
     }
     let st = r("status");
     let num = |f: &str| r(f).parse::<f64>().ok();
-    // charge_* (µAh) et current_now (µA), ou energy_* (µWh) et power_now (µW) selon le matériel
+    // charge_* (µAh) and current_now (µA), or energy_* (µWh) and power_now (µW) depending on the hardware
     let (now, full, design, cur, volt) = match num("charge_now") {
         Some(n) => (n, num("charge_full"), num("charge_full_design"), num("current_now"), num("voltage_now")),
         None => (num("energy_now").unwrap_or(0.0), num("energy_full"), num("energy_full_design"), num("power_now"), None),
@@ -173,7 +173,7 @@ pub fn power() -> String {
     let (state, tl) = match st.as_str() {
         "Discharging" => (tr("On battery").to_string(), tr("Time left")),
         "Charging" => (tr("Charging").to_string(), tr("Full in")),
-        // "Full" sous 99 %: seuil de charge atteint (batterie préservée), comme "Holding" dans Omarchy
+        // "Full" below 99 %: charge threshold reached (battery preserved), like "Holding" in Omarchy
         "Full" => (
             (if cap.parse::<u8>().unwrap_or(100) < 99 { tr("Plugged in, charge limited") } else { tr("Full") }).to_string(),
             tr("Time"),
@@ -196,7 +196,7 @@ pub fn power() -> String {
     )
 }
 
-// Taille courte façon `df -h`: 9.5G, 234G
+// Short size in the `df -h` style: 9.5G, 234G
 fn short(b: f64) -> String {
     let mut v = b / 1024.0;
     let mut u = 'K';
@@ -226,7 +226,7 @@ pub fn monitor(usage: &Usage) -> String {
     let mem = trf("%1 / %2 GiB", &[&i18n::num((mt - ma) / gio, 1), &i18n::num(mt / gio, 1)]);
     let swap =
         if st > 0.0 { trf("%1 / %2 GiB", &[&i18n::num((st - sf) / gio, 1), &i18n::num(st / gio, 1)]) } else { String::new() };
-    // SAFETY: statvfs remplit une structure initialisée à zéro, chemin C valide
+    // SAFETY: statvfs fills a zero-initialised structure, valid C path
     let mut s: libc::statvfs = unsafe { std::mem::zeroed() };
     let disk = if unsafe { libc::statvfs(c"/".as_ptr(), &mut s) } == 0 {
         let f = s.f_frsize as f64;
@@ -263,7 +263,7 @@ pub fn monitor(usage: &Usage) -> String {
     )
 }
 
-// Luminosité en % (écran: classe backlight hors Touch Bar; clavier: leds *kbd_backlight), -1 si absent
+// Brightness in % (screen: backlight class excluding the Touch Bar; keyboard: *kbd_backlight leds), -1 if absent
 fn level(class: &str, pick: impl Fn(&str) -> bool) -> i64 {
     let mut names: Vec<String> = fs::read_dir(format!("/sys/class/{class}"))
         .into_iter()
@@ -283,7 +283,7 @@ fn level(class: &str, pick: impl Fn(&str) -> bool) -> i64 {
         .unwrap_or(-1)
 }
 
-// Module écrans de la barre (stat display): luminosité de l'écran, et celle du clavier pour le fili-panel clavier
+// Displays module of the bar (stat display): brightness of the screen, and of the keyboard for the keyboard fili-panel
 pub fn display() -> String {
     let screen = level("backlight", |n| !n.contains("appletb"));
     let kbd = level("leds", |n| n.contains("kbd_backlight"));

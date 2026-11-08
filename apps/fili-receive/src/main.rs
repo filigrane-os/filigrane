@@ -1,12 +1,10 @@
-// fili-receive: réception de fichiers par LocalSend et Bluetooth, avec l'interface de la barre (notifications avec
-// boutons). Lancé par `fili-share receive PROTO on` (qui démarre aussi localsendd ou obexd), arrêté par `off`.
-//
-//   fili-receive localsend         demandes entrantes et fin de transfert de localsendd
-//   fili-receive bluetooth         agent OBEX de obexd: accepter/refuser chaque fichier
-//   fili-receive settings          réglages résolus: dir=, confirm=ask|always, minutes=, name=
-//   fili-receive received [N]      les N derniers fichiers reçus, en JSON (journal ~/.local/state/filigrane/received.tsv)
-//
-// Réglages facultatifs: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm, receive_minutes, receive_name).
+// fili-receive: file reception through LocalSend and Bluetooth, with the interface of the bar (notifications with
+// buttons). Started by `fili-share receive PROTO on` (which also starts localsendd or obexd), stopped by `off`.
+// fili-receive localsend         incoming requests and end of transfer of localsendd
+// fili-receive bluetooth         OBEX agent of obexd: accept/decline each file
+// fili-receive settings          resolved settings: dir=, confirm=ask|always, minutes=, name=
+// fili-receive received [N]      the last N received files, as JSON (journal ~/.local/state/filigrane/received.tsv)
+// Optional settings: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm, receive_minutes, receive_name).
 mod bluetooth;
 mod common;
 #[allow(dead_code)]

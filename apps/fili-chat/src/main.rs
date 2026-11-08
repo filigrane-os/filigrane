@@ -1,30 +1,28 @@
-// fili-chat: le chat de Filigrane. Un démon garde les sessions de l'agent (Claude Code en mode flux, un processus par
-// session ouverte) pour que la conversation reste quand le tiroir (FiliChat.qml) se cache; le tiroir s'y connecte.
-//
-//   fili-chat daemon          démon (lancé par le tiroir au premier affichage; il s'arrête sans client ni agent)
-//   fili-chat toggle          Mod+Y: note l'application active (fili-context), puis affiche ou cache le tiroir
-//   fili-chat status          sessions en JSON (le démon doit tourner)
-//   fili-chat send ID TEXTE   message à une session, réponse affichée sur la sortie (essais en terminal)
-//   fili-chat mcp ID          serveur MCP (entrée/sortie standard) lancé par l'agent: outil « approve » de
-//                             --permission-prompt-tool, transmet chaque demande de permission au tiroir et attend la réponse
-//
-// Socket: $XDG_RUNTIME_DIR/fili-chat/sock, une ligne JSON par message.
-//   client -> démon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
-//                    {"op":"rename","id","title"} {"op":"archive","id"} (garde l'historique: archived)
-//                    {"op":"restore","id"}  {"op":"agent"} (demande {"ev":"agent","ok":bool}: l'agent est-il installé) {"op":"answer","rid","allow"}
-//                    {"op":"link","id","key"} lie la session à une application (clé vide: délie; voir « follow » du tiroir)
-//                    {"op":"send",…,"context":true} joint le contexte noté par Mod+Y (context.json) au message de l'agent
-//                    {"op":"ask","id","rid","tool","input"} (serveur MCP: demande de permission, la connexion attend la réponse)
-//   démon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link,archived,icon}]} {"ev":"history","id","items":[...]}
-//                    {"ev":"msg","id","role":"user"|"assistant","text"} {"ev":"tool","id","name","summary"}
-//                    {"ev":"delta","id","text"} (texte en cours, non gardé) {"ev":"state","id","state"}
-//                    {"ev":"note","id","code"} (interrupted, error:…)
-//                    {"ev":"queue","id","items":[texte]} messages écrits pendant un tour, envoyés à la fin du tour (vidés si interruption)
-//                    {"ev":"ask","id","rid","tool","summary","status":"pending"|"allowed"|"denied"|"cancelled"} permission demandée
-//                    puis tranchée (la tranchée est gardée dans l'historique); état de session: idle | working | waiting
-// Historique: ~/.local/state/filigrane/chat/<id>.jsonl (msg et tool), index sessions.json. Le contexte de l'agent
-// est celui de Claude Code (`--resume ID`): un agent arrêté (inactif, redémarrage) reprend où il était.
-// Réglages: ~/.config/filigrane/ai.env (FILI_AI_MODEL, FILI_AI_ARGS, FILIGRANE_DIR), prompt: agents/chat-prompt.md.
+// fili-chat: the Filigrane chat. A daemon keeps the agent sessions (Claude Code in stream mode, one process per
+// open session) so that the conversation stays when the drawer (FiliChat.qml) hides; the drawer connects to it.
+// fili-chat daemon          daemon (started by the drawer on first display; it stops without a client or an agent)
+// fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
+// fili-chat status          sessions as JSON (the daemon must be running)
+// fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
+// fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
+// --permission-prompt-tool, passes each permission request to the drawer and waits for the answer
+// Socket: $XDG_RUNTIME_DIR/fili-chat/sock, one JSON line per message.
+// client -> daemon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
+// {"op":"rename","id","title"} {"op":"archive","id"} (keeps the history: archived)
+// {"op":"restore","id"}  {"op":"agent"} (asks {"ev":"agent","ok":bool}: is the agent installed) {"op":"answer","rid","allow"}
+// {"op":"link","id","key"} links the session to an application (empty key: unlinks; see "follow" of the drawer)
+// {"op":"send",…,"context":true} attaches the context noted by Mod+Y (context.json) to the message to the agent
+// {"op":"ask","id","rid","tool","input"} (MCP server: permission request, the connection waits for the answer)
+// daemon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link,archived,icon}]} {"ev":"history","id","items":[...]}
+// {"ev":"msg","id","role":"user"|"assistant","text"} {"ev":"tool","id","name","summary"}
+// {"ev":"delta","id","text"} (text being written, not kept) {"ev":"state","id","state"}
+// {"ev":"note","id","code"} (interrupted, error:…)
+// {"ev":"queue","id","items":[text]} messages written during a turn, sent at the end of the turn (emptied on interruption)
+// {"ev":"ask","id","rid","tool","summary","status":"pending"|"allowed"|"denied"|"cancelled"} permission asked
+// then settled (the settled one is kept in the history); session state: idle | working | waiting
+// History: ~/.local/state/filigrane/chat/<id>.jsonl (msg and tool), index sessions.json. The context of the agent
+// is that of Claude Code (`--resume ID`): a stopped agent (idle, restart) resumes where it was.
+// Settings: ~/.config/filigrane/ai.env (FILI_AI_MODEL, FILI_AI_ARGS, FILIGRANE_DIR), prompt: agents/chat-prompt.md.
 #[path = "../../fili-ai-session/src/json.rs"]
 #[allow(dead_code)]
 mod json;
@@ -43,8 +41,8 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-const IDLE_KILL: i64 = 30 * 60; // un agent inactif depuis ce délai est arrêté (la session se reprend seule)
-const IDLE_EXIT: i64 = 120; // sans client ni agent depuis ce délai, le démon s'arrête
+const IDLE_KILL: i64 = 30 * 60; // an agent idle for this delay is stopped (the session resumes by itself)
+const IDLE_EXIT: i64 = 120; // without a client or an agent for this delay, the daemon stops
 
 fn now() -> i64 {
     SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs() as i64).unwrap_or(0)
@@ -66,7 +64,7 @@ fn chat_dir() -> PathBuf {
     state_dir().join("chat")
 }
 
-// ───── réglages (ai.env) ─────
+// ───── settings (ai.env) ─────
 struct Conf {
     model: String,
     args: Vec<String>,
@@ -87,7 +85,7 @@ fn conf() -> Conf {
     if dir.is_empty() {
         dir = format!("{}/Projects/filigrane", home());
     }
-    // Comme fili-ai: FILI_AI_ARGS remplace les options de permission par défaut
+    // Like fili-ai: FILI_AI_ARGS replaces the default permission options
     let args: Vec<String> = get("FILI_AI_ARGS")
         .split_whitespace()
         .map(|a| if let Some(r) = a.strip_prefix('~') { format!("{}{r}", home()) } else { a.to_string() })
@@ -95,7 +93,7 @@ fn conf() -> Conf {
     Conf { model: get("FILI_AI_MODEL"), args, dir }
 }
 
-// Valeur d'un fichier shell: 'abc', "abc" ou abc\ def
+// Value of a shell file: 'abc', "abc" or abc\ def
 fn unquote(v: &str) -> String {
     if v.len() >= 2 && ((v.starts_with('\'') && v.ends_with('\'')) || (v.starts_with('"') && v.ends_with('"'))) {
         return v[1..v.len() - 1].to_string();
@@ -114,30 +112,30 @@ fn unquote(v: &str) -> String {
     out
 }
 
-// ───── état ─────
+// ───── state ─────
 struct Session {
     id: String,
     title: String,
     state: &'static str, // idle | working
     updated: i64,
-    started: bool, // l'agent a déjà reçu un message: reprise avec --resume
-    link: String,  // application (ou fenêtre) à laquelle la session est liée, "" = aucune
+    started: bool, // the agent has already received a message: resume with --resume
+    link: String,  // application (or window) the session is linked to, "" = none
     child: Option<Child>,
     stdin: Option<ChildStdin>,
-    epoch: u64, // numéro du processus courant (la fin d'un ancien processus est ignorée)
+    epoch: u64, // number of the current process (the end of an old process is ignored)
     asks: Vec<Ask>,
-    icon: i64,                  // code du glyphe de sujet (police Fili Icons), 0 = pas encore choisi
-    naming: bool,               // titre et icône en cours de demande à l'IA
-    archived: bool,             // archivée: gardée avec son historique, listée à part, restaurable
-    queue: Vec<(String, bool)>, // messages écrits pendant un tour (texte, avec contexte), envoyés à la fin du tour
+    icon: i64,                  // code of the topic glyph (Fili Icons font), 0 = not chosen yet
+    naming: bool,               // title and icon being requested from the AI
+    archived: bool,             // archived: kept with its history, listed apart, restorable
+    queue: Vec<(String, bool)>, // messages written during a turn (text, with context), sent at the end of the turn
 }
 
-// Permission demandée par l'agent (serveur MCP), en attente de la réponse de l'utilisateur
+// Permission asked by the agent (MCP server), waiting for the answer of the user
 struct Ask {
     rid: String,
     tool: String,
     summary: String,
-    stream: UnixStream, // connexion du serveur MCP, qui attend la réponse
+    stream: UnixStream, // connection of the MCP server, which waits for the answer
     client: u64,
 }
 
@@ -258,7 +256,7 @@ fn log_path(id: &str) -> PathBuf {
     chat_dir().join(format!("{id}.jsonl"))
 }
 
-// Garde un élément de l'historique (msg, tool) et le diffuse
+// Keeps an item of the history (msg, tool) and broadcasts it
 fn store(d: &mut Daemon, item: &Json) {
     let line = item.to_string();
     if let Ok(mut f) = OpenOptions::new().create(true).append(true).open(log_path(item.get("id").str().unwrap_or("x"))) {
@@ -287,7 +285,7 @@ fn ask_json(id: &str, rid: &str, tool: &str, summary: &str, status: &str) -> Jso
     j
 }
 
-// Tranche une demande: la réponse part au serveur MCP, le résultat est gardé dans l'historique
+// Settles a request: the answer goes to the MCP server, the result is kept in the history
 fn resolve_ask(d: &mut Daemon, rid: &str, status: &str) {
     let Some((sid, i)) = d.sessions.iter().find_map(|s| s.asks.iter().position(|a| a.rid == rid).map(|i| (s.id.clone(), i)))
     else {
@@ -304,7 +302,7 @@ fn resolve_ask(d: &mut Daemon, rid: &str, status: &str) {
     }
     store(d, &ask_json(&sid, rid, &ask.tool, &ask.summary, status));
     let more = d.session(&sid).is_some_and(|s| !s.asks.is_empty());
-    // Seule une session qui attendait repart (une demande sur une session au repos ne la fait pas travailler)
+    // Only a session that was waiting resumes (a request on an idle session does not make it work)
     if d.session(&sid).is_some_and(|s| s.state == "waiting") {
         set_state(d, &sid, if more { "waiting" } else { "working" });
     }
@@ -324,7 +322,7 @@ fn set_state(d: &mut Daemon, id: &str, state: &'static str) {
     d.publish_sessions();
 }
 
-// File d'attente de la session (textes), pour l'affichage
+// Queue of the session (texts), for display
 fn queue_event(d: &mut Daemon, id: &str) {
     let items: Vec<Json> = d.session(id).map(|s| s.queue.iter().map(|(t, _)| Json::Str(t.clone())).collect()).unwrap_or_default();
     let mut j = Json::obj();
@@ -335,7 +333,7 @@ fn queue_event(d: &mut Daemon, id: &str) {
     d.broadcast(&line);
 }
 
-// Fin de tour: envoie le premier message en attente
+// End of turn: sends the first waiting message
 fn send_queued(d: &mut Daemon, id: &str) {
     let next = d.session(id).filter(|s| !s.queue.is_empty()).map(|s| s.queue.remove(0));
     if let Some((t, c)) = next {
@@ -384,7 +382,7 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     ]);
     cmd.args(if started { ["--resume", id] } else { ["--session-id", id] });
     cmd.arg("--add-dir").arg(&c.dir);
-    // Permissions: l'agent demande au tiroir (fili-chat mcp) quand il aurait demandé à l'utilisateur
+    // Permissions: the agent asks the drawer (fili-chat mcp) when it would have asked the user
     let exe = env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "fili-chat".into());
     let mut srv = Json::obj();
     srv.set("command", exe);
@@ -412,7 +410,7 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
         .env("FILI_CHAT", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        // stderr de l'agent gardé (<id>.err, écrasé à chaque lancement): seule trace d'un « The agent stopped »
+        // stderr of the agent kept (<id>.err, overwritten at each start): the only trace of a "The agent stopped"
         .stderr(fs::File::create(chat_dir().join(format!("{id}.err"))).map(Stdio::from).unwrap_or_else(|_| Stdio::null()));
     let mut child = cmd.spawn().map_err(|e| format!("claude: {e}"))?;
     let stdout = child.stdout.take().ok_or("stdout")?;
@@ -432,7 +430,7 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     Ok(())
 }
 
-// Résumé d'un appel d'outil pour une ligne du fil
+// Summary of a tool call for a line of the thread
 fn tool_summary(input: &Json) -> String {
     for k in ["command", "file_path", "path", "pattern", "url", "description", "query"] {
         if let Some(v) = input.get(k).str() {
@@ -518,7 +516,7 @@ fn agent_exit(d: &mut Daemon, id: &str, epoch: u64) {
 }
 
 fn kill_agent(s: &mut Session) {
-    s.asks.clear(); // les serveurs MCP meurent avec l'agent
+    s.asks.clear(); // the MCP servers die with the agent
     s.stdin = None;
     s.epoch = 0;
     if let Some(mut c) = s.child.take() {
@@ -527,8 +525,8 @@ fn kill_agent(s: &mut Session) {
     }
 }
 
-// ───── titre et icône par l'IA ─────
-// Icônes de sujet: noms Lucide, code 0xF2000 + position dans la police Fili Icons (scripts/fili-icons.py, TOPICS, même ordre)
+// ───── title and icon by the AI ─────
+// Topic icons: Lucide names, code 0xF2000 + position in the Fili Icons font (scripts/fili-icons.py, TOPICS, same order)
 const TOPICS: [&str; 66] = [
     "message-circle",
     "terminal",
@@ -602,7 +600,7 @@ fn first_line_title(text: &str) -> String {
     text.lines().next().unwrap_or("").chars().take(48).collect()
 }
 
-// Premier échange fini et pas d'icône: une requête courte (modèle léger, sans outil) propose titre et icône du sujet
+// First exchange finished and no icon: a short request (light model, no tool) proposes a title and an icon for the topic
 fn start_naming(d: &mut Daemon, id: &str) {
     let Some(s) = d.session(id) else { return };
     if s.icon != 0 || s.naming {
@@ -617,7 +615,7 @@ fn start_naming(d: &mut Daemon, id: &str) {
                 s.naming = false;
                 if let Some((icon, title)) = named {
                     s.icon = icon;
-                    // Le titre ne remplace que celui qu'on avait tiré du premier message (jamais un titre choisi à la main)
+                    // The title only replaces the one drawn from the first message (never a title chosen by hand)
                     if let Some(t) = title {
                         let auto = first_line_title(&first_user_text(&id));
                         if s.title.is_empty() || s.title == auto {
@@ -677,7 +675,7 @@ fn name_session(id: &str) -> Option<(i64, Option<String>)> {
     Some((0xF2000 + pos as i64, (!title.is_empty()).then_some(title)))
 }
 
-// L'agent (Claude Code) est-il installé ? Sinon le tiroir propose de l'installer (fili-ai install claude)
+// Is the agent (Claude Code) installed? Otherwise the drawer offers to install it (fili-ai install claude)
 fn agent_installed() -> bool {
     let path = format!("{}/.local/bin:{}", home(), env::var("PATH").unwrap_or_default());
     path.split(':').any(|d| !d.is_empty() && PathBuf::from(d).join("claude").exists())
@@ -690,8 +688,8 @@ fn agent_json() -> String {
     j.to_string()
 }
 
-// ───── opérations des clients ─────
-// Contexte noté par Mod+Y (fili-context): application active, sélection...
+// ───── client operations ─────
+// Context noted by Mod+Y (fili-context): active application, selection...
 fn context_line() -> Option<String> {
     let t = fs::read_to_string(state_dir().join("context.json")).ok()?;
     let j = Json::parse(t.trim())?;
@@ -704,7 +702,7 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
         return;
     }
     if d.session(id).is_some_and(|s| s.state != "idle") {
-        // Un tour à la fois: le message attend la fin du tour en cours
+        // One turn at a time: the message waits for the end of the current turn
         if let Some(s) = d.session(id) {
             s.queue.push((text.to_string(), with_context));
         }
@@ -809,7 +807,7 @@ fn handle(client: u64, line: &str) {
             resolve_ask(d, req.get("rid").str().unwrap_or(""), st);
         }
         "ask" => {
-            // La connexion devient celle du serveur MCP: elle ne reçoit plus les diffusions, seulement sa réponse
+            // The connection becomes that of the MCP server: it no longer receives broadcasts, only its answer
             let Some(pos) = d.clients.iter().position(|(c, _)| *c == client) else { return };
             let (_, stream) = d.clients.remove(pos);
             let input = req.get("input");
@@ -895,7 +893,7 @@ fn serve(stream: UnixStream) {
     }
     with(|d| {
         d.clients.retain(|(c, _)| *c != client);
-        // Serveur MCP disparu (agent arrêté): ses demandes ne sont plus attendues
+        // MCP server gone (agent stopped): its requests are no longer awaited
         let rids: Vec<String> =
             d.sessions.iter().flat_map(|s| s.asks.iter().filter(|a| a.client == client).map(|a| a.rid.clone())).collect();
         for rid in rids {
@@ -904,7 +902,7 @@ fn serve(stream: UnixStream) {
     });
 }
 
-// Arrêt des agents inactifs; le démon s'arrête quand plus rien ne le demande
+// Stopping of idle agents; the daemon stops when nothing asks for it any more
 fn housekeeping() {
     loop {
         thread::sleep(Duration::from_secs(15));
@@ -937,7 +935,7 @@ fn daemon() -> Result<(), String> {
     fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
     let _ = fs::set_permissions(&dir, std::os::unix::fs::PermissionsExt::from_mode(0o700));
     if UnixStream::connect(sock_path()).is_ok() {
-        return Ok(()); // déjà lancé
+        return Ok(()); // already started
     }
     let _ = fs::remove_file(sock_path());
     fs::create_dir_all(chat_dir()).map_err(|e| e.to_string())?;
@@ -991,7 +989,7 @@ fn mcp(sid: &str) -> Result<(), String> {
                 reply(&id, r);
             }
             "tools/call" => {
-                // Une demande à la fois par thread: l'agent peut en poser plusieurs en parallèle
+                // One request at a time per thread: the agent can ask several in parallel
                 let sid = sid.to_string();
                 let reply = reply.clone();
                 let args = req.path(&["params", "arguments"]).clone();
@@ -1011,7 +1009,7 @@ fn mcp(sid: &str) -> Result<(), String> {
     Ok(())
 }
 
-// Demande au démon et attend la réponse; sans démon ou sans réponse: refus
+// Asks the daemon and waits for the answer; without a daemon or without an answer: refusal
 fn ask_user(sid: &str, args: &Json) -> Json {
     let deny = |m: &str| {
         let mut v = Json::obj();

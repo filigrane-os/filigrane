@@ -1,5 +1,5 @@
-// JSON minimal, sans dépendance: entrées de Claude Code (hooks, status line), réponses de niri et état du module IA.
-// Analyse et écriture; l'ordre des clés est gardé.
+// Minimal JSON, without dependencies: inputs of Claude Code (hooks, status line), replies of niri and state of the AI module.
+// Parsing and writing; the order of the keys is kept.
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -248,7 +248,7 @@ impl Parser<'_> {
                         b'f' => out.push(12),
                         b'u' => {
                             let mut u = self.hex4()?;
-                            // Paire de substitution (caractère hors du plan de base)
+                            // Surrogate pair (character outside the base plane)
                             if (0xd800..0xdc00).contains(&u) && self.eat("\\u") {
                                 let lo = self.hex4()?;
                                 u = 0x10000 + ((u - 0xd800) << 10) + (lo.wrapping_sub(0xdc00) & 0x3ff);

@@ -1,19 +1,15 @@
-//! fili-appmenu: menu de l'application active pour la fili-bar (menu global à la Mac OS X).
-//!
-//! Appelé à la demande par le widget (AppMenu.qml, bar/modules/appmenu/), rien ne reste résident. Le widget sait déjà quelle fenêtre a
-//! le focus (Niri.qml); ce programme ne fait que parler à AT-SPI:
-//!
-//!   fili-appmenu menu PID [TITRE]      barre de menus de l'application (JSON), `null` si elle n'en expose pas
-//!   fili-appmenu expand SERVICE CHEMIN sous-menu paresseux (GTK3, Firefox): l'ouvre, lit ses entrées, le referme
-//!   fili-appmenu do SERVICE CHEMIN     déclenche une entrée
-//!
-//! Sortie JSON: {"items":[ENTRÉE...]} ou [ENTRÉE...] pour `expand`, ENTRÉE =
-//!   {"label","kind":"item|sub|sep","enabled","check":0|1|2,"svc","path","lazy","children":[...]}
-//! Sans accessibilité exportée par l'application (Chrome, foot, Electron sans drapeau...), `menu` rend `null`: le widget
-//! affiche alors son menu de repli (dotfiles/config/filigrane/appmenu/).
-//!
-//! Principe et parcours de l'arbre repris de noctalia-appmenu (yolo-labz, Apache-2.0,
-//! https://github.com/yolo-labz/noctalia-appmenu), réécrits en synchrone sans tokio ni serde.
+//! fili-appmenu: menu of the active application for the fili-bar (global menu, like Mac OS X).
+//! Called on demand by the widget (AppMenu.qml, bar/modules/appmenu/), nothing stays resident. The widget already knows which window has
+//! the focus (Niri.qml); this program only talks to AT-SPI:
+//! fili-appmenu menu PID [TITLE]      menu bar of the application (JSON), `null` if it exposes none
+//! fili-appmenu expand SERVICE PATH   lazy submenu (GTK3, Firefox): opens it, reads its entries, closes it
+//! fili-appmenu do SERVICE PATH       triggers an entry
+//! JSON output: {"items":[ENTRY...]} or [ENTRY...] for `expand`, ENTRY =
+//! {"label","kind":"item|sub|sep","enabled","check":0|1|2,"svc","path","lazy","children":[...]}
+//! Without exported accessibility from the application (Chrome, foot, Electron without a flag...), `menu` returns `null`: the widget
+//! then shows its fallback menu (dotfiles/config/filigrane/appmenu/).
+//! Principle and tree walk taken from noctalia-appmenu (yolo-labz, Apache-2.0,
+//! https://github.com/yolo-labz/noctalia-appmenu), rewritten synchronously without tokio or serde.
 use std::time::{Duration, Instant};
 use std::{env, process, thread};
 
@@ -24,28 +20,28 @@ use zbus::zvariant::{OwnedObjectPath, OwnedValue, Value};
 const ACCESSIBLE: &str = "org.a11y.atspi.Accessible";
 const ROOT: &str = "/org/a11y/atspi/accessible/root";
 
-// Rôles AT-SPI (atspi-constants.h)
+// AT-SPI roles (atspi-constants.h)
 const ROLE_CHECK_MENU_ITEM: u32 = 8;
 const ROLE_MENU: u32 = 33;
 const ROLE_MENU_BAR: u32 = 34;
 const ROLE_RADIO_MENU_ITEM: u32 = 45;
 const ROLE_SEPARATOR: u32 = 50;
 
-// États AT-SPI: bits du premier mot
+// AT-SPI states: bits of the first word
 const STATE_CHECKED: u32 = 1 << 4;
 const STATE_ENABLED: u32 = 1 << 8;
 const STATE_SENSITIVE: u32 = 1 << 24;
 
-/// Profondeur maximale de la recherche de la barre de menus, et de lecture des sous-menus
+/// Maximum depth of the menu bar search, and of the reading of submenus
 const FIND_DEPTH: u32 = 8;
 const FETCH_DEPTH: u32 = 5;
-/// Entrées lues par niveau (borne contre les arbres absurdes)
+/// Entries read per level (bound against absurd trees)
 const MAX_CHILDREN: usize = 200;
-/// Temps maximal de la recherche de la barre de menus
+/// Maximum time of the menu bar search
 const FIND_BUDGET: Duration = Duration::from_millis(1500);
-/// Un menu paresseux a besoin d'un instant pour se remplir une fois ouvert
+/// A lazy menu needs a moment to fill once opened
 const REALIZE_DELAY: Duration = Duration::from_millis(150);
-/// Délai total: une application bloquée ne doit pas figer la barre
+/// Total delay: a blocked application must not freeze the bar
 const WATCHDOG: Duration = Duration::from_secs(5);
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -54,7 +50,7 @@ struct Item {
     kind: &'static str,
     enabled: bool,
     check: u8,
-    /// Raccourci clavier affiché (« Ctrl+T »), vide s'il n'y en a pas
+    /// Keyboard shortcut displayed ("Ctrl+T"), empty if there is none
     keys: String,
     svc: String,
     path: String,
@@ -68,7 +64,7 @@ struct Atspi {
 }
 
 impl Atspi {
-    /// Le bus d'accessibilité est un bus à part, dont la session donne l'adresse
+    /// The accessibility bus is a separate bus, whose address the session gives
     fn connect() -> zbus::Result<Self> {
         let session = Connection::session()?;
         let reply = session.call_method(Some("org.a11y.Bus"), "/org/a11y/bus", Some("org.a11y.Bus"), "GetAddress", &())?;
@@ -94,7 +90,7 @@ impl Atspi {
             .unwrap_or_default()
     }
 
-    /// Premier mot des états (activé, sensible, coché...)
+    /// First word of the states (enabled, sensitive, checked...)
     fn state(&self, svc: &str, path: &str) -> u32 {
         self.c
             .call_method(Some(svc), path, Some(ACCESSIBLE), "GetState", &())
@@ -113,7 +109,7 @@ impl Atspi {
             .unwrap_or_default()
     }
 
-    /// Processus d'un nom du bus d'accessibilité
+    /// Process of a name of the accessibility bus
     fn pid_of(&self, svc: &str) -> Option<u32> {
         self.c
             .call_method(
@@ -135,7 +131,7 @@ impl Atspi {
             .unwrap_or(false)
     }
 
-    /// Raccourci d'une entrée (Action.GetKeyBinding), texte brut de la boîte à outils
+    /// Shortcut of an entry (Action.GetKeyBinding), raw text of the toolkit
     fn key_binding(&self, svc: &str, path: &str) -> String {
         self.c
             .call_method(Some(svc), path, Some("org.a11y.atspi.Action"), "GetKeyBinding", &(0i32,))
@@ -144,7 +140,7 @@ impl Atspi {
             .unwrap_or_default()
     }
 
-    /// Parent d'un nœud (propriété Parent: structure (service, chemin))
+    /// Parent of a node (Parent property: (service, path) structure)
     fn parent_of(&self, svc: &str, path: &str) -> Option<(String, String)> {
         let v = self
             .c
@@ -160,7 +156,7 @@ impl Atspi {
         }
     }
 
-    /// Désélectionne les entrées d'un menu ou d'une barre de menus: referme le menu qu'une expansion a ouvert
+    /// Deselects the entries of a menu or of a menu bar: closes the menu that an expansion opened
     fn clear_selection(&self, svc: &str, path: &str) -> bool {
         self.c
             .call_method(Some(svc), path, Some("org.a11y.atspi.Selection"), "ClearSelection", &())
@@ -169,7 +165,7 @@ impl Atspi {
             .unwrap_or(false)
     }
 
-    /// Fenêtres de l'application `pid`, celle dont le titre ressemble à `title` d'abord
+    /// Windows of the application `pid`, the one whose title looks like `title` first
     fn frames(&self, pid: u32, title: &str) -> Vec<(String, String)> {
         let mut frames = Vec::new();
         for (svc, root) in self.children("org.a11y.atspi.Registry", ROOT) {
@@ -186,7 +182,7 @@ impl Atspi {
     }
 
     fn find_menubar(&self, svc: &str, path: &str, depth: u32) -> Option<(String, String)> {
-        // Arbre énorme (navigateur avec accessibilité): on abandonne plutôt que de parcourir des milliers de nœuds
+        // Huge tree (browser with accessibility): we give up rather than walk thousands of nodes
         if depth >= FIND_DEPTH || self.started.elapsed() > FIND_BUDGET {
             return None;
         }
@@ -224,8 +220,8 @@ impl Atspi {
         item
     }
 
-    /// Sous-menu paresseux: l'ouvrir remplit ses entrées, que l'on lit avant de le refermer. Les chemins des entrées
-    /// restent valides une fois refermé.
+    /// Lazy submenu: opening it fills its entries, which we read before closing it. The paths of the entries
+    /// stay valid once closed.
     fn expand(&self, svc: &str, path: &str) -> Vec<Item> {
         if self.role(svc, path) == 0 {
             return Vec::new();
@@ -233,8 +229,8 @@ impl Atspi {
         self.do_action(svc, path);
         thread::sleep(REALIZE_DELAY);
         let tree = self.item(svc, path, FETCH_DEPTH - 2);
-        // Refermer le menu ouvert, seulement s'il s'est bien ouvert. GTK3 ne referme pas par un second clic: on
-        // désélectionne dans le parent (les entrées lues restent valides). Repli: bascule du clic (Firefox)
+        // Close the open menu, only if it really opened. GTK3 does not close on a second click: we
+        // deselect in the parent (the entries read stay valid). Fallback: click toggle (Firefox)
         if !tree.children.is_empty() {
             let closed = self.parent_of(svc, path).is_some_and(|(ps, pp)| self.clear_selection(&ps, &pp));
             if !closed {
@@ -245,8 +241,8 @@ impl Atspi {
     }
 }
 
-/// Raccourci lisible d'une entrée. GTK: « mnémonique;chemin;accélérateur » avec un accélérateur « <Primary><Shift>n »;
-/// Qt: les séquences « Ctrl+N » séparées par « ; », on garde la première.
+/// Readable shortcut of an entry. GTK: "mnemonic;path;accelerator" with an accelerator "<Primary><Shift>n";
+/// Qt: "Ctrl+N" sequences separated by ";", we keep the first one.
 fn shortcut(raw: &str) -> String {
     let fields: Vec<&str> = raw.split(';').collect();
     if fields.len() == 3 && (fields[0].chars().count() <= 1 || fields[1].contains('<')) {
@@ -284,14 +280,14 @@ fn gtk_accel(acc: &str) -> String {
     parts.join("+")
 }
 
-/// Qt enveloppe le contenu de chaque menu dans un nœud MENU sans nom: on le retire
+/// Qt wraps the content of each menu in an unnamed MENU node: we remove it
 fn flatten(item: &mut Item) {
     if item.children.len() == 1 && item.children[0].label.is_empty() && !item.children[0].children.is_empty() {
         item.children = std::mem::take(&mut item.children[0].children);
     }
 }
 
-/// Plus petit = meilleure fenêtre pour le titre demandé (identique, puis inclus dans l'autre, puis le reste)
+/// Smaller = better window for the requested title (identical, then included in the other, then the rest)
 fn rank(frame: &str, title: &str) -> u8 {
     if title.is_empty() || frame.is_empty() {
         2
@@ -350,7 +346,7 @@ fn menu(a: &Atspi, pid: u32, title: &str) -> Option<Vec<Item>> {
             continue;
         };
         let mut bar = a.item(&bsvc, &bpath, 0);
-        // Un menu du premier niveau sans entrée est paresseux (GTK3, Firefox): le widget demandera `expand`
+        // A first-level menu without entries is lazy (GTK3, Firefox): the widget will ask for `expand`
         for top in &mut bar.children {
             top.lazy = top.children.is_empty() && top.kind != "sep";
         }
@@ -370,7 +366,7 @@ fn usage() -> ! {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let Some(cmd) = args.first() else { usage() };
-    // Une application AT-SPI bloquée ne doit pas bloquer la barre
+    // A blocked AT-SPI application must not block the bar
     thread::spawn(|| {
         thread::sleep(WATCHDOG);
         process::exit(3);

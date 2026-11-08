@@ -1,5 +1,5 @@
-# LocalSend (protocole v2) en Rust, sans runtime lourd: localsendd (réception) et lsend (envoi, découverte).
-# Pas de crate dans ce dépôt: bootstrap.sh (setup_apps) clone cette source à ce commit et la compile.
+# LocalSend (protocol v2) in Rust, without a heavy runtime: localsendd (receiving) and lsend (sending, discovery).
+# No crate in this repository: bootstrap.sh (setup_apps) clones this source at this commit and builds it.
 url=https://github.com/x7ssss/localsend-daemon
 commit=1a37815ac0d7c3d46ffeb490f0f4c9466d5ebe4a
 bins="localsendd lsend"

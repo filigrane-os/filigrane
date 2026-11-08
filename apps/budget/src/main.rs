@@ -1,10 +1,10 @@
-// Budget ressources de l'OS: ce que le système garde pour lui, hors travail de l'utilisateur (navigateur, agents,
-// conteneurs, tout ce qu'ils lancent et tout ce qui est lancé depuis un shell de terminal), comparé à une référence
-// ou à des plafonds. Lit /proc directement.
-//   budget [secondes]         instantané: mémoire système / applications, plus gros résidents, CPU sur l'intervalle (2 s)
-//   budget save [nom]         enregistre la référence (~/.local/state/budget/<nom>, défaut "reference")
-//   budget diff [nom]         écart du système à la référence, total et par programme (à lancer après une installation)
-//   budget check [--notify]   plafonds de ~/.config/budget/limits; code 1 si dépassés (--notify: notification, code 0)
+// Resource budget of the OS: what the system keeps for itself, apart from the user's work (browser, agents,
+// containers, everything they start and everything started from a terminal shell), compared with a reference
+// or with ceilings. Reads /proc directly.
+// budget [seconds]          snapshot: system / applications memory, biggest residents, CPU over the interval (2 s)
+// budget save [name]        records the reference (~/.local/state/budget/<name>, default "reference")
+// budget diff [name]        difference of the system from the reference, total and per program (run after an installation)
+// budget check [--notify]   ceilings of ~/.config/budget/limits; code 1 if exceeded (--notify: notification, code 0)
 use std::{collections::HashMap, env, fs, path::PathBuf, process, thread, time::Duration};
 
 struct Proc {
@@ -36,7 +36,7 @@ fn procs(page_kb: u64) -> HashMap<u32, Proc> {
     for e in dir.flatten() {
         let Some(pid) = e.file_name().to_str().and_then(|s| s.parse::<u32>().ok()) else { continue };
         let Ok(stat) = fs::read_to_string(format!("/proc/{pid}/stat")) else { continue };
-        // nom entre la première « ( » et la dernière « ) » (il peut contenir des espaces ou des parenthèses)
+        // name between the first "(" and the last ")" (it can contain spaces or parentheses)
         let (Some(a), Some(b)) = (stat.find('('), stat.rfind(')')) else { continue };
         let f: Vec<&str> = stat[b + 2..].split_whitespace().collect();
         if f.len() < 22 {
@@ -71,8 +71,8 @@ fn meminfo() -> (u64, u64, u64) {
     (field("MemTotal:"), field("MemAvailable:"), field("SwapTotal:").saturating_sub(field("SwapFree:")))
 }
 
-// Utilisé sans appartenir à un processus: noyau (slab non récupérable, piles, tables de pages) et swap compressé
-// en RAM (zram, mm_stat: 3e champ en octets). Le reste non attribué: tmpfs, mémoire partagée que plus personne ne mappe.
+// Used without belonging to a process: kernel (unreclaimable slab, stacks, page tables) and swap compressed
+// in RAM (zram, mm_stat: 3rd field in bytes). The rest unattributed: tmpfs, shared memory that nobody maps any more.
 fn hidden_kb() -> (u64, u64) {
     let info = fs::read_to_string("/proc/meminfo").unwrap_or_default();
     let field = |k: &str| {
@@ -140,9 +140,9 @@ fn limits() -> Limits {
     l
 }
 
-// Travail de l'utilisateur: une application (nom commençant par un préfixe de "apps", ou dans un conteneur), ce
-// qu'elle lance, et ce qui est lancé depuis le shell d'un terminal (le terminal et son shell restent du système).
-// budget lui-même est ignoré.
+// User work: an application (name starting with a prefix of "apps", or in a container), what it
+// starts, and what is started from the shell of a terminal (the terminal and its shell stay system).
+// budget itself is ignored.
 fn app_pids(procs: &HashMap<u32, Proc>, lim: &Limits) -> Vec<u32> {
     let is_app = |p: &Proc| p.container || lim.apps.iter().any(|a| p.name.starts_with(a.as_str()));
     let is_term = |pid: u32| procs.get(&pid).is_some_and(|p| lim.terminals.contains(&p.name));
@@ -190,7 +190,7 @@ fn snapshot(procs: &HashMap<u32, Proc>, lim: &Limits) -> Snapshot {
 }
 
 impl Snapshot {
-    // Le système = mémoire utilisée (comme free) moins les applications: noyau, caches non récupérables et démons compris
+    // The system = used memory (like free) minus the applications: kernel, unreclaimable caches and daemons included
     fn system_kb(&self) -> u64 {
         self.used_kb.saturating_sub(self.apps_kb)
     }
@@ -234,7 +234,7 @@ fn show(secs: u64, page_kb: u64, hz: f64) {
             g.ticks += d;
         }
     }
-    let ncpu = (cpu1.saturating_sub(cpu0)) as f64 / hz / secs as f64; // cœurs × intervalle
+    let ncpu = (cpu1.saturating_sub(cpu0)) as f64 / hz / secs as f64; // cores × interval
     let pct = |t: u64| if ncpu > 0.0 { t as f64 / hz / secs as f64 * 100.0 / ncpu } else { 0.0 };
     let sys_ticks: u64 = snap.system.values().map(|g| g.ticks).sum();
     let app_ticks: u64 = snap.apps.values().map(|g| g.ticks).sum();
@@ -368,7 +368,7 @@ fn check(notify: bool, page_kb: u64) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    // SAFETY: SIGPIPE par défaut (sortie silencieuse dans un tuyau fermé, `budget | head`); sysconf sans effet de bord
+    // SAFETY: SIGPIPE at its default (silent output in a closed pipe, `budget | head`); sysconf has no side effect
     unsafe { libc::signal(libc::SIGPIPE, libc::SIG_DFL) };
     let (page_kb, hz) = unsafe { (libc::sysconf(libc::_SC_PAGESIZE) as u64 / 1024, libc::sysconf(libc::_SC_CLK_TCK) as f64) };
     let name = || args.get(2).cloned().unwrap_or_else(|| "reference".into());
