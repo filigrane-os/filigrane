@@ -10,6 +10,9 @@ pragma Singleton
 //   side = "left"
 //   order = 5
 //   enabled = false
+//   display = "icon"       # "both" (default) | "icon" | "value"
+//   tray = "idle"          # drawer: "never" (default) | "idle" (in the drawer at rest) | "always" (only in the open drawer)
+//   show = "always"        # "active" (default: hidden while it has nothing to show) | "always"
 // A name is a folder of bar/modules/ (<name>/<Name>Module.qml, hyphens make camel case: "my-thing" -> MyThingModule),
 // from the distribution or from a user layer. An explicit left / right list gives the exact order of the row; "..."
 // stands for the default modules of the row (the ones not listed yet), so a user layer can add its own without restating
@@ -66,6 +69,11 @@ Singleton {
     // Value of a key for a module: [modules.<name>] of fili-bar.toml, then its manifest, then the fallback
     function setting(name, key, fallback) {
         return parsed["modules." + name]?.[key] ?? manifests[name]?.[key] ?? fallback;
+    }
+    // A setting restricted to a list of values (anything else gives the fallback)
+    function choice(name, key, values, fallback) {
+        const v = setting(name, key, fallback);
+        return values.indexOf(v) >= 0 ? v : fallback;
     }
     function enabled(name) {
         return setting(name, "enabled", "true") !== "false";

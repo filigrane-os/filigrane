@@ -1,6 +1,7 @@
 // Native fili-bar module: text + click and tooltip area (Hover)
 import QtQuick
 import qs
+import qs.bar
 
 BarModule {
     id: nat
@@ -13,7 +14,7 @@ BarModule {
     property real maxWidth: Infinity
     implicitWidth: visible ? Math.max(FiliTheme.isIcon(nat.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
     implicitHeight: FiliTheme.barHeight
-    visible: nat.text !== ""
+    visible: nat.text !== "" && (trayMode === "never" || BarState.trayOpen)
     // Icon in slate, value in white (FiliTheme.glyph)
     Row {
         id: content
@@ -21,13 +22,14 @@ BarModule {
         spacing: FiliTheme.labelGap
         Text {
             id: glyphText
-            visible: text !== ""
+            visible: text !== "" && nat.display !== "value"
             text: FiliTheme.glyph(nat.text)
             color: FiliTheme.iconColor(nat.color)
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.size
         }
         Text {
+            visible: nat.display !== "icon" || FiliTheme.glyph(nat.text) === ""
             text: FiliTheme.value(nat.text)
             // Truncated (…) when the text exceeds maxWidth (property set by the bar, no limit otherwise)
             elide: Text.ElideRight

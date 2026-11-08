@@ -61,12 +61,16 @@ right = ["mail", "...", "clock", "power"]
 side = "left"
 order = 5
 enabled = false
+display = "icon"     # "both" (default), "icon" or "value"
+tray = "idle"        # "never" (default), "idle" or "always"
+show = "always"      # "active" (hidden while empty) or "always"
 ```
 
 - A name is a folder of `bar/modules/`: `my-thing` loads `my-thing/MyThingModule.qml`.
 - An explicit `left` / `right` list is the exact order of the bar, left to right, and wins over `order`.
 - `"..."` stands for the default modules of that row that are not listed yet.
 - `[modules.<name>]` overrides `side`, `order` and `enabled` (`false` removes the module, in the lists too).
+- `display`: the icon alone or the value alone (a module without icon always shows its value). `tray`: `idle` keeps the module in the drawer at rest and in the bar while it has something to say, `always` shows it only in the open drawer. `show`: `always` keeps a module that is empty in the bar (when its code allows it). These three also work in a `module.toml`, and apply to `BarItem` and `BarScript` modules.
 - Names that are invalid (anything but lowercase letters, digits and hyphens) and duplicates are ignored. A module that does not exist leaves a loading error in the log and no gap in the bar.
 
 Your own `fili-bar.toml` belongs to the [personal layer](configuration.md): `users/<login>/dotfiles/config/filigrane/fili-bar.toml`.

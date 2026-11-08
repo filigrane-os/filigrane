@@ -1235,6 +1235,18 @@ ShellRoot {
             },
             wait(() => {}, () => t.find(t.bar.contentItem, "network") !== null && t.find(t.bar.contentItem, "appmenu") !== null, 5000),
             () => ok(FiliPanel.ring().length === 9, "fili-bar: modules par défaut de retour, panneaux réenregistrés", FiliPanel.ring().join()),
+            () => {
+                const r = t.find(t.bar.contentItem, "rec");
+                ok(r && r.display === "both" && r.trayMode === "never" && r.inDrawer, "fili-bar: display/tray par défaut (both, never)", r ? r.display + "/" + r.trayMode : "absent");
+                BarLayout.parsed = FiliTheme.parseToml('[modules.status]\ndisplay = "icon"\ntray = "always"\n[modules.bogus]\ndisplay = "x"\n');
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "rec")?.display === "icon", 3000),
+            () => {
+                const r = t.find(t.bar.contentItem, "rec");
+                ok(r && r.display === "icon" && r.trayMode === "always" && !r.inDrawer, "fili-bar: display et tray d'un module suivis par ses éléments (tiroir replié = masqué)", r ? r.display + "/" + r.trayMode + "/" + r.inDrawer : "absent");
+                ok(BarLayout.choice("bogus", "display", ["both", "icon", "value"], "both") === "both", "BarLayout.choice: valeur invalide = repli");
+                BarLayout.parsed = ({});
+            },
         ];
         tick.start();
     }

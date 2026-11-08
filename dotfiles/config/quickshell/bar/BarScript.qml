@@ -8,6 +8,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs
+import qs.bar
 
 BarModule {
     id: mod
@@ -44,7 +45,9 @@ BarModule {
     property string tipInfo
     property bool pending: false
 
-    visible: !(hideEmpty && text === "")
+    // Drawer (trayMode): "idle" shows the module in the bar only while it is in use (not in the "idle" class)
+    readonly property bool inDrawer: trayMode === "never" || BarState.trayOpen || (trayMode === "idle" && cls !== "idle")
+    visible: !(hideEmpty && text === "") && inDrawer
     implicitWidth: visible ? Math.max(FiliTheme.isIcon(mod.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
     implicitHeight: FiliTheme.barHeight
 
@@ -137,7 +140,7 @@ BarModule {
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
         }
         Text {
-            visible: text !== ""
+            visible: text !== "" && mod.display !== "value"
             anchors.verticalCenter: parent.verticalCenter
             text: FiliTheme.glyph(mod.text)
             color: FiliTheme.iconColor(label.color)
@@ -146,6 +149,7 @@ BarModule {
         }
         Text {
             id: label
+            visible: mod.display !== "icon" || FiliTheme.glyph(mod.text) === ""
             text: FiliTheme.value(mod.text)
             color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
             font.family: FiliTheme.font

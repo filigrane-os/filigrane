@@ -13,6 +13,16 @@ Loader {
     property real free: -1
     Layout.fillHeight: true
     Component.onCompleted: setSource(BarLayout.source(modelData), { bar: slot.bar })
-    onLoaded: if (free >= 0 && item.maxWidth !== undefined)
-        item.maxWidth = Qt.binding(() => Math.max(0, slot.free - slot.x - FiliTheme.space3))
+    onLoaded: {
+        if (!item)
+            return;
+        // Manifest / fili-bar.toml settings, followed live
+        item.display = Qt.binding(() => BarLayout.choice(modelData, "display", ["both", "icon", "value"], "both"));
+        item.trayMode = Qt.binding(() => BarLayout.choice(modelData, "tray", ["never", "idle", "always"], "never"));
+        // show: only when a manifest or fili-bar.toml says so (some modules set hideEmpty themselves)
+        if (item.hideEmpty !== undefined && BarLayout.choice(modelData, "show", ["active", "always"], "") !== "")
+            item.hideEmpty = Qt.binding(() => BarLayout.choice(modelData, "show", ["active", "always"], "active") === "active");
+        if (free >= 0 && item.maxWidth !== undefined)
+            item.maxWidth = Qt.binding(() => Math.max(0, slot.free - slot.x - FiliTheme.space3));
+    }
 }
