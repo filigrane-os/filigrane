@@ -387,7 +387,7 @@ ShellRoot {
                 const now = 1000000;
                 // AlertModule (the mail, WhatsApp and calendar modules of the user layer are instances of it)
                 const mk = props => alertComp.createObject(null, props);
-                const mail = mk({ kind: "mail", title: "Proton Mail", glyph: "\uf0e0" });
+                const mail = mk({ kind: "mail", title: "Proton Mail", glyph: "\uf0e0", url: "https://mail.example.org" });
                 const m = mail.build("Alice\tBonjour\nBob\tSalut\n", null, now);
                 ok(m.text === "\uf0e0 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "AlertModule: alerte mail", JSON.stringify(m));
                 const cal = mk({ kind: "cal", title: "Proton Calendar", glyph: "\uf073", render: (rows, n) => {
@@ -408,7 +408,7 @@ ShellRoot {
                 live.destroy();
                 FiliTheme.ran = [];
                 mail.hover.press(Qt.LeftButton);
-                ok(FiliTheme.ran.join("\n").indexOf("bar-alert open mail") >= 0, "AlertModule: clic -> bar-alert open mail", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran.join("\n").indexOf("bar-alert open mail 'https://mail.example.org'") >= 0, "AlertModule: clic -> bar-alert open mail URL", JSON.stringify(FiliTheme.ran));
                 mail.destroy();
                 cal.destroy();
                 wa.destroy();

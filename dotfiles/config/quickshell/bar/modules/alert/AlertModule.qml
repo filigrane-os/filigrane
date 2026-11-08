@@ -20,6 +20,8 @@ BarScript {
     // Colour of the alert (at rest: slate)
     property color accent: FiliTheme.brume
     property string openHint: FiliI18n.tr("click: open %1", title)
+    // Web app opened by a click (bar-alert open KIND URL); empty: the web app of the list named like the kind
+    property string url: ""
     // Optional (rows, now) => { text, rows } or null when nothing is left: for a kind with its own format and expiry
     // (text follows the glyph, rows are the tooltip lines). A null result also empties the file.
     property var render: null
@@ -44,7 +46,7 @@ BarScript {
     readonly property var shown: build(file.content, counter.exists ? counter.content : null, now)
     value: shown.text !== "" ? shown : (BarState.trayOpen ? ({ text: idleGlyph, "class": "idle", tooltip: { title: title, hint: FiliI18n.tr("click: open") } }) : BarState.empty)
     colors: ({ active: accent, idle: FiliTheme.ardoise })
-    click: FiliTheme.bin + "/bar-alert open " + kind
+    click: FiliTheme.bin + "/bar-alert open " + kind + (url ? " '" + url + "'" : "")
 
     // State from the file content, the content of <kind>.count (null if it does not exist) and the time
     function build(text, count, now) {

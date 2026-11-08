@@ -1,11 +1,13 @@
 #!/bin/bash
-# Bar alerts: new Proton mails (mail), imminent Proton Calendar events (cal) and messages of the other web apps followed
-# by webapp-notify (whatsapp...), in ~/.local/state/alerts/<kind>, read by the bar (AlertModule).
-# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind>` opens the web app and clears.
+# Bar alerts: one file per kind in ~/.local/state/alerts/<kind> (new mails, imminent events, messages of the web apps
+# followed by webapp-notify...), read by the bar (AlertModule).
+# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind> [URL]` clears the
+# alert and opens the web app: the URL given by the AlertModule of the kind, else the web app of the list named like the kind.
 # Adding a web app: its name in ~/.config/webapps/notify, then an AlertModule in the user layer
 # (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/) and its name in the user's fili-bar.toml.
 #   mail: one line "sender<TAB>subject" per mail received since the last click
 #   cal:  one line "start epoch<TAB>HH:MM<TAB>title", shown until 5 minutes after the start
+# (those two kinds, with their service and URL, are defined in the user layer.)
 D="$HOME/.local/state/alerts"
 mkdir -p "$D"
 # URL of a web app of the list from its kind (lowercase name without spaces)
@@ -15,12 +17,10 @@ case "$1" in
     push)  # bar-alert push mail "sender" "subject" | bar-alert push cal EPOCH HH:MM title
         kind="$2"; shift 2
         printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"; exit 0 ;;
-    open)
+    open)  # bar-alert open KIND [URL]: clear the alert, open URL (default: the web app of that name in the list)
         : >"$D/$2"
-        case "$2" in
-            mail) exec "$HOME/.local/bin/webapp" https://mail.proton.me ;;
-            cal)  exec "$HOME/.local/bin/webapp" https://calendar.proton.me ;;
-            *)    exec "$HOME/.local/bin/webapp" "$(webapp_url "$2")" ;;
-        esac ;;
-    *) echo "usage: bar-alert push KIND CHAMPS... | open KIND" >&2; exit 2 ;;
+        url="${3:-$(webapp_url "$2")}"
+        [ -n "$url" ] || { echo "bar-alert: no URL for $2 (give one, or name a web app of the list after it)" >&2; exit 1; }
+        exec "$HOME/.local/bin/webapp" "$url" ;;
+    *) echo "usage: bar-alert push KIND FIELDS... | open KIND [URL]" >&2; exit 2 ;;
 esac
