@@ -1,4 +1,4 @@
-// Interrupteur des fili-panel (à droite du titre): checked = allumé, switchable = false le grise (rien à activer)
+// Switch of the fili-panel (right of the title): checked = on, switchable = false greys it out (nothing to turn on)
 import QtQuick
 import qs
 
@@ -12,7 +12,7 @@ Rectangle {
     implicitHeight: 18
     radius: height / 2
     opacity: switchable ? 1 : 0.4
-    // Clavier: Entrée ou Espace = bascule
+    // Keyboard: Enter or Space = toggle
     activeFocusOnTab: switchable
     Keys.onReturnPressed: key()
     Keys.onEnterPressed: key()
@@ -35,7 +35,7 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: sw.press()
     }
-    // Clic (appelé aussi par les tests)
+    // Click (also called by the tests)
     function press() {
         if (switchable)
             toggled();

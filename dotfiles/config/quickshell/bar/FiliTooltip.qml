@@ -1,9 +1,9 @@
 pragma Singleton
-// fili-tooltip: fiche d'information unique de la fili-bar, sous l'élément survolé (après 400 ms), inspirée des
-// panneaux d'Omarchy mais en lecture seule: les actions restent sur les clics, rappelés par la ligne d'aide.
-// Standard: titre à gauche, contenu à droite (même mise en page que PanelInfo). Contenu: texte (sortie des scripts, balisage Pango retiré, <tt> = chasse fixe) ou fiche
-// { title, rows: [[libellé, valeur]...], text, hint }. Une ligne peut porter une jauge sous sa valeur:
-// [libellé, valeur, { value: 0..1, mark: 0..1 }] (mark: repère, par exemple l'usage attendu à rythme régulier).
+// fili-tooltip: the fili-bar's single information card, under the hovered item (after 400 ms), inspired by the
+// Omarchy panels but read-only: the actions stay on the clicks, recalled by the help line.
+// Standard: title on the left, content on the right (same layout as PanelInfo). Content: text (script output, Pango markup
+// removed, <tt> = fixed width) or card { title, rows: [[label, value]...], text, hint }. A row can carry a gauge under its value:
+// [label, value, { value: 0..1, mark: 0..1 }] (mark: a tick, for example the expected usage at a steady pace).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -13,7 +13,7 @@ Singleton {
     id: tip
     property Item target: null
     property var card: ({})
-    // Répit après la fermeture d'un fili-panel (ms), pendant lequel aucune fiche ne s'ouvre
+    // Grace period after a fili-panel closes (ms), during which no card opens
     readonly property int cooldown: 1500
 
     function normalize(c) {
@@ -31,8 +31,8 @@ Singleton {
     }
     function show(item, content) {
         const c = normalize(content);
-        // Rien pendant un fili-panel, ni juste après sa fermeture (la souris est encore sur l'icône cliquée: la fiche
-        // surgirait aussitôt et on croirait à un bug): il faut quitter l'icône puis y revenir après le répit
+        // Nothing during a fili-panel, nor right after it closes (the mouse is still on the clicked icon: the card would
+        // pop up at once and look like a bug): leave the icon, then come back after the grace period
         if (empty(c) || FiliShell.anyOpen || Date.now() < FiliShell.panelClosedAt + cooldown) {
             hide(item);
             return;
@@ -44,7 +44,7 @@ Singleton {
             delay.restart();
         }
     }
-    // Met à jour la fiche affichée (données arrivées après le survol) sans relancer le délai
+    // Update the displayed card (data that arrived after the hover) without restarting the delay
     function update(item, content) {
         if (item === target)
             card = normalize(content);
@@ -85,7 +85,7 @@ Singleton {
                 id: body
                 anchors.centerIn: parent
                 spacing: FiliTheme.space2
-                // Standard des fiches: titre à gauche, contenu (lignes libellé / valeur, ou texte) à droite
+                // Card standard: title on the left, content (label / value rows, or text) on the right
                 RowLayout {
                     spacing: FiliTheme.space4
                     Text {
@@ -119,7 +119,7 @@ Singleton {
                                         elide: Text.ElideRight
                                         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                                     }
-                                    // Jauge: voile, sable dès 80 %, cendre dès 95 %; repère fin en brume
+                                    // Gauge: voile, sable from 80 %, cendre from 95 %; thin mark in brume
                                     Item {
                                         readonly property var g: cell.modelData.gauge
                                         visible: !!g

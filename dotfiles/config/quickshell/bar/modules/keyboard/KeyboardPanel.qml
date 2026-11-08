@@ -1,5 +1,5 @@
-// fili-panel clavier: dispositions xkb de la session niri (Niri.layouts), choix direct ou retour à la précédente,
-// visualiseur de clavier (clic = frappe via wtype) et sélecteur d'emoji (clic = copie dans le presse-papiers et frappe)
+// fili-panel keyboard: xkb layouts of the niri session (Niri.layouts), direct choice or back to the previous one,
+// keyboard viewer (click = keystroke via wtype) and emoji picker (click = copy to the clipboard and keystroke)
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -13,11 +13,11 @@ ColumnLayout {
     spacing: FiliTheme.space1
     // "layouts" | "viewer" | "emoji"
     property string page: "layouts"
-    // Le visualiseur ne prend pas le focus clavier: la frappe de wtype doit arriver dans la fenêtre d'avant (voir FiliPanel)
+    // The viewer does not take the keyboard focus: the wtype keystroke must reach the previous window (see FiliPanel)
     readonly property bool passive: page === "viewer"
     readonly property bool hasPrevious: Niri.previousLayout >= 0 && Niri.previousLayout < Niri.layouts.length
 
-    // Visualiseur: touches du groupe courant (fili-keymap), modificateurs à usage unique
+    // Viewer: keys of the current group (fili-keymap), one-shot modifiers
     property var rows: []
     property bool shift: false
     property bool altgr: false
@@ -25,7 +25,7 @@ ColumnLayout {
     readonly property real unit: 312 / 14.5
     readonly property var offsets: [0, 0.5, 0.75, 1.25]
 
-    // Emoji: liste de ~/.local/share/menu/emoji.txt (le même fichier que `menu emoji`), filtrée par la recherche
+    // Emoji: list of ~/.local/share/menu/emoji.txt (the same file as `menu emoji`), filtered by the search
     property var emojis: []
     property string query: ""
     readonly property var found: {
@@ -48,7 +48,7 @@ ColumnLayout {
     }
     function pickEmoji(char) {
         FiliPanel.close();
-        // le panneau fermé, le focus revient à la fenêtre d'avant; la copie reste disponible si la frappe échoue
+        // with the panel closed, the focus goes back to the previous window; the copy stays available if the keystroke fails
         FiliTheme.run("printf '%s' '" + char + "' | wl-copy; sleep 0.25; wtype '" + char + "'");
     }
     function loadKeys() {
@@ -56,7 +56,7 @@ ColumnLayout {
         keymap.command = [FiliTheme.bin + "/fili-keymap", String(Math.max(0, Niri.layout))];
         keymap.running = true;
     }
-    // Clavier: Retour arrière revient aux dispositions (hors du champ de recherche, qui le garde pour effacer)
+    // Keyboard: Backspace goes back to the layouts (outside the search field, which keeps it to erase)
     Keys.onPressed: e => {
         if (e.key === Qt.Key_Backspace && page !== "layouts") {
             page = "layouts";
@@ -92,12 +92,12 @@ ColumnLayout {
             }
         }
     }
-    // Liste lue à la première ouverture de la page emoji (chemin posé à ce moment-là), sans processus
+    // List read when the emoji page is first opened (path set at that moment), without a process
     FileView {
         id: emojiFile
         printErrors: false
         onLoaded: {
-            // « 😀 grinning face (face-smiling) »: caractère, puis nom en anglais
+            // "😀 grinning face (face-smiling)": character, then name in English
             view.emojis = text().split("\n").filter(l => l).map(l => {
                 const i = l.indexOf(" ");
                 return { c: l.slice(0, i), name: l.slice(i + 1).toLowerCase() };
@@ -105,7 +105,7 @@ ColumnLayout {
         }
     }
 
-    // ───── en-tête ─────
+    // ───── header ─────
     RowLayout {
         Layout.fillWidth: true
         Text {
@@ -127,8 +127,8 @@ ColumnLayout {
         }
     }
 
-    // ───── dispositions ─────
-    // Rétroéclairage du clavier (stat display de bar-stats, en %), -1: absent
+    // ───── layouts ─────
+    // Keyboard backlight (display stat of bar-stats, in %), -1: absent
     property real keys: (FiliShell.stats.display?.kbd ?? -1) < 0 ? -1 : FiliShell.stats.display.kbd / 100
     PanelSection { visible: view.page === "layouts" && Niri.layouts.length > 0; text: FiliI18n.tr("LAYOUTS") }
     Repeater {
@@ -307,7 +307,7 @@ ColumnLayout {
             clip: true
             onTextChanged: view.query = text
             activeFocusOnTab: true
-            // Entrée: premier résultat
+            // Enter: first result
             Keys.onReturnPressed: if (view.found.length) view.pickEmoji(view.found[0].c)
             Text {
                 visible: !search.text
@@ -330,7 +330,7 @@ ColumnLayout {
                 width: 39; height: 36
                 radius: FiliTheme.radiusControl
                 color: emojiArea.containsMouse ? FiliTheme.nuit3 : "transparent"
-                // Clavier: ←/→ (comme ↑/↓) d'emoji en emoji, Entrée ou Espace = choisir
+                // Keyboard: ←/→ (like ↑/↓) from emoji to emoji, Enter or Space = choose
                 activeFocusOnTab: true
                 onActiveFocusChanged: if (activeFocus) view.hovered = modelData.name
                 Keys.onLeftPressed: e => e.modifiers & Qt.ShiftModifier ? e.accepted = false : FiliPanel.moveFocus(cell, cell, false)
@@ -364,7 +364,7 @@ ColumnLayout {
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
 
-    // Rétroéclairage du clavier: tout en bas de la page des dispositions
+    // Keyboard backlight: at the very bottom of the layouts page
     PanelSection { visible: view.page === "layouts" && view.keys >= 0; text: FiliI18n.tr("BACKLIGHT") }
     PanelSlider {
         objectName: "keys"

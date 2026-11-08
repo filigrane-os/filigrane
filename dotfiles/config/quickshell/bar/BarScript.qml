@@ -1,9 +1,9 @@
-// Module de la fili-bar alimenté par un script: même protocole que les modules custom de Waybar (une ligne JSON
-// {text, class, tooltip} par mise à jour), pour réutiliser bar-status, bar-tray, bar-alert, bar-stats...
-//   interval > 0: relancé toutes les N s; 0: une fois (puis sur signal); -1: résident (une ligne par mise à jour)
-//   signal: rafraîchi par `fili-shell signal N` (ex-`pkill -RTMIN+N waybar`)
-//   stat: sans script, état écrit par bar-stats (`stat NOM JSON`, voir FiliShell)
-//   value: sans script, état lié à un objet {text, class, tooltip} (BarState)
+// fili-bar module fed by a script: same protocol as the custom Waybar modules (one JSON line
+// {text, class, tooltip} per update), to reuse bar-status, bar-tray, bar-alert, bar-stats...
+//   interval > 0: run again every N s; 0: once (then on signal); -1: resident (one line per update)
+//   signal: refreshed by `fili-shell signal N` (ex-`pkill -RTMIN+N waybar`)
+//   stat: without a script, state written by bar-stats (`stat NAME JSON`, see FiliShell)
+//   value: without a script, state bound to a {text, class, tooltip} object (BarState)
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -18,10 +18,10 @@ BarModule {
     property int interval: 0
     property int signal: -1
     property bool hideEmpty: true
-    // Couleur par classe (clé "" = défaut)
+    // Colour by class (key "" = default)
     property var colors: ({})
     property color color: FiliTheme.brume
-    // Classe qui clignote (sauvegarde en cours)
+    // Class that blinks (backup running)
     property string blinkClass: ""
     property string click
     property string rclick
@@ -29,18 +29,18 @@ BarModule {
     property string scrollUp
     property string scrollDown
     property real pad: FiliTheme.pad
-    // Étiquette en petites capitales devant la valeur (CPU, RAM)
+    // Label in small capitals before the value (CPU, RAM)
     property string tag
 
     property string text: ""
     property string cls: ""
-    // Texte ou fiche de la fili-tooltip (voir FiliTooltip)
+    // Text or card of the fili-tooltip (see FiliTooltip)
     property var tip: ""
-    // Ligne d'aide de la fili-tooltip (actions des clics)
+    // Help line of the fili-tooltip (what the clicks do)
     property string hint
-    // Titre de la fiche d'un tooltip en texte simple (sinon l'étiquette); standard: titre à gauche, contenu à droite
+    // Title of the card of a plain-text tooltip (else the label); standard: title on the left, content on the right
     property string title
-    // Fiche lue au survol (remplace le texte du script), voir BarHover
+    // Card read on hover (replaces the text of the script), see BarHover
     property string tipInfo
     property bool pending: false
 
@@ -152,8 +152,8 @@ BarModule {
             font.pixelSize: FiliTheme.size
         }
     }
-    // Clignotement (sauvegarde en cours): opacité basculée chaque seconde, deux rendus par cycle au lieu d'une
-    // animation continue (60 rendus/s en rendu logiciel)
+    // Blinking (backup running): opacity toggled every second, two renders per cycle instead of a continuous
+    // animation (60 renders/s with software rendering)
     Timer {
         running: mod.blinkClass !== "" && mod.cls === mod.blinkClass
         repeat: true

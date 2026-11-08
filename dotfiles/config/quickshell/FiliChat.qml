@@ -1,27 +1,27 @@
 pragma Singleton
-// fili-chat: le chat de Filigrane, un tiroir au bord droit de l'écran. Mod+Y (`fili-chat toggle`, ou
-// `fili-shell chat toggle`) l'affiche ou le cache; la conversation reste, car elle vit dans le démon fili-chat
-// (apps/fili-chat) qui garde l'agent et l'historique de chaque session. Le tiroir ne se connecte au démon que
-// pendant qu'il est ouvert ou qu'un agent travaille (le démon se coupe de lui-même sans client ni agent).
-// Clavier: Retour envoie, Maj+Retour nouvelle ligne, Échap cache,
-// Les onglets montrent les 20 sessions les plus récentes; les plus anciennes se retrouvent par le bouton liste du pied.
-// Archivage d'une session: confirmation (Retour archive, Échap annule); elle reste (avec son historique) dans « Toutes les sessions »,
-// bouton en bas des onglets, avec « Réglages » (fili-chat.toml dans l'éditeur par défaut).
-// Ctrl+N nouvelle session, Ctrl+L montre ou cache les onglets des sessions (colonne de gauche, pastille rouge = attend
-// une réponse, verte = fini et non lu), Ctrl+. interrompt l'agent; permission demandée par l'agent:
-// Ctrl+Retour autorise, Ctrl+Retour arrière refuse. Mod+Y note l'application active (puce de contexte au-dessus
-// de la saisie, jointe au prochain message). Pastille IA de la fili-bar: ASK (permission), DONE (réponse non lue).
-// Deux présentations: « dock » (défaut: à droite de chaque fenêtre, le tiroir réserve sa place et niri rétrécit les
-// fenêtres) ou « float » (au-dessus des fenêtres, sans les toucher). Choix par le menu Affichage (state ~/.local/state/filigrane/
-// chat-view, « MODE LARGEUR »), défauts dans ~/.config/filigrane/fili-chat.toml (mode, width).
-// Menu de la fili-bar: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml le montre quand le tiroir a le focus
-// clavier); ses commandes sont `fili-shell chat ACTION` (act() ci-dessous), tests/fili-shell/check-fili-chat-menu.py
-// garde le menu et act() d'accord.
-// Sessions et applications (réglage follow du toml: "app" par défaut, "window", "off"): à l'ouverture seulement, jamais
-// pendant que le tiroir est ouvert, la session liée à l'application active (puce de contexte) est reprise, sinon la
-// dernière reste. Le lien se crée en envoyant un message avec la puce de contexte, ou par « New Session for This
-// Application » (Ctrl+Maj+N); « Unlink » le retire. Clé du lien: app_id ("window": app_id et titre).
-// Protocole du démon: voir apps/fili-chat/src/main.rs.
+// fili-chat: the Filigrane chat, a drawer on the right edge of the screen. Mod+Y (`fili-chat toggle`, or
+// `fili-shell chat toggle`) shows or hides it; the conversation stays, since it lives in the fili-chat daemon
+// (apps/fili-chat) which keeps the agent and the history of each session. The drawer only connects to the daemon
+// while it is open or an agent is working (the daemon stops by itself without a client or an agent).
+// Keyboard: Enter sends, Shift+Enter new line, Escape hides,
+// The tabs show the 20 most recent sessions; the older ones are found with the list button in the footer.
+// Archiving a session: confirmation (Enter archives, Escape cancels); it stays (with its history) in "All sessions",
+// button at the bottom of the tabs, with "Settings" (fili-chat.toml in the default editor).
+// Ctrl+N new session, Ctrl+L shows or hides the session tabs (left column, red dot = waiting for
+// an answer, green = finished and unread), Ctrl+. interrupts the agent; permission asked by the agent:
+// Ctrl+Enter allows, Ctrl+Backspace denies. Mod+Y notes the active application (context chip above
+// the input, attached to the next message). AI dot of the fili-bar: ASK (permission), DONE (unread answer).
+// Two layouts: "dock" (default: to the right of every window, the drawer reserves its place and niri shrinks the
+// windows) or "float" (above the windows, without touching them). Chosen from the View menu (state ~/.local/state/filigrane/
+// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width).
+// fili-bar menu: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml shows it when the drawer has the keyboard
+// focus); its commands are `fili-shell chat ACTION` (act() below), tests/fili-shell/check-fili-chat-menu.py
+// keeps the menu and act() in agreement.
+// Sessions and applications (follow setting of the toml: "app" by default, "window", "off"): on opening only, never
+// while the drawer is open, the session linked to the active application (context chip) is resumed, otherwise the
+// last one stays. The link is created by sending a message with the context chip, or by "New Session for This
+// Application" (Ctrl+Shift+N); "Unlink" removes it. Link key: app_id ("window": app_id and title).
+// Daemon protocol: see apps/fili-chat/src/main.rs.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -32,11 +32,11 @@ import qs.bar
 Singleton {
     id: chat
     property bool open: false
-    // Onglets des sessions (colonne de gauche), Ctrl+L les montre ou les cache
+    // Session tabs (left column), Ctrl+L shows or hides them
     property bool tabsOpen: true
     property var sessions: []
-    // Onglets: les 20 sessions les plus récentes (plus la courante si elle est plus ancienne); les autres restent
-    // dans « Toutes les sessions »
+    // Tabs: the 20 most recent sessions (plus the current one if it is older); the others stay
+    // in "All sessions"
     readonly property int maxTabs: 20
     readonly property var tabSessions: {
         const t = sessions.slice(0, maxTabs);
@@ -45,12 +45,12 @@ Singleton {
             t[t.length - 1] = cur;
         return t;
     }
-    // Toutes les sessions, archivées comprises (liste du pied des onglets); `sessions` ne garde que les vivantes
+    // All sessions, archived ones included (list in the footer of the tabs); `sessions` only keeps the live ones
     property var allSessions: []
-    // Session dont la suppression attend une confirmation; liste complète ouverte
+    // Session whose deletion awaits a confirmation; full list open
     property string confirmId: ""
     property bool allOpen: false
-    // L'agent (Claude Code) est installé ? Sinon une bannière propose de l'installer (fili-ai install claude)
+    // Is the agent (Claude Code) installed? Otherwise a banner offers to install it (fili-ai install claude)
     property bool agentOk: true
     function installAgent() {
         if (!FiliTheme.testing)
@@ -63,28 +63,28 @@ Singleton {
         onTriggered: chat.send_({ op: "agent" })
     }
     property string current: ""
-    // Éléments de chaque session ouverte (id -> [{kind: user|assistant|tool|error|note, text, name}]); remplacé à chaque changement
+    // Items of each open session (id -> [{kind: user|assistant|tool|error|note, text, name}]); replaced at every change
     property var items: ({})
     property var states: ({})
-    // Texte de l'agent en cours d'écriture (session courante)
+    // Agent text being written (current session)
     property string live: ""
-    // Message tapé avant que la session n'existe
+    // Message typed before the session exists
     property string pending: ""
     readonly property var log: items[current] ?? []
-    // Tour en cours (l'agent travaille ou attend une permission)
+    // Turn in progress (the agent works or waits for a permission)
     readonly property bool working: (states[current] ?? "idle") !== "idle"
     readonly property bool busy: Object.keys(states).some(k => states[k] !== "idle")
-    // Sessions finies sans que le tiroir les ait montrées (id -> true)
+    // Sessions finished without the drawer having shown them (id -> true)
     property var unread: ({})
-    // Pour la pastille de la fili-bar: "waiting" (permission demandée), "done" (réponse non lue) ou ""
+    // For the dot of the fili-bar: "waiting" (permission asked), "done" (unread answer) or ""
     readonly property string attention: Object.keys(states).some(k => states[k] === "waiting") ? "waiting" : Object.keys(unread).length ? "done" : ""
-    // Application active notée par Mod+Y ({window: {app_id, title}, ...}) et jointe au prochain message si ctxOn
+    // Active application noted by Mod+Y ({window: {app_id, title}, ...}) and attached to the next message if ctxOn
     property var ctx: null
     property bool ctxOn: false
-    // Messages écrits pendant un tour, gardés par le démon et envoyés à la fin du tour: { id: [texte] }
+    // Messages written during a turn, kept by the daemon and sent at the end of the turn: { id: [text] }
     property var queued: ({})
     readonly property var queuedNow: queued[current] ?? []
-    // Fichiers joints au prochain message (chemins absolus): glissés sur le tiroir ou collés (Ctrl+V)
+    // Files attached to the next message (absolute paths): dragged onto the drawer or pasted (Ctrl+V)
     property var attached: []
     function attach(paths) {
         const a = attached.slice();
@@ -106,18 +106,18 @@ Singleton {
     readonly property bool linked: link.connected
     readonly property string sock: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-chat/sock"
     property int tries: 0
-    // Le tiroir a le focus clavier (pose FocusScope): AppMenu montre alors son menu
+    // The drawer has the keyboard focus (sets FocusScope): AppMenu then shows its menu
     property bool focused: false
-    // Présentation: choix de l'utilisateur (state) sinon réglage (toml) sinon ancré
+    // Layout: choice of the user (state), else setting (toml), else docked
     property string cfgMode: ""
     property int cfgWidth: 0
     property string cfgFollow: ""
     readonly property string follow: cfgFollow || "app"
-    // Reprise de la session liée: attend le contexte (ctxRead) et la liste des sessions fraîche, une fois par ouverture
+    // Resuming the linked session: waits for the context (ctxRead) and the fresh session list, once per opening
     property bool followPending: false
     property bool ctxReady: false
     property bool sessionsFresh: false
-    // Clé de lien à poser sur la session qui va être créée
+    // Link key to set on the session about to be created
     property string pendingLink: ""
     property string stMode: ""
     property int stWidth: 0
@@ -126,13 +126,13 @@ Singleton {
     readonly property int viewWidth: stWidth || cfgWidth || 440
     readonly property string viewFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/chat-view"
     readonly property string cfgFile: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/fili-chat.toml"
-    // Renommage de la session courante dans l'en-tête
+    // Renaming of the current session in the header
     property bool renaming: false
 
     function show() {
         FiliShell.popupOpened("chat");
         FiliPanel.close();
-        // Fraîchement ouvert: la session de l'application active peut être reprise (tryFollow)
+        // Freshly opened: the session of the active application can be resumed (tryFollow)
         if (!open) {
             followPending = true;
             ctxReady = false;
@@ -146,8 +146,8 @@ Singleton {
         }
         focusInput();
     }
-    // Clé du lien session <-> application pour un contexte ({window: {app_id, title}}); "" sans application.
-    // force: même avec follow = "off" (lien demandé à la main)
+    // Key of the session <-> application link for a context ({window: {app_id, title}}); "" without an application.
+    // force: even with follow = "off" (link requested by hand)
     function linkKey(c, force) {
         const id = c?.window?.app_id;
         if (!id || (follow === "off" && !force))
@@ -159,7 +159,7 @@ Singleton {
             return;
         followPending = false;
         const key = linkKey(ctx);
-        // Un tour en cours (ou une permission à donner) reste sous les yeux
+        // A turn in progress (or a permission to give) stays in sight
         if (!key || working)
             return;
         const s = sessions.find(x => x.link === key);
@@ -184,8 +184,8 @@ Singleton {
     }
     signal focusInput
 
-    // ───── présentation ─────
-    // Réglages: lignes « clé = valeur » (commentaires # ignorés), valeurs entre guillemets possibles
+    // ───── layout ─────
+    // Settings: "key = value" lines (# comments ignored), quoted values possible
     function parseKV(t) {
         const o = {};
         for (const l of t.split("\n")) {
@@ -253,7 +253,7 @@ Singleton {
         focusInput();
     }
 
-    // Commandes du menu de la fili-bar et du canal `fili-shell chat ACTION`
+    // Commands of the fili-bar menu and of the `fili-shell chat ACTION` channel
     function act(a, args) {
         switch (a) {
         case "open": show(); if (args && args[0]) openSession(args[0]); break;
@@ -280,7 +280,7 @@ Singleton {
     }
     onWorkingChanged: if (!working) focusInput()
 
-    // ───── démon ─────
+    // ───── daemon ─────
     function ensure() {
         if (FiliTheme.testing || link.connected)
             return;
@@ -311,8 +311,8 @@ Singleton {
             link.connected = true;
         }
     }
-    // Ctrl+V: fichiers (text/uri-list) joints; une image (capture, « copier l'image ») est enregistrée dans
-    // ~/.local/state/filigrane/chat/images puis jointe; l'agent la lit comme un fichier. Le texte se colle normalement
+    // Ctrl+V: files (text/uri-list) attached; an image (screenshot, "copy image") is saved in
+    // ~/.local/state/filigrane/chat/images then attached; the agent reads it like a file. Text is pasted normally
     Process {
         id: pasteFiles
         command: ["sh", "-c", 't="$(wl-paste -l 2>/dev/null)"; if printf "%s\\n" "$t" | grep -qx text/uri-list; then wl-paste -t text/uri-list 2>/dev/null; elif m="$(printf "%s\\n" "$t" | grep -x -m1 image/png || printf "%s\\n" "$t" | grep -m1 "^image/[a-z]*$")" && [ -n "$m" ]; then d="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/chat/images"; mkdir -p "$d"; f="$d/image-$(date +%Y%m%d-%H%M%S).${m#image/}"; wl-paste -t "$m" > "$f" 2>/dev/null && [ -s "$f" ] && echo "file://$f"; fi']
@@ -320,7 +320,7 @@ Singleton {
             onStreamFinished: chat.attachUrls(text.split("\n").map(l => l.trim()).filter(l => l.startsWith("file://")))
         }
     }
-    // Contexte noté par `fili-chat toggle` juste avant l'ouverture
+    // Context noted by `fili-chat toggle` just before opening
     Process {
         id: ctxRead
         command: ["cat", chat.ctxFile]
@@ -346,7 +346,7 @@ Singleton {
                 if (chat.current)
                     chat.send_({ op: "open", id: chat.current });
             } else if (chat.wantLink) {
-                // Démon arrêté alors qu'on l'attend: relancé
+                // Daemon stopped while it is awaited: restarted
                 chat.ensure();
             }
         }
@@ -387,7 +387,7 @@ Singleton {
     function archiveSession(id) {
         send_({ op: "archive", id });
     }
-    // Suppression: demande d'abord confirmation (la session et son historique restent dans « Toutes les sessions »)
+    // Deletion: asks for confirmation first (the session and its history stay in "All sessions")
     function askArchive(id) {
         if (!id || !sessions.some(s => s.id === id))
             return;
@@ -401,14 +401,14 @@ Singleton {
             archiveSession(id);
         focusInput();
     }
-    // Liste complète: une session archivée est restaurée puis ouverte
+    // Full list: an archived session is restored then opened
     function pickSession(id) {
         allOpen = false;
         if (allSessions.find(s => s.id === id)?.archived)
             send_({ op: "restore", id });
         openSession(id);
     }
-    // Réglages: le fichier de configuration dans l'éditeur par défaut
+    // Settings: the configuration file in the default editor
     function openSettings() {
         if (!FiliTheme.testing)
             Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/.config/filigrane/fili-chat.toml"]);
@@ -429,7 +429,7 @@ Singleton {
             send_({ op: "new" });
             return;
         }
-        // Première conversation avec une application: la session s'y lie
+        // First conversation with an application: the session links to it
         const cur = sessions.find(x => x.id === current);
         if (ctxOn && cur && !cur.link && linkKey(ctx))
             send_({ op: "link", id: current, key: linkKey(ctx) });
@@ -439,7 +439,7 @@ Singleton {
         ctxOn = false;
         send_(req);
     }
-    // Réponse à la première permission en attente de la session courante
+    // Answer to the first pending permission of the current session
     function answer(rid, allow) {
         send_({ op: "answer", rid, allow });
     }
@@ -453,7 +453,7 @@ Singleton {
             send_({ op: "stop", id: current });
     }
 
-    // ───── événements du démon ─────
+    // ───── daemon events ─────
     function append(id, item) {
         if (items[id] === undefined)
             return;
@@ -468,7 +468,7 @@ Singleton {
         states = m;
         if (st === "idle" && id === current)
             live = "";
-        // Tour fini hors de la vue du tiroir: à lire
+        // Turn finished out of sight of the drawer: to read
         if (st === "idle" && was !== "idle" && !(open && id === current)) {
             const u = Object.assign({}, unread);
             u[id] = true;
@@ -478,7 +478,7 @@ Singleton {
             notify(id, FiliI18n.tr("Rob needs you"), "critical");
         }
     }
-    // Notification d'une session hors de la vue du tiroir; son bouton « Ouvrir » (ou un clic) montre le tiroir sur elle
+    // Notification of a session out of sight of the drawer; its "Open" button (or a click) shows the drawer on it
     function notify(id, summary, urgency) {
         if (FiliTheme.testing) {
             FiliTheme.ran = FiliTheme.ran.concat(["notify " + id + " " + summary]);
@@ -549,7 +549,7 @@ Singleton {
             if (ev.role === "assistant" && ev.id === current)
                 live = "";
         } else if (ev.ev === "ask") {
-            // Demande de permission: une même demande est mise à jour quand elle est tranchée
+            // Permission request: the same request is updated when it is settled
             if (items[ev.id] === undefined)
                 return;
             const a = items[ev.id].slice();
@@ -574,7 +574,7 @@ Singleton {
     Connections {
         target: FiliShell
         function onPopupOpened(who) {
-            // Ancré, le tiroir reste (comme une barre latérale); flottant, il cède la place aux panneaux de la barre
+            // Docked, the drawer stays (like a sidebar); floating, it makes way for the bar panels
             if (who !== "chat" && who !== "chat-about" && who !== "" && !chat.dock)
                 chat.hide();
         }
@@ -586,7 +586,7 @@ Singleton {
         anchors { top: true; bottom: true; right: true }
         margins.top: FiliTheme.barHeight
         implicitWidth: chat.viewWidth
-        // Ancré: la place est réservée (les fenêtres se rétrécissent); flottant: au-dessus, sans réserver
+        // Docked: the place is reserved (windows shrink); floating: above, without reserving
         exclusionMode: chat.dock ? ExclusionMode.Normal : ExclusionMode.Ignore
         exclusiveZone: chat.dock ? chat.viewWidth : 0
         WlrLayershell.layer: chat.dock ? WlrLayer.Top : WlrLayer.Overlay
@@ -630,12 +630,12 @@ Singleton {
                 border { color: FiliTheme.border; width: FiliTheme.borderWidth }
                 radius: FiliTheme.radiusWindow
                 clip: true
-                // Info-bulle d'un onglet de session (titre entier et application liée)
+                // Tooltip of a session tab (full title and linked application)
                 property string tipId: ""
                 property string tipText: ""
                 property real tipY: 0
 
-                // Fichiers glissés depuis une application: joints au prochain message
+                // Files dragged from an application: attached to the next message
                 DropArea {
                     anchors.fill: parent
                     keys: ["text/uri-list"]
@@ -645,15 +645,15 @@ Singleton {
                     }
                 }
 
-                // Onglets verticaux des sessions: pastille rouge (cendre) = l'agent attend une réponse, verte (sauge) =
-                // fini, à lire, voile = travaille
+                // Vertical session tabs: red dot (cendre) = the agent waits for an answer, green (sauge) =
+                // finished, to read, voile = working
                 Rectangle {
                     id: rail
                     visible: chat.tabsOpen
                     anchors { left: parent.left; top: parent.top; bottom: parent.bottom; margins: 1 }
                     width: visible ? 52 : 0
                     color: FiliTheme.nuit2
-                    // Coins de gauche arrondis comme ceux du tiroir (le bord droit reste droit)
+                    // Left corners rounded like those of the drawer (the right edge stays straight)
                     radius: FiliTheme.radiusWindow - 1
                     Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom } width: parent.radius; color: parent.color }
                     Rectangle { anchors { right: parent.right; top: parent.top; bottom: parent.bottom } width: 1; color: FiliTheme.nuit4 }
@@ -671,7 +671,7 @@ Singleton {
                             width: list.width
                             height: 48
                             color: modelData.id === chat.current ? FiliTheme.nuit3 : (rowHit.containsMouse ? FiliTheme.nuit3 : "transparent")
-                            // Icône de l'application liée à la session; sans lien (ou sans icône): bulle de conversation
+                            // Icon of the application linked to the session; without a link (or without an icon): speech bubble
                             readonly property string appKey: (modelData.link ?? "").split("\n")[0]
                             readonly property string appIcon: appKey === "" ? "" : (Quickshell.iconPath(appKey, true) || Quickshell.iconPath(appKey.toLowerCase(), true))
                             readonly property int topic: modelData.icon ?? 0
@@ -693,7 +693,7 @@ Singleton {
                                 color: modelData.id === chat.current ? FiliTheme.brume : FiliTheme.brume2
                                 font { family: "Fili Icons"; pixelSize: 24 }
                             }
-                            // Pastille d'état au coin: rouge = attend, voile = travaille, verte = fini non lu
+                            // Status dot at the corner: red = waiting, voile = working, green = finished unread
                             Rectangle {
                                 id: dot
                                 anchors { right: parent.right; rightMargin: FiliTheme.space2; top: parent.top; topMargin: FiliTheme.space2 }
@@ -746,7 +746,7 @@ Singleton {
                             }
                         }
                     }
-                    // Pied des onglets: toutes les sessions (archivées comprises) et réglages
+                    // Footer of the tabs: all sessions (archived included) and settings
                     Column {
                         id: foot
                         anchors { left: parent.left; right: parent.right; bottom: parent.bottom; rightMargin: 1 }
@@ -798,7 +798,7 @@ Singleton {
                     anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
                     spacing: 0
 
-                    // En-tête: session courante (liste), nouvelle session, cacher
+                    // Header: current session (list), new session, hide
                     RowLayout {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 40
@@ -811,7 +811,7 @@ Singleton {
                             radius: 4
                             color: chat.working ? FiliTheme.voile : FiliTheme.ardoise
                         }
-                        // Titre de la session: clic ou F2 = renommer (double clic)
+                        // Session title: click or F2 = rename (double click)
                         Item {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 24
@@ -885,7 +885,7 @@ Singleton {
                             bottomMargin: FiliTheme.space3
                             boundsBehavior: Flickable.StopAtBounds
                             clip: true
-                            // Le fil suit la fin tant qu'on n'est pas remonté lire
+                            // The thread follows the end as long as one has not scrolled up to read
                             property bool follow: true
                             onMovementEnded: follow = atYEnd
                             onCountChanged: if (follow) Qt.callLater(positionViewAtEnd)
@@ -911,7 +911,7 @@ Singleton {
                                     radius: FiliTheme.radiusControl
                                     color: FiliTheme.nuit3
                                 }
-                                // Permission demandée par l'agent
+                                // Permission asked by the agent
                                 Rectangle {
                                     id: askCard
                                     visible: row.isAsk
@@ -1039,7 +1039,7 @@ Singleton {
                             anchors { right: thread.right; top: thread.top; bottom: thread.bottom }
                             onReleased: thread.follow = thread.atYEnd
                         }
-                        // Redescendre au bas de la discussion (visible seulement quand on en est remonté)
+                        // Scroll back down to the bottom of the discussion (visible only when scrolled up)
                         Rectangle {
                             id: toEnd
                             objectName: "chat-to-end"
@@ -1069,9 +1069,9 @@ Singleton {
                         }
                     }
 
-                    // Saisie, avec la puce de contexte (application active à l'ouverture)
+                    // Input, with the context chip (active application at opening)
                     Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
-                    // Aucun agent IA: dit pourquoi le chat ne répond pas et propose de l'installer
+                    // No AI agent: says why the chat does not answer and offers to install it
                     Rectangle {
                         visible: !chat.agentOk
                         Layout.fillWidth: true
@@ -1249,7 +1249,7 @@ Singleton {
                                 font: input.font
                             }
                         }
-                        // Envoyer (comme Entrée); grisé tant qu'il n'y a rien à envoyer
+                        // Send (like Enter); greyed out while there is nothing to send
                         Rectangle {
                             id: sendBtn
                             readonly property bool ready: input.text.trim() !== "" || chat.attached.length > 0
@@ -1280,7 +1280,7 @@ Singleton {
                     }
                 }
 
-                // Toutes les sessions, archivées comprises (clic = ouvrir; une archivée est restaurée)
+                // All sessions, archived ones included (click = open; an archived one is restored)
                 Rectangle {
                     visible: chat.allOpen
                     anchors { left: rail.right; right: parent.right; top: parent.top; bottom: parent.bottom }
@@ -1330,7 +1330,7 @@ Singleton {
                     }
                 }
 
-                // Confirmation d'archivage: Retour archive, Échap annule
+                // Archiving confirmation: Enter archives, Escape cancels
                 Rectangle {
                     id: confirm
                     visible: chat.confirmId !== ""

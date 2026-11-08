@@ -1,8 +1,8 @@
-// fili-shell (Quickshell): un seul processus pour la fili-bar (FiliBar.qml), ses fili-tooltip et fili-calendar,
-// les fili-notification et le fili-notification-center (FiliNotification.qml), le fili-launcher (FiliLauncher.qml) et le tiroir fili-chat (FiliChat.qml),
-// à la place de Waybar, mako et fuzzel. Rendu logiciel (QT_QUICK_BACKEND=software, posé par niri): sans contexte OpenGL, environ
-// moitié moins de mémoire; aucune animation hors du clignotement de la sauvegarde (brand.md, budget ressources).
-// Commandes externes: client ~/.local/bin/fili-shell (FiliShell.qml). Recharger: menu › Style › Reload shell.
+// fili-shell (Quickshell): a single process for the fili-bar (bar/FiliBar.qml), its fili-tooltip and fili-calendar,
+// the fili-notification and the fili-notification-center (FiliNotification.qml), the fili-launcher (FiliLauncher.qml) and the fili-chat drawer (FiliChat.qml),
+// in place of Waybar, mako and fuzzel. Software rendering (QT_QUICK_BACKEND=software, set by niri): no OpenGL context, about
+// half the memory; no animation except the blinking of the backup (brand.md, resource budget).
+// External commands: client ~/.local/bin/fili-shell (FiliShell.qml). Reload: menu › Style › Reload shell.
 //@ pragma Env QT_QUICK_BACKEND=software
 //@ pragma Env QSG_RENDER_LOOP=basic
 import QtQuick
@@ -16,7 +16,7 @@ ShellRoot {
         FiliBar {}
     }
 
-    // Instanciés au démarrage (singletons sinon chargés au premier usage)
+    // Instantiated at start (singletons are otherwise loaded on first use)
     Component.onCompleted: {
         FiliNotification.dnd;
         FiliSound.notify;

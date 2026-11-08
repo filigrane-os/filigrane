@@ -1,7 +1,7 @@
 pragma Singleton
-// Fiches des fili-tooltip et fili-panel ({ title, hint, rows: [[libellé, valeur]...] }), sans lancer de processus:
-// réseau, alimentation et moniteur demandés à bar-stats (FiliShell.request), écrans composés ici (sorties de niri et
-// luminosité). request(SUJET), puis ready(SUJET, fiche).
+// Cards of the fili-tooltip and fili-panel ({ title, hint, rows: [[label, value]...] }), without starting a process:
+// network, power and monitor requested from bar-stats (FiliShell.request), displays composed here (niri outputs and
+// brightness). request(TOPIC), then ready(TOPIC, card).
 import QtQuick
 import Quickshell
 import qs
@@ -17,7 +17,7 @@ Singleton {
             FiliShell.request("info " + topic);
     }
 
-    // Une ligne par sortie (marque, modèle, définition, fréquence, échelle), puis la luminosité
+    // One line per output (make, model, resolution, refresh rate, scale), then the brightness
     function display(outputs, screen) {
         const rows = Object.values(outputs).sort((a, b) => a.name.localeCompare(b.name)).map(o => {
             const m = o.modes?.[o.current_mode ?? 0] ?? {};

@@ -1,5 +1,5 @@
-// fili-panel alimentation: batterie (FiliInfo power), actions système (verrouiller, veille, quitter, redémarrer, éteindre).
-// Pas de profils d'énergie: Void n'a pas power-profiles-daemon (voir la skill filigrane pour tlp/cpupower).
+// fili-panel power: battery (FiliInfo power), system actions (lock, sleep, quit, restart, shut down).
+// No power profiles: Void has no power-profiles-daemon (see the filigrane skill for tlp/cpupower).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -10,7 +10,7 @@ import qs
 ColumnLayout {
     id: view
     spacing: FiliTheme.space1
-    // Caféine: verrouillage automatique coupé (swayidle arrêté, voir bar-toggle idle)
+    // Caffeine: automatic lock turned off (swayidle stopped, see bar-toggle idle)
     property bool caffeine: false
 
     Component.onCompleted: readIdle.running = true
@@ -52,7 +52,7 @@ ColumnLayout {
         }
     }
     PanelSection { text: FiliI18n.tr("SYSTEM") }
-    // Actions du menu système (menu system <action>: confirmation demandée pour quitter, redémarrer et éteindre)
+    // Actions of the system menu (menu system <action>: confirmation asked to quit, restart and shut down)
     Repeater {
         model: [["", FiliI18n.tr("Lock"), "Lock"], ["", FiliI18n.tr("Sleep"), "Sleep"], ["", FiliI18n.tr("Log out"), "Log out"], ["", FiliI18n.tr("Reboot"), "Reboot"], ["", FiliI18n.tr("Power off"), "Power off"]]
         PanelButton {

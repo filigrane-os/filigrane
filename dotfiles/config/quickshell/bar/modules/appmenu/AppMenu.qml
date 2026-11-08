@@ -1,21 +1,21 @@
 pragma Singleton
-// fili-appmenu: menu de l'application qui a le focus, dans la fili-bar (menu global à la Mac OS X).
+// fili-appmenu: menu of the application that has the focus, in the fili-bar (global menu, like Mac OS X).
 //
-// Source des menus, dans l'ordre:
-//   1. la barre de menus de l'application, lue par AT-SPI avec ~/.local/bin/fili-appmenu (apps/fili-appmenu): GTK3,
-//      Qt, Firefox... Seules les applications qui exportent leur accessibilité en ont une; chaque menu GTK3 ne se remplit
-//      qu'à l'ouverture (`expand`);
-//   2. sinon un menu de repli, écrit à la main: ~/.config/filigrane/appmenu/APP_ID.json (dotfiles/config/filigrane/appmenu/,
-//      couche personnelle comprise), qui complète _default.json.
-// Dans les deux cas: menu de l'application (nom en gras, « Quitter »), menus propres, menu Fenêtre (niri). Ils remplacent
-// le titre de la fenêtre dans la fili-bar (BarAppMenu): tous affichés, ou seulement le nom de l'application quand ils ne
-// tiennent pas (le reste passe dans un titre «…»). Souris, ou clavier: `fili-shell appmenu` (Mod+F10).
+// Source of the menus, in order:
+// 1. the menu bar of the application, read through AT-SPI with ~/.local/bin/fili-appmenu (apps/fili-appmenu): GTK3,
+// Qt, Firefox... Only the applications that export their accessibility have one; each GTK3 menu is only filled in
+// when it opens (`expand`);
+// 2. else a fallback menu, written by hand: ~/.config/filigrane/appmenu/APP_ID.json (dotfiles/config/filigrane/appmenu/,
+// user layer included), which completes _default.json.
+// In both cases: application menu (name in bold, "Quit"), own menus, Window menu (niri). They replace
+// the window title in the fili-bar (AppmenuModule): all shown, or only the application name when they do not
+// fit (the rest goes into a "…" title). Mouse, or keyboard: `fili-shell appmenu` (Mod+F10).
 //
-// Fichier de repli: { "name": "Chrome", "app": [ENTRÉE], "menus": [ { "label": "File", "children": [ENTRÉE] } ] }
-//   ENTRÉE = { "label", "exec": "commande shell" } ou { "label", "niri": ["action", "argument"] } ou { "sep": true }
-//            ou { "label", "children": [ENTRÉE] } (sous-menu). Textes en anglais, traduits par FiliI18n; %1 = nom de l'appli.
-// Aucun processus ne reste: fili-appmenu est lancé au changement de fenêtre active, une seule fois par application
-// sans menu (la réponse « rien » est retenue une minute).
+// Fallback file: { "name": "Chrome", "app": [ENTRY], "menus": [ { "label": "File", "children": [ENTRY] } ] }
+// ENTRY = { "label", "exec": "shell command" } or { "label", "niri": ["action", "argument"] } or { "sep": true }
+// or { "label", "children": [ENTRY] } (submenu). Texts in English, translated by FiliI18n; %1 = application name.
+// No process stays: fili-appmenu is started when the active window changes, once per application
+// without a menu (the "nothing" answer is remembered for a minute).
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -26,8 +26,8 @@ import qs
 Singleton {
     id: am
 
-    // Fenêtre dont on montre le menu: la fenêtre active de niri, gardée tant que le menu est ouvert. Un menu pris au
-    // clavier reçoit le focus et niri n'annonce alors plus de fenêtre active (null): ce n'est pas un changement d'application.
+    // Window whose menu is shown: the active window of niri, kept while the menu is open. A menu taken from the
+    // keyboard receives the focus and niri then announces no active window (null): this is not a change of application.
     readonly property var niriWin: Niri.focused
     property var win: null
     onNiriWinChanged: {
@@ -35,10 +35,10 @@ Singleton {
             win = niriWin;
     }
     Component.onCompleted: win = niriWin
-    // Le tiroir fili-chat a le focus clavier: son menu (appmenu/fili-chat.json) remplace celui de la fenêtre. Gardé tant
-    // qu'un menu est ouvert (un menu pris au clavier reçoit le focus à sa place) et pendant un appui sur un titre de la
-    // barre: la barre ne prend pas le clavier, niri rend alors le focus à la fenêtre précédente, et le menu changerait
-    // sous la souris avant la fin du clic
+    // The fili-chat drawer has the keyboard focus: its menu (appmenu/fili-chat.json) replaces the one of the window. Kept as long as
+    // a menu is open (a menu taken from the keyboard receives the focus in its place) and during a press on a title of the
+    // bar: the bar does not take the keyboard, niri then gives the focus back to the previous window, and the menu would change
+    // under the mouse before the click ends
     property bool chatFocus: false
     property bool holdChat: false
     readonly property bool chatNow: FiliChat.focused
@@ -70,10 +70,10 @@ Singleton {
     readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
     readonly property string key: appId.replace(/[^A-Za-z0-9._-]/g, "_")
 
-    // Menus affichés dans la barre (ENTRÉE normalisées, voir norm) et leur origine: "atspi", "fallback" ou ""
+    // Menus shown in the bar (normalized ENTRY, see norm) and their origin: "atspi", "fallback" or ""
     property var menus: []
     property string source: ""
-    // Réponse de fili-appmenu attendue: rien d'affiché en attendant
+    // Answer of fili-appmenu awaited: nothing shown meanwhile
     property bool pending: false
     property var appMenus: []
     property var spec: ({})
@@ -82,8 +82,8 @@ Singleton {
     property int gen: 0
     readonly property string appName: spec.name ?? prettyName(appId)
 
-    // Menu ouvert (index dans menus, -1 = fermé), colonnes de menus ouvertes, entrée choisie et ordonnée du haut de
-    // chaque colonne
+    // Open menu (index in menus, -1 = closed), open menu columns, chosen entry and y of the top of
+    // each column
     property int openIndex: -1
     property var levels: []
     property var sel: []
@@ -91,11 +91,11 @@ Singleton {
     property real anchorX: 0
     property var screen: null
     readonly property bool open: openIndex >= 0
-    // Menu ouvert au clavier (fili-shell appmenu): il prend le focus clavier, sinon l'application garde le sien
+    // Menu opened from the keyboard (fili-shell appmenu): it takes the keyboard focus, otherwise the application keeps its own
     property bool keyboard: false
-    // Menu ouvert depuis «…» (les menus qui ne tiennent plus dans la barre): la première colonne les liste
+    // Menu opened from "…" (the menus that no longer fit in the bar): the first column lists them
     property bool more: false
-    // Un widget BarAppMenu par barre (écran): titres affichés (fit), titre «…» (overflow)
+    // One AppmenuModule widget per bar (screen): titles shown (fit), "…" title (overflow)
     property var hosts: ({})
     function register(host) {
         hosts[host.bar?.screen?.name ?? ""] = host;
@@ -116,9 +116,9 @@ Singleton {
         }
     }
 
-    // Raccourcis des binds de niri (config.kdl, puis local.kdl qui complète ou remplace): une entrée de repli qui lance
-    // la même commande ou la même action que un bind affiche sa touche, sans qu'on la recopie (elle ne peut pas dériver).
-    // Clé: "niri:ACTION ARGS" ou "exec:COMMANDE" (spawn et spawn-sh, sans $HOME/.local/bin/ ni /usr/bin/); valeur: "Super+Q".
+    // Shortcuts of the niri binds (config.kdl, then local.kdl which completes or replaces): a fallback entry that runs
+    // the same command or the same action as a bind shows its key, without copying it (so it cannot drift).
+    // Key: "niri:ACTION ARGS" or "exec:COMMAND" (spawn and spawn-sh, without $HOME/.local/bin/ or /usr/bin/); value: "Super+Q".
     readonly property string niriDir: Quickshell.env("FILI_NIRI_DIR") || (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/niri"
     property var bindsMain: ({})
     property var bindsLocal: ({})
@@ -172,7 +172,7 @@ Singleton {
         onLoaded: am.bindsLocal = am.parseBinds(text())
         onLoadFailed: am.bindsLocal = ({})
     }
-    // Touche d'une entrée de repli (champ "keys" du fichier, sinon le bind niri de la même action ou commande)
+    // Key of a fallback entry ("keys" field of the file, else the niri bind of the same action or command)
     function bindKey(e) {
         if (e.niri)
             return binds["niri:" + e.niri.join(" ")] ?? "";
@@ -181,9 +181,9 @@ Singleton {
         return "";
     }
 
-    // Commandes de l'application impossibles maintenant: champ « disabled » de son fichier de contexte
-    // ($XDG_RUNTIME_DIR/fili/context/PID.json, voir le skill filigrane-ui), relu à l'ouverture du menu. Une entrée de repli
-    // « ... ctl --pid %pid action NOM » est grisée quand NOM y figure.
+    // Commands of the application that are impossible now: "disabled" field of its context file
+    // ($XDG_RUNTIME_DIR/fili/context/PID.json, see the filigrane-ui skill), re-read when the menu opens. A fallback entry
+    // "... ctl --pid %pid action NAME" is greyed out when NAME is in it.
     property var disabled: []
     onDisabledChanged: rebuild()
     function cmdDisabled(exec) {
@@ -197,7 +197,7 @@ Singleton {
         } catch (e) {
             list = [];
         }
-        // Rien ne change quand la liste est la même (évite de reconstruire les menus à chaque ouverture)
+        // Nothing changes when the list is the same (avoids rebuilding the menus at every opening)
         if (list.join(",") !== disabled.join(","))
             disabled = list;
     }
@@ -218,7 +218,7 @@ Singleton {
         }
     }
 
-    // Entrée normalisée, qu'elle vienne d'AT-SPI ou d'un fichier de repli
+    // Normalized entry, whether it comes from AT-SPI or from a fallback file
     function norm(e) {
         if (e.sep || e.kind === "sep")
             return { label: "", kind: "sep", enabled: false, check: 0, keys: "", svc: "", path: "", exec: "", niri: null, children: [] };
@@ -237,17 +237,17 @@ Singleton {
         };
     }
 
-    // Menus de la barre: menu de l'application, menus propres (AT-SPI ou repli), menu Fenêtre
+    // Menus of the bar: application menu, own menus (AT-SPI or fallback), Window menu
     function rebuild() {
         if ((!win && !chatFocus) || pending) {
             menus = [];
             return;
         }
         const own = source === "atspi" ? appMenus : (spec.menus ?? []).map(m => norm(m));
-        // Nom recalculé ici: appName (liaison) n'est pas encore à jour quand spec vient de changer
-        // Les menus communs (Quitter, Fenêtre) agissent sur la fenêtre active de niri: pas pour le tiroir
+        // Name recomputed here: appName (binding) is not up to date yet when spec has just changed
+        // The common menus (Quit, Window) act on the active window of niri: not for the drawer
         const app = norm({ label: spec.name ?? prettyName(appId), kind: "sub", children: [].concat(spec.app ?? [], chatFocus ? [] : generic.app ?? []) });
-        // Menu Fenêtre commun, suivi des entrées de l'application (clé "window" de son fichier de menu)
+        // Common Window menu, followed by the entries of the application ("window" key of its menu file)
         const own_w = spec.window ?? [];
         const w = generic.window && !chatFocus ? [norm({ label: "Window", children: [].concat(generic.window, own_w.length > 0 ? [{ sep: true }] : [], own_w) })] : [];
         menus = [].concat(app.children.length > 0 ? [app] : [], own, w);
@@ -255,7 +255,7 @@ Singleton {
     onSpecChanged: rebuild()
     onGenericChanged: rebuild()
 
-    // Fenêtre active changée: menu fermé, menus relus (une fois la rafale d'événements niri passée)
+    // Active window changed: menu closed, menus re-read (once the burst of niri events has passed)
     onWinIdChanged: debounce.restart()
     Timer {
         id: debounce
@@ -272,8 +272,8 @@ Singleton {
         pending = false;
         disabled = [];
         const w = chatFocus ? null : win;
-        // Un fichier de repli de l'application est un choix délibéré: il passe devant AT-SPI (la MenuBar de Qt Quick
-        // Controls y figure sans aucune entrée, ses menus ne sont pas exportés)
+        // A fallback file of the application is a deliberate choice: it takes precedence over AT-SPI (the Qt Quick
+        // Controls MenuBar is there without any entry, its menus are not exported)
         if (w && w.pid && (spec.menus ?? []).length === 0 && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
             pending = true;
             query.queryGen = gen;
@@ -306,7 +306,7 @@ Singleton {
         rebuild();
     }
 
-    // Menus de repli de l'application et menus communs, relus quand le fichier change
+    // Fallback menus of the application and common menus, re-read when the file changes
     FileView {
         path: am.key !== "" ? am.dir + "/" + am.key + ".json" : ""
         blockLoading: true
@@ -326,15 +326,15 @@ Singleton {
         onLoadFailed: am.generic = ({})
     }
 
-    // ───────── Ouverture, navigation, action ─────────
-    // Clic sur un titre (host: le BarAppMenu de la barre). Le titre d'index host.fit est «…» quand des menus débordent
+    // ───────── Opening, navigation, action ─────────
+    // Click on a title (host: the AppmenuModule of the bar). The title of index host.fit is "…" when menus overflow
     function toggle(index, item, bar, host) {
         if (openIndex === index)
             close();
         else
             openAt(index, item, bar, host);
     }
-    // Menu ouvert à la souris: passer sur un autre titre l'ouvre à son tour
+    // Menu opened with the mouse: moving over another title opens it in turn
     function hoverTitle(index, item, bar, host) {
         if (open && !keyboard && openIndex !== index)
             openAt(index, item, bar, host);
@@ -350,7 +350,7 @@ Singleton {
         screen = bar?.screen ?? null;
         more = host ? host.overflow && index === host.fit : false;
         openIndex = index;
-        // «…»: la première colonne est la liste des menus restants, chacun ouvre sa colonne
+        // "…": the first column is the list of the remaining menus, each opens its column
         levels = [more ? menus.slice(host.fit) : m.children];
         sel = [-1];
         levelY = [0];
@@ -366,9 +366,9 @@ Singleton {
         more = false;
     }
 
-    // ───────── Clavier (fili-shell appmenu, Mod+F10): ↑/↓ entrée, → sous-menu ou menu suivant, ← retour ou menu précédent,
-    // Entrée ou Espace agir, Échap fermer ─────────
-    // Commande `fili-shell appmenu [toggle|close]`: ouvre le premier menu de la barre de l'écran courant, au clavier
+    // ───────── Keyboard (fili-shell appmenu, Mod+F10): ↑/↓ entry, → submenu or next menu, ← back or previous menu,
+    // Enter or Space act, Escape close ─────────
+    // Command `fili-shell appmenu [toggle|close]`: opens the first menu of the bar of the current screen, from the keyboard
     function summon(action) {
         if (action === "close" || open) {
             close();
@@ -384,14 +384,14 @@ Singleton {
         keyboard = true;
         selectFirst(0);
     }
-    // Premier élément choisissable d'une colonne (ni séparateur, ni grisé), -1 s'il n'y en a pas
+    // First selectable item of a column (neither separator nor greyed out), -1 if there is none
     function firstEnabled(entries) {
         return entries.findIndex(e => e.kind !== "sep" && e.enabled);
     }
     function selectFirst(level) {
         sel = sel.slice(0, level).concat([firstEnabled(levels[level] ?? [])]);
     }
-    // Entrée suivante (d = 1) ou précédente (-1) de la dernière colonne, en bouclant
+    // Next (d = 1) or previous (-1) entry of the last column, wrapping around
     function keyMove(d) {
         const level = levels.length - 1;
         const es = levels[level] ?? [];
@@ -406,7 +406,7 @@ Singleton {
             }
         }
     }
-    // Ordonnée de la ligne i de la colonne level (la colonne la calcule: défilement compris)
+    // y of row i of column level (the column computes it: scrolling included)
     function rowY(level, i) {
         return repeater.itemAt(level)?.rowY(i) ?? 0;
     }
@@ -440,7 +440,7 @@ Singleton {
         else
             activate(e);
     }
-    // Titre voisin de la barre (d = ±1, «…» compris, en boucle)
+    // Neighbouring title of the bar (d = ±1, "…" included, wrapping around)
     function switchMenu(d) {
         const host = hosts[screen?.name ?? ""] ?? Object.values(hosts)[0];
         const n = host ? host.fit + (host.overflow ? 1 : 0) : 0;
@@ -455,7 +455,7 @@ Singleton {
         keyboard = kb;
         selectFirst(0);
     }
-    // Survol ou clic d'une entrée: son sous-menu s'ouvre à droite, aligné sur elle, les colonnes suivantes se ferment
+    // Hover or click on an entry: its submenu opens to the right, aligned with it, the following columns close
     function enter(level, entry, index, y) {
         sel = sel.slice(0, level).concat([index]);
         if (entry.kind === "sub") {
@@ -473,7 +473,7 @@ Singleton {
             return;
         close();
         if (e.exec) {
-            // %pid: processus de la fenêtre dont on montre le menu (l'application visée par ses commandes de contrôle)
+            // %pid: process of the window whose menu is shown (the application targeted by its control commands)
             FiliTheme.run(e.exec.replace(/%pid/g, win ? String(win.pid ?? "") : ""));
         } else if (e.niri) {
             Niri.action(...e.niri);
@@ -486,7 +486,7 @@ Singleton {
         }
     }
 
-    // Sous-menu AT-SPI vide (GTK3, Firefox le remplissent à l'ouverture): demandé à fili-appmenu, colonne mise à jour
+    // Empty AT-SPI submenu (GTK3, Firefox fill it when it opens): requested from fili-appmenu, column updated
     function fillIfLazy(depth, entry) {
         if (source !== "atspi" || entry.children.length > 0 || entry.svc === "")
             return;
@@ -509,10 +509,10 @@ Singleton {
                 const d = am.parse(text);
                 const items = Array.isArray(d) ? d.map(i => am.norm(i)).filter(i => i.kind === "sep" || i.label !== "") : [];
                 expander.target.children = items;
-                // La colonne attend toujours ce sous-menu: elle prend son contenu
+                // The column still waits for this submenu: it takes its content
                 if (am.open && am.levels.length === expander.depth + 1) {
                     am.levels = am.levels.slice(0, expander.depth).concat([items]);
-                    // Ouvert au clavier: le premier élément se choisit dès que le menu est rempli
+                    // Opened from the keyboard: the first item is chosen as soon as the menu is filled
                     if (am.keyboard && (am.sel[expander.depth] ?? -1) < 0)
                         am.selectFirst(expander.depth);
                 }
@@ -528,9 +528,9 @@ Singleton {
         }
     }
 
-    // ───────── Fenêtres: rattrapage des clics à côté, puis les colonnes de menus ─────────
-    // Pas de focus clavier: l'application garde le sien (une action qui vise le champ actif, Coller par exemple, doit
-    // l'atteindre). Un clic en dehors du menu ferme, la barre reste cliquable (le rattrapage commence sous elle).
+    // ───────── Windows: catch clicks next to the menu, then the menu columns ─────────
+    // No keyboard focus: the application keeps its own (an action aimed at the active field, Paste for example, must
+    // reach it). A click outside the menu closes it, the bar stays clickable (the catch window starts under it).
     PanelWindow {
         visible: am.open && !FiliTheme.testing
         screen: am.screen
@@ -560,7 +560,7 @@ Singleton {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-appmenu"
-        // Ouvert à la souris: pas de focus, l'application garde le sien. Au clavier: focus à la demande
+        // Opened with the mouse: no focus, the application keeps its own. From the keyboard: focus on demand
         WlrLayershell.keyboardFocus: am.open && am.keyboard ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
@@ -575,7 +575,7 @@ Singleton {
             Keys.onReturnPressed: am.keyActivate()
             Keys.onEnterPressed: am.keyActivate()
             Keys.onSpacePressed: am.keyActivate()
-            // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
+            // Focus received on opening then lost (click on a window): close
             property bool held: false
             Window.onActiveChanged: {
                 if (Window.active)
@@ -615,12 +615,12 @@ Singleton {
                     border.color: FiliTheme.border
                     border.width: FiliTheme.borderWidth
                     radius: FiliTheme.radiusControl
-                    // Ordonnée (dans la fenêtre) de la ligne i: le sous-menu s'aligne dessus
+                    // y (in the window) of row i: the submenu aligns on it
                     function rowY(i) {
                         const it = list.itemAtIndex(i);
                         return card.y + 4 + (it ? it.y - list.contentY : 0);
                     }
-                    // Choix au clavier: la ligne reste visible dans une longue liste
+                    // Keyboard choice: the row stays visible in a long list
                     Connections {
                         target: am
                         function onSelChanged() {
@@ -664,7 +664,7 @@ Singleton {
                                 color: FiliTheme.voile
                                 font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                             }
-                            // Raccourci clavier, aligné à droite (une flèche remplace la touche d'un sous-menu)
+                            // Keyboard shortcut, right-aligned (an arrow replaces the key of a submenu)
                             Text {
                                 id: keysText
                                 visible: !row.sep && row.modelData.kind !== "sub" && row.modelData.keys !== ""

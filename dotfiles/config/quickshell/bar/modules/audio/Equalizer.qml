@@ -1,6 +1,6 @@
-// Égaliseur des haut-parleurs (DSP T2, sound-tune) pour le fili-panel son: trois bandes verticales (basses, médiums,
-// aigus) et le loudness. Appliqué en direct pendant le glisser (au plus une commande à la fois), enregistré au relâchement.
-// Les fréquences de coupure restent à sound-tune (TUI).
+// Speaker equalizer (T2 DSP, sound-tune) for the sound fili-panel: three vertical bands (bass, mids,
+// treble) and the loudness. Applied live while dragging (at most one command at a time), saved on release.
+// The cut-off frequencies stay with sound-tune (TUI).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -18,7 +18,7 @@ ColumnLayout {
     property bool dirty: false
     readonly property bool ready: range.bass !== undefined
     readonly property string tune: FiliTheme.bin + "/sound-tune"
-    // Bandes: clé, libellé, unité d'affichage
+    // Bands: key, label, display unit
     readonly property var bands: [
         { key: "bass", label: FiliI18n.tr("Bass"), db: false },
         { key: "mid_gain", label: FiliI18n.tr("Mids"), db: true },
@@ -37,7 +37,7 @@ ColumnLayout {
             return (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString(Qt.locale(), "f", Math.abs(v % 1) > 0 ? 1 : 0) + " dB";
         return Math.round(v / r.max * 100) + "%";
     }
-    // Valeur d'une bande à la fraction f (0..1), arrondie au pas de sound-tune
+    // Value of a band at fraction f (0..1), rounded to the sound-tune step
     function setFrac(key, f) {
         const r = range[key];
         const v = r.min + Math.max(0, Math.min(1, f)) * (r.max - r.min);
@@ -48,7 +48,7 @@ ColumnLayout {
         vals = Object.assign({}, vals, { [key]: Math.round(Math.max(r.min, Math.min(r.max, v)) * 1000) / 1000 });
         push(false);
     }
-    // Envoi: une commande à la fois, la dernière valeur part dès que la précédente a fini
+    // Sending: one command at a time, the last value goes as soon as the previous one has finished
     function push(final) {
         save = save || final;
         dirty = true;
@@ -66,7 +66,7 @@ ColumnLayout {
         vals = Object.assign({}, origin);
         push(true);
     }
-    // Lecture à la première apparition (sans DSP, le composant reste masqué et ne lance rien)
+    // Read on first appearance (without DSP, the component stays hidden and runs nothing)
     onVisibleChanged: if (visible && !ready && !get.running) get.running = true
     Component.onCompleted: if (visible) get.running = true
 
@@ -102,7 +102,7 @@ ColumnLayout {
                 Layout.preferredWidth: 56
                 Layout.alignment: Qt.AlignTop
                 spacing: FiliTheme.space1
-                // Clavier: ↑/↓ = un pas (Maj+←/→ reste au fili-panel: panneau voisin)
+                // Keyboard: ↑/↓ = one step (Shift+←/→ stays with the fili-panel: neighbouring panel)
                 activeFocusOnTab: true
                 Keys.onUpPressed: { FiliShell.keyNav = true; eq.set(modelData.key, eq.vals[modelData.key] + eq.range[modelData.key].step); eq.push(true); }
                 Keys.onDownPressed: { FiliShell.keyNav = true; eq.set(modelData.key, eq.vals[modelData.key] - eq.range[modelData.key].step); eq.push(true); }
@@ -154,7 +154,7 @@ ColumnLayout {
                 }
             }
         }
-        // À droite des bandes: réglages liés, un par ligne
+        // Right of the bands: linked settings, one per line
         ColumnLayout {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignVCenter

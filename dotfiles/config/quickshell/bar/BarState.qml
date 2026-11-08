@@ -44,9 +44,9 @@ Singleton {
     readonly property bool trayOpen: trayF.exists
     readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: fold") } } : { text: "", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: show the backup") } }
 
-    // ───── sauvegarde ─────
-    // Repliée, visible seulement en cours ou en échec; repassée au repos, elle reste 10 s (pour pouvoir la relancer
-    // après un clic par erreur)
+    // ───── backup ─────
+    // Folded, visible only while running or on failure; back at rest, it stays 10 s (to be able to run it again
+    // after a click by mistake)
     property var backupRaw: empty
     property bool backupLinger: false
     readonly property var backup: trayOpen || backupLinger || backupRaw["class"] !== "idle" ? backupRaw : empty
@@ -76,10 +76,10 @@ Singleton {
             Quickshell.execDetached(["mkdir", "-p", alerts]);
     }
 
-    // ───── agent IA ─────
-    // Sessions écrites par fili-ai-session (hooks et status line de Claude Code): état, fenêtre niri, contexte, coût;
-    // limites du forfait gardées après la dernière session. Fenêtre d'une session qui attend regardée: plus de mise en
-    // avant (fili-ai-session seen)
+    // ───── AI agent ─────
+    // Sessions written by fili-ai-session (Claude Code hooks and status line): state, niri window, context, cost;
+    // plan limits kept after the last session. Window of a waiting session looked at: no more highlight
+    // (fili-ai-session seen)
     BarWatched { id: aiF; path: st.run + "/fili-ai/state.json" }
     property var aiData: ({ sessions: [], limits: null })
     readonly property string aiText: aiF.content
@@ -87,11 +87,11 @@ Singleton {
         try {
             aiData = aiText.trim() ? JSON.parse(aiText) : { sessions: [], limits: null };
         } catch (e) {
-            // Fichier en cours d'écriture: l'état précédent reste
+            // File being written: the previous state stays
         }
         aiSeen();
     }
-    // Le chat (FiliChat) s'ajoute aux sessions des terminaux: permission demandée = ASK, réponse non lue = DONE
+    // The chat (FiliChat) joins the terminal sessions: permission asked = ASK, unread answer = DONE
     readonly property var ai: aiChat(aiFor(aiData, Niri.focusedId, Niri.windows), FiliChat.attention, FiliChat.busy)
     function aiChat(base, attention, busy) {
         const icon = String.fromCodePoint(0xf06a9);
@@ -128,13 +128,13 @@ Singleton {
             if (s.attention && s.window !== undefined && s.window === Niri.focusedId)
                 FiliTheme.run(FiliTheme.bin + "/fili-ai-session seen " + s.id);
     }
-    // Nom d'une session: titre de sa fenêtre (sujet donné par Claude Code, sans son indicateur d'activité ✳ ◐ ⠋...), sinon son dossier
+    // Name of a session: title of its window (subject given by Claude Code, without its activity indicator ✳ ◐ ⠋...), else its folder
     function aiName(s, windows) {
         const title = (windows?.[s.window]?.title ?? "").replace(/^[\u2000-\u2bff\s]+/, "");
         return title || (s.cwd ?? "").split("/").filter(x => x).pop() || "~";
     }
-    // Ligne de limite du forfait: usage, remise à zéro, jauge et repère du rythme régulier (part écoulée de la
-    // fenêtre: 5 h ou 7 jours), comme le « pace » du panneau des agents d'Omarchy
+    // Plan limit line: usage, reset, gauge and steady-pace mark (elapsed part of the window: 5 h or 7 days),
+    // like the "pace" of the agents panel of Omarchy
     function aiLimit(label, l, span, fmt, now) {
         if (!l || l.used_percentage === undefined)
             return null;
@@ -142,11 +142,11 @@ Singleton {
         const mark = l.resets_at ? 1 - (l.resets_at - now) / span : -1;
         return [label, Math.round(l.used_percentage) + " %" + reset, { value: l.used_percentage / 100, mark: mark }];
     }
-    // now: instant (s), l'heure courante par défaut (fixé par les tests)
+    // now: instant (s), the current time by default (fixed by the tests)
     function aiFor(data, focused, windows, now) {
         const icon = String.fromCodePoint(0xf06a9);
         const sessions = data?.sessions ?? [];
-        // Une session regardée en ce moment n'appelle plus l'attention
+        // A session being looked at no longer calls for attention
         const calls = sessions.filter(s => s.attention && s.window !== focused);
         const rows = sessions.slice(0, 6).map(s => {
             const state = { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s.state] ?? FiliI18n.tr("ready");
@@ -189,16 +189,16 @@ Singleton {
         return { text: icon, class: "off", tooltip: card };
     }
 
-    // ───── minuteur / chronomètre ─────
+    // ───── timer / stopwatch ─────
     BarWatched { id: timerF; path: st.run + "/bar-timer" }
     readonly property var timerFile: {
         const p = timerF.content.trim().split(" ");
         return { kind: p[0] ?? "", val: Number(p[1] ?? 0) };
     }
-    // Seconde courante, avancée seulement tant qu'un minuteur ou un chronomètre tourne
+    // Current second, advanced only while a timer or a stopwatch runs
     property real second: Date.now() / 1000
     readonly property var timer: timerFor(timerFile.kind, timerFile.val, second)
-    // Minuteur écoulé: bar-timer expire (état "done" et notification), une fois par minuteur
+    // Timer elapsed: bar-timer expire (state "done" and notification), once per timer
     property real expired: 0
     Timer {
         interval: 1000

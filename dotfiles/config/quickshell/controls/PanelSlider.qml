@@ -1,5 +1,5 @@
-// Curseur 0..1 des fili-panel (volume, luminosité): clic ou glisser; valeur puis icône (muet) à droite; label = nom
-// court à gauche (une application du mixeur), vide pour un curseur seul
+// 0..1 slider of the fili-panel (volume, brightness): click or drag; value then icon (mute) on the right; label = short
+// name on the left (an application of the mixer), empty for a lone slider
 import QtQuick
 import QtQuick.Layouts
 import qs
@@ -15,7 +15,7 @@ RowLayout {
 
     Layout.fillWidth: true
     spacing: FiliTheme.space2
-    // Clavier: ←/→ = ±5 % (Maj+←/→ reste au fili-panel: panneau voisin), Entrée ou Espace = clic sur l'icône (muet)
+    // Keyboard: ←/→ = ±5 % (Shift+←/→ stays with the fili-panel: neighbouring panel), Enter or Space = click on the icon (mute)
     activeFocusOnTab: true
     Keys.onLeftPressed: e => s.nudge(e, -0.05)
     Keys.onRightPressed: e => s.nudge(e, 0.05)

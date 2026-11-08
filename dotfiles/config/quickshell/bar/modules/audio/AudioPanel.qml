@@ -1,4 +1,4 @@
-// fili-panel audio: volume de la sortie et de l'entrée (PipeWire natif), choix des périphériques, mixeur par application
+// fili-panel audio: volume of the output and of the input (native PipeWire), device choice, mixer per application
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Services.Pipewire
@@ -22,7 +22,7 @@ ColumnLayout {
     function name(n) {
         return n.description || n.nickname || n.name;
     }
-    // Casque ou enceinte Bluetooth: codec négocié (api.bluez5.codec), « Bluetooth » seul tant qu'il est inconnu
+    // Bluetooth headset or speaker: negotiated codec (api.bluez5.codec), just "Bluetooth" while it is unknown
     readonly property var codecs: ({
         sbc: "SBC", sbc_xq: "SBC-XQ", aac: "AAC", ldac: "LDAC", aptx: "aptX", aptx_hd: "aptX HD",
         aptx_ll: "aptX LL", aptx_ll_duplex: "aptX LL", faststream: "FastStream", faststream_duplex: "FastStream",
@@ -53,7 +53,7 @@ ColumnLayout {
         onMoved: v => { if (view.sink?.audio) view.sink.audio.volume = v; }
         onGlyphClicked: view.sink.audio.muted = !view.sink.audio.muted
     }
-    // Un seul périphérique: rien à choisir, la liste n'apparaît pas
+    // A single device: nothing to choose, the list does not appear
     PanelSection { visible: view.sinks.length > 1; text: FiliI18n.tr("OUTPUT") }
     Repeater {
         model: view.sinks.length > 1 ? view.sinks : []
@@ -113,7 +113,7 @@ ColumnLayout {
             onGlyphClicked: modelData.audio.muted = !modelData.audio.muted
         }
     }
-    // Égaliseur des haut-parleurs (DSP T2): seulement si le filtre est chargé; sound-tune garde les fréquences de coupure
+    // Speaker equalizer (T2 DSP): only if the filter is loaded; sound-tune keeps the cut-off frequencies
     PanelSection { visible: view.hasDsp; text: FiliI18n.tr("EQUALIZER") }
     Equalizer { visible: view.hasDsp; Layout.fillWidth: true }
     PanelButton {

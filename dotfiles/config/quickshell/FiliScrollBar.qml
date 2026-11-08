@@ -1,9 +1,9 @@
-// Barre de défilement fine d'une liste (ListView, Flickable), posée à côté d'elle (pas dedans), à droite:
-// `FiliScrollBar { view: liste; anchors { right: liste.right; top: liste.top; bottom: liste.bottom } }`.
-// Discrète comme sur macOS: la poignée n'apparaît que pendant le défilement (molette, pavé tactile avec son élan, clavier),
-// au survol et pendant le glissement, puis disparaît après 0,8 s. Pas d'animation (règle du shell: seul le flou de niri).
-// Se glisse à la souris; un clic dans la gouttière saute à cet endroit. `released` part au lâcher (la liste recalcule
-// si elle suit sa fin).
+// Thin scroll bar of a list (ListView, Flickable), placed next to it (not inside), on the right:
+// `FiliScrollBar { view: list; anchors { right: list.right; top: list.top; bottom: list.bottom } }`.
+// Discreet like on macOS: the handle only appears while scrolling (wheel, touchpad with its momentum, keyboard),
+// on hover and while dragging, then disappears after 0.8 s. No animation (shell rule: only the niri blur).
+// Drag it with the mouse; a click in the gutter jumps to that place. `released` fires on release (the list recomputes
+// if it follows its end).
 import QtQuick
 
 Item {
@@ -39,7 +39,7 @@ Item {
         id: hit
         anchors.fill: parent
         hoverEnabled: true
-        property real grab: 0   // écart entre le clic et le haut de la poignée
+        property real grab: 0   // gap between the click and the top of the handle
         function moveTo(y) {
             const top = Math.max(0, Math.min(bar.height - bar.thumbH, y - grab));
             const f = bar.height > bar.thumbH ? top / (bar.height - bar.thumbH) : 0;

@@ -1,5 +1,5 @@
-// Contour de l'élément choisi au clavier dans les fili-panel et le fili-notification-center, visible seulement une
-// fois le clavier utilisé (FiliShell.keyNav): rien ne change pour la souris. Enfant de l'élément (pas dans un Layout).
+// Outline of the item chosen with the keyboard in the fili-panel and the fili-notification-center, visible only once the
+// keyboard has been used (FiliShell.keyNav): nothing changes for the mouse. Child of the item (not in a Layout).
 import QtQuick
 import qs
 

@@ -1,6 +1,6 @@
-// Rangée de choix des fili-panel (échelle, rotation, définition): model = [{label, value, off?}], current = valeur choisie;
-// off = indisponible (grisé, sans clic). Clavier: un seul arrêt; ←/→ déplace le curseur sans rien appliquer (une
-// définition est à confirmer), Entrée ou Espace choisit; Maj+←/→ reste au fili-panel (panneau voisin)
+// Row of choices of the fili-panel (scale, rotation, resolution): model = [{label, value, off?}], current = chosen value;
+// off = unavailable (greyed out, no click). Keyboard: a single stop; ←/→ moves the cursor without applying anything (a
+// resolution has to be confirmed), Enter or Space chooses; Shift+←/→ stays with the fili-panel (neighbouring panel)
 import QtQuick
 import QtQuick.Layouts
 import qs
@@ -14,13 +14,13 @@ Flow {
     Layout.fillWidth: true
     spacing: FiliTheme.space1
 
-    // Choix (appelé aussi par les tests)
+    // Choice (also called by the tests)
     function pick(i) {
         if (i >= 0 && i < model.length && !model[i].off)
             picked(model[i].value);
     }
 
-    // Curseur clavier: choix suivant ou précédent disponible (appelé aussi par les tests)
+    // Keyboard cursor: next or previous available choice (also called by the tests)
     property int cursor: -1
     function move(d) {
         FiliShell.keyNav = true;
@@ -32,7 +32,7 @@ Flow {
         }
     }
     activeFocusOnTab: model.some(m => !m.off)
-    // Au focus: sur le choix courant, sinon le premier disponible
+    // On focus: on the current choice, else the first available
     onActiveFocusChanged: {
         if (!activeFocus)
             return;

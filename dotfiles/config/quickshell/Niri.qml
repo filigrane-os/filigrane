@@ -1,6 +1,6 @@
 pragma Singleton
-// État de niri (espaces de travail, fenêtres, disposition clavier) depuis son flux d'événements (socket $NIRI_SOCKET):
-// Quickshell n'a pas de module niri, le flux d'événements donne tout sans interroger.
+// State of niri (workspaces, windows, keyboard layout) from its event stream (socket $NIRI_SOCKET):
+// Quickshell has no niri module, the event stream gives everything without querying.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -12,7 +12,7 @@ Singleton {
     property var focusedId: null
     property var layouts: []
     property int layout: 0
-    // Disposition utilisée avant l'actuelle (bascule « précédente », comme Ctrl+Espace du sélecteur d'Omarchy)
+    // Layout used before the current one ("previous" toggle, like Ctrl+Space of the Omarchy picker)
     property int previousLayout: -1
 
     readonly property var focused: focusedId !== null ? windows[focusedId] ?? null : null
@@ -24,10 +24,10 @@ Singleton {
             Quickshell.execDetached(["niri", "msg", "action", ...args]);
     }
 
-    // Fenêtre d'un lecteur MPRIS (id niri, ou null): les navigateurs publient "…instance<pid>" (le pid de la fenêtre),
-    // les autres lecteurs se retrouvent par leur entrée de bureau (desktopEntry = app_id); s'il reste plusieurs
-    // fenêtres (onglets, PWA), celle dont le titre contient la piste; sinon (la piste joue dans un onglet de fond,
-    // dont le titre n'apparaît pas) une fenêtre du navigateur plutôt qu'une PWA (app_id "chrome-site__-Default")
+    // Window of an MPRIS player (niri id, or null): browsers publish "…instance<pid>" (the pid of the window),
+    // the other players are found through their desktop entry (desktopEntry = app_id); if several windows remain
+    // (tabs, PWAs), the one whose title contains the track; otherwise (the track plays in a background tab,
+    // whose title does not appear) a browser window rather than a PWA (app_id "chrome-site__-Default")
     function playerWindow(wins, dbusName, desktopEntry, track) {
         const pid = /\.instance(\d+)$/.exec(dbusName ?? "");
         const entry = (desktopEntry ?? "").toLowerCase();
@@ -40,7 +40,7 @@ Singleton {
         return c.length > 0 ? c[0].id : null;
     }
 
-    // Code court d'une disposition pour la barre: « French (BEPO, AFNOR) » -> fr, « English (Australia) » -> au
+    // Short code of a layout for the bar: "French (BEPO, AFNOR)" -> fr, "English (Australia)" -> au
     function shortName(name) {
         const m = name.match(/\((Australian|Australia|US|UK)/);
         if (m)
@@ -60,13 +60,13 @@ Singleton {
     function setWindows(m) {
         windows = m;
     }
-    // Champs d'une fenêtre lus par la barre: niri renvoie la fenêtre entière à chaque déplacement ou redimensionnement
-    // (layout), sans rien changer de ce qui est affiché
+    // Fields of a window read by the bar: niri sends the whole window at every move or resize
+    // (layout), without changing anything that is displayed
     function same(a, b) {
         return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id;
     }
 
-    // Flux d'événements lu directement sur le socket de niri (requête "EventStream"), sans processus `niri msg`
+    // Event stream read directly from the niri socket ("EventStream" request), without a `niri msg` process
     Socket {
         id: stream
         path: Quickshell.env("NIRI_SOCKET") ?? ""
@@ -76,7 +76,7 @@ Singleton {
                 write('"EventStream"\n');
                 flush();
             } else {
-                // niri relancé ou flux coupé: on se reconnecte
+                // niri restarted or stream cut: reconnect
                 restart.start();
             }
         }
@@ -135,8 +135,8 @@ Singleton {
         onTriggered: stream.connected = stream.path !== ""
     }
 
-    // Requête ponctuelle (ex. "Outputs") sur une seconde connexion: rappel avec la réponse (champ Ok, ou null en
-    // erreur); les requêtes partent une à une, la connexion se ferme quand il n'y en a plus
+    // One-off request (e.g. "Outputs") on a second connection: callback with the reply (Ok field, or null on
+    // error); requests go one by one, the connection closes when there are no more
     property var pending: []
     function request(name, done) {
         pending = pending.concat([{ name: name, done: done }]);
@@ -161,7 +161,7 @@ Singleton {
                 try {
                     r = JSON.parse(line).Ok ?? null;
                 } catch (e) {}
-                // Un rappel en erreur (demandeur détruit entre-temps) ne bloque pas la file
+                // A callback in error (requester destroyed in the meantime) does not block the queue
                 try {
                     if (p)
                         p.done(r ? r[p.name] ?? r : null);

@@ -1,4 +1,4 @@
-// Fiche d'informations des fili-panel ({ title, rows }, voir FiliInfo), demandée à l'ouverture et sur refresh()
+// Information card of the fili-panel ({ title, rows }, see FiliInfo), requested on opening and on refresh()
 import QtQuick
 import QtQuick.Layouts
 import qs
@@ -24,7 +24,7 @@ ColumnLayout {
                 info.card = card;
         }
     }
-    // Même standard que la fili-tooltip: titre à gauche, lignes libellé / valeur à droite
+    // Same standard as the fili-tooltip: title on the left, label / value rows on the right
     RowLayout {
         spacing: FiliTheme.space4
         Text {

@@ -1,5 +1,5 @@
-// fili-panel Bluetooth (Quickshell.Bluetooth, BlueZ): activer, rechercher, connecter, déconnecter, oublier; en bas, partage
-// de fichiers (fili-share): AirDrop, Bluetooth ou LocalSend, la même interface, grisés quand le protocole est indisponible
+// fili-panel Bluetooth (Quickshell.Bluetooth, BlueZ): turn on, scan, connect, disconnect, forget; at the bottom, file
+// sharing (fili-share): AirDrop, Bluetooth or LocalSend, the same interface, greyed out when the protocol is unavailable
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Bluetooth
@@ -61,7 +61,7 @@ ColumnLayout {
                 : modelData.state === BluetoothDeviceState.Disconnecting ? FiliI18n.tr("disconnecting…")
                 : modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
                 : modelData.paired ? FiliI18n.tr("paired") : FiliI18n.tr("new")
-            // clic: connecter / déconnecter (appairer d'abord si nouveau); clic droit: oublier
+            // click: connect / disconnect (pair first if new); right click: forget
             onClicked: b => {
                 if (busy) {
                     return;
@@ -116,9 +116,9 @@ ColumnLayout {
         receiving = on;
         FiliTheme.run(share + " receive " + proto + " " + (on ? "on" : "off"));
     }
-    // Choix des fichiers (fili-file) puis envoi, dans une fenêtre à part
+    // File choice (fili-file) then sending, in a separate window
     function sendTo(peer) {
-        // commande composée avant la fermeture: fermer le panneau libère la vue
+        // command built before closing: closing the panel frees the view
         const cmd = share + " send " + proto + " " + shq(peer.id) + " " + shq(peer.name);
         FiliPanel.close();
         FiliTheme.run(cmd);

@@ -1,6 +1,6 @@
-// Zone de clic et de fili-tooltip d'un module de la fili-bar: commandes shell par bouton et molette, ou signaux
-// (onLeftClicked...). tip: texte ou fiche (voir FiliTooltip); tipInfo: fiche demandée seulement au survol (FiliInfo:
-// network, power, display), qui remplace tip; rien n'est sondé en continu.
+// Click and fili-tooltip area of a fili-bar module: shell commands per button and wheel, or signals
+// (onLeftClicked...). tip: text or card (see FiliTooltip); tipInfo: card requested on hover only (FiliInfo:
+// network, power, display), which replaces tip; nothing is polled continuously.
 import QtQuick
 import Quickshell
 import qs
@@ -26,13 +26,13 @@ MouseArea {
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
     cursorShape: (click || rclick) ? Qt.PointingHandCursor : Qt.ArrowCursor
 
-    // Panneau ouvert: niri retire le focus clavier au fili-panel dès le clic sur la barre et le clic (appui puis
-    // relâchement) est perdu, d'où deux clics. Alors l'action part à l'appui, et le relâchement ne la rejoue pas.
+    // Panel open: niri takes the keyboard focus away from the fili-panel as soon as the bar is clicked and the click (press then
+    // release) is lost, hence two clicks. So the action runs on press, and the release does not replay it.
     property bool early: false
     onPressed: m => { meta = (m.modifiers & Qt.MetaModifier) !== 0; down(m.button); }
     onClicked: m => { meta = (m.modifiers & Qt.MetaModifier) !== 0; up(m.button); }
-    // Molette: un cran de souris = 120; le pavé tactile envoie une rafale de petits deltas, cumulés pour ne pas
-    // enchaîner une action par événement (volume de 0 à 100 % en un geste)
+    // Wheel: one mouse notch = 120; the touchpad sends a burst of small deltas, accumulated so as not to fire
+    // one action per event (volume from 0 to 100 % in one gesture)
     property real wheelAcc: 0
     onWheel: w => {
         const d = w.angleDelta.y;
@@ -58,7 +58,7 @@ MouseArea {
         else
             press(button);
     }
-    // Clic et molette (appelés aussi par les tests)
+    // Click and wheel (also called by the tests)
     function press(button) {
         FiliTooltip.hide();
         if (button === Qt.LeftButton) {

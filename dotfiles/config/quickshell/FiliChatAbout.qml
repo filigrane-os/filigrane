@@ -1,10 +1,10 @@
 pragma Singleton
-// fili-chat-about: fiche « À propos de Rob » (le chat de Filigrane), au centre de l'écran: icône robot (celle du module
-// IA de la fili-bar), nom d'usage (Rob), « Aussi connu sous le nom de fili-chat » (le programme), puis les infos utiles:
-// agent, version et modèle (lus par `fili-ai status` à chaque ouverture, rien ne tourne fenêtre fermée), sessions,
-// présentation du tiroir, fichier de réglages. Même contenu de base que la fiche de Casier (fili-file/src/about.rs):
-// toute application fili-* a cette fiche (skill filigrane-ui, references/hig.md §7).
-// Ouverture: menu Rob › About Rob (`fili-shell chat about`). Fermeture: Échap, clic hors de la carte.
+// fili-chat-about: "About Rob" card (the Filigrane chat), in the middle of the screen: robot icon (the one of the AI
+// module of the fili-bar), display name (Rob), "Also known as fili-chat" (the program), then the useful facts:
+// agent, version and model (read by `fili-ai status` at every opening, nothing runs while the window is closed), sessions,
+// presentation of the drawer, settings file. Same base content as the Casier card (fili-file/src/about.rs):
+// every fili-* application has this card (filigrane-ui skill, references/hig.md §7).
+// Opening: menu Rob › About Rob (`fili-shell chat about`). Closing: Escape, click outside the card.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -14,11 +14,11 @@ import Quickshell.Wayland
 Singleton {
     id: about
     property bool open: false
-    // Champs de `fili-ai status`: agent, modèle, version de l'agent installé
+    // Fields of `fili-ai status`: agent, model, version of the installed agent
     property var info: ({ agent: "", model: "", version: "" })
     readonly property string icon: String.fromCodePoint(0xf06a9)
     readonly property string name: "Rob"
-    // Nom du programme (aka): ce que l'on tape, le nom dans le dépôt
+    // Name of the program (aka): what one types, the name in the repository
     readonly property string aka: "fili-chat"
     readonly property var rows: [
         [FiliI18n.tr("Also known as"), aka],
@@ -57,7 +57,7 @@ Singleton {
                 const lines = text.split("\n");
                 const field = k => (lines.find(l => l.startsWith(k + ":")) ?? "").slice(k.length + 1).trim();
                 const agent = field("Agent");
-                // « claude (Claude Code (Anthropic)) »: le nom lisible est entre parenthèses
+                // "claude (Claude Code (Anthropic))": the readable name is in parentheses
                 const nice = /\((.*)\)\s*$/.exec(agent);
                 const key = agent.split(" ")[0];
                 const inst = lines.find(l => /^\s+\S+ \S+/.test(l) && l.trim().startsWith(key + " "));

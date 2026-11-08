@@ -1,8 +1,8 @@
 pragma Singleton
-// fili-about: fenêtre « À propos » au centre de l'écran: logo, nom de la machine, puis Filigrane (version du dépôt),
-// système et machine, lus par ~/.local/bin/fili-about (JSON) à chaque ouverture, rien ne tourne fenêtre fermée.
-// Ouverture: `fili-shell about`, menu › System › About, clic milieu sur le logo de la fili-bar.
-// Fermeture: Échap, clic hors de la carte. C (ou le lien) copie la fiche en texte (rapport de bug).
+// fili-about: "About" window in the middle of the screen: logo, name of the machine, then Filigrane (version of the repository),
+// system and machine, read by ~/.local/bin/fili-about (JSON) at every opening, nothing runs while the window is closed.
+// Opening: `fili-shell about`, menu › System › About, middle click on the fili-bar logo.
+// Closing: Escape, click outside the card. C (or the link) copies the card as text (bug report).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -31,7 +31,7 @@ Singleton {
     function close() {
         open = false;
     }
-    // Fiche en texte brut: une section par bloc, « libellé: valeur »
+    // Card as plain text: one section per block, "label: value"
     function text() {
         return ["Filigrane · " + card.host].concat(card.sections.map(s => s.name + "\n" + s.rows.map(r => "  " + r[0] + ": " + r[1]).join("\n"))).join("\n\n");
     }
@@ -100,7 +100,7 @@ Singleton {
                     id: content
                     anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space6 }
                     spacing: FiliTheme.space3
-                    // Logo empilé (brand/, lié dans ~/.local/share/filigrane), version claire ou sombre
+                    // Stacked logo (brand/, linked into ~/.local/share/filigrane), light or dark version
                     Image {
                         Layout.alignment: Qt.AlignHCenter
                         source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-empile-" + (FiliTheme.light ? "clair" : "sombre") + ".svg"

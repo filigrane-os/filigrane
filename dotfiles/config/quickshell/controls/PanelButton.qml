@@ -1,4 +1,4 @@
-// Ligne cliquable des fili-panel: glyphe, libellé, détail à droite; survol = fond nuit3, sel = voile
+// Clickable row of the fili-panel: glyph, label, detail on the right; hover = nuit3 background, sel = voile
 import QtQuick
 import QtQuick.Layouts
 import qs
@@ -17,7 +17,7 @@ Rectangle {
     implicitHeight: 30
     radius: FiliTheme.radiusControl
     color: area.containsMouse ? FiliTheme.nuit3 : "transparent"
-    // Clavier: Entrée ou Espace = clic, Maj+Entrée = clic droit
+    // Keyboard: Enter or Space = click, Shift+Enter = right click
     activeFocusOnTab: true
     Keys.onReturnPressed: e => btn.key(e)
     Keys.onEnterPressed: e => btn.key(e)
@@ -61,7 +61,7 @@ Rectangle {
         cursorShape: Qt.PointingHandCursor
         onClicked: m => btn.press(m.button)
     }
-    // Clic (appelé aussi par les tests)
+    // Click (also called by the tests)
     function press(button) {
         btn.clicked(button);
     }

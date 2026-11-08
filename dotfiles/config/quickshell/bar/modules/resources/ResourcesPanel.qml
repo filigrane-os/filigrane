@@ -1,5 +1,5 @@
-// fili-panel moniteur: charge, mémoire, disque, température et plus gros processus (FiliInfo monitor, sans processus), tests de débit
-// réseau et de disque (fili-speedtest), accès à htop
+// fili-panel monitor: load, memory, disk, temperature and biggest processes (FiliInfo monitor, no process), network and
+// disk speed tests (fili-speedtest), access to htop
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io

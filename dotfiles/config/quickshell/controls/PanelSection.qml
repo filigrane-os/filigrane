@@ -1,5 +1,5 @@
-// Intertitre en petites capitales des fili-panel, précédé d'un filet fin sauf s'il est le premier visible de sa vue
-// (le filet sépare les sections entre elles)
+// Small-caps subheading of the fili-panel, preceded by a thin rule unless it is the first visible one of its view
+// (the rule separates the sections from one another)
 import QtQuick
 import QtQuick.Layouts
 import qs
@@ -7,10 +7,10 @@ import qs
 Item {
     id: sec
     property alias text: label.text
-    // Repère pour les sections sœurs (voir refresh)
+    // Marker for sibling sections (see refresh)
     readonly property bool isSection: true
     property bool first: true
-    // false: pas de filet (sections d'un même bloc, voir DisplayPanel)
+    // false: no rule (sections of the same block, see DisplayPanel)
     property bool divided: true
     readonly property bool ruled: divided && !first
 
@@ -30,9 +30,9 @@ Item {
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
     }
 
-    // Sans filet seulement la première section visible et collée au titre de la vue (y < 40): après une fiche, un
-    // bouton ou un canvas, le filet la sépare de ce qui précède. Recalculé quand une section change de visibilité ou
-    // de place (un élément apparaît au-dessus).
+    // Without a rule only the first visible section stuck to the title of the view (y < 40): after a card, a
+    // button or a canvas, the rule separates it from what precedes. Recomputed when a section changes visibility or
+    // place (an item appears above it).
     function refresh() {
         let seen = false;
         for (const c of parent.children) {

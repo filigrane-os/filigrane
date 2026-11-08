@@ -1,8 +1,8 @@
 pragma Singleton
-// fili-hotkeys: fenêtre des raccourcis clavier de niri, au centre de l'écran, à la place de l'« Important Hotkeys »
-// de niri (skip-at-startup). Lignes de ~/.local/bin/fili-hotkeys (binds avec hotkey-overlay-title), touches en
-// pastilles. Affichée une fois par session au démarrage (marqueur dans $XDG_RUNTIME_DIR), puis par
-// `fili-shell hotkeys` (Super+Maj+/) ou le panneau clavier. Fermeture: Échap, clic, ou 20 s au démarrage.
+// fili-hotkeys: window of the niri keyboard shortcuts, in the middle of the screen, in place of the "Important Hotkeys"
+// of niri (skip-at-startup). Lines of ~/.local/bin/fili-hotkeys (binds with hotkey-overlay-title), keys as
+// pills. Shown once per session at start (marker in $XDG_RUNTIME_DIR), then by
+// `fili-shell hotkeys` (Super+Shift+/) or the keyboard panel. Closing: Escape, click, or 20 s at start.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -14,7 +14,7 @@ Singleton {
     id: hk
     property bool open: false
     property var entries: []
-    // Ouverte par le démarrage: se referme seule
+    // Opened by the start: closes by itself
     property bool auto: false
     readonly property var caps: ({ Shift: FiliI18n.tr("Shift"), Space: FiliI18n.tr("Space"), Slash: "/", Return: "↵", Tab: "Tab", Print: FiliI18n.tr("Print"), Escape: FiliI18n.tr("Esc") })
 
@@ -35,7 +35,7 @@ Singleton {
         open = false;
         auto = false;
     }
-    // Une fois par session: le marqueur disparaît avec $XDG_RUNTIME_DIR (tmpfs)
+    // Once per session: the marker disappears with $XDG_RUNTIME_DIR (tmpfs)
     function startup() {
         if (FiliTheme.testing)
             return;

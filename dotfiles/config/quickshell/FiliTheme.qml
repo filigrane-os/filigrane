@@ -1,18 +1,18 @@
 pragma Singleton
-// Filigrane (brand.md): fond nuit, texte brume, accent voile; aucune autre couleur vive, états désaturés.
-// Mode clair (fili-theme light, choisi dans le fili-panel écrans): les noms gardent leur rôle du mode sombre
-// (nuit = fond, brume = texte, voile = accent) et prennent les teintes claires: fond papier, texte nuit, accent
-// ardoise foncé, états assombris (contraste ≥ 4,8:1 sur papier)
+// Filigrane (brand.md): night background, mist text, voile accent; no other bright colour, desaturated states.
+// Light mode (fili-theme light, chosen in the displays fili-panel): the names keep their role of the dark mode
+// (nuit = background, brume = text, voile = accent) and take the light shades: paper background, nuit text, dark
+// ardoise accent, darkened states (contrast ≥ 4.8:1 on paper)
 import QtQuick
 import Quickshell
 import Quickshell.Io
 
 Singleton {
     id: theme
-    // "dark" (défaut) ou "light", lu dans l'état de fili-theme et relu dès qu'il change (les tests le fixent)
+    // "dark" (default) or "light", read from the fili-theme state and re-read as soon as it changes (the tests set it)
     property string mode: "dark"
     readonly property bool light: mode === "light"
-    // Couleur d'accentuation (nom), lue dans l'état de fili-theme comme le mode
+    // Accent colour (name), read from the fili-theme state like the mode
     property string accent: "default"
     readonly property string stateFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/theme"
     FileView {
@@ -31,9 +31,9 @@ Singleton {
         onLoaded: theme.accent = text().trim()
         onLoadFailed: theme.accent = "default"
     }
-    // Réglages globaux facultatifs: ~/.config/filigrane/theme.toml (sections [theme], [theme.dark], [theme.light],
-    // [theme.accents]; clés en anglais, voir fili-file/theme.toml). Relus dès qu'ils changent; les valeurs
-    // ci-dessous sont les défauts (un test les garde identiques à ceux de fili-file); une valeur invalide est ignorée.
+    // Optional global settings: ~/.config/filigrane/theme.toml (sections [theme], [theme.dark], [theme.light],
+    // [theme.accents]; keys in English, see fili-file/theme.toml). Re-read as soon as they change; the values
+    // below are the defaults (a test keeps them identical to those of fili-file); an invalid value is ignored.
     property var parsed: ({})
     readonly property var user: resolve(parsed, light)
     FileView {
@@ -79,7 +79,7 @@ Singleton {
         }
         return out;
     }
-    // Clés valables pour le mode: [theme.<mode>] passe devant [theme]
+    // Keys valid for the mode: [theme.<mode>] takes precedence over [theme]
     function resolve(p, isLight) {
         const out = {};
         for (const sec of ["theme", isLight ? "theme.light" : "theme.dark"])
@@ -87,7 +87,7 @@ Singleton {
                 out[k] = p[sec][k];
         return out;
     }
-    // Valeur de l'utilisateur pour la clé, sinon def; le type de def décide de ce qui est valable (entier, couleur, texte)
+    // Value of the user for the key, else def; the type of def decides what is valid (integer, colour, text)
     function ov(key, def) {
         const v = user[key];
         if (typeof v !== "string")
@@ -98,7 +98,7 @@ Singleton {
             return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ? v : def;
         return v ? v : def;
     }
-    // Teintes d'accentuation: celles de [theme.accents] (4 couleurs valides) complètent ou remplacent les défauts
+    // Accent shades: those of [theme.accents] (4 valid colours) complete or replace the defaults
     function tones(base) {
         const out = {};
         for (const k in base)
@@ -109,7 +109,7 @@ Singleton {
                 out[k] = extra[k];
         return out;
     }
-    // FileView ne voit pas naître un fichier dans un dossier absent
+    // FileView does not see a file appear in a missing folder
     Component.onCompleted: if (!testing) Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")])
 
     readonly property color nuit: ov("background", light ? "#f3f1ec" : "#1c222b")
@@ -120,10 +120,10 @@ Singleton {
     readonly property color ardoise: ov("muted", "#5f7894")
     readonly property color border: ov("border", light ? "#cdc8bd" : "#3c4858")
     readonly property color brume2: ov("text_secondary", light ? "#4f5e70" : "#a9b8c8")
-    // Couleur d'accentuation (fili-theme accent): [sombre, sombre vif, clair, clair vif]; défaut = sable en sombre, ardoise en clair
+    // Accent colour (fili-theme accent): [dark, vivid dark, light, vivid light]; default = sable in dark, ardoise in light
     readonly property var accentTones: tones({ default: ["#d2bf92", "#e0d1ab", "#4f6884", "#3d5470"], voile: ["#9dbbd6", "#b9d0e4", "#3f5a78", "#2f4a66"], ardoise: ["#7f9ab6", "#9ab2ca", "#4f6884", "#3d5470"], sauge: ["#a3bfa8", "#bcd3c0", "#4a7354", "#385a42"], sable: ["#d2bf92", "#e0d1ab", "#80662b", "#654f1f"], cendre: ["#c98f93", "#d9a8ab", "#9a4f55", "#7d3c42"], brume: ["#dbe7f4", "#f3f1ec", "#4f5e70", "#1c222b"] })
     readonly property var tone: accentTones[accent] || accentTones.default
-    // Nom de la couleur réellement affichée: sans choix (ou nom inconnu), sable en sombre, ardoise en clair
+    // Name of the colour actually shown: without a choice (or an unknown name), sable in dark, ardoise in light
     readonly property string accentName: accent !== "default" && accentTones[accent] ? accent : (light ? "ardoise" : "sable")
     readonly property color voile: ov("accent", light ? tone[2] : tone[0])
     readonly property color voileVif: ov("accent_bright", light ? tone[3] : tone[1])
@@ -131,27 +131,27 @@ Singleton {
     readonly property color sable: ov("warning", light ? "#80662b" : "#d2bf92")
     readonly property color cendre: ov("danger", light ? "#9a4f55" : "#c98f93")
     readonly property color sauge: ov("success", light ? "#4a7354" : "#a3bfa8")
-    // Couleur c avec l'opacité a (voiles translucides)
+    // Colour c with opacity a (translucent veils)
     function alpha(c, a) {
         return Qt.rgba(c.r, c.g, c.b, a);
     }
 
     readonly property string font: ov("font", "Jost")
     readonly property string mono: ov("mono", "JetBrains Mono")
-    // Échelle typographique (tokens.md): système 14, vue (listes) 13, petit (secondaire, infobulles, intertitres) 12,
-    // étiquette 11; titre ≥ 18 (seul palier où le Light est permis); accent = Jost SemiBold 600
+    // Type scale (tokens.md): system 14, view (lists) 13, small (secondary, tooltips, subheadings) 12,
+    // label 11; title ≥ 18 (the only step where Light is allowed); accent = Jost SemiBold 600
     readonly property int size: ov("size", 14)
     readonly property int sizeList: ov("size_list", 13)
     readonly property int sizeSmall: ov("size_small", 12)
     readonly property int sizeLabel: ov("size_label", 11)
     readonly property int sizeTitle: ov("size_title", 18)
     readonly property int weightAccent: ov("weight_accent", Font.DemiBold)
-    // Rayons: repères et jauges 2, contrôles / lignes / fiches 6, fenêtres de couche 10
+    // Radii: marks and gauges 2, controls / rows / cards 6, layer windows 10
     readonly property int borderWidth: ov("border_width", 1)
     readonly property int radiusMark: ov("radius_mark", 2)
     readonly property int radiusControl: ov("radius_control", 6)
     readonly property int radiusWindow: ov("radius_window", 10)
-    // Espacements: éléments liés 4, entre contrôles 8, entre groupes 12, bord d'onglet 16, marge de panneau 20, alerte 24
+    // Spacing: related items 4, between controls 8, between groups 12, tab edge 16, panel margin 20, alert 24
     readonly property int space1: ov("space_1", 4)
     readonly property int space2: ov("space_2", 8)
     readonly property int space3: ov("space_3", 12)
@@ -159,19 +159,19 @@ Singleton {
     readonly property int space5: ov("space_5", 20)
     readonly property int space6: ov("space_6", 24)
     readonly property int barHeight: ov("bar_height", 24)
-    // Rythme de la fili-bar, un seul pour tous les modules (pas d'écart propre aux groupes): marge de chaque module
-    // (l'écart entre deux textes vaut donc 2 × pad), cellule minimale d'une icône seule (son trait fait ~10 px: de
-    // même marge visible), espace entre l'étiquette (CPU, RAM) et sa valeur
+    // fili-bar rhythm, a single one for all the modules (no gap of its own for groups): margin of each module
+    // (the gap between two texts is therefore 2 × pad), minimum cell of a lone icon (its stroke is ~10 px: same
+    // visible margin), space between the label (CPU, RAM) and its value
     readonly property int pad: ov("pad", 7)
     readonly property int iconCell: ov("icon_cell", 24)
     readonly property int labelGap: ov("label_gap", 5)
-    // Texte réduit à une seule icône (code privé Nerd Font / Fili Icons)
+    // Text reduced to a single icon (private-use code point of Nerd Font / Fili Icons)
     function isIcon(t) {
         return /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF])$/.test(t);
     }
 
-    // Règle de la fili-bar: icône (ou étiquette) en ardoise devant la valeur en blanc. "<icône> valeur" est coupé ici;
-    // un état (sable, cendre, voile...) colore tout le module, seul le neutre (brume, brume2) grise l'icône.
+    // fili-bar rule: icon (or label) in slate before the value in white. "<icon> value" is split here;
+    // a state (sable, cendre, voile...) colours the whole module, only the neutral (brume, brume2) greys the icon.
     function glyph(t) {
         const m = /^([\uE000-\uF8FF]|[\uDB80-\uDBBF][\uDC00-\uDFFF]) (.+)$/.exec(t);
         return m ? m[1] : "";
@@ -184,8 +184,8 @@ Singleton {
         return Qt.colorEqual(c, brume) || Qt.colorEqual(c, brume2) ? ardoise : c;
     }
 
-    // Icône d'une sortie audio d'après ses propriétés PipeWire: casque (filaire ou Bluetooth), enceinte Bluetooth,
-    // écran (HDMI, DisplayPort); "" pour des haut-parleurs (l'appelant garde l'icône graduée selon le volume)
+    // Icon of an audio output from its PipeWire properties: headset (wired or Bluetooth), Bluetooth speaker,
+    // display (HDMI, DisplayPort); "" for loudspeakers (the caller keeps the icon graded by volume)
     function sinkGlyph(p) {
         if (!p)
             return "";
@@ -201,16 +201,16 @@ Singleton {
         return "";
     }
 
-    // Scripts et binaires de la distribution (~/.local/bin; FILI_BIN pour les tests)
+    // Scripts and binaries of the distribution (~/.local/bin; FILI_BIN for the tests)
     readonly property string bin: Quickshell.env("FILI_BIN") || Quickshell.env("HOME") + "/.local/bin"
 
-    // Mode test (tests/fili-shell/run.sh): fenêtres masquées, commandes enregistrées au lieu d'être lancées
+    // Test mode (tests/fili-shell/run.sh): windows hidden, commands recorded instead of run
     readonly property bool testing: Quickshell.env("FILI_TEST") === "1"
     property var ran: []
 
-    // Lance une commande shell détachée (actions des clics), depuis $HOME: un dossier courant supprimé ferait
-    // échouer foot et d'autres ("failed to get current working directory"). Commande, sortie et erreurs dans
-    // $XDG_RUNTIME_DIR/fili-shell-run.log (tmpfs) pour comprendre un clic qui ne lance rien
+    // Run a detached shell command (actions of the clicks), from $HOME: a deleted current directory would make
+    // foot and others fail ("failed to get current working directory"). Command, output and errors in
+    // $XDG_RUNTIME_DIR/fili-shell-run.log (tmpfs) to understand a click that runs nothing
     function run(cmd) {
         if (!cmd)
             return;

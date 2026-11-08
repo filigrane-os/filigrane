@@ -1,5 +1,5 @@
-// fili-calendar: calendrier puis minuteur / chronomètre sous l'horloge de la fili-bar (semaines ISO à gauche): survol = affiché
-// (reste ouvert tant que la souris est dessus), clic droit = épinglé, molette = mois ±1
+// fili-calendar: calendar then timer / stopwatch under the clock of the fili-bar (ISO weeks on the left): hover = shown
+// (stays open while the mouse is on it), right click = pinned, wheel = month ±1
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -13,9 +13,9 @@ PopupWindow {
     property date today
     property int shift: 0
     property bool pinned: false
-    // Souris sur le calendrier (garde le survol ouvert, voir la fili-bar)
+    // Mouse on the calendar (keeps the hover open, see the fili-bar)
     readonly property bool hovered: hover.hovered
-    // Minuteur / chronomètre (BarState): classe (idle, stopwatch, active, done) et texte du temps
+    // Timer / stopwatch (BarState): class (idle, stopwatch, active, done) and time text
     readonly property string timerClass: BarState.timer["class"] ?? "idle"
     readonly property string timerText: BarState.timer.text.replace(/^\s*/, "")
     readonly property date shown: new Date(today.getFullYear(), today.getMonth() + shift, 1)
@@ -120,7 +120,7 @@ PopupWindow {
                 implicitHeight: 1
                 color: FiliTheme.nuit3
             }
-            // Minuteur / chronomètre: clic = choisir, arrêter ou acquitter, clic droit = +5 min au minuteur
+            // Timer / stopwatch: click = choose, stop or acknowledge, right click = +5 min on the timer
             PanelButton {
                 objectName: "timer"
                 glyph: ""
@@ -131,7 +131,7 @@ PopupWindow {
                     if (b === Qt.RightButton) {
                         FiliTheme.run(FiliTheme.bin + "/bar-timer add");
                     } else {
-                        // Le choix de durée s'ouvre dans le fili-launcher: refermer le calendrier d'abord
+                        // The duration choice opens in the fili-launcher: close the calendar first
                         cal.pinned = false;
                         cal.visible = false;
                         FiliTheme.run(FiliTheme.bin + "/bar-timer click");

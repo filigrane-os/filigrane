@@ -1,5 +1,5 @@
-// fili-panel réseau (iwd): réseaux Wi-Fi (clic = connecter, mot de passe si nouveau, clic droit = oublier), activer,
-// déconnecter, état de la liaison (FiliInfo network). Les actions passent par fili-net (iwctl).
+// fili-panel network (iwd): Wi-Fi networks (click = connect, password if new, right click = forget), turn on,
+// disconnect, link state (FiliInfo network). The actions go through fili-net (iwctl).
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -15,7 +15,7 @@ ColumnLayout {
     property string message: ""
     readonly property string net: FiliTheme.bin + "/fili-net"
 
-    // Icône selon la force du signal (0-100, par paliers de 25): codes md-wifi_strength_1..4 (police Fili Icons)
+    // Icon by signal strength (0-100, in steps of 25): md-wifi_strength_1..4 codes (Fili Icons font)
     function signalGlyph(signal) {
         return String.fromCodePoint(signal >= 75 ? 0xF0928 : signal >= 50 ? 0xF0925 : signal >= 25 ? 0xF0922 : 0xF091F);
     }
@@ -62,7 +62,7 @@ ColumnLayout {
             info.refresh();
         }
     }
-    // Recherche à l'ouverture, liste relue ensuite (iwd met quelques secondes à rafraîchir)
+    // Scan on opening, list re-read afterwards (iwd takes a few seconds to refresh)
     Timer {
         id: scan
         interval: 100
@@ -111,7 +111,7 @@ ColumnLayout {
                     }
                 }
             }
-            // Champ du mot de passe, aligné sur les libellés des réseaux; Entrée = connecter, Échap = annuler
+            // Password field, aligned with the network labels; Enter = connect, Escape = cancel
             Rectangle {
                 visible: view.asking === modelData.ssid
                 Layout.fillWidth: true

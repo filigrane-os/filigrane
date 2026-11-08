@@ -1,10 +1,10 @@
 pragma Singleton
-// fili-notification: serveur de notifications (remplace mako), bulles en haut à droite sous la fili-bar, 4 au plus,
-// durée selon l'urgence (celle demandée par l'appli est ignorée), Ne pas déranger (bulles masquées).
-// fili-notification-center: historique des 30 dernières (clic sur la cloche de la fili-bar, `fili-shell notification center`).
-// Clic gauche sur une bulle: action par défaut puis focus sur la fenêtre de l'appli (notif-focus); croix ou clic droit: fermer.
-// Les autres actions de la notification (notify-send -A id=Texte) sont des boutons sous le texte, trois au plus, le
-// premier mis en avant (fili-ai-ask: Allow / Deny, or the options of a question); une bulle à boutons reste 60 s, ou le délai demandé (notify-send -t), le temps de répondre.
+// fili-notification: notification server (replaces mako), bubbles at the top right under the fili-bar, 4 at most,
+// duration by urgency (the one requested by the app is ignored), Do Not Disturb (bubbles hidden).
+// fili-notification-center: history of the last 30 (click on the bell of the fili-bar, `fili-shell notification center`).
+// Left click on a bubble: default action then focus on the window of the app (notif-focus); cross or right click: close.
+// The other actions of the notification (notify-send -A id=Text) are buttons under the text, three at most, the
+// first highlighted (fili-ai-ask: Allow / Deny, or the options of a question); a bubble with buttons stays 60 s, or the requested delay (notify-send -t), to leave time to answer.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -17,9 +17,9 @@ import qs.controls
 Singleton {
     id: notifs
     property bool dnd: false
-    // Bulles affichées: { n: Notification, key }
+    // Bubbles displayed: { n: Notification, key }
     property var popups: []
-    // Historique (copies, plus récentes en tête): { app, icon, summary, body, time }
+    // History (copies, most recent first): { app, icon, summary, body, time }
     property var history: []
     property bool centerOpen: false
     onCenterOpenChanged: FiliShell.centerOpen = centerOpen
@@ -53,11 +53,11 @@ Singleton {
             close(p.n, how);
     }
 
-    // Actions proposées en boutons (hors « default », le clic sur la bulle)
+    // Actions offered as buttons (apart from "default", the click on the bubble)
     function buttons(n) {
         return n.actions.filter(a => a.identifier !== "default").slice(0, 3);
     }
-    // Réponse à une action: l'appli est prévenue (ActionInvoked), la bulle se ferme
+    // Answer to an action: the app is told (ActionInvoked), the bubble closes
     function answer(n, identifier) {
         const a = n.actions.find(x => x.identifier === identifier);
         if (a)
@@ -83,12 +83,12 @@ Singleton {
         const i = n.image || n.appIcon;
         if (!i)
             return "";
-        // Nom d'icône déjà tourné en image://icon/NOM: absent du thème, il donnerait le damier magenta de Qt (rien à afficher)
+        // Icon name already turned into image://icon/NAME: absent from the theme, it would give the Qt magenta checkerboard (nothing to show)
         if (i.startsWith("image://icon/") && !i.startsWith("image://icon//"))
             return Quickshell.iconPath(i.slice(13), true);
         return i.startsWith("/") ? "file://" + i : i.indexOf("://") > 0 || i.startsWith("image:") ? i : Quickshell.iconPath(i, true);
     }
-    // Ferme une bulle; elle passe dans l'historique (sauf captures niri: image plein écran, cf. ancien mako)
+    // Close a bubble; it goes into the history (except niri screenshots: full-screen image, as with the old mako)
     function close(n, how) {
         if (!n)
             return;
@@ -106,7 +106,7 @@ Singleton {
         for (const p of popups.slice())
             close(p.n, "dismiss");
     }
-    // Copie le texte d'une notification de l'historique et ferme le centre
+    // Copy the text of a history notification and close the center
     function copy(h) {
         if (FiliTheme.testing)
             FiliTheme.ran = FiliTheme.ran.concat(["wl-copy " + h.summary]);
@@ -342,7 +342,7 @@ Singleton {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: m => m.button === Qt.LeftButton ? notifs.activate(card.n) : notifs.close(card.n, "dismiss")
         }
-        // Boutons d'action (au-dessus de la zone de clic de la bulle)
+        // Action buttons (above the click area of the bubble)
         Row {
             z: 2
             visible: card.btns.length > 0
@@ -425,7 +425,7 @@ Singleton {
         }
     }
 
-    // Croix de fermeture (bulles et fili-notification-center): discrète, plus claire au survol
+    // Close cross (bubbles and fili-notification-center): discreet, lighter on hover
     component CloseCross: Rectangle {
         id: cross
         signal clicked
@@ -449,9 +449,9 @@ Singleton {
         }
     }
 
-    // fili-notification-center: clic = copier le texte, croix ou clic droit = retirer, Échap ou clic sur une fenêtre = fermer.
-    // Clavier (comme les fili-panel): ↑/↓ ou Tab d'élément en élément, Entrée = copier, Suppr = retirer, ←/→ = panneau voisin.
-    // Fenêtre de la taille du panneau (pas de calque plein écran); clic ailleurs: le focus part, le centre se ferme.
+    // fili-notification-center: click = copy the text, cross or right click = remove, Escape or click on a window = close.
+    // Keyboard (like the fili-panel): ↑/↓ or Tab from item to item, Enter = copy, Delete = remove, ←/→ = neighbouring panel.
+    // Window the size of the panel (no full-screen layer); click elsewhere: the focus leaves, the center closes.
     PanelWindow {
         id: centerWin
         visible: notifs.centerOpen && !FiliTheme.testing
@@ -481,7 +481,7 @@ Singleton {
             Keys.onBacktabPressed: FiliPanel.moveFocus(centerCard, Window.activeFocusItem, false)
             Keys.onLeftPressed: FiliPanel.step(-1)
             Keys.onRightPressed: FiliPanel.step(1)
-            // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
+            // Focus received on opening then lost (click on a window): close
             property bool held: false
             Window.onActiveChanged: {
                 if (Window.active)
@@ -556,7 +556,7 @@ Singleton {
                         implicitHeight: Math.max(entry.implicitHeight, 32) + 16
                         radius: FiliTheme.radiusControl
                         color: hov.containsMouse ? FiliTheme.nuit3 : "transparent"
-                        // Clavier: Entrée ou Espace = copier (comme le clic), Suppr = retirer; la liste suit le focus
+                        // Keyboard: Enter or Space = copy (like the click), Delete = remove; the list follows the focus
                         objectName: "center-item"
                         activeFocusOnTab: true
                         onActiveFocusChanged: if (activeFocus) ListView.view.positionViewAtIndex(index, ListView.Contain)
@@ -567,7 +567,7 @@ Singleton {
                         RowLayout {
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; margins: FiliTheme.space2; rightMargin: 32 }
                             spacing: FiliTheme.space2
-                            // Icône de l'appli ou de l'image de la notification (vide: un carré discret garde l'alignement)
+                            // Icon of the app or image of the notification (empty: a discreet square keeps the alignment)
                             IconImage {
                                 implicitSize: 32
                                 Layout.alignment: Qt.AlignTop
@@ -641,13 +641,13 @@ Singleton {
                         }
                     }
                 }
-                // Réglages: sous les notifications, séparés d'un trait
+                // Settings: under the notifications, separated by a line
                 Rectangle {
                     Layout.fillWidth: true
                     implicitHeight: 1
                     color: FiliTheme.nuit4
                 }
-                // Sons (FiliSound): nouvelle notification et chargeur branché
+                // Sounds (FiliSound): new notification and charger plugged in
                 Repeater {
                     model: [["notify", FiliI18n.tr("Notification sound")], ["plug", FiliI18n.tr("Charger plugged in sound")]]
                     RowLayout {

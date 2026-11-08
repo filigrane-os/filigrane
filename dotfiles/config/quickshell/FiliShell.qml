@@ -1,21 +1,21 @@
 pragma Singleton
-// fili-shell: canal de commandes du shell. Une ligne par commande dans le tuyau nommé $XDG_RUNTIME_DIR/fili-shell,
-// écrite par le client ~/.local/bin/fili-shell ou les scripts:
-//   bar refresh N...                      rafraîchit les modules de la fili-bar abonnés à N
-//   notification dnd on|off|toggle | dismiss-all | dismiss RÉSUMÉ | center | history RÉPONSE
-//   launcher open OPTIONS.json RÉPONSE | launcher close RÉPONSE      (fili-launcher)
-//   panel NOM | close                    ouvre/ferme un fili-panel
-//   appmenu toggle | close               menu de l'application active au clavier (AppMenu, Mod+F10)
-//   chat [ACTION]                         tiroir fili-chat (FiliChat, Mod+Y): toggle (défaut), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
-//   hotkeys toggle | about toggle         fenêtre des raccourcis (FiliHotkeys), « À propos » (FiliAbout)
-//   settings [PAGE]                       fenêtre Réglages (FiliSettings), sur la page PAGE (display...)
-//   lang reload                           relit la langue choisie par fili-lang (FiliI18n)
-//   reload
-// Lu par bar-stats (apps/bar-stats, seul processus résident du shell), qui recopie ces lignes et y mêle les siennes:
-//   stat NOM JSON                         module de la fili-bar (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), voir BarScript
-//   ac 0|1                                chargeur (FiliSound)
-//   info SUJET JSON                       fiche demandée par request("info SUJET") sur son entrée standard (FiliInfo)
-// Sans bar-stats (apps/ non compilé): un `cat` ouvert en lecture-écriture. Les réponses partent vers le tuyau RÉPONSE.
+// fili-shell: command channel of the shell. One line per command in the named pipe $XDG_RUNTIME_DIR/fili-shell,
+// written by the client ~/.local/bin/fili-shell or by the scripts:
+// bar refresh N...                      refreshes the fili-bar modules subscribed to N
+// notification dnd on|off|toggle | dismiss-all | dismiss SUMMARY | center | history REPLY
+// launcher open OPTIONS.json REPLY | launcher close REPLY      (fili-launcher)
+// panel NAME | close                   opens/closes a fili-panel
+// appmenu toggle | close               menu of the active application from the keyboard (AppMenu, Mod+F10)
+// chat [ACTION]                         fili-chat drawer (FiliChat, Mod+Y): toggle (default), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
+// hotkeys toggle | about toggle         shortcuts window (FiliHotkeys), "About" (FiliAbout)
+// settings [PAGE]                       Settings window (FiliSettings), on the page PAGE (display...)
+// lang reload                           re-reads the language chosen with fili-lang (FiliI18n)
+// reload
+// Read by bar-stats (apps/bar-stats, the only resident process of the shell), which copies these lines and mixes in its own:
+// stat NAME JSON                        fili-bar module (cpu, mem, temp, disk, net, remote, air, vpn, backup, display), see BarScript
+// ac 0|1                                charger (FiliSound)
+// info TOPIC JSON                       card requested by request("info TOPIC") on its standard input (FiliInfo)
+// Without bar-stats (apps/ not compiled): a `cat` opened read-write. The replies go to the REPLY pipe.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -24,19 +24,19 @@ Singleton {
     id: shell
     readonly property string fifo: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-shell"
 
-    // Un seul panneau de la fili-bar ouvert à la fois (fili-panel, fili-calendar, fili-notification-center): celui qui
-    // s'ouvre l'annonce ("panel", "calendar", "center"), les autres se ferment
+    // A single fili-bar panel open at a time (fili-panel, fili-calendar, fili-notification-center): the one that
+    // opens announces it ("panel", "calendar", "center"), the others close
     signal popupOpened(string who)
-    // Un fili-panel est ouvert (posé par FiliPanel): la fili-tooltip ne s'affiche pas
+    // A fili-panel is open (set by FiliPanel): the fili-tooltip is not shown
     property bool panelOpen: false
-    // Instant de la dernière fermeture d'un fili-panel (ms): la fili-tooltip attend un peu après, sinon elle surgit
-    // aussitôt sous la souris et on croirait à un bug
+    // Instant of the last closing of a fili-panel (ms): the fili-tooltip waits a little after it, otherwise it pops up
+    // at once under the mouse and looks like a bug
     property double panelClosedAt: 0
-    // Le fili-notification-center est ouvert (posé par FiliNotification)
+    // The fili-notification-center is open (set by FiliNotification)
     property bool centerOpen: false
-    // Un panneau de la barre est ouvert (fili-panel ou centre de notifications): ni fiche ni double clic
+    // A bar panel is open (fili-panel or notification center): neither card nor double click
     readonly property bool anyOpen: panelOpen || centerOpen
-    // Panneaux pilotés au clavier (Mod+A, flèches...): contours de l'élément choisi (FocusRing); oublié à la fermeture
+    // Panels driven from the keyboard (Mod+A, arrows...): outline of the chosen item (FocusRing); forgotten on closing
     property bool keyNav: false
     onAnyOpenChanged: {
         if (!anyOpen) {
@@ -47,21 +47,21 @@ Singleton {
 
     // bar refresh N
     signal refresh(int n)
-    // notification ..., menu ..., reload: élément visé, action et arguments
+    // notification ..., menu ..., reload: target, action and arguments
     signal command(string target, string action, var args)
-    // stat NOM JSON: nouvel état d'un module; dernier état gardé pour les barres créées ensuite (écran branché)
+    // stat NAME JSON: new state of a module; last state kept for the bars created later (screen plugged in)
     signal stat(string name, var data)
     readonly property var stats: ({})
-    // info SUJET JSON: réponse à request("info SUJET")
+    // info TOPIC JSON: reply to request("info TOPIC")
     signal info(string topic, var data)
 
-    // Requête à bar-stats (entrée standard), sans lancer de processus; ignorée sans bar-stats
+    // Request to bar-stats (standard input), without starting a process; ignored without bar-stats
     function request(line) {
         if (reader.running)
             reader.write(line + "\n");
     }
 
-    // Écrit une réponse dans le tuyau de la requête
+    // Write a reply to the pipe of the request
     function reply(path, text) {
         Quickshell.execDetached(["sh", "-c", 'printf "%s" "$1" > "$2"', "sh", text, path]);
     }
@@ -69,10 +69,10 @@ Singleton {
     Process {
         id: reader
         running: true
-        // Tuyau recréé à chaque démarrage, lecteur tué avec Quickshell (sinon un ancien lecteur volerait les commandes)
+        // Pipe recreated at every start, reader killed with Quickshell (otherwise an old reader would steal the commands)
         command: ["sh", "-c", 'f="$1"; rm -f "$f"; mkfifo -m 600 "$f" || exit 1; for d in "$2" /usr/bin; do [ -x "$d/bar-stats" ] && exec "$d/bar-stats" "$f"; done; exec setpriv --pdeathsig TERM cat 0<>"$f"',
             "sh", shell.fifo, FiliTheme.bin]
-        // Catalogue des traductions de bar-stats: celui du fili-shell (FiliI18n)
+        // Translation catalog of bar-stats: the one of the fili-shell (FiliI18n)
         environment: ({ FILI_I18N: Quickshell.shellDir + "/i18n" })
         stdinEnabled: true
         stdout: SplitParser {
@@ -108,7 +108,7 @@ Singleton {
         interval: 1000
         onTriggered: reader.running = true
     }
-    // Changement de langue (fili-lang): bar-stats relancé (il lit la langue au démarrage), modules des scripts relus
+    // Language change (fili-lang): bar-stats restarted (it reads the language at start), script modules re-read
     Connections {
         target: FiliI18n
         function onLangChanged() {

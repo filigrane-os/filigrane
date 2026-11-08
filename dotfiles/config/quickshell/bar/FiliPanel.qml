@@ -1,12 +1,12 @@
 pragma Singleton
-// fili-panel: fenêtre d'actions unique sous l'élément cliqué de la fili-bar (réseau, son, Bluetooth, alimentation,
-// moniteur), inspirée des panneaux d'Omarchy. Une vue à la fois, chargée à l'ouverture et libérée à la fermeture
-// (rien ne tourne panneau fermé). Fermeture: Échap, clic sur une fenêtre (perte du focus), clic sur la barre ou même
-// élément recliqué.
-// Utilisation: BarModule.togglePanel() (le module déclare panel et panelSource); FiliPanel.toggle(item, nom, fenêtreDeLaBarre) sinon
-// Clavier: Mod+A (`fili-shell panel toggle`) ouvre le dernier panneau ou ferme; ←/→ (Maj+←/→ sur un curseur, une rangée
-// de choix ou un champ) passe au panneau voisin dans l'ordre de la barre, fili-notification-center compris (ring);
-// ↑/↓ ou Tab/Maj+Tab d'élément en élément, Entrée ou Espace pour agir, Échap pour fermer.
+// fili-panel: the single action window under the clicked fili-bar item (network, sound, Bluetooth, power,
+// monitor), inspired by the Omarchy panels. One view at a time, loaded on opening and freed on closing
+// (nothing runs while the panel is closed). Closing: Escape, a click on a window (focus lost), a click on the bar or the
+// same item clicked again.
+// Usage: BarModule.togglePanel() (the module declares panel and panelSource); otherwise FiliPanel.toggle(item, name, barWindow)
+// Keyboard: Mod+A (`fili-shell panel toggle`) opens the last panel or closes; ←/→ (Shift+←/→ on a slider, a row
+// of choices or a field) goes to the neighbouring panel in bar order, fili-notification-center included (ring);
+// ↑/↓ or Tab/Shift+Tab from item to item, Enter or Space to act, Escape to close.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -20,12 +20,12 @@ Singleton {
     property real anchorX: 0
     property var screen: null
     readonly property bool open: view !== ""
-    // Vue chargée (tests)
+    // Loaded view (tests)
     property alias loaded: loader.item
     // Panel views by name, registered by the bar modules (BarModule.panel / panelSource)
     property var sources: ({})
 
-    // Dernier panneau ouvert (Mod+A le rouvre)
+    // Last panel opened (Mod+A reopens it)
     property string last: "monitor"
     // Bar module of each panel, by screen: a panel opened from the keyboard sits under it
     property var modules: ({})
@@ -78,7 +78,7 @@ Singleton {
         view = name;
         last = name;
     }
-    // Commande `fili-shell panel NOM|toggle|close` (raccourcis clavier): sous le module du panneau
+    // Command `fili-shell panel NAME|toggle|close` (keyboard shortcuts): under the module of the panel
     function summon(name) {
         if (name === "toggle") {
             if (open || FiliNotification.centerOpen) {
@@ -93,13 +93,13 @@ Singleton {
             openKeyed(name);
         }
     }
-    // Panneau voisin (d = ±1) dans l'ordre de la barre
+    // Neighbouring panel (d = ±1) in bar order
     function step(d) {
         const r = ring();
         const i = r.indexOf(FiliNotification.centerOpen ? "center" : view);
         openKeyed(r[(i + d + r.length) % r.length]);
     }
-    // Ouverture au clavier: sous le module de la barre de l'écran courant (premier écran à défaut), premier élément choisi
+    // Opening from the keyboard: under the bar module of the current screen (first screen by default), first item chosen
     function openKeyed(name) {
         FiliTooltip.hide();
         const s = screen?.name ?? Quickshell.screens[0]?.name ?? "";
@@ -121,15 +121,15 @@ Singleton {
     function close() {
         view = "";
     }
-    // Élément suivant (ou précédent) de la chaîne de focus d'une fenêtre, à partir de l'élément actif (from, lu par
-    // l'appelant: Window.activeFocusItem) ou de scope
+    // Next (or previous) item of the focus chain of a window, from the active item (from, read by the
+    // caller: Window.activeFocusItem) or from scope
     function moveFocus(scope, from, forward) {
         FiliShell.keyNav = true;
         const next = (from ?? scope).nextItemInFocusChain(forward);
         if (next && next !== scope && next.activeFocusOnTab)
             next.forceActiveFocus(forward ? Qt.TabFocusReason : Qt.BacktabFocusReason);
     }
-    // Premier élément de la vue, à l'ouverture au clavier
+    // First item of the view, when opened from the keyboard
     function focusFirst(scope) {
         const first = scope.nextItemInFocusChain(true);
         if (first && first !== scope && first.activeFocusOnTab)
@@ -144,8 +144,8 @@ Singleton {
         }
     }
 
-    // Fenêtre de la taille de la carte (pas de calque plein écran: 32 Mo d'image en moins tant qu'un panneau est ouvert).
-    // Clic ailleurs: niri donne le focus à une autre fenêtre, celle-ci perd le sien et le panneau se ferme.
+    // Window the size of the card (no full-screen layer: 32 MB of image less while a panel is open).
+    // Click elsewhere: niri gives the focus to another window, this one loses its own and the panel closes.
     PanelWindow {
         id: win
         visible: panel.open && !FiliTheme.testing
@@ -158,7 +158,7 @@ Singleton {
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-panel"
-        // Vue « passive » (visualiseur de clavier): pas de focus, la frappe de wtype arrive dans la fenêtre d'avant
+        // "Passive" view (keyboard viewer): no focus, the keystroke of wtype reaches the previous window
         WlrLayershell.keyboardFocus: panel.open && !(loader.item?.passive ?? false) ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
@@ -173,7 +173,7 @@ Singleton {
             Keys.onBacktabPressed: panel.moveFocus(scope, Window.activeFocusItem, false)
             Keys.onLeftPressed: panel.step(-1)
             Keys.onRightPressed: panel.step(1)
-            // Focus reçu à l'ouverture puis perdu (clic sur une fenêtre): fermeture
+            // Focus received on opening then lost (click on a window): close
             property bool held: false
             Window.onActiveChanged: {
                 if (Window.active)

@@ -1,14 +1,14 @@
 pragma Singleton
-// fili-launcher: lanceur et sélecteur façon `fuzzel --dmenu` (menu ~/.local/bin/menu, applications, minuteur, fili-ai),
-// appelé par `fili-shell launcher`. Liste filtrée au clavier, icônes (protocole dmenu étendu "texte\0icon\037chemin"),
-// invite seule pour une saisie libre. La fenêtre couvre l'écran (calque "fili-launcher", flouté par niri) et la boîte
-// est un voile à peine translucide au tiers haut (elle ne saute pas pendant le filtrage); le voile reste 250 ms après
-// un choix, avec la boîte figée, pour enchaîner les sous-menus sans clignoter. Aucune animation (brand.md),
-// sauf l'élan du défilement au pavé tactile (KineticScroll).
-// Lignes du menu: "glyphe  Libellé ›  ‹Touche›" mis en page (colonne d'icône, chevron de sous-menu, touche en
-// étiquette) plutôt qu'aligné par des espaces; la valeur rendue reste la ligne d'origine.
-// Entrée = choix (ou texte saisi sans correspondance), Échap = annuler (1), Maj+Retour arrière = revenir (10),
-// clic hors de la boîte = annuler.
+// fili-launcher: launcher and picker in the style of `fuzzel --dmenu` (menu ~/.local/bin/menu, applications, timer, fili-ai),
+// called by `fili-shell launcher`. List filtered from the keyboard, icons (extended dmenu protocol "text\0icon\037path"),
+// prompt alone for a free input. The window covers the screen ("fili-launcher" layer, blurred by niri) and the box
+// is a barely translucent veil in the upper third (it does not jump while filtering); the veil stays 250 ms after
+// a choice, with the box frozen, to chain submenus without flicker. No animation (brand.md),
+// except the momentum of touchpad scrolling (KineticScroll).
+// Menu rows: "glyph  Label ›  ‹Key›" laid out (icon column, submenu chevron, key as a
+// label) rather than aligned with spaces; the returned value stays the original line.
+// Enter = choose (or typed text without a match), Escape = cancel (1), Shift+Backspace = go back (10),
+// click outside the box = cancel.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -18,13 +18,13 @@ import Quickshell.Widgets
 
 Singleton {
     id: launcher
-    property var req: null      // options de la requête en cours (voir fili-shell)
+    property var req: null      // options of the current request (see fili-shell)
     property string replyTo: ""
     property var entries: []    // { accept, glyph, text, sub, key, icon, thumb }
     property var shown: []      // { e, score, hits }
     property int current: 0
     property bool open: false
-    // Texte saisi (lu et écrit par les tests)
+    // Typed text (read and written by the tests)
     property alias query: input.text
 
     readonly property color nuit2: FiliTheme.nuit2
@@ -33,14 +33,14 @@ Singleton {
     function finish(rc, text) {
         if (replyTo)
             FiliShell.reply(replyTo, rc + "\n" + (text ?? ""));
-        // req et shown gardés: la boîte reste figée pendant le linger, remplacée par la requête suivante.
-        // linger avant open = false: la fenêtre ne passe jamais invisible (surface détruite = clignotement)
+        // req and shown kept: the box stays frozen during the linger, replaced by the next request.
+        // linger before open = false: the window never becomes invisible (destroyed surface = flicker)
         linger.restart();
         replyTo = "";
         open = false;
     }
 
-    // Découpe une ligne affichée: glyphe Nerd Font en tête (zone d'usage privé), "‹Touche›" et chevron "›" en fin
+    // Split a displayed line: Nerd Font glyph first (private-use area), "‹Key›" and chevron "›" at the end
     function parse(label) {
         let text = label, glyph = "", key = "", sub = false;
         const g = text.match(/^([-]|[\uDB80-\uDBFF][\uDC00-\uDFFF])\s+/);
@@ -61,8 +61,8 @@ Singleton {
         return { glyph: glyph, text: text, key: key, sub: sub };
     }
 
-    // Requête lue en deux temps (fichiers lus de façon asynchrone par FileView, voir onLoaded plus bas):
-    // options, puis entrées, puis affichage
+    // Request read in two steps (files read asynchronously by FileView, see onLoaded below):
+    // options, then entries, then display
     property var pending: null
     property string pendingReply: ""
     function request(optsPath, reply) {
@@ -102,11 +102,11 @@ Singleton {
             const label = opts.withNth > 0 ? (cols[opts.withNth - 1] ?? text) : text;
             const p = parse(label);
             list.push({
-                // Mots-clés: colonne cherchée mais jamais affichée (Keywords des .desktop)
+                // Keywords: column searched but never displayed (Keywords of the .desktop files)
                 kw: opts.searchNth > 0 ? fold(cols[opts.searchNth - 1] ?? "") : "",
                 accept: opts.acceptNth > 0 ? (cols[opts.acceptNth - 1] ?? text) : text,
                 glyph: p.glyph, text: p.text, key: p.key, sub: p.sub,
-                // Fichier image (miniature de fond d'écran, icône d'appli en chemin) ou nom d'icône du thème
+                // Image file (wallpaper thumbnail, app icon as a path) or name of a theme icon
                 thumb: icon.startsWith("/") ? "file://" + icon : "",
                 icon: icon && !icon.startsWith("/") ? Quickshell.iconPath(icon, true) : ""
             });
@@ -120,8 +120,8 @@ Singleton {
         input.forceActiveFocus();
     }
 
-    // Correspondance: chaque mot de la saisie doit apparaître (sous-chaîne, sinon lettres dans l'ordre);
-    // score: début de libellé > début de mot > sous-chaîne > lettres dispersées. --no-sort garde l'ordre d'origine.
+    // Match: every word of the input must appear (substring, else letters in order);
+    // score: start of label > start of word > substring > scattered letters. --no-sort keeps the original order.
     // Accents folded, one character for one (é -> e), so that the highlighted positions still fit the label:
     // "regl" finds "Réglages"
     function fold(s) {
@@ -139,7 +139,7 @@ Singleton {
                     hits.push(i + k);
                 continue;
             }
-            // Mot-clé: début de mot dans les mots-clés (« file » -> Casier), derrière les correspondances du libellé
+            // Keyword: start of word in the keywords ("file" -> Casier), behind the matches of the label
             if (kw && (kw.startsWith(w) || kw.indexOf(" " + w) >= 0)) {
                 score += 150;
                 continue;
@@ -168,7 +168,7 @@ Singleton {
         shown = out;
         current = 0;
     }
-    // Lettres trouvées en voile (pas de gras, brand.md)
+    // Letters found in voile (no bold, brand.md)
     function rich(text, hits, sel) {
         const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/ /g, " ");
         if (!hits.length)
@@ -190,13 +190,13 @@ Singleton {
         current = Math.max(0, Math.min(shown.length - 1, current + d));
     }
 
-    // Invite fuzzel ("Style › ", "Minuteur: ", "› ") -> fil d'Ariane en capitales ("STYLE", "MENU")
+    // fuzzel prompt ("Style › ", "Timer: ", "› ") -> breadcrumb in capitals ("STYLE", "MENU")
     readonly property string crumb: {
         const p = (req?.prompt ?? "").replace(/[›:>\s]+$/, "").trim();
         return (p || FiliI18n.tr("Menu")).toUpperCase().replace(/\s*›\s*/g, "  ›  ");
     }
 
-    // Fichiers uniques par requête (mktemp), lus à chaque changement de chemin
+    // Unique files per request (mktemp), read at every path change
     FileView {
         id: optsFile
         printErrors: false
@@ -221,7 +221,7 @@ Singleton {
             if (target !== "launcher")
                 return;
             if (action === "open") {
-                // Options en JSON dans un fichier écrit par fili-shell (texte libre, accents compris)
+                // Options as JSON in a file written by fili-shell (free text, accents included)
                 launcher.request(args[0], args[1]);
             } else if (action === "close") {
                 const was = launcher.open;
@@ -232,7 +232,7 @@ Singleton {
         }
     }
 
-    // Touche de clavier en étiquette (raccourcis du menu, aide en pied)
+    // Keyboard key as a label (menu shortcuts, help in the footer)
     component KeyCap: Rectangle {
         property alias text: capText.text
         implicitWidth: capText.implicitWidth + 12
@@ -256,7 +256,7 @@ Singleton {
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.namespace: "fili-launcher"
         WlrLayershell.keyboardFocus: launcher.open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-        // Nuit profond à 35 %, flouté par niri (layer-rule fili-launcher)
+        // Deep night at 35 %, blurred by niri (layer-rule fili-launcher)
         color: FiliTheme.alpha(FiliTheme.nuitProfond, 0.35)
 
         MouseArea {
@@ -270,15 +270,15 @@ Singleton {
             readonly property int rowH: 40
             readonly property int pad: 18
             readonly property bool listMode: !launcher.req?.promptOnly
-            // Lignes: celles demandées, sans dépasser 70 % de la hauteur de l'écran
+            // Rows: the requested ones, without exceeding 70 % of the screen height
             readonly property int maxRows: Math.max(3, Math.floor((win.height * 0.7 - 150) / rowH))
             readonly property int rows: listMode ? Math.min(launcher.req?.lines ?? 12, maxRows, Math.max(1, launcher.shown.length)) : 0
-            // Largeur: 560 px, ou la largeur demandée en caractères (fili-ai, historique), dans la limite de l'écran
+            // Width: 560 px, or the width requested in characters (fili-ai, history), within the screen
             width: Math.min(win.width - 64, Math.max(560, (launcher.req?.width ?? 0) * 11))
             height: column.implicitHeight + 2 * pad
             x: (win.width - width) / 2
             y: Math.round(win.height * 0.2)
-            // Voile à peine translucide: le flou du bureau transparaît (brand.md, transparence)
+            // Barely translucent veil: the blur of the desktop shows through (brand.md, transparency)
             color: FiliTheme.alpha(FiliTheme.nuit, 0.94)
             radius: FiliTheme.radiusWindow
             border { width: 1; color: FiliTheme.nuit4 }
@@ -289,7 +289,7 @@ Singleton {
                 anchors { left: parent.left; right: parent.right; top: parent.top; margins: box.pad }
                 spacing: FiliTheme.space3
 
-                // Fil d'Ariane: étiquette Jost 500 en capitales espacées
+                // Breadcrumb: Jost 500 label in spaced capitals
                 Text {
                     text: launcher.crumb
                     color: FiliTheme.ardoise
@@ -386,7 +386,7 @@ Singleton {
                             radius: FiliTheme.radiusWindow
                             color: sel ? FiliTheme.nuit3 : "transparent"
 
-                            // Liseré voile de la sélection (comme l'espace de travail actif de la fili-bar)
+                            // Voile edge of the selection (like the active workspace of the fili-bar)
                             Rectangle {
                                 visible: row.sel
                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
@@ -399,10 +399,10 @@ Singleton {
                             RowLayout {
                                 anchors { fill: parent; leftMargin: FiliTheme.space3; rightMargin: FiliTheme.space3 }
                                 spacing: FiliTheme.space3
-                                // Colonne d'icône: glyphe du menu, icône du thème ou miniature
+                                // Icon column: menu glyph, theme icon or thumbnail
                                 Item {
                                     visible: row.e.glyph !== "" || row.e.icon !== "" || row.e.thumb !== ""
-                                    // Colonne de 24 px; 44 px pour une image large (miniature de fond d'écran)
+                                    // 24 px column; 44 px for a wide image (wallpaper thumbnail)
                                     implicitWidth: thumb.visible && thumb.implicitWidth > thumb.implicitHeight * 1.2 ? 44 : 24
                                     implicitHeight: 28
                                     Text {
@@ -459,7 +459,7 @@ Singleton {
                         }
                     }
 
-                    // Barre de défilement fine, seulement si la liste déborde
+                    // Thin scroll bar, only if the list overflows
                     Rectangle {
                         id: scroll
                         visible: list.contentHeight > list.height + 1
@@ -471,7 +471,7 @@ Singleton {
                         height: Math.max(24, list.visibleArea.heightRatio * list.height)
                     }
 
-                    // Aucun résultat
+                    // No result
                     Column {
                         visible: launcher.shown.length === 0
                         anchors.centerIn: parent
