@@ -4,7 +4,7 @@
 # `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind> [URL]` clears the
 # alert and opens the web app: the URL given by the AlertModule of the kind, else the web app of the list named like the kind.
 # Adding a web app: its name in ~/.config/webapps/notify, then an AlertModule in the user layer
-# (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/) and its name in the user's fili-bar.toml.
+# (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/, with a module.toml, or a bar plugin: docs/bar.md).
 #   mail: one line "sender<TAB>subject" per mail received since the last click
 #   cal:  one line "start epoch<TAB>HH:MM<TAB>title", shown until 5 minutes after the start
 # (those two kinds, with their service and URL, are defined in the user layer.)
