@@ -10,7 +10,7 @@ Item {
     // Repère pour les sections sœurs (voir refresh)
     readonly property bool isSection: true
     property bool first: true
-    // false: pas de filet (sections d'un même bloc, voir PanelDisplay)
+    // false: pas de filet (sections d'un même bloc, voir DisplayPanel)
     property bool divided: true
     readonly property bool ruled: divided && !first
 

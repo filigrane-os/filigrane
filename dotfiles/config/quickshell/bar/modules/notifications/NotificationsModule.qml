@@ -6,7 +6,7 @@ import qs.bar
 BarItem {
     objectName: "notifications"
     panel: "center"
-    text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
+    text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
     color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
     tip: ({
         title: FiliNotification.dnd ? FiliI18n.tr("Do not disturb") : FiliI18n.tr("Notifications"),

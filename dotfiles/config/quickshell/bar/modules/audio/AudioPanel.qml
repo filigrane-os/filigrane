@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell.Services.Pipewire
 import qs.bar
 import qs.controls
+import qs
 
 ColumnLayout {
     id: view
@@ -114,7 +115,7 @@ ColumnLayout {
     }
     // Égaliseur des haut-parleurs (DSP T2): seulement si le filtre est chargé; sound-tune garde les fréquences de coupure
     PanelSection { visible: view.hasDsp; text: FiliI18n.tr("EQUALIZER") }
-    PanelEqualizer { visible: view.hasDsp; Layout.fillWidth: true }
+    Equalizer { visible: view.hasDsp; Layout.fillWidth: true }
     PanelButton {
         Layout.topMargin: FiliTheme.space1
         glyph: ""

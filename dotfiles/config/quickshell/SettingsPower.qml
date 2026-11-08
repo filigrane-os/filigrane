@@ -1,7 +1,7 @@
 // Settings page "Power" (fili-settings): how long the computer waits, without activity, before it locks, turns the
 // screen off and goes to sleep. The delays live in ~/.config/filigrane/power.toml and are applied by
 // `bar-toggle idle set` (swayidle restarted at once, unless caffeine is on). Caffeine stays in the fili-panel
-// (PanelPower): it is frequent, instant and reversible.
+// (PowerPanel): it is frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io

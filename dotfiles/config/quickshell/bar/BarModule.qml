@@ -10,13 +10,18 @@ Item {
     property var bar: null
     // Name of the module's panel (FiliPanel), "" for none; it opens under anchorItem
     property string panel: ""
+    // QML file of the panel view (next to the module); loaded by FiliPanel when the panel opens
+    property url panelSource
     property Item anchorItem: mod
     implicitWidth: childrenRect.width
     implicitHeight: FiliTheme.barHeight
 
-    function togglePanel() {
-        FiliPanel.toggle(anchorItem, panel, bar);
+    // Open or close the panel, under item (default: anchorItem)
+    function togglePanel(item) {
+        FiliPanel.toggle(item ?? anchorItem, panel, bar);
     }
     Component.onCompleted: if (panel)
-        FiliPanel.register(panel, anchorItem, bar)
+        FiliPanel.register(panel, anchorItem, bar, panelSource)
+    Component.onDestruction: if (panel)
+        FiliPanel.unregister(panel, bar)
 }

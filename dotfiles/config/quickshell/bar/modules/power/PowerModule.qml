@@ -1,10 +1,18 @@
-// Batterie (sysfs, UPower absent): capacité et état relus chaque minute; avertissement <= 25 %, critique <= 10 %
+// Battery (sysfs, no UPower): capacity and state re-read every minute; warning <= 25 %, critical <= 10 %.
+// Click = power panel, right click = system menu (lock, sleep, quit...)
 import QtQuick
 import Quickshell.Io
 import qs
+import qs.bar
 
 BarItem {
     id: batt
+    objectName: "power"
+    panel: "power"
+    panelSource: Qt.resolvedUrl("PowerPanel.qml")
+    tipInfo: "power"
+    hover.onLeftClicked: togglePanel()
+    hover.rclick: "setsid -f " + FiliTheme.bin + "/menu system"
     readonly property string dir: "/sys/class/power_supply/BAT0"
     property int capacity: -1
     property string status: ""

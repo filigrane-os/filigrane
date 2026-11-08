@@ -6,6 +6,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
 import qs.controls
+import qs
 
 ColumnLayout {
     id: view

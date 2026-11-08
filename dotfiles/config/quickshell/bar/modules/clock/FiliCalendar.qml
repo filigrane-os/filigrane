@@ -6,6 +6,7 @@ import QtQuick.Controls
 import Quickshell
 import qs.bar
 import qs.controls
+import qs
 
 PopupWindow {
     id: cal

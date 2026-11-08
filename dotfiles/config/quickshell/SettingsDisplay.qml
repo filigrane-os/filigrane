@@ -7,7 +7,7 @@
 // "Identify" shows each output's name on its own screen. All connected outputs are listed, on or off; turning one on
 // beyond what the graphics card drives shows a message (turn another one off first). "Save" writes the kanshi
 // profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
-// the fili-panel (PanelDisplay): they are frequent, instant and reversible.
+// the fili-panel (DisplayPanel): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
 import qs.controls

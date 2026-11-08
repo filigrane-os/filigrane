@@ -865,7 +865,7 @@ ShellRoot {
                 FiliPanel.summon("toggle");
                 ok(FiliPanel.view === "network", "clavier: Mod+A rouvre le dernier panneau (réseau)", FiliPanel.view);
                 const m = FiliPanel.modules[Quickshell.screens[0].name] ?? {};
-                ok(FiliPanel.ring.every(n => m[n]), "clavier: chaque panneau connaît son module de la barre", Object.keys(m).join(","));
+                ok(FiliPanel.ring().every(n => m[n]), "clavier: chaque panneau connaît son module de la barre", Object.keys(m).join(","));
                 FiliPanel.close();
             },
             () => FiliPanel.summon("keyboard"),

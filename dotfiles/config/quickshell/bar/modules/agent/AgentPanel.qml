@@ -5,6 +5,7 @@ import QtQuick
 import QtQuick.Layouts
 import qs.bar
 import qs.controls
+import qs
 
 ColumnLayout {
     id: view

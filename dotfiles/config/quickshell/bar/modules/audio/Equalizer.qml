@@ -6,6 +6,7 @@ import QtQuick.Layouts
 import Quickshell.Io
 import qs.bar
 import qs.controls
+import qs
 
 ColumnLayout {
     id: eq

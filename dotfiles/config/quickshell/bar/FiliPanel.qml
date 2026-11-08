@@ -3,7 +3,7 @@ pragma Singleton
 // moniteur), inspirée des panneaux d'Omarchy. Une vue à la fois, chargée à l'ouverture et libérée à la fermeture
 // (rien ne tourne panneau fermé). Fermeture: Échap, clic sur une fenêtre (perte du focus), clic sur la barre ou même
 // élément recliqué.
-// Utilisation: FiliPanel.toggle(item, "network"|"audio"|"bluetooth"|"power"|"agent"|"monitor"|"keyboard"|"display", fenêtreDeLaBarre)
+// Utilisation: BarModule.togglePanel() (le module déclare panel et panelSource); FiliPanel.toggle(item, nom, fenêtreDeLaBarre) sinon
 // Clavier: Mod+A (`fili-shell panel toggle`) ouvre le dernier panneau ou ferme; ←/→ (Maj+←/→ sur un curseur, une rangée
 // de choix ou un champ) passe au panneau voisin dans l'ordre de la barre, fili-notification-center compris (ring);
 // ↑/↓ ou Tab/Maj+Tab d'élément en élément, Entrée ou Espace pour agir, Échap pour fermer.
@@ -22,23 +22,48 @@ Singleton {
     readonly property bool open: view !== ""
     // Vue chargée (tests)
     property alias loaded: loader.item
-    // Views still live at the shell root during the move to bar/modules (step 3 of the module refactoring)
-    readonly property var views: ({
-        network: Qt.resolvedUrl("../PanelNetwork.qml"), audio: Qt.resolvedUrl("../PanelAudio.qml"), bluetooth: Qt.resolvedUrl("../PanelBluetooth.qml"),
-        power: Qt.resolvedUrl("../PanelPower.qml"), agent: Qt.resolvedUrl("../PanelAgent.qml"), monitor: Qt.resolvedUrl("../PanelMonitor.qml"),
-        keyboard: Qt.resolvedUrl("../PanelKeyboard.qml"), display: Qt.resolvedUrl("../PanelDisplay.qml")
-    })
+    // Panel views by name, registered by the bar modules (BarModule.panel / panelSource)
+    property var sources: ({})
 
     // Dernier panneau ouvert (Mod+A le rouvre)
     property string last: "monitor"
-    // Ordre des panneaux au clavier (←/→): celui des modules de la barre; "center" = fili-notification-center
-    readonly property var ring: ["monitor", "agent", "audio", "keyboard", "display", "bluetooth", "network", "center", "power"]
-    // Module de la barre de chaque panneau, par écran: le panneau ouvert au clavier se place sous lui
+    // Bar module of each panel, by screen: a panel opened from the keyboard sits under it
     property var modules: ({})
-    function register(name, item, win) {
+    function register(name, item, win, source) {
         const s = win?.screen?.name ?? "";
         modules[s] = modules[s] ?? {};
         modules[s][name] = { item: item, win: win };
+        if (source)
+            sources[name] = source;
+    }
+    function unregister(name, win) {
+        const s = win?.screen?.name ?? "";
+        if (modules[s])
+            delete modules[s][name];
+    }
+    // Position of an item in the item tree: the child indices from the window root (the order of the modules in the
+    // bar, whatever the layout state or the creation order)
+    function treePath(item) {
+        const path = [];
+        for (let i = item; i && i.parent; i = i.parent)
+            path.unshift(Array.from(i.parent.children).indexOf(i));
+        return path;
+    }
+    function compareTree(a, b) {
+        for (let i = 0; i < Math.min(a.length, b.length); i++)
+            if (a[i] !== b[i])
+                return a[i] - b[i];
+        return a.length - b.length;
+    }
+    // Panels in keyboard order (←/→): the order of the modules in the bar (current screen, else the first);
+    // "center" = fili-notification-center
+    function ring() {
+        const s = screen?.name ?? Quickshell.screens[0]?.name ?? "";
+        const m = modules[s] ?? Object.values(modules)[0] ?? {};
+        const path = {};
+        for (const n in m)
+            path[n] = treePath(m[n].item);
+        return Object.keys(m).sort((a, b) => compareTree(path[a], path[b]));
     }
 
     function toggle(item, name, win) {
@@ -64,14 +89,15 @@ Singleton {
             }
         } else if (name === "close" || view === name) {
             close();
-        } else if (name in views) {
+        } else if (name in sources) {
             openKeyed(name);
         }
     }
     // Panneau voisin (d = ±1) dans l'ordre de la barre
     function step(d) {
-        const i = ring.indexOf(FiliNotification.centerOpen ? "center" : view);
-        openKeyed(ring[(i + d + ring.length) % ring.length]);
+        const r = ring();
+        const i = r.indexOf(FiliNotification.centerOpen ? "center" : view);
+        openKeyed(r[(i + d + r.length) % r.length]);
     }
     // Ouverture au clavier: sous le module de la barre de l'écran courant (premier écran à défaut), premier élément choisi
     function openKeyed(name) {
@@ -173,7 +199,7 @@ Singleton {
                     id: loader
                     objectName: "panel-view"
                     anchors { fill: parent; margins: FiliTheme.space5 }
-                    source: panel.open ? panel.views[panel.view] : ""
+                    source: panel.open ? (panel.sources[panel.view] ?? "") : ""
                     onLoaded: if (FiliShell.keyNav) Qt.callLater(() => panel.focusFirst(scope))
                 }
             }
