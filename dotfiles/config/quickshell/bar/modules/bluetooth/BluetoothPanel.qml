@@ -14,6 +14,39 @@ ColumnLayout {
     readonly property var adapter: Bluetooth.defaultAdapter
     readonly property var devices: adapter ? adapter.devices.values.filter(d => d.name && (d.paired || d.connected || adapter.discovering)) : []
 
+    // Quickshell registers no BlueZ pairing agent, so Device.pair() is refused: fili-bt-pair has
+    // bluetoothctl register one (just works), then trusts and connects.
+    property bool pairing: false
+    readonly property var pairCommand: pairProc.command
+    // Device in a transitional state: clicks are ignored
+    function busy(d) {
+        return pairing || d.pairing || d.state === BluetoothDeviceState.Connecting || d.state === BluetoothDeviceState.Disconnecting;
+    }
+    // Click on a device: connect / disconnect (pair first if new); right click: forget
+    function activate(d, button) {
+        if (busy(d))
+            return;
+        if (button === Qt.RightButton)
+            d.forget();
+        else if (d.connected)
+            d.disconnect();
+        else if (!d.paired)
+            pairDevice(d.address);
+        else
+            d.connect();
+    }
+    function pairDevice(addr) {
+        if (pairing)
+            return;
+        pairing = true;
+        pairProc.command = [FiliTheme.bin + "/fili-bt-pair", addr];
+        pairProc.running = true;
+    }
+    Process {
+        id: pairProc
+        onRunningChanged: if (!running) view.pairing = false
+    }
+
     RowLayout {
         Layout.fillWidth: true
         Text {
@@ -61,20 +94,7 @@ ColumnLayout {
                 : modelData.state === BluetoothDeviceState.Disconnecting ? FiliI18n.tr("disconnecting…")
                 : modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
                 : modelData.paired ? FiliI18n.tr("paired") : FiliI18n.tr("new")
-            // click: connect / disconnect (pair first if new); right click: forget
-            onClicked: b => {
-                if (busy) {
-                    return;
-                } else if (b === Qt.RightButton) {
-                    modelData.forget();
-                } else if (modelData.connected) {
-                    modelData.disconnect();
-                } else if (!modelData.paired) {
-                    modelData.pair();
-                } else {
-                    modelData.connect();
-                }
-            }
+            onClicked: b => view.activate(modelData, b)
         }
     }
     Text {

@@ -1,0 +1,20 @@
+#!/bin/sh
+# fili-bt-pair ADDRESS: pair, trust and connect a Bluetooth device ("just works").
+# Quickshell registers no BlueZ pairing agent, so the fili-bar panel delegates pairing to
+# bluetoothctl, which registers one for the duration of the `pair` command.
+# $FILI_BTCTL overrides the bluetoothctl command (tests).
+BTCTL="${FILI_BTCTL:-bluetoothctl}"
+addr="$1"
+case "$addr" in
+    [0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]:[0-9A-Fa-f][0-9A-Fa-f]) ;;
+    *) echo "usage: fili-bt-pair AA:BB:CC:DD:EE:FF" >&2; exit 2 ;;
+esac
+$BTCTL pairable on >/dev/null 2>&1
+out="$($BTCTL --timeout 40 --agent NoInputNoOutput pair "$addr" 2>&1)"
+case "$out" in
+    *"Pairing successful"*|*"AlreadyExists"*) ;;
+    *) echo "$out" | tail -3 >&2; echo "pairing failed" >&2; exit 1 ;;
+esac
+$BTCTL trust "$addr" >/dev/null 2>&1
+$BTCTL connect "$addr" >/dev/null 2>&1
+exit 0

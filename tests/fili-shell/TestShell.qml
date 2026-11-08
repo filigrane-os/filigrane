@@ -7,6 +7,7 @@
 //@ pragma Env QT_QUICK_BACKEND=software
 import QtQuick
 import Quickshell
+import Quickshell.Bluetooth
 import Quickshell.Io
 import qs
 import qs.bar
@@ -723,6 +724,21 @@ ShellRoot {
                 FiliTheme.ran = [];
                 bt.sendTo({ id: "AA:BB:CC:DD:EE:FF", name: "Tel d'Alex" });
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-share send bluetooth 'AA:BB:CC:DD:EE:FF' 'Tel d'\\''Alex'", "fili-panel bluetooth: envoi -> fili-share send (noms quotés)", JSON.stringify(FiliTheme.ran));
+                // Pairing a new device goes through fili-bt-pair (BlueZ agent), once at a time
+                FiliPanel.view = "bluetooth";
+                const bt2 = FiliPanel.loaded;
+                bt2.pairDevice("AA:BB:CC:DD:EE:01");
+                // Click handler on fake devices: right branch for each state, no exception
+                bt2.pairing = false;
+                const log = [];
+                const dev = o => Object.assign({ address: "AA:BB:CC:DD:EE:02", pairing: false, state: 0, connected: false, paired: true,
+                    connect: () => log.push("connect"), disconnect: () => log.push("disconnect"), forget: () => log.push("forget") }, o);
+                bt2.activate(dev({}), Qt.LeftButton);
+                bt2.activate(dev({ connected: true }), Qt.LeftButton);
+                bt2.activate(dev({}), Qt.RightButton);
+                bt2.activate(dev({ state: BluetoothDeviceState.Connecting }), Qt.LeftButton);
+                ok(JSON.stringify(log) === '["connect","disconnect","forget"]', "fili-panel bluetooth: clic -> connect / disconnect / forget, ignoré si occupé", JSON.stringify(log));
+                ok(JSON.stringify(bt2.pairCommand) === JSON.stringify([FiliTheme.bin + "/fili-bt-pair", "AA:BB:CC:DD:EE:01"]), "fili-panel bluetooth: appairage -> fili-bt-pair", JSON.stringify(bt2.pairCommand));
                 FiliPanel.close();
             },
             // fili-panel clavier: visualiseur (touches de fili-keymap, frappe wtype) et emoji (copie + frappe)
