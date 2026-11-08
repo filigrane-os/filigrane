@@ -9,6 +9,8 @@ import qs
 
 ColumnLayout {
     id: view
+    // Settings page opened by the gear at the top right of the panel (FiliPanel)
+    readonly property string settingsPage: "power"
     spacing: FiliTheme.space1
     // Caffeine: automatic lock turned off (swayidle stopped, see bar-toggle idle)
     property bool caffeine: false
@@ -64,12 +66,4 @@ ColumnLayout {
         }
     }
 
-    // Foot: the idle delays are in the settings window, on the page of this module
-    PanelSection { text: FiliI18n.tr("MORE") }
-    PanelButton {
-        objectName: "open-settings"
-        glyph: ""
-        label: FiliI18n.tr("Power settings…")
-        onClicked: FiliSettings.show("power")
-    }
 }

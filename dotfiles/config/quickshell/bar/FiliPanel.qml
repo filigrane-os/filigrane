@@ -12,6 +12,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs
+import qs.controls
 
 Singleton {
     id: panel
@@ -24,6 +25,8 @@ Singleton {
     readonly property bool open: view !== ""
     // Loaded view (tests)
     property alias loaded: loader.item
+    // Settings gear of the card (tests)
+    property alias gearButton: gear
     // Panel views by name, registered by the bar modules (BarModule.panel / panelSource)
     property var sources: ({})
 
@@ -227,6 +230,43 @@ Singleton {
                     anchors { fill: parent; margins: FiliTheme.space5 }
                     source: panel.open ? (panel.sources[panel.view] ?? "") : ""
                     onLoaded: if (FiliShell.keyNav) Qt.callLater(() => panel.focusFirst(scope))
+                }
+                // Gear at the top right: opens the settings page of the view (the view declares settingsPage)
+                Rectangle {
+                    id: gear
+                    objectName: "open-settings"
+                    readonly property string page: loader.item?.settingsPage ?? ""
+                    visible: page !== ""
+                    anchors { top: parent.top; right: parent.right; topMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
+                    width: 24
+                    height: 24
+                    radius: FiliTheme.radiusControl
+                    color: gearArea.containsMouse ? FiliTheme.nuit3 : "transparent"
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Button
+                    Accessible.name: FiliI18n.tr("Settings…")
+                    function press(button) {
+                        const p = page;
+                        panel.close();
+                        FiliSettings.show(p);
+                    }
+                    Keys.onReturnPressed: { FiliShell.keyNav = true; press(Qt.LeftButton); }
+                    Keys.onEnterPressed: { FiliShell.keyNav = true; press(Qt.LeftButton); }
+                    Keys.onSpacePressed: { FiliShell.keyNav = true; press(Qt.LeftButton); }
+                    FocusRing {}
+                    Text {
+                        anchors.centerIn: parent
+                        text: "\uf013"
+                        color: gearArea.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                    }
+                    MouseArea {
+                        id: gearArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: gear.press(Qt.LeftButton)
+                    }
                 }
             }
         }

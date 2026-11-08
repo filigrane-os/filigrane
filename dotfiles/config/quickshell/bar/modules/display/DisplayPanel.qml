@@ -10,6 +10,8 @@ import qs
 
 ColumnLayout {
     id: view
+    // Settings page opened by the gear at the top right of the panel (FiliPanel)
+    readonly property string settingsPage: "display"
     spacing: FiliTheme.space1
     property real screen: -1
 
@@ -77,12 +79,4 @@ ColumnLayout {
         }
     }
 
-    // Foot: the rarely changed settings are in the settings window, on the page of this module
-    PanelSection { text: FiliI18n.tr("MORE") }
-    PanelButton {
-        objectName: "open-settings"
-        glyph: ""
-        label: FiliI18n.tr("Display settings…")
-        onClicked: FiliSettings.show("display")
-    }
 }

@@ -10,6 +10,8 @@ import qs
 
 ColumnLayout {
     id: view
+    // Settings page opened by the gear at the top right of the panel (FiliPanel)
+    readonly property string settingsPage: "language"
     spacing: FiliTheme.space1
     // "layouts" | "viewer" | "emoji"
     property string page: "layouts"
@@ -177,15 +179,7 @@ ColumnLayout {
         label: FiliI18n.tr("Emoji")
         onClicked: view.page = "emoji"
     }
-    // Foot: the session language is set once, in the settings window
     PanelSection { visible: view.page === "layouts"; text: FiliI18n.tr("MORE") }
-    PanelButton {
-        objectName: "open-settings"
-        visible: view.page === "layouts"
-        glyph: ""
-        label: FiliI18n.tr("Language settings…")
-        onClicked: FiliSettings.show("language")
-    }
     PanelButton {
         objectName: "open-hotkeys"
         visible: view.page === "layouts"

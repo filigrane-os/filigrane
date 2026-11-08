@@ -702,8 +702,8 @@ ShellRoot {
             // fili-settings: page list, page loaded on opening and freed on closing, foot of the display panel
             () => {
                 FiliPanel.view = "display";
-                t.find(FiliPanel.loaded, "open-settings").press(Qt.LeftButton);
-                ok(FiliSettings.open && !FiliPanel.open && FiliSettings.page === "display", "fili-settings: le pied du panneau écran ouvre la page Écran, panneau fermé", FiliSettings.page);
+                FiliPanel.gearButton.press(Qt.LeftButton);
+                ok(FiliSettings.open && !FiliPanel.open && FiliSettings.page === "display", "fili-settings: l'engrenage du panneau écran ouvre la page Écran, panneau fermé", FiliSettings.page);
                 ok(FiliSettings.loaded !== null && FiliSettings.pages.length > 0 && FiliSettings.pages.every(p => p.label !== ""), "fili-settings: page chargée, pages nommées");
                 FiliSettings.show("inconnue");
                 ok(FiliSettings.page === "display", "fili-settings: page inconnue ignorée", FiliSettings.page);
@@ -1315,7 +1315,7 @@ ShellRoot {
             // Right click on the bar background: position of the bar and shortcut to the settings
             wait(() => FiliPanel.openBarMenu(t.bar, 100, 10), () => FiliPanel.loaded !== null && t.find(FiliPanel.loaded, "bar-edge") !== null, 5000),
             () => {
-                ok(FiliPanel.view === "barmenu" && t.find(FiliPanel.loaded, "open-settings") !== null && t.find(FiliPanel.loaded, "bar-screens") !== null, "fili-bar: clic droit -> panneau position, écrans de la barre + réglages");
+                ok(FiliPanel.view === "barmenu" && FiliPanel.gearButton.visible && FiliPanel.gearButton.page === "bar" && t.find(FiliPanel.loaded, "bar-screens") !== null, "fili-bar: clic droit -> panneau position, écrans de la barre + réglages");
                 FiliPanel.close();
             },
             // Script plugin: a manifest with a cmd, no QML

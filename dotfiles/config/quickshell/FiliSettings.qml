@@ -1,11 +1,11 @@
 pragma Singleton
 // fili-settings ("Réglages" for the user, alias of Settings; its About card is the last page): the settings that are set once, in a window centred on the screen. A list of
 // pages on the left, one per module of the fili-bar (Display, Sound, Network...), the chosen page on the right. The
-// frequent, instant and reversible settings stay in the fili-panel of their module, whose foot opens the matching page
+// frequent, instant and reversible settings stay in the fili-panel of their module, whose gear (top right) opens the matching page
 // here (`FiliSettings.show("display")`). Pages are loaded when the window opens and freed when it closes (nothing runs
 // while it is closed). Unlike a fili-panel, it is a window: it closes on Esc or with the button at the top right, never
 // when it loses focus (a change pending confirmation is reverted by its page, see SettingsDisplay).
-// Opening: `fili-shell settings [PAGE]`, the foot of a fili-panel, menu > System > Settings.
+// Opening: `fili-shell settings [PAGE]`, the gear of a fili-panel, menu > System > Settings.
 // Keyboard: Tab / Shift+Tab through the page list then the page, Enter acts, Esc closes.
 import QtQuick
 import QtQuick.Layouts
