@@ -319,13 +319,13 @@ menu_language() {
 menu_system() {
     arg="$1"
     while :; do
-        act="${arg:-$(choose 'System › ' 9 'Lock' 'Sleep' 'USB drives' 'Language' 'Settings' 'About' 'Log out' 'Reboot' 'Power off')}"
+        act="${arg:-$(choose 'System › ' 9 'Lock' 'Sleep' 'USB drives' 'Language' 'Réglages' 'About' 'Log out' 'Reboot' 'Power off')}"
         [ -n "$act" ] || { cancel; return $BACK; }
         case "$act" in
             Lock) exec "$HOME/.local/bin/lock" ;;
             "USB drives") menu_usb; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
             Language) menu_language; rc=$?; [ "$rc" = "$BACK" ] || return $rc ;;
-            Settings) "$HOME/.local/bin/fili-shell" settings; return 0 ;;
+            Settings|Réglages) "$HOME/.local/bin/fili-shell" settings; return 0 ;;
             About) "$HOME/.local/bin/fili-shell" about; return 0 ;;
             Sleep) sudo -n zzz; return 0 ;;
             "Log out") confirm "$(t 'Log out')" && exec niri msg action quit --skip-confirmation ;;
@@ -596,7 +596,6 @@ actions_list() {
     item 'System: Lock' "$I_LOCK"
     item 'System: Sleep' "$I_SLEEP"
     item 'System: Language' "$I_GLOBE"
-    item 'System: Settings' "$I_GEAR"
     item 'System: About' "$I_INFO"
     item 'System: Log out' "$I_LOGOUT"
     item 'System: Reboot' "$I_REBOOT"

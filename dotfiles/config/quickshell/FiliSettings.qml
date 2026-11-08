@@ -1,5 +1,5 @@
 pragma Singleton
-// fili-settings ("Settings" for the user): the settings that are set once, in a window centred on the screen. A list of
+// fili-settings ("Réglages" for the user, alias of Settings; its About card is the last page): the settings that are set once, in a window centred on the screen. A list of
 // pages on the left, one per module of the fili-bar (Display, Sound, Network...), the chosen page on the right. The
 // frequent, instant and reversible settings stay in the fili-panel of their module, whose foot opens the matching page
 // here (`FiliSettings.show("display")`). Pages are loaded when the window opens and freed when it closes (nothing runs
@@ -25,7 +25,8 @@ Singleton {
         { id: "display", label: FiliI18n.tr("Display"), source: "SettingsDisplay.qml" },
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
-        { id: "files", label: "Casier", source: "SettingsFiles.qml" }
+        { id: "files", label: "Casier", source: "SettingsFiles.qml" },
+        { id: "about", label: FiliI18n.tr("About"), source: "SettingsAbout.qml" }
     ]
     readonly property var current: pages.find(p => p.id === page) ?? pages[0]
 

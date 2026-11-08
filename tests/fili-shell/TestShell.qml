@@ -651,6 +651,14 @@ ShellRoot {
                 ok(FiliTheme.ran[1] === "/usr/bin/fili-file spare off" && !d.resident, "fili-settings casier: spare off", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings About: the card of Réglages (alias), aka fili-settings
+            () => {
+                FiliSettings.show("about");
+                const d = FiliSettings.loaded;
+                ok(d !== null && d.name === "Réglages" && d.aka === "fili-settings", "fili-settings about: name Réglages, aka fili-settings", d ? d.name : "null");
+                ok(d.rows[0][0] === "Also known as" && d.rows.every(r => r[1] !== ""), "fili-settings about: aka row and no empty value");
+                FiliSettings.close();
+            },
             // fili-settings power: idle delays, a choice writes the three delays with bar-toggle idle set
             () => {
                 FiliSettings.show("power");
