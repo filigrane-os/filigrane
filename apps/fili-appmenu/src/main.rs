@@ -1,6 +1,6 @@
 //! fili-appmenu: menu de l'application active pour la fili-bar (menu global à la Mac OS X).
 //!
-//! Appelé à la demande par le widget (FiliAppMenu.qml), rien ne reste résident. Le widget sait déjà quelle fenêtre a
+//! Appelé à la demande par le widget (AppMenu.qml, bar/modules/appmenu/), rien ne reste résident. Le widget sait déjà quelle fenêtre a
 //! le focus (Niri.qml); ce programme ne fait que parler à AT-SPI:
 //!
 //!   fili-appmenu menu PID [TITRE]      barre de menus de l'application (JSON), `null` si elle n'en expose pas

@@ -48,7 +48,7 @@ done
 python3 - <<'PY' || rc=1
 import glob, json, re, sys
 keys = set()
-for f in glob.glob("dotfiles/config/quickshell/*.qml"):
+for f in glob.glob("dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("users/*/dotfiles/config/quickshell/**/*.qml", recursive=True):
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\bFili(?:I18n)?\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
 for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs") + glob.glob("apps/fili-automount/src/*.rs"):
     src = open(f).read().split("#[cfg(test)]")[0]
