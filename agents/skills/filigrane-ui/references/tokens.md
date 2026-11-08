@@ -18,7 +18,7 @@ Police d'interface Jost (variable, tous les poids), code et terminaux JetBrains 
 
 - Intertitres de section des fili-panel et étiquettes : capitales espacées (0,12-0,16 em), 12 px, couleur ardoise (`PanelSection`). **[Filigrane]**
 - Grands titres et nom (fili-about, écran d'accueil, ≥ 18 px) : Jost Light 300. Le Light ne descend pas sous 18 px. **[Filigrane]**
-- Terminaux (foot, alacritty) : JetBrains Mono 12 px (9 pt), pas 13. À taille égale JetBrains Mono paraît plus grand que Jost (hauteur d'x 0,55 em contre 0,46, capitales 0,73 contre 0,70) : à 12 px sa hauteur d'x vaut 6,6 px et ses capitales 8,8 px, contre 6,0 et 9,1 pour Jost 13. Les polices en points (`size=` de foot, `size` d'alacritty, `gtk-font-name`) valent 4/3 px : Jost 10 pt de GTK = 13,3 px, déjà l'échelle système ; foot s'écrit en `pixelsize=` pour rester en pixels. **[Filigrane]**
+- Terminal (foot) : JetBrains Mono 12 px (9 pt), pas 13. À taille égale JetBrains Mono paraît plus grand que Jost (hauteur d'x 0,55 em contre 0,46, capitales 0,73 contre 0,70) : à 12 px sa hauteur d'x vaut 6,6 px et ses capitales 8,8 px, contre 6,0 et 9,1 pour Jost 13. Les polices en points (`size=` de foot, `gtk-font-name`) valent 4/3 px : Jost 10 pt de GTK = 13,3 px, déjà l'échelle système ; foot s'écrit en `pixelsize=` pour rester en pixels. **[Filigrane]**
 - Police du système (`fontconfig/conf.d/61-fili-sans.conf`) : `sans-serif` et `system-ui` donnent Jost, `monospace` donne JetBrains Mono, pour que les applications tierces (Chrome, GTK, Qt) restent dans la seule police d'interface. Une application qui demande une police précise la garde ; le texte des pages web reste celui du site. **[Filigrane]**
 - Ne jamais réduire une taille pour faire tenir du texte : couper, tronquer avec infobulle, ou élargir. **[Apple]**
 
@@ -75,8 +75,8 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 | `color-disabled` | `ardoise` | `#5f7894` | `#5f7894` |
 
 - Les noms gardent leur rôle d'un mode à l'autre (`nuit` = fond, `brume` = texte, `voile` = accent). Mode clair optionnel : `fili-theme light|dark`, choisi dans le fili-panel écrans (APPARENCE). Contraste des états clairs ≥ 4,8:1 sur papier.
-- Valeurs dans `dotfiles/config/quickshell/FiliTheme.qml`, `[colors-light]` de `foot.ini`, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond clair `filigrane-clair.png`. Alacritty, zellij, swaylock et Plymouth restent sombres.
-- Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par alacritty, nvim via catppuccin `color_overrides`, zellij).
+- Valeurs dans `dotfiles/config/quickshell/FiliTheme.qml`, `[colors-light]` de `foot.ini`, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond clair `filigrane-clair.png`. zellij, swaylock et Plymouth restent sombres.
+- Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par nvim via catppuccin `color_overrides`, zellij).
 - Couleur d'accentuation (`fili-theme accent <nom>`, fili-panel écrans, état `~/.local/state/filigrane/accent`): `voile` et `voileVif` suivent `FiliTheme.accentTones`. Choix: `default` (sable en sombre, ardoise en clair), `voile`, `ardoise`, `sauge`, `sable`, `cendre`, `brume`. Elle colore aussi l'anneau de focus niri (`theme.kdl` généré), les dossiers et la barre latérale de fili-file. Elle colore aussi le curseur de foot (fenêtres nouvelles), le verrou et la sélection GTK3/GTK4 (accent.css, relu au redémarrage des applications GTK4).
 - Icônes: thème `Filigrane-Icons` (`scripts/icon-theme.sh`: dossiers et glyphes de Nordic-Slot-Dark-Icons, le reste d'Adwaita en symboliques recolorés par fili-file). Pas de Papirus.
 - Un composant prend un token ; jamais une couleur littérale quand un token convient.

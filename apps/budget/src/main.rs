@@ -103,7 +103,7 @@ fn limits() -> Limits {
         system_mb: 1024,
         process_mb: 150,
         apps: ["chrome", "chromium", "firefox", "claude", "node", "podman", "conmon", "qemu"].map(String::from).to_vec(),
-        terminals: ["foot", "alacritty"].map(String::from).to_vec(),
+        terminals: ["foot"].map(String::from).to_vec(),
         per: HashMap::new(),
     };
     let dir = env::var("XDG_CONFIG_HOME").map(PathBuf::from).unwrap_or_else(|_| home().join(".config"));

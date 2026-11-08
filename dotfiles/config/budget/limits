@@ -10,4 +10,4 @@ system 1024
 process 150
 limit niri 250
 apps chrome chromium firefox claude node podman conmon qemu
-terminals foot alacritty
+terminals foot
