@@ -1,12 +1,12 @@
 #!/bin/sh
-# Régénère icons/Filigrane-Icons (dans le dépôt, GPL v3) à partir de Nordic-Slot-Dark-Icons: seulement les
-# dossiers (places/scalable), les glyphes (places/16, places/symbolic, mimetypes/symbolic), file.svg (icône des fichiers) et les dossiers à la couleur
-# d'accentuation (folder-accent-<accent>.svg, folder-dark-default.svg, folder-light-default.svg, choisis par fili-file).
-# Le reste (types de fichiers, applications) vient d'Adwaita puis hicolor. Papirus n'est plus utilisé.
-# Seulement pour mettre à jour le thème: l'installation (scripts/icon-theme.sh) copie icons/Filigrane-Icons tel quel.
-# COPYING, README.md et mimetypes/scalable/file.svg (icône des fichiers, dessin propre à Filigrane) du dossier sont conservés.
-# Usage: icon-theme.sh [dossier ou archive .tar.xz de Nordic-Slot-Dark-Icons]
-# Sans argument: ~/.local/share/icons/Nordic-Slot-Dark-Icons, sinon ~/Downloads/Nordic-Slot-Dark-Icons.tar.xz.
+# Regenerates icons/Filigrane-Icons (in the repository, GPL v3) from Nordic-Slot-Dark-Icons: only the
+# folders (places/scalable), the glyphs (places/16, places/symbolic, mimetypes/symbolic), file.svg (file icon) and the folders in the
+# accent colour (folder-accent-<accent>.svg, folder-dark-default.svg, folder-light-default.svg, chosen by fili-file).
+# The rest (file types, applications) comes from Adwaita then hicolor. Papirus is no longer used.
+# Only to update the theme: the installation (scripts/icon-theme.sh) copies icons/Filigrane-Icons as it is.
+# COPYING, README.md and mimetypes/scalable/file.svg (file icon, Filigrane's own drawing) of the folder are kept.
+# Usage: icon-theme.sh [folder or .tar.xz archive of Nordic-Slot-Dark-Icons]
+# Without an argument: ~/.local/share/icons/Nordic-Slot-Dark-Icons, else ~/Downloads/Nordic-Slot-Dark-Icons.tar.xz.
 # Idempotent.
 set -eu
 dest="$(cd "$(dirname "$0")/.." && pwd)/icons/Filigrane-Icons"
@@ -31,17 +31,17 @@ find "$dest" -mindepth 1 -maxdepth 1 ! -name COPYING ! -name README.md -exec rm 
 mkdir -p "$dest/places" "$dest/mimetypes/scalable" "$dest/devices/symbolic"
 cp -a "$src/places/scalable" "$src/places/16" "$src/places/symbolic" "$dest/places/"
 cp -a "$src/mimetypes/symbolic" "$dest/mimetypes/"
-# Icône par défaut d'un fichier (file.svg, celle du dépôt si elle existe, sinon application-x-generic de Nordic) et glyphes des appareils
+# Default icon of a file (file.svg, the one of the repository if it exists, else Nordic application-x-generic) and device glyphs
 if [ -n "$keep" ]; then mv "$keep" "$dest/mimetypes/scalable/file.svg"; else cp "$src/mimetypes/scalable/application-x-generic.svg" "$dest/mimetypes/scalable/file.svg"; fi
 for n in computer drive-harddisk drive-removable-media; do cp "$src/devices/symbolic/$n-symbolic.svg" "$dest/devices/symbolic/"; done
 d="$dest/places/scalable"
-# Variantes de Nordic les plus proches de chaque teinte (voir FiliTheme.qml, accentTones)
+# Nordic variants closest to each shade (see FiliTheme.qml, accentTones)
 for pair in voile:blue ardoise:grey sauge:green sable:yellow cendre:red; do
     cp "$d/folder-${pair#*:}.svg" "$d/folder-accent-${pair%%:*}.svg"
 done
-# brume (presque blanc): pas de variante en scalable, recoloration de folder-blue (devant, derrière)
+# brume (almost white): no scalable variant, recolouring of folder-blue (front, back)
 sed -e 's/#5e81ac/#dbe7f4/g' -e 's/#456487/#a9b8c8/g' "$d/folder-blue.svg" > "$d/folder-accent-brume.svg"
-# Accent par défaut: brume en sombre, noir en clair
+# Default accent: brume in dark, black in light
 cp "$d/folder-accent-brume.svg" "$d/folder-dark-default.svg"
 cp "$d/folder-black.svg" "$d/folder-light-default.svg"
 

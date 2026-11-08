@@ -1,21 +1,18 @@
 #!/bin/bash
-# Construit le dépôt xbps de la distribution dans distro/out/repo (sans root):
-#   <distro>-<app>   un paquet par outil de apps/ (Rust, binaire en release dans /usr/bin): plus besoin de cargo sur la machine.
-#                    Version = celle de Cargo.toml, révision _N = nombre de commits touchant apps/<app> (donc une mise à jour
-#                    par changement de l'outil, sans bump à la main). Dépendances et description: apps/<app>/package.env
-#   <distro>-apps    méta-paquet qui dépend de tous les outils (bootstrap.sh et <distro>-desktop s'appuient dessus)
-#   <distro>-<liste> un méta-paquet par packages/<liste>.txt (base, desktop, dev, vm, baremetal, cpu-*, gpu-*...):
-#                    ajouter un paquet à une liste le fait arriver chez tout le monde par `xbps-install -Su`
-#
-#   distro/build-repo.sh [--arch x86_64] [--app NOM]
-#
-# --app NOM: ne construit que ce paquet (NOM = dossier de apps/), sans les méta-paquets: itération rapide.
-# FILI_TARGET_DIR: dossier cible de cargo, à garder entre deux appels pour ne pas tout recompiler
-# (par défaut ~/.cache/filigrane-apps, celui de bootstrap.sh).
-# Un outil déjà présent à la même version n'est pas reconstruit, sauf s'il a des modifications non commitées.
-# FILI_REUSE=1: même règle pour tous les paquets, méta-paquets compris (CI de publication, voir .github/workflows/repo.yml).
-#
-# Signature (dépôt publié en ligne): XBPS_PRIVKEY=<clé RSA PEM> distro/build-repo.sh. Un dépôt local (ISO) peut rester non signé.
+# Builds the xbps repository of the distribution in distro/out/repo (without root):
+# <distro>-<app>   one package per tool of apps/ (Rust, release binary in /usr/bin): no more cargo needed on the machine.
+# Version = the one of Cargo.toml, revision _N = number of commits touching apps/<app> (hence one update
+# per change of the tool, without a manual bump). Dependencies and description: apps/<app>/package.env
+# <distro>-apps    meta-package that depends on all the tools (bootstrap.sh and <distro>-desktop rely on it)
+# <distro>-<list> one meta-package per packages/<list>.txt (base, desktop, dev, vm, baremetal, cpu-*, gpu-*...):
+# adding a package to a list makes it reach everyone through the next system update
+# distro/build-repo.sh [--arch x86_64] [--app NAME]
+# --app NAME: only builds that package (NAME = folder of apps/), without the meta-packages: quick iteration.
+# FILI_TARGET_DIR: cargo target folder, to keep between two calls so as not to recompile everything
+# (default ~/.cache/filigrane-apps, the one of bootstrap.sh).
+# A tool already present at the same version is not rebuilt, unless it has uncommitted changes.
+# FILI_REUSE=1: same rule for all the packages, meta-packages included (publishing CI, see .github/workflows/repo.yml).
+# Signing (repository published online): XBPS_PRIVKEY=<PEM RSA key> distro/build-repo.sh. A local repository (ISO) can stay unsigned.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -35,16 +32,16 @@ TARGET="${FILI_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Version des méta-paquets: date et heure du dernier commit (croît à chaque changement poussé), _1 = révision xbps
+# Version of the meta-packages: date and time of the last commit (grows with every pushed change), _1 = xbps revision
 VERSION="0.$(git -C "$ROOT" log -1 --format=%cd --date=format:%Y%m%d.%H%M 2>/dev/null || date +%Y%m%d.%H%M)"
 mkdir -p "$OUT"
 
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
 
-create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [options xbps-create]; license: $LICENSE_OF (default MIT)
+create() { # create NAME VERSION_REV ARCH "description" "dependencies" DESTDIR [xbps-create options]; license: $LICENSE_OF (default MIT)
     local name="$1" ver="$2" arch="$3" desc="$4" deps="$5" dest="$6"; shift 6
-    # FILI_REUSE=1 (CI de publication): un paquet déjà là à cette version reste tel quel, pour que son empreinte
-    # dans l'index reste celle du fichier déjà en ligne
+    # FILI_REUSE=1 (publishing CI): a package already there at this version stays as it is, so that its hash
+    # in the index stays the one of the file already online
     if [ -n "${FILI_REUSE:-}" ] && [ -f "$OUT/$name-$ver.$arch.xbps" ]; then echo "$name-$ver.$arch"; echo "$name-$ver.$arch.xbps" >>"$WORK/made.txt"; return 0; fi
     rm -f "$OUT/$name-$ver.$arch.xbps"
     (cd "$OUT" && xbps-create -q -A "$arch" -n "$name-$ver" -s "$desc" -D "$deps" \
@@ -53,7 +50,7 @@ create() { # create NOM VERSION_REV ARCH "description" "dépendances" DESTDIR [o
     echo "$name-$ver.$arch.xbps" >>"$WORK/made.txt"
 }
 
-# Nom du paquet: le dossier de apps/, préfixé par <distro>- s'il ne l'est pas (budget -> fili-budget, évite les collisions avec Void)
+# Package name: the folder of apps/, prefixed by <distro>- if it is not (budget -> fili-budget, avoids collisions with Void)
 pkg_name() { case "$1" in "$DISTRO"-*) echo "$1" ;; *) echo "$DISTRO-$1" ;; esac; }
 
 # Source directory of a tool: apps/<app>, or the pinned checkout of a tool that lives in its own repository
@@ -62,7 +59,7 @@ src_dir() {
     if [ -f "$ROOT/apps/$1/upstream" ]; then "$ROOT/scripts/upstream-dir" "$1"; else echo "$ROOT/apps/$1"; fi
 }
 
-# Version xbps d'un outil: <version Cargo>_<commits qui touchent apps/<app>> (+1 si modifié et non commité)
+# xbps version of a tool: <Cargo version>_<commits that touch apps/<app>> (+1 if modified and uncommitted)
 app_version() {
     local app="$1" v rev
     v="$(sed -n 's/^version *= *"\(.*\)".*/\1/p' "$(src_dir "$app")/Cargo.toml" | head -1)"
@@ -72,7 +69,7 @@ app_version() {
     echo "${v}_${rev}"
 }
 
-build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
+build_app() { # build_app APP -> writes the package name in $WORK/apps.list
     local app="$1" dir pkg ver dest dirty="" override
     dir="$(src_dir "$app")"
     pkg="$(pkg_name "$app")"
@@ -86,7 +83,7 @@ build_app() { # build_app APP -> écrit le nom du paquet dans $WORK/apps.list
         echo "==> $pkg-$ver: déjà construit"; echo "$pkg-$ver.$ARCH.xbps" >>"$WORK/made.txt"; return 0
     fi
     echo "==> $pkg-$ver"
-    # Réglages du paquet (facultatif): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Défaut: un binaire Rust qui ne lie que la libc.
+    # Package settings (optional): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Default: a Rust binary that only links libc.
     local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT"
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
@@ -129,20 +126,20 @@ else
         "$(sed 's/$/>=0/' "$WORK/apps.list" | tr '\n' ' ')" "$empty" >/dev/null
 
     echo "==> $DISTRO-repo (adresse du dépôt et clé de signature)"
-    # Les machines tiennent leur configuration xbps de ce paquet: changer DISTRO_REPO_URL puis publier = nouvelle adresse partout.
-    # La clé publique (distro/repo/keys/<empreinte>.plist) évite la question d'import au premier xbps-install.
+    # The machines take their xbps configuration from this package: changing DISTRO_REPO_URL then publishing = new address everywhere.
+    # The public key (distro/repo/keys/<fingerprint>.plist) avoids the import question at the first install.
     rdest="$WORK/repo"
     mkdir -p "$rdest/etc/xbps.d" "$rdest/var/db/xbps/keys"
     printf '# Dépôt de la distribution %s (paquet %s-repo)\nrepository=%s\n' "$DISTRO" "$DISTRO" "$DISTRO_REPO_URL" >"$rdest/etc/xbps.d/10-$DISTRO.conf"
     cp "$ROOT"/distro/repo/keys/*.plist "$rdest/var/db/xbps/keys/"
-    # Pas de --config-files: xbps ne remplace jamais un fichier de configuration déjà présent (celui de bootstrap.sh, par
-    # exemple), et l'adresse doit suivre le paquet. Réglage local: un autre fichier de /etc/xbps.d (20-local.conf...).
+    # No --config-files: xbps never replaces a configuration file that is already there (the one of bootstrap.sh, for
+    # example), and the address must follow the package. Local setting: another file of /etc/xbps.d (20-local.conf...).
     create "$DISTRO-repo" "${VERSION}_1" noarch "Dépôt xbps de $DISTRO: adresse et clé de signature" "" "$rdest" >/dev/null
 
     echo "==> Méta-paquets (packages/*.txt)"
     for list in "$ROOT"/packages/*.txt; do
         l="$(basename "$list" .txt)"
-        [ "$l" = restricted ] && continue  # licences sans redistribution: xbps-src en local
+        [ "$l" = restricted ] && continue  # licences without redistribution: xbps-src locally
         deps="$(read_list "$list" | sed 's/$/>=0/' | tr '\n' ' ')"
         [ "$l" = desktop ] && deps="$deps $DISTRO-apps>=${VERSION}_1"
         [ "$l" = base ] && deps="$deps $DISTRO-repo>=0"
@@ -158,11 +155,11 @@ if [ -z "$ONLY" ] && [ -s "$WORK/made.txt" ]; then
         grep -qxF "$(basename "$f")" "$WORK/made.txt" || { echo "removed (not built any more): $(basename "$f")"; rm -f "$f" "$f.sig2"; }
     done
 fi
-# Index refait depuis les fichiers présents: un paquet reconstruit sous la même version aurait sinon gardé l'ancienne empreinte
+# Index rebuilt from the files present: a package rebuilt under the same version would otherwise have kept the old hash
 rm -f "$OUT"/*-repodata "$OUT"/*-stagedata
 xbps-rindex -a "$OUT"/*.xbps >/dev/null
-xbps-rindex -r "$OUT" >/dev/null  # entrées dont le fichier a disparu retirées de l'index...
-xbps-rindex -c "$OUT" >/dev/null  # ...et fichiers périmés (plus dans l'index) retirés du disque
+xbps-rindex -r "$OUT" >/dev/null  # entries whose file disappeared removed from the index...
+xbps-rindex -c "$OUT" >/dev/null  # ...and stale files (no longer in the index) removed from the disk
 if [ -n "${XBPS_PRIVKEY:-}" ]; then
     xbps-rindex --sign --signedby "$DISTRO" --privkey "$XBPS_PRIVKEY" "$OUT"
     xbps-rindex --sign-pkg --privkey "$XBPS_PRIVKEY" "$OUT"/*.xbps

@@ -1,16 +1,15 @@
 #!/bin/bash
-# Retour au noyau précédent si le dernier casse le matériel T2 (clavier, Wi-Fi, Touch Bar...).
-#
-#   t2-rollback [VERSION]   bloque les mises à jour du noyau (xbps hold), met VERSION (défaut: l'avant-dernier
-#                           noyau installé) en tête du menu "Void Linux" de Limine, propose de redémarrer
-#   t2-rollback --undo      débloque les mises à jour et revient au noyau le plus récent
-#   t2-rollback --status
+# Back to the previous kernel if the latest one breaks the T2 hardware (keyboard, Wi-Fi, Touch Bar...).
+# t2-rollback [VERSION]   blocks the kernel updates (xbps hold), puts VERSION (default: the second-to-last
+# installed kernel) at the top of the Limine "Void Linux" menu, offers to reboot
+# t2-rollback --undo      unblocks the updates and goes back to the most recent kernel
+# t2-rollback --status
 set -euo pipefail
 PIN_FILE=/etc/void-setup/kernel-pin
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 
 installed() { limine-void status | sed -n 's/^installés: //p' | tr ' ' '\n' | grep -v '^$'; }
-kernel_pkgs() { # paquets fournissant le noyau le plus récent et ses en-têtes (ex. linux6.18 linux6.18-headers)
+kernel_pkgs() { # packages providing the most recent kernel and its headers (e.g. linux6.18 linux6.18-headers)
     local v pkg
     v="$(installed | tail -n 1)"
     pkg="$(xbps-query -o "/boot/vmlinuz-$v" | cut -d: -f1 | sed -E 's/-[^-]+_[0-9]+$//')"

@@ -1,13 +1,10 @@
 #!/bin/bash
-# ISO live de la distribution (console, x86_64 UEFI et BIOS) avec void-mklive, l'outil officiel de Void:
-# base Void + dépôt embarqué (distro/out/repo) + copie générique du dépôt (sans users/) + installateur <distro>-install.
-# L'installation télécharge le reste depuis les miroirs Void (pas de copie hors ligne des 650 paquets).
-#
-#   distro/build-repo.sh && sudo distro/build-iso.sh
-#
-# Outils de l'hôte (mklive.sh ne les vérifie pas): kmod lzo liblz4 dosfstools e2fsprogs squashfs-tools xorriso
-#
-# SERIAL=1: console et connexion sur le port série en plus (test de démarrage dans QEMU, CI).
+# Live ISO of the distribution (console, x86_64 UEFI and BIOS) with void-mklive, the official Void tool:
+# Void base + embedded repository (distro/out/repo) + generic copy of the repository (without users/) + <distro>-install installer.
+# The installation downloads the rest from the Void mirrors (no offline copy of the 650 packages).
+# distro/build-repo.sh, then distro/build-iso.sh as root
+# Host tools (mklive.sh does not check them): kmod lzo liblz4 dosfstools e2fsprogs squashfs-tools xorriso
+# SERIAL=1: console and login on the serial port as well (boot test in QEMU, CI).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,7 +26,7 @@ INC="$(mktemp -d)"
 trap 'rm -rf "$INC"' EXIT
 SRC="$INC/usr/share/$DISTRO/filigrane"
 mkdir -p "$SRC" "$INC/usr/bin" "$INC/etc"
-# Fichiers suivis par git (modifications locales comprises), sans les couches personnelles
+# Files tracked by git (local changes included), without the personal layers
 (cd "$ROOT" && git ls-files -z --cached --others --exclude-standard | grep -zv '^users/' | tar --null -T - -cf -) | tar -xf - -C "$SRC"
 mkdir -p "$SRC/distro/out"
 cp -a "$REPO" "$SRC/distro/out/repo"
@@ -50,7 +47,7 @@ if [ "${SERIAL:-0}" = 1 ]; then
     cmdline="$cmdline console=tty0 console=ttyS0,115200"
 fi
 iso="$OUT/$DISTRO-live-$ARCH-$(date +%Y%m%d).iso"
-# Paquets du live: ce qu'utilise install-void.sh (parted, mkfs, git, curl) et les outils natifs
+# Live packages: what the installer uses (disk tools, git, curl) and the native tools
 (cd "$MK" && ./mklive.sh -a "$ARCH" -r "$REPO" -r "$VOID_REPO" \
     -p "git curl parted dosfstools e2fsprogs wpa_supplicant $DISTRO-apps" \
     -I "$INC" -S "$services" -C "$cmdline" -T "$DISTRO_TITLE" -o "$iso")

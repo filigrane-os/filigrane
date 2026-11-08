@@ -1,7 +1,7 @@
 name: Distribution
 
-# Dépôt xbps de la distribution et ISO live (distro/), puis démarrage de l'ISO dans QEMU.
-# Sur main (la distribution a quitté la branche distro) et à la demande; l'ISO est gardée 7 jours en artefact.
+# xbps repository of the distribution and live ISO (distro/), then boot of the ISO in QEMU.
+# On main (the distribution left the distro branch) and on demand; the ISO is kept 7 days as an artifact.
 on:
   push:
     branches: [main]

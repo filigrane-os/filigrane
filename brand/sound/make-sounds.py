@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Génère les sons de Filigrane (WAV stéréo 32 kHz, synthèse pure, sans dépendance).
+"""Generates the Filigrane sounds (32 kHz stereo WAV, pure synthesis, no dependency).
 
-Usage: make-sounds.py DOSSIER [NOM...]   (sans NOM: tous)
-Idée: le bruit du papier et de l'écriture, jamais une cloche: sourd, discret, sans aigus stridents. Bruit filtré
-et petits chocs graves, un peu d'écho alterné gauche/droite pour l'air, volume bas. `note` (cloche de verre) reste
-disponible pour d'autres sons.
+Usage: make-sounds.py FOLDER [NAME...]   (without NAME: all)
+Idea: the sound of paper and writing, never a bell: dull, discreet, no shrill treble. Filtered noise
+and small low thumps, a little left/right alternating echo for air, low volume. `note` (glass bell) stays
+available for other sounds.
 """
 import math
 import struct
@@ -12,7 +12,7 @@ import sys
 import wave
 
 SR = 32000
-PARTIALS = [(1.0, 1.0, 1.0), (2.76, 0.30, 0.55), (5.40, 0.10, 0.35), (8.93, 0.04, 0.22)]  # (rapport, niveau, durée relative)
+PARTIALS = [(1.0, 1.0, 1.0), (2.76, 0.30, 0.55), (5.40, 0.10, 0.35), (8.93, 0.04, 0.22)]  # (ratio, level, relative duration)
 
 
 def note(freq, dur, detune=0.0, attack=0.006, bright=1.0):
@@ -45,7 +45,7 @@ def mix(notes, total):
 
 
 def lowpass(buf, cutoff):
-    """Passe-bas à deux pôles (12 dB/octave): étouffe les aigus."""
+    """Two-pole low-pass (12 dB/octave): muffles the treble."""
     a = 1 - math.exp(-2 * math.pi * cutoff / SR)
     for _ in range(2):
         y = 0.0
@@ -56,7 +56,7 @@ def lowpass(buf, cutoff):
 
 
 def finish(buf, peak=0.42):
-    # écho: 3 répétitions affaiblies, alternées gauche/droite
+    # echo: 3 weakened repetitions, alternating left/right
     n = len(buf) + int(SR * 0.4)
     left = buf + [0.0] * (n - len(buf))
     right = list(left)
@@ -103,7 +103,7 @@ def highpass(buf, cutoff):
 
 
 def grain(dur, seed, low, high, decay):
-    """Grain de bruit filtré (passe-bande low..high Hz) à enveloppe exponentielle: un « tac » ou un froissement."""
+    """Grain of filtered noise (band-pass low..high Hz) with an exponential envelope: a \"tick\" or a rustle."""
     n = int(SR * dur)
     g = noise(n, seed)
     g = highpass(lowpass(g, high), low)
@@ -111,20 +111,20 @@ def grain(dur, seed, low, high, decay):
 
 
 def thump(freq, dur, decay):
-    """Petit choc grave (la touche qui frappe le rouleau)."""
+    """Small low thump (the key hitting the roller)."""
     n = int(SR * dur)
     return [math.sin(2 * math.pi * freq * i / SR) * math.exp(-i / (SR * decay)) for i in range(n)]
 
 
 def key(seed, hard=1.0):
-    """Une frappe de machine à écrire: choc sourd + claquement mat."""
+    """A typewriter keystroke: dull thud + flat click."""
     t = thump(150, 0.05, 0.012)
     c = grain(0.05, seed, 700, 3200, 0.006)
     return [(a * 0.9 + b * 0.8) * hard for a, b in zip(t + [0.0] * 4000, c + [0.0] * 4000)][:int(SR * 0.06)]
 
 
 def hum(freq, dur, decay, harmonics=6):
-    """Ronflement électrique: fondamentale + harmoniques (dent de scie adoucie), qui s'éteint vite."""
+    """Electric hum: fundamental + harmonics (softened sawtooth), which dies out quickly."""
     n = int(SR * dur)
     out = [0.0] * n
     for h in range(1, harmonics + 1):
@@ -135,7 +135,7 @@ def hum(freq, dur, decay, harmonics=6):
 
 
 def sweep(f0, f1, dur, level=1.0):
-    """Glissando sinusoïdal de f0 à f1 (montée d'un appareil qui se met sous tension), enveloppe en cloche."""
+    """Sinusoidal glissando from f0 to f1 (a device powering up), bell-shaped envelope."""
     n = int(SR * dur)
     ph = 0.0
     out = []
@@ -147,7 +147,7 @@ def sweep(f0, f1, dur, level=1.0):
 
 
 def sparks(dur, seed, density=90.0):
-    """Étincelles: craquements très brefs et secs, plus nombreux au début."""
+    """Sparks: very short, dry crackles, more numerous at the start."""
     rnd = random.Random(seed)
     n = int(SR * dur)
     out = [0.0] * n
@@ -169,8 +169,8 @@ def click(seed):
 
 
 SOUNDS = {
-    # « Frappe »: deux touches de machine à écrire, étouffées (choc sourd + claquement mat), à 0,11 s. Notification.
-    # Candidats pour le chargeur branché (électrique, discret)
+    # "Typing": two typewriter keys, muffled (dull thud + flat click), at 0.11 s. Notification.
+    # Candidates for the charger plugged in (electric, discreet)
     "contact": lambda: finish(lowpass(mix([(0.0, click(11), 1.0), (0.02, hum(100, 0.22, 0.07), 0.35)], 0.45), 3800), peak=0.40),
     "arc": lambda: finish(lowpass(mix([(0.0, click(12), 0.8), (0.0, sparks(0.18, 4), 0.8), (0.05, sweep(300, 1400, 0.26), 0.35)], 0.5), 4200), peak=0.40),
     "charge": lambda: finish(lowpass(mix([(0.0, click(13), 0.7), (0.03, sweep(420, 640, 0.12), 0.45), (0.15, sweep(520, 860, 0.16), 0.45)], 0.45), 2600), peak=0.38),

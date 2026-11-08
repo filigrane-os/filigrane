@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# Retire le mot de passe du trousseau "Default keyring" (gnome-keyring), comme Omarchy.
-# Le disque est chiffré (LUKS) et la session s'ouvre en autologin: le trousseau ne peut pas être
-# déverrouillé par PAM, et un mot de passe n'ajouterait que l'invite "Authentication required".
-# Demande l'ancien mot de passe (non affiché, jamais écrit sur disque) et le remplace par un vide.
-# Prérequis: python3-gobject. L'appel interne exige une session Secret Service ouverte sur la même
-# connexion D-Bus, d'où Python plutôt que busctl.
+# Removes the password of the "Default keyring" (gnome-keyring), like Omarchy.
+# The disk is encrypted (LUKS) and the session opens with autologin: the keyring cannot be
+# unlocked by PAM, and a password would only add the "Authentication required" prompt.
+# Asks for the old password (not displayed, never written to disk) and replaces it with an empty one.
+# Prerequisite: python3-gobject. The internal call requires a Secret Service session open on the same
+# D-Bus connection, hence Python rather than busctl.
 import getpass, os, shutil, sys, time
 from gi.repository import Gio, GLib
 
@@ -23,7 +23,7 @@ def call(path, iface, method, args, sig):
     return bus.call_sync(NAME, path, iface, method, GLib.Variant(sig, args), None,
                          Gio.DBusCallFlags.NONE, -1, None)
 
-# Session "plain": les secrets passent en clair sur le bus de session (local à l'utilisateur)
+# "plain" session: the secrets go in clear over the session bus (local to the user)
 _, session = call("/org/freedesktop/secrets", "org.freedesktop.Secret.Service", "OpenSession",
                   ("plain", GLib.Variant("s", "")), "(sv)").unpack()
 try:

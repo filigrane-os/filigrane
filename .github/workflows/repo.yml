@@ -1,9 +1,9 @@
 name: Dépôt xbps
 
-# Construit les paquets de la distribution dans un conteneur Void (même glibc que les machines), les signe et les publie
-# comme assets de la release « repo » (adresse stable: .../releases/download/repo/). Incrémental: les paquets déjà publiés
-# sont téléchargés d'abord, build-repo.sh ne reconstruit que ceux dont la version a changé; seuls les nouveaux sont envoyés.
-# Secret requis: XBPS_PRIVKEY (clé RSA PEM). Sans lui, rien n'est publié (jamais de dépôt non signé en ligne).
+# Builds the packages of the distribution in a Void container (same glibc as the machines), signs them and publishes them
+# as assets of the "repo" release (stable address: .../releases/download/repo/). Incremental: the packages already published
+# are downloaded first, build-repo.sh only rebuilds those whose version changed; only the new ones are uploaded.
+# Required secret: XBPS_PRIVKEY (RSA PEM key). Without it, nothing is published (never an unsigned repository online).
 on:
   push:
     branches: [main, develop]
@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # la révision d'un paquet compte les commits de l'outil
+          fetch-depth: 0  # the revision of a package counts the commits of the tool
       - name: Clé de signature présente
         env:
           XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
@@ -69,9 +69,9 @@ jobs:
           cd distro/out/repo
           gh release view "$TAG" --json assets --jq '.assets[].name' | sort > "$RUNNER_TEMP/remote.txt"
           ls | sort > "$RUNNER_TEMP/local.txt"
-          # 1. nouveaux paquets et leurs signatures (le nom contient la version: jamais d'écrasement)
+          # 1. new packages and their signatures (the name contains the version: never overwritten)
           comm -13 "$RUNNER_TEMP/remote.txt" "$RUNNER_TEMP/local.txt" | grep -v 'repodata' | xargs -r gh release upload "$TAG"
-          # 2. index et sa signature: le dépôt bascule d'un coup
+          # 2. index and its signature: the repository switches in one go
           gh release upload "$TAG" --clobber ./*repodata*
           # 3. anciennes versions
           comm -23 "$RUNNER_TEMP/remote.txt" "$RUNNER_TEMP/local.txt" | xargs -r -n1 gh release delete-asset "$TAG" --yes

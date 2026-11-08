@@ -44,7 +44,7 @@ for catalog in lib/i18n/*.sh; do
         grep -qxF -- "$key" <<<"$all_messages" || { echo "$lang: unused entry: $key"; rc=1; }
     done < <(sed -n "s/^    '\\(.*\\)') _t_fmt=.*/\\1/p" "$catalog")
 done
-# fili-shell: catalogues JSON partagés par le QML et bar-stats
+# fili-shell: JSON catalogs shared by the QML and bar-stats
 python3 - <<'PY' || rc=1
 import glob, json, re, sys
 keys = set()

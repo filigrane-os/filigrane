@@ -1,6 +1,6 @@
 #!/bin/sh
-# Installe le thème d'icônes Filigrane-Icons (icons/Filigrane-Icons, GPL v3) dans ~/.local/share/icons, pour GTK
-# et fili-file. Régénération du dossier depuis Nordic-Slot-Dark-Icons: scripts/icon-theme-build.sh. Idempotent.
+# Installs the Filigrane-Icons icon theme (icons/Filigrane-Icons, GPL v3) in ~/.local/share/icons, for GTK
+# and fili-file. Regenerating the folder from Nordic-Slot-Dark-Icons: scripts/icon-theme-build.sh. Idempotent.
 set -eu
 src="$(cd "$(dirname "$0")/.." && pwd)/icons/Filigrane-Icons"
 dest="$HOME/.local/share/icons/Filigrane-Icons"

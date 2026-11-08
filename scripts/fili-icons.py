@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-# Génère la police « Fili Icons » (dotfiles/home/.local/share/fonts/FiliIcons.ttf): icônes Lucide au trait fin
-# (https://lucide.dev, licence ISC) placées sur les codes Font Awesome / Nerd Font déjà utilisés par la fili-bar,
-# les scripts (bar-status, bar-tray...), le fili-launcher et le menu. Une règle fontconfig (dotfiles/config/fontconfig)
-# la fait passer devant Font Awesome derrière Jost: aucun script à changer, un code non couvert retombe sur Font Awesome.
-# Icônes réduites et centrées sur la hauteur des capitales de Jost (Lucide occupe tout l'em).
-#
-# Usage: scripts/fili-icons.py [lucide.ttf info.json]   (sans argument: télécharge lucide-static VERSION)
-# Après régénération (ou relien des polices par bootstrap.sh): relancer Quickshell (`pkill quickshell`, la boucle de niri le
-# relance), sinon son cache de polices perd Fili Icons et la barre retombe sur Font Awesome plein (icônes épaisses).
-# Ajouter une icône: une ligne dans MAP (code utilisé -> nom Lucide, voir https://lucide.dev/icons), relancer.
-# Dépendance de développement: fonttools (packages/dev.txt).
+# Generates the "Fili Icons" font (dotfiles/home/.local/share/fonts/FiliIcons.ttf): thin-stroke Lucide icons
+# (https://lucide.dev, ISC licence) placed on the Font Awesome / Nerd Font codes already used by the fili-bar,
+# the scripts (bar-status, bar-tray...), the fili-launcher and the menu. A fontconfig rule (dotfiles/config/fontconfig)
+# puts it before Font Awesome behind Jost: no script to change, an uncovered code falls back to Font Awesome.
+# Icons reduced and centred on the cap height of Jost (Lucide fills the whole em).
+# Usage: scripts/fili-icons.py [lucide.ttf info.json]   (without arguments: downloads lucide-static VERSION)
+# After regeneration (or after bootstrap.sh relinks the fonts): restart Quickshell (`pkill quickshell`, the niri loop restarts
+# it), otherwise its font cache loses Fili Icons and the bar falls back to full Font Awesome (thick icons).
+# Adding an icon: a line in MAP (code used -> Lucide name, see https://lucide.dev/icons), run again.
+# Development dependency: fonttools (packages/dev.txt).
 import json
 import os
 import sys
@@ -24,25 +23,25 @@ from fontTools.ttLib import TTFont
 VERSION = "0.460.0"
 OUT = os.path.join(os.path.dirname(__file__), "..", "dotfiles/home/.local/share/fonts/FiliIcons.ttf")
 
-# Échelle et position: 85 % de l'em, centré sur la mi-hauteur des capitales de Jost (700 / 2)
+# Scale and position: 85 % of the em, centred on the mid-height of the Jost capitals (700 / 2)
 SCALE = 0.85
 CENTER_Y = 350
 ADVANCE = 950
 
-# Icônes de sujet des sessions de fili-chat: l'IA en choisit une par son nom (apps/fili-chat, TOPICS, même ordre), le code
-# est 0xF2000 + position. 0xF2F00 et suivants: boutons du tiroir (liste des sessions, réglages).
+# Topic icons of the fili-chat sessions: the AI picks one by its name (apps/fili-chat, TOPICS, same order), the code
+# is 0xF2000 + position. 0xF2F00 and following: drawer buttons (session list, settings).
 TOPICS = [
     "message-circle", "terminal", "code", "bug", "git-branch", "package", "wrench", "settings", "wifi", "volume-2",
     "monitor", "keyboard", "hard-drive", "cpu", "database", "shield", "key", "globe", "mail", "calendar",
     "file-text", "folder", "image", "music", "video", "book-open", "palette", "printer", "download", "search",
     "lightbulb", "rocket", "map", "shopping-cart", "graduation-cap", "calculator", "clock", "sparkles", "archive",
     "battery-full", "bluetooth", "languages",
-    # sujets de la vie courante (ajouter à la fin: les icônes déjà choisies gardent leur code)
+    # everyday-life topics (add at the end: the icons already chosen keep their code)
     "car", "plane", "house", "heart-pulse", "wallet", "shirt", "utensils", "trees", "sun", "dumbbell", "gamepad-2", "smartphone", "briefcase", "bike", "train-front", "paw-print", "flask-conical", "landmark", "scale", "hammer", "plug", "tv", "film", "baby",
 ]
 
 MAP = {
-    # fili-bar et scripts de la barre
+    # fili-bar and bar scripts
     0xF002: "search", 0xF021: "refresh-cw", 0xF023: "lock", 0xF026: "volume", 0xF027: "volume-1",
     0xF028: "volume-2", 0xF6A9: "volume-x", 0xF04B: "play", 0xF04C: "pause", 0xF053: "chevron-left",
     0xF054: "chevron-right", 0xF071: "triangle-alert", 0xF072: "plane", 0xF073: "calendar", 0xF0A0: "hard-drive",
@@ -52,9 +51,9 @@ MAP = {
     0xF242: "battery-medium", 0xF243: "battery-low", 0xF244: "battery", 0xF293: "bluetooth", 0xF2C9: "thermometer",
     0xF2DB: "cpu", 0xF2F2: "timer", 0xF538: "memory-stick", 0xF796: "ethernet-port", 0xF05A3: "message-circle",
     0xF040: "pencil",
-    # force du signal Wi-Fi (codes Nerd Font md-wifi_strength_1..4): fili-bar (bar-stats net) et fili-panel réseau
+    # Wi-Fi signal strength (Nerd Font codes md-wifi_strength_1..4): fili-bar (bar-stats net) and network fili-panel
     0xF091F: "wifi-zero", 0xF0922: "wifi-low", 0xF0925: "wifi-high", 0xF0928: "wifi",
-    # menu (I_* de ~/.local/bin/menu)
+    # menu (I_* of ~/.local/bin/menu)
     0xF009: "layout-grid", 0xF0EA: "clipboard", 0xF118: "smile", 0xF1EC: "calculator", 0xF011: "power",
     0xF1FC: "paintbrush", 0xF1B2: "package", 0xF005: "star", 0xF08B: "log-out", 0xF01E: "rotate-cw",
     0xF025: "headphones", 0xF0AC: "globe", 0xF03E: "image", 0xF1F8: "trash-2", 0xF019: "download",
@@ -89,7 +88,7 @@ def main():
     cmap = src.getBestCmap()
     names = {t: cmap[c] for t, c in lucide_cp.items()}
 
-    # Sous-ensemble: seulement les glyphes utilisés
+    # Subset: only the glyphs used
     opts = Options()
     opts.notdef_outline = True
     opts.name_IDs = ["*"]
@@ -97,7 +96,7 @@ def main():
     sub.populate(unicodes=sorted(set(lucide_cp.values())))
     sub.subset(src)
 
-    # Mise à l'échelle et centrage de chaque glyphe
+    # Scaling and centring of each glyph
     glyf, hmtx = src["glyf"], src["hmtx"]
     gs = src.getGlyphSet()
     dy = CENTER_Y - SCALE * 500
@@ -109,8 +108,8 @@ def main():
         glyf[g].recalcBounds(glyf)
         hmtx[g] = (ADVANCE, glyf[g].xMin)
 
-    # Table des caractères: codes Font Awesome / Nerd Font -> glyphes Lucide
-    # format 4 pour le plan de base, format 12 en plus pour les codes Nerd Font au-delà (U+F05A3...)
+    # Character table: Font Awesome / Nerd Font codes -> Lucide glyphs
+    # format 4 for the base plane, format 12 in addition for the Nerd Font codes beyond (U+F05A3...)
     from fontTools.ttLib.tables._c_m_a_p import CmapSubtable
     cmap_t = src["cmap"]
     cmap_t.tables = [t for t in cmap_t.tables if t.isUnicode() and t.format in (4, 12)]
@@ -120,7 +119,7 @@ def main():
         cmap_t.tables.append(t12)
     for table in cmap_t.tables:
         table.cmap = {t: g for t, g in names.items() if t <= 0xFFFF or table.format == 12}
-    # Métriques verticales de Jost (ascendante 1070, descendante -375): même hauteur de ligne
+    # Vertical metrics of Jost (ascent 1070, descent -375): same line height
     src["hhea"].ascent, src["hhea"].descent = 1070, -375
     os2 = src["OS/2"]
     os2.sTypoAscender, os2.sTypoDescender, os2.usWinAscent, os2.usWinDescent = 1070, -375, 1070, 375

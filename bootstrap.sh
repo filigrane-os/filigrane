@@ -1,30 +1,30 @@
 #!/bin/bash
-# Rejoue la configuration Void sur un système fraîchement installé. Idempotent.
+# Replays the Void configuration on a freshly installed system. Idempotent.
 #
-#   ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
-#                  [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
-#                  [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<nom>]
-#                  [--system-only | --dotfiles-only | --fili-shell | --apps | --plan]
+# ./bootstrap.sh [--profile auto|vm|baremetal] [--machine auto|generic|mac-t2]
+# [--cpu auto|intel|amd|other] [--gpu auto|none|intel,amd,nvidia]
+# [--arch auto|x86_64|aarch64|riscv64] [--user-layer auto|none|<name>]
+# [--system-only | --dotfiles-only | --fili-shell | --apps | --plan]
 #
-# Trois couches, appliquées dans l'ordre (une couche suivante remplace un fichier de même chemin):
-#   1. la distribution (racine du dépôt: packages/, services/, system/, dotfiles/, apps/), générique;
-#   2. le matériel (hardware/<machine>/);
-#   3. la couche personnelle (users/<nom>/: config.env, packages/*.txt, services/*.txt, dotfiles/, layer.sh).
-# --user-layer: auto = users/<utilisateur cible> s'il existe, none = distribution seule (comme une installation neuve).
+# Three layers, applied in order (a later layer replaces a file of the same path):
+# 1. the distribution (root of the repository: packages/, services/, system/, dotfiles/, apps/), generic;
+# 2. the hardware (hardware/<machine>/);
+# 3. the personal layer (users/<name>/: config.env, packages/*.txt, services/*.txt, dotfiles/, layer.sh).
+# --user-layer: auto = users/<target user> if it exists, none = distribution only (like a fresh install).
 #
-# --fili-shell: ne relie que le fili-shell (config/quickshell, scripts bar-* et fili-*, de chaque couche) et le recharge;
-# sans sudo, pour un nouveau fichier QML ou script.
-# --apps: ne construit et n'installe que les outils de apps/ (Rust maison et tiers, correctifs compris) et relie
-# leurs binaires dans ~/.local/bin; sans sudo.
-# --plan: affiche les listes retenues pour la configuration et quitte, sans rien modifier (CI).
-# --profile: environnement (VM ou machine physique). --machine: matériel, pour tout ce qui est
-# spécifique à un modèle (hardware/<machine>/). --cpu/--gpu: firmware et pilotes (packages/cpu-*.txt,
-# gpu-*.txt, machine physique seulement). --arch: architecture (binaires x86_64 seulement ignorés ailleurs).
-# auto détecte; forcer permet de tester ailleurs (variables PROFILE, MACHINE, CPU_VENDOR,
-# GPU_VENDORS, TARGET_ARCH équivalentes).
+# --fili-shell: only links the fili-shell (config/quickshell, bar-* and fili-* scripts, of each layer) and reloads it;
+# without sudo, for a new QML file or script.
+# --apps: only builds and installs the tools of apps/ (own Rust and third-party, patches included) and links
+# their binaries into ~/.local/bin; without sudo.
+# --plan: prints the lists retained for the configuration and exits, without changing anything (CI).
+# --profile: environment (VM or physical machine). --machine: hardware, for everything that is
+# specific to a model (hardware/<machine>/). --cpu/--gpu: firmware and drivers (packages/cpu-*.txt,
+# gpu-*.txt, physical machine only). --arch: architecture (x86_64-only binaries are skipped elsewhere).
+# auto detects; forcing allows testing elsewhere (equivalent variables PROFILE, MACHINE, CPU_VENDOR,
+# GPU_VENDORS, TARGET_ARCH).
 #
-# Lancé en utilisateur normal (sudo requis) ou en root avec TARGET_USER=<nom>
-# (cas du chroot de install-void.sh).
+# Run as a normal user (sudo required) or as root with TARGET_USER=<name>
+# (the chroot case of install-void.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,8 +81,8 @@ fi
 TARGET_HOME="$(getent passwd "$TARGET_USER" | cut -d: -f6)"
 [ -n "$TARGET_HOME" ] || die 'User not found: %s' "$TARGET_USER"
 
-# Couche personnelle: users/<nom>/. Le choix est mémorisé dans .user-layer (hors git, écrit par --user-layer ou par
-# l'installateur). auto sans .user-layer: users/<utilisateur cible> s'il existe, avec un avertissement.
+# Personal layer: users/<name>/. The choice is remembered in .user-layer (outside git, written by --user-layer or by
+# the installer). auto without .user-layer: users/<target user> if it exists, with a warning.
 if [ "$USER_LAYER" = auto ]; then
     if [ -f "$ROOT/.user-layer" ]; then USER_LAYER="$(cat "$ROOT/.user-layer")"
     elif [ -d "$ROOT/users/$TARGET_USER" ]; then
@@ -97,12 +97,12 @@ if [ "$USER_LAYER" != none ]; then
     LAYER_DIR="$ROOT/users/$USER_LAYER"
     [ -d "$LAYER_DIR" ] || die 'Layer not found: users/%s' "$USER_LAYER"
 fi
-# Réglages: la couche personnelle d'abord (ses valeurs passent avant les défauts de la distribution)
+# Settings: the personal layer first (its values take precedence over the defaults of the distribution)
 if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/config.env" ]; then
     # shellcheck source=users/thomas/config.env
     source "$LAYER_DIR/config.env"
 fi
-# Agent IA choisi à l'installation ou avec `fili-ai use`, si ni l'environnement ni la couche ne le fixent
+# AI agent chosen at installation or with `fili-ai use`, if neither the environment nor the layer sets it
 AI_ENV="$TARGET_HOME/.config/filigrane/ai.env"
 if [ -z "${FILI_AI:-}" ] && [ -f "$AI_ENV" ]; then
     FILI_AI="$(sed -n 's/^FILI_AI=//p' "$AI_ENV" | tail -n1)"
@@ -117,7 +117,7 @@ detect_profile() {
 [ "$PROFILE" = auto ] && PROFILE="$(detect_profile)"
 case "$PROFILE" in vm|baremetal) ;; *) die 'Invalid profile: %s' "$PROFILE" ;; esac
 
-# Mac Intel à puce T2 (Apple 106b:1801/1802), via sysfs: lspci n'est pas forcément installé
+# Intel Mac with a T2 chip (Apple 106b:1801/1802), through sysfs: lspci is not necessarily installed
 detect_machine() {
     local d
     for d in /sys/bus/pci/devices/*; do
@@ -130,7 +130,7 @@ detect_machine() {
 case "$MACHINE" in generic|mac-t2) ;; *) die 'Invalid machine: %s (generic|mac-t2)' "$MACHINE" ;; esac
 export MACHINE
 
-# Fabricant du CPU (intel|amd|other: ARM et RISC-V n'ont pas de vendor_id)
+# CPU vendor (intel|amd|other: ARM and RISC-V have no vendor_id)
 detect_cpu() {
     case "$(grep -m1 '^vendor_id' /proc/cpuinfo 2>/dev/null)" in
         *GenuineIntel*) echo intel ;;
@@ -138,7 +138,7 @@ detect_cpu() {
         *) echo other ;;
     esac
 }
-# GPU présents (intel amd nvidia), via sysfs; vide si aucun reconnu (virtio, vmware, SoC...)
+# GPUs present (intel amd nvidia), through sysfs; empty if none recognised (virtio, vmware, SoC...)
 detect_gpus() {
     local d v out=""
     for d in /sys/class/drm/card[0-9]*/device/vendor; do
@@ -165,11 +165,11 @@ log 'Profile: %s, machine: %s, arch: %s, cpu: %s, gpu: %s, user: %s, layer: %s' 
 # Liste sans commentaires ni lignes vides
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
 
-# Listes retenues pour la configuration (profil, CPU, GPU, machine), dans l'ordre d'installation
+# Lists retained for the configuration (profile, CPU, GPU, machine), in installation order
 package_lists() {
     echo "$ROOT/packages/base.txt" "$ROOT/packages/desktop.txt" "$ROOT/packages/dev.txt" "$ROOT/packages/$PROFILE.txt"
 }
-hardware_package_lists() { # dépôt nonfree requis (microcode), machine physique seulement
+hardware_package_lists() { # nonfree repository required (microcode), physical machine only
     local g
     echo "$ROOT/packages/cpu-$CPU_VENDOR.txt"
     for g in $GPU_VENDORS; do echo "$ROOT/packages/gpu-$g.txt"; done
@@ -178,7 +178,7 @@ service_lists() {
     echo "$ROOT/services/common.txt" "$ROOT/services/$PROFILE.txt"
     [ -z "$LAYER_DIR" ] || find "$LAYER_DIR/services" -name '*.txt' 2>/dev/null | sort
 }
-# Paquets de la couche personnelle (restricted.txt à part: construit avec xbps-src)
+# Packages of the personal layer (restricted.txt apart: built with xbps-src)
 layer_package_lists() {
     [ -z "$LAYER_DIR" ] || find "$LAYER_DIR/packages" -name '*.txt' ! -name restricted.txt 2>/dev/null | sort
 }
@@ -189,7 +189,7 @@ restricted_lists() {
     done
 }
 
-# --plan: affiche la configuration résolue et vérifie que les listes existent, sans rien modifier
+# --plan: prints the resolved configuration and checks that the lists exist, without changing anything
 print_plan() {
     local f rc=0 pkgs=""
     pkgs="$(package_lists)"
@@ -209,7 +209,7 @@ print_plan() {
 install_list() {
     local file="$1" pkg
     local -a ok=()
-    [ -f "$file" ] || return 0  # ex. cpu-other.txt: rien à installer
+    [ -f "$file" ] || return 0  # e.g. cpu-other.txt: nothing to install
     for pkg in $(read_list "$file"); do
         if xbps-query "$pkg" >/dev/null 2>&1; then say 'SKIP: %s already installed' "$pkg"
         elif xbps-query -R "$pkg" >/dev/null 2>&1; then ok+=("$pkg")
@@ -226,7 +226,7 @@ install_pkgs() { # install_pkgs PAQUET... : installe ceux qui manquent
     [ ${#todo[@]} -eq 0 ] || $SUDO xbps-install -y "${todo[@]}"
 }
 
-set_rc() { # set_rc CLE VALEUR dans /etc/rc.conf
+set_rc() { # set_rc KEY VALUE in /etc/rc.conf
     local key="$1" val="$2"
     if $SUDO grep -qE "^#?${key}=" /etc/rc.conf; then
         $SUDO sed -i -E "s|^#?${key}=.*|${key}=\"${val}\"|" /etc/rc.conf
@@ -251,14 +251,14 @@ setup_system() {
     fi
     for list in $(layer_package_lists); do install_list "$list"; done
 
-    # Navigateur: Chromium seulement si aucun navigateur par défaut n'existe (ex. Chrome de la couche personnelle)
+    # Browser: Chromium only if no default browser exists (e.g. Chrome of the personal layer)
     if [ -n "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)" ]; then
         say 'SKIP: default browser already set (%s)' "$(run_as_user xdg-settings get default-web-browser 2>/dev/null)"
     else install_pkgs chromium; fi
 
-    # Outils natifs déjà compilés, sans passer par cargo. D'abord le dépôt embarqué (ISO: distro/out/repo, construit par
-    # distro/build-repo.sh), sinon le dépôt publié (DISTRO_REPO_URL): on pose son adresse et sa clé de signature, puis
-    # <distro>-repo (qui les possède ensuite et les tient à jour) et <distro>-apps. En dernier recours, setup_apps compile.
+    # Native tools already compiled, without going through cargo. First the embedded repository (ISO: distro/out/repo, built by
+    # distro/build-repo.sh), else the published repository (DISTRO_REPO_URL): its address and its signing key are set, then
+    # <distro>-repo (which then owns them and keeps them up to date) and <distro>-apps. As a last resort, setup_apps compiles.
     if ! xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
         if [ -f "$ROOT/distro/out/repo/$TARGET_ARCH-repodata" ]; then
             log 'Native tools (%s-apps, embedded repository)' "$DISTRO"
@@ -290,9 +290,9 @@ setup_system() {
         done
     done
 
-    # Services retirés des listes: désactivés s'ils l'étaient (acpid: elogind gère le capot,
-    # et handler.sh mettait en veille capot fermé même avec des écrans externes; agetty-tty3 à 6:
-    # deux consoles texte suffisent, tty1 pour la session et tty2 en secours)
+    # Services removed from the lists: disabled if they were enabled (acpid: elogind handles the lid,
+    # and handler.sh suspended with the lid closed even with external displays; agetty-tty3 to 6:
+    # two text consoles are enough, tty1 for the session and tty2 as a fallback)
     for svc in acpid agetty-tty3 agetty-tty4 agetty-tty5 agetty-tty6; do
         if [ -L "/etc/runit/runsvdir/default/$svc" ]; then
             $SUDO sv down "/var/service/$svc" 2>/dev/null || true
@@ -306,8 +306,8 @@ setup_system() {
     for svc in iptables ip6tables; do
         $SUDO ln -sfn "/etc/sv/$svc" "/etc/runit/runsvdir/default/$svc"
     done
-    # Règles actives tout de suite (le service ne les relit qu'au démarrage); restore est atomique: un fichier
-    # invalide laisse les règles en place
+    # Rules active right away (the service only re-reads them at start); restore is atomic: an invalid
+    # file leaves the rules in place
     $SUDO iptables-restore /etc/iptables/iptables.rules || warn 'iptables-restore failed'
     $SUDO ip6tables-restore /etc/iptables/ip6tables.rules || warn 'ip6tables-restore failed'
 
@@ -334,7 +334,7 @@ setup_system() {
     [ "$autologin" = auto ] && { [ "$PROFILE" = vm ] && autologin=1 || autologin=0; }
     if [ "$autologin" = 1 ]; then
         $SUDO sed -i -E "s|GETTY_ARGS=\"(--autologin [^ ]+ )?--noclear\"|GETTY_ARGS=\"--autologin $TARGET_USER --noclear\"|" "$conf"
-        # l'autologin doit attendre elogind (sinon /run/user est masqué, cf. le script)
+        # the autologin must wait for elogind (otherwise /run/user is masked, see the script)
         $SUDO "$ROOT/scripts/tty1-wait-elogind.sh" on >/dev/null
     else
         $SUDO sed -i -E 's|GETTY_ARGS="--autologin [^ ]+ --noclear"|GETTY_ARGS="--noclear"|' "$conf"
@@ -349,8 +349,8 @@ setup_system() {
 
     if [ -d /etc/sv/iwd ]; then
         log 'Wi-Fi: IP configured by iwd, dhcpcd kept for wired'
-        # dhcpcd ratait la coupure quand iwd se reconnecte vite (sortie de veille) et gardait
-        # l'ancien bail IPv4 (IPv6 ok, IPv4 mort). iwd lie l'adresse à chaque connexion.
+        # dhcpcd missed the disconnection when iwd reconnects quickly (wake from sleep) and kept
+        # the old IPv4 lease (IPv6 ok, IPv4 dead). iwd binds the address at each connection.
         $SUDO install -d /etc/iwd
         $SUDO install -m 644 "$ROOT/system/iwd/main.conf" /etc/iwd/
         if [ -f /etc/dhcpcd.conf ] && ! grep -qE '^denyinterfaces.*wl\*' /etc/dhcpcd.conf; then
@@ -359,8 +359,8 @@ setup_system() {
     fi
 
     log 'DNS (resolv.conf managed by resolvconf: dhcpcd, iwd)'
-    # Un resolv.conf copié d'ailleurs (ex. install depuis un autre système) bloque resolvconf
-    # ("signature mismatch"). On ne le remplace que si dhcpcd ou iwd a déjà fourni des serveurs DNS.
+    # A resolv.conf copied from elsewhere (e.g. install from another system) blocks resolvconf
+    # ("signature mismatch"). It is only replaced if dhcpcd or iwd has already provided DNS servers.
     if ! grep -q 'Generated by resolvconf' /etc/resolv.conf 2>/dev/null \
         && $SUDO resolvconf -l 2>/dev/null | grep -q '^nameserver'; then
         $SUDO mv /etc/resolv.conf /etc/resolv.conf.bak
@@ -373,7 +373,7 @@ setup_system() {
     set_rc TIMEZONE "$TIMEZONE"
     $SUDO ln -sfn "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
     echo "LANG=$LOCALE" | $SUDO tee /etc/locale.conf >/dev/null
-    # LOCALE et LOCALES (langues proposées par fili-lang) décommentées, régénérées seulement si l'une manquait
+    # LOCALE and LOCALES (languages offered by fili-lang) uncommented, regenerated only if one was missing
     if [ -f /etc/default/libc-locales ]; then
         local loc gen=0
         for loc in $LOCALE $LOCALES; do
@@ -397,16 +397,16 @@ setup_system() {
     echo '%wheel ALL=(ALL:ALL) ALL' | $SUDO tee /etc/sudoers.d/wheel >/dev/null
     $SUDO chmod 440 /etc/sudoers.d/wheel
     $SUDO visudo -cf /etc/sudoers.d/wheel >/dev/null
-    # Les fichiers NOPASSWD portent le préfixe zz- : sudoers applique la dernière règle qui correspond,
-    # et wheel (mot de passe) doit donc être lu avant eux. Anciens noms nettoyés au passage.
+    # The NOPASSWD files carry the prefix zz-: sudoers applies the last matching rule,
+    # and wheel (password) must therefore be read before them. Old names cleaned up on the way.
     $SUDO rm -f /etc/sudoers.d/power /etc/sudoers.d/claude /etc/sudoers.d/zz-claude
-    # Menu Système: éteindre, redémarrer, veille sans mot de passe (pas de polkit sur cette machine)
+    # System menu: shut down, restart, sleep without a password (no polkit on this machine)
     echo '%wheel ALL=(root) NOPASSWD: /usr/bin/zzz, /usr/bin/reboot, /usr/bin/poweroff' | $SUDO tee /etc/sudoers.d/zz-power >/dev/null
     $SUDO chmod 440 /etc/sudoers.d/zz-power
     $SUDO visudo -cf /etc/sudoers.d/zz-power >/dev/null
-    # Agent IA (fili-ai): sv et xbps sans mot de passe pour les agents dont Filigrane règle les garde-fous, la
-    # confirmation venant de l'agent (Claude Code: permissions et hook; Codex: bac à sable, sudo et réseau
-    # seulement après accord). opencode n'a pas de bac à sable: sudo garde son mot de passe.
+    # AI agent (fili-ai): sv and xbps without a password for the agents whose guard-rails Filigrane sets, the
+    # confirmation coming from the agent (Claude Code: permissions and hook; Codex: sandbox, sudo and network
+    # only after agreement). opencode has no sandbox: sudo keeps its password.
     case "$FILI_AI" in
         claude|codex|ollama)
             echo "$TARGET_USER ALL=(root) NOPASSWD: /usr/bin/sv, /usr/bin/xbps-install, /usr/bin/xbps-remove, /usr/bin/xbps-query, /usr/bin/xbps-reconfigure" | $SUDO tee /etc/sudoers.d/zz-agent >/dev/null
@@ -415,15 +415,15 @@ setup_system() {
             ;;
         *) $SUDO rm -f /etc/sudoers.d/zz-agent ;;
     esac
-    # Bac à sable de Codex (bubblewrap) et archive d'Ollama (zstd)
+    # Codex sandbox (bubblewrap) and Ollama archive (zstd)
     case "$FILI_AI" in
         codex) install_pkgs bubblewrap ;;
         ollama) install_pkgs bubblewrap zstd ;;
     esac
 
-    # Matériel spécifique: hardware/<machine>/ (generic n'a rien)
+    # Hardware-specific: hardware/<machine>/ (generic has nothing)
     if [ "$MACHINE" = mac-t2 ]; then
-        # Double démarrage LUKS + btrfs + Limine (fichier créé par hardware/mac-t2/dualboot.sh)
+        # LUKS + btrfs + Limine dual boot (file created by hardware/mac-t2/dualboot.sh)
         if [ -f /etc/kernel/cmdline ]; then
             log 'Dual boot (dualboot.sh)'
             $SUDO "$ROOT/hardware/mac-t2/dualboot.sh"
@@ -441,10 +441,10 @@ run_as_user() {
     fi
 }
 
-# Outils maison (apps/<nom>, Rust): binaires natifs plutôt que scripts Python/GTK, pour que l'OS reste léger.
-# Compilés en release dans ~/.local/opt/<nom>-<empreinte des sources>, liés dans ~/.local/bin; recompilés
-# seulement quand les sources changent. Le dossier de compilation (target/) reste hors du dépôt, dans ~/.cache.
-# Avec le paquet <distro>-apps (dépôt xbps de la distribution, voir distro/), les binaires sont déjà dans /usr/bin.
+# Own tools (apps/<name>, Rust): native binaries rather than Python/GTK scripts, so that the OS stays light.
+# Compiled in release in ~/.local/opt/<name>-<source hash>, linked into ~/.local/bin; recompiled
+# only when the sources change. The build folder (target/) stays outside the repository, in ~/.cache.
+# With the <distro>-apps package (xbps repository of the distribution, see distro/), the binaries are already in /usr/bin.
 setup_apps() {
     local app name src sum dir alias
     if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"; return 0; fi
@@ -486,8 +486,8 @@ setup_apps() {
     setup_apps_git
 }
 
-# Outils tiers en Rust (apps/<nom>/source: url, commit, bins): clonés à un commit précis, compilés dans ~/.cache, installés
-# dans ~/.local/opt/<nom>-<commit>, liés dans ~/.local/bin; recompilés seulement quand le commit change.
+# Third-party tools in Rust (apps/<name>/source: url, commit, bins): cloned at a precise commit, compiled in ~/.cache, installed
+# in ~/.local/opt/<name>-<commit>, linked into ~/.local/bin; recompiled only when the commit changes.
 setup_apps_git() {
     local src name url commit bins dir b p src_dir patches sum
     for src in "$ROOT"/apps/*/source; do
@@ -495,8 +495,8 @@ setup_apps_git() {
         command -v cargo >/dev/null && command -v git >/dev/null || { warn 'cargo or git missing: %s not built' "$src"; return 0; }
         name="$(basename "$(dirname "$src")")"
         url="$(sed -n 's/^url=//p' "$src")"; commit="$(sed -n 's/^commit=//p' "$src")"; bins="$(sed -n 's/^bins=//p' "$src" | tr -d '"')"
-        # Correctifs locaux (apps/<nom>/patches/*.patch): appliqués après le checkout; leur empreinte fait partie du nom
-        # du dossier, donc un correctif modifié recompile
+        # Local patches (apps/<name>/patches/*.patch): applied after the checkout; their hash is part of the folder name,
+        # so a modified patch recompiles
         patches="$(ls "$ROOT/apps/$name/patches/"*.patch 2>/dev/null)"
         sum=""; [ -z "$patches" ] || sum="-p$(cat $patches | sha256sum | cut -c1-8)"
         dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}$sum"
@@ -518,9 +518,9 @@ setup_apps_git() {
     done
 }
 
-# Paquets restricted (packages/restricted.txt de la distribution ou de la couche personnelle): construits avec
-# xbps-src dans un clone de void-packages.
-# Mise à jour: git pull dans le clone, ./xbps-src pkg <paquet>, puis xbps-install -u -R <dépôt local> <paquet>
+# Restricted packages (packages/restricted.txt of the distribution or of the personal layer): built with
+# xbps-src in a clone of void-packages.
+# Update: git pull in the clone, ./xbps-src pkg <package>, then xbps-install -u -R <local repository> <package>
 VOID_PACKAGES="${VOID_PACKAGES:-$TARGET_HOME/Projects/void-packages}"
 
 setup_restricted() {
@@ -543,13 +543,13 @@ setup_restricted() {
     for pkg in "${todo[@]}"; do
         (cd "$VOID_PACKAGES" && run_as_user ./xbps-src pkg "$pkg") || warn 'Build of %s failed' "$pkg"
     done
-    # dépôts locaux produits par xbps-src (hostdir/binpkgs/<branche>/nonfree...)
+    # local repositories produced by xbps-src (hostdir/binpkgs/<branch>/nonfree...)
     mapfile -t repos < <(find "$VOID_PACKAGES/hostdir/binpkgs" -name '*-repodata' -printf '%h\n' | sort -u)
     [ ${#repos[@]} -gt 0 ] || return 0
     $SUDO xbps-install -y "${repos[@]/#/--repository=}" "${todo[@]}" || warn 'Installing %s failed' "${todo[*]}"
 }
 
-# Agent IA choisi (FILI_AI): installé par fili-ai (dotfiles/home/.local/bin), qui sait aussi le mettre à jour
+# AI agent chosen (FILI_AI): installed by fili-ai (dotfiles/home/.local/bin), which also knows how to update it
 setup_ai() {
     [ "$FILI_AI" != none ] || return 0
     log 'AI agent: %s' "$FILI_AI"
@@ -557,8 +557,8 @@ setup_ai() {
         || warn 'Installing the %s agent failed (network?), run bootstrap.sh again or fili-ai install %s' "$FILI_AI" "$FILI_AI"
 }
 
-# Réglages de fili-ai (~/.config/filigrane/ai.env), skills des agents (agents/skills: ~/.claude/skills pour
-# Claude Code, ~/.agents/skills pour Codex et opencode) et consignes du dossier de travail (agents/work)
+# Settings of fili-ai (~/.config/filigrane/ai.env), agent skills (agents/skills: ~/.claude/skills for
+# Claude Code, ~/.agents/skills for Codex and opencode) and instructions of the working folder (agents/work)
 setup_ai_dotfiles() {
     local workdir="$FILI_AI_WORKDIR" skill f
     case "$workdir" in /*) ;; *) workdir="$TARGET_HOME/$workdir" ;; esac
@@ -572,7 +572,7 @@ setup_ai_dotfiles() {
         link_one "$skill" "$TARGET_HOME/.claude/skills/${skill##*/}"
         link_one "$skill" "$TARGET_HOME/.agents/skills/${skill##*/}"
     done
-    # Pas sur un AGENTS.md ou CLAUDE.md existant (dossier de travail placé dans un projet, ou dans ce dépôt)
+    # Not on an existing AGENTS.md or CLAUDE.md (working folder placed in a project, or in this repository)
     for f in AGENTS.md CLAUDE.md; do
         if [ -L "$workdir/$f" ] || [ ! -e "$workdir/$f" ]; then link_one "$ROOT/agents/work/$f" "$workdir/$f"; fi
     done
@@ -586,7 +586,7 @@ link_one() { # link_one SOURCE DESTINATION
     fi
     ln -sfn "$src" "$dst"
     if [ "$(id -u)" -eq 0 ]; then
-        # en root, les dossiers créés (~/.config, ~/.local/share...) doivent appartenir à l'utilisateur
+        # as root, the folders created (~/.config, ~/.local/share...) must belong to the user
         local d="$dst"
         while [ "$d" != "$TARGET_HOME" ] && [ "$d" != / ]; do
             chown -h "$TARGET_USER:" "$d"
@@ -595,7 +595,7 @@ link_one() { # link_one SOURCE DESTINATION
     fi
 }
 
-# Liens vers ce dépôt devenus orphelins (fichier déplacé, supprimé ou passé dans une autre couche): retirés
+# Links to this repository that became orphans (file moved, deleted or moved to another layer): removed
 prune_links() {
     local l
     while IFS= read -r -d '' l; do
@@ -619,7 +619,7 @@ link_tree() { # link_tree DOSSIER : DOSSIER/home -> ~, DOSSIER/config -> ~/.conf
     fi
 }
 
-# Seulement le fili-shell: fichiers QML et scripts bar-*/fili-* de chaque couche (la dernière remplace), puis rechargement
+# Only the fili-shell: QML files and bar-*/fili-* scripts of each layer (the last one replaces), then reload
 setup_fili_shell() {
     local dir f
     log 'fili-shell (symlinks to %s)' "$ROOT"
@@ -639,34 +639,34 @@ setup_fili_shell() {
 setup_dotfiles() {
     log 'Dotfiles (symlinks to %s/dotfiles)' "$ROOT"
     link_tree "$ROOT/dotfiles"
-    # Dotfiles propres au matériel (hardware/<machine>/dotfiles/{home,config})
+    # Hardware-specific dotfiles (hardware/<machine>/dotfiles/{home,config})
     if [ -d "$ROOT/hardware/$MACHINE/dotfiles" ]; then
         log 'Dotfiles for machine %s' "$MACHINE"
         link_tree "$ROOT/hardware/$MACHINE/dotfiles"
     fi
-    # Couche personnelle en dernier: un fichier de même chemin remplace celui de la distribution
+    # Personal layer last: a file of the same path replaces the one of the distribution
     if [ -n "$LAYER_DIR" ] && [ -d "$LAYER_DIR/dotfiles" ]; then
         log 'Dotfiles for layer users/%s' "$USER_LAYER"
         link_tree "$LAYER_DIR/dotfiles"
     fi
     prune_links
     setup_ai_dotfiles
-    # Disposition clavier de niri (incluse par config.kdl), depuis config.env
+    # niri keyboard layout (included by config.kdl), from config.env
     run_as_user mkdir -p "$TARGET_HOME/.config/niri"
     run_as_user sh -c 'printf "%s\n" "$1" "input {" "    keyboard {" "        xkb {" \
         "            layout \"$2\"" "            variant \"$3\"" "            options \"$4\"" "        }" "    }" "}" > "$5"' _ \
         "// Généré par bootstrap.sh depuis config.env (XKB_LAYOUT, XKB_VARIANT, XKB_OPTIONS), ne pas modifier ici" \
         "$XKB_LAYOUT" "$XKB_VARIANT" "$XKB_OPTIONS" "$TARGET_HOME/.config/niri/keyboard.kdl"
-    # Identité Filigrane: fichiers maîtres du logo (brand/) dans ~/.local/share/filigrane (logo de la fili-bar),
-    # polices Jost et JetBrains Mono (dotfiles/home/.local/share/fonts, OFL, absentes des dépôts Void)
+    # Filigrane identity: master files of the logo (brand/) in ~/.local/share/filigrane (logo of the fili-bar),
+    # Jost and JetBrains Mono fonts (dotfiles/home/.local/share/fonts, OFL, absent from the Void repositories)
     link_one "$ROOT/brand" "$TARGET_HOME/.local/share/filigrane"
     run_as_user fc-cache -f "$TARGET_HOME/.local/share/fonts" >/dev/null || warn 'fc-cache failed'
     # .desktop des applications web (liste ~/.config/webapps/list)
     HOME="$TARGET_HOME" sh "$ROOT/dotfiles/home/.local/bin/webapp-sync"
-    # Icônes de l'OS: thème Filigrane-Icons (dossiers et glyphes de Nordic, reste d'Adwaita), avant fili-theme qui le nomme
+    # OS icons: Filigrane-Icons theme (folders and glyphs of Nordic, the rest from Adwaita), before fili-theme which names it
     run_as_user sh "$ROOT/scripts/icon-theme.sh" || warn 'icon-theme failed'
-    # Mode sombre par défaut, ou clair s'il a été choisi (fili-panel écrans): fichiers inclus par foot, niri et GTK3,
-    # gsettings (portail xdg: Chromium, GTK, libadwaita; sans effet hors session D-Bus)
+    # Dark mode by default, or light if it was chosen (displays fili-panel): files included by foot, niri and GTK3,
+    # gsettings (xdg portal: Chromium, GTK, libadwaita; no effect outside a D-Bus session)
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-lang" apply || warn 'fili-lang apply failed'
     if gsettings set org.gnome.desktop.interface font-name 'Jost 10' 2>/dev/null; then
@@ -674,9 +674,9 @@ setup_dotfiles() {
     else
         warn 'gsettings: fonts not applied (no D-Bus session)'
     fi
-    # Mac T2 (MacBookPro16,2): la route ALSA "Speaker" est cachée par le DSP (hide-parent), donc plus
-    # réglable, et un volume bas sur elle atténue tout le DSP. WirePlumber n'a pas de règle de volume
-    # par route: on la fixe à 1.0 dans son état, le volume se règle sur le DSP.
+    # Mac T2 (MacBookPro16,2): the ALSA "Speaker" route is hidden by the DSP (hide-parent), so it is no longer
+    # adjustable, and a low volume on it attenuates the whole DSP. WirePlumber has no per-route volume
+    # rule: it is set to 1.0 in its state, the volume is adjusted on the DSP.
     if [ "$MACHINE" = mac-t2 ] && [ "$(cat /sys/class/dmi/id/product_name 2>/dev/null)" = MacBookPro16,2 ]; then
         local st="$TARGET_HOME/.local/state/wireplumber/default-routes"
         local line='alsa_card.pci-0000_e6_00.3:output:\oOut\c\sSpeaker={"latencyOffsetNsec":0, "mute":false, "channelVolumes":[1.000000, 1.000000, 1.000000, 1.000000], "channelMap":["FL", "FR", "RL", "RR"]}'
@@ -691,8 +691,8 @@ setup_dotfiles() {
     if declare -F layer_dotfiles >/dev/null; then layer_dotfiles; fi
 }
 
-# Fonctions optionnelles de la couche personnelle: layer_system (droits root, après la distribution)
-# et layer_dotfiles (après les liens). Elles disposent de log, warn, read_list, install_list, run_as_user, $SUDO...
+# Optional functions of the personal layer: layer_system (root rights, after the distribution)
+# and layer_dotfiles (after the links). They have log, warn, read_list, install_list, run_as_user, $SUDO...
 if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/layer.sh" ]; then
     # shellcheck source=users/thomas/layer.sh
     source "$LAYER_DIR/layer.sh"

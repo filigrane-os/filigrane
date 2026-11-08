@@ -1,47 +1,45 @@
 #!/bin/bash
-# Support des Mac Intel à puce T2 (MacBook Pro/Air 2018-2020, Mac mini 2018, iMac 2020, iMac Pro, Mac Pro 2019).
-# Approche inspirée d'Omarchy (install/hardware/apple/fix-t2.sh), adaptée à Void:
-# xbps + DKMS (pas de noyau linux-t2), dracut, GRUB ou Limine (/etc/kernel/cmdline), runit.
-#
-#   ./setup.sh [--check] [--only dkms|touchbar|smc|trackpad|keys|boot|audio|fan|sleeplog|net|tools|clock]
-#
-# --check: affiche si une puce T2 est détectée (code 0 = oui) puis quitte.
-# Appelé automatiquement par bootstrap.sh quand la machine est mac-t2 (détectée, ou forcée avec --machine).
+# Support for Intel Macs with a T2 chip (MacBook Pro/Air 2018-2020, Mac mini 2018, iMac 2020, iMac Pro, Mac Pro 2019).
+# Approach inspired by Omarchy (install/hardware/apple/fix-t2.sh), adapted to Void:
+# xbps + DKMS (no linux-t2 kernel), dracut, GRUB or Limine (/etc/kernel/cmdline), runit.
+# ./setup.sh [--check] [--only dkms|touchbar|smc|trackpad|keys|boot|audio|fan|sleeplog|net|tools|clock]
+# --check: prints whether a T2 chip is detected (code 0 = yes) then exits.
+# Called automatically by bootstrap.sh when the machine is mac-t2 (detected, or forced with --machine).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 
-# Pilotes t2bce (clavier, trackpad, audio): successeur d'apple-bce, épinglé pour la reproductibilité
+# t2bce drivers (keyboard, trackpad, audio): successor of apple-bce, pinned for reproducibility
 T2BCE_REPO="https://github.com/AdityaGarg8/t2bce"
 T2BCE_REF="d493b0696b133ef2a3e2192790758180d62886b0"
 T2BCE_VER="0.0+git${T2BCE_REF:0:7}"
-# Pilotes Touch Bar hors arbre (hid-appletb-kbd/bl, appletbdrm), voir appletb/: incrémenter si SHA256SUMS change
+# Out-of-tree Touch Bar drivers (hid-appletb-kbd/bl, appletbdrm), see appletb/: increment if SHA256SUMS changes
 APPLETB_VER="2"
-# applesmc avec le SMC T2 (ventilateurs), voir applesmc/: celui du noyau Void bloque le démarrage
+# applesmc with the T2 SMC (fans), see applesmc/: the one of the Void kernel blocks the boot
 APPLESMC_VER="1"
 # Trackpad multitouch (hid-apple + hid-magicmouse T2), voir trackpad/: sans lui, trackpad = simple souris
 TRACKPAD_VER="1"
-# Fn et Ctrl gauche inversés (clavier interne)
+# Fn and left Ctrl swapped (internal keyboard)
 HID_APPLE_OPTS="swap_fn_leftctrl=1"
-# Démon de ventilateurs (GPL-3.0), compilé avec cargo
+# Fan daemon (GPL-3.0), built with cargo
 FAN_REPO="https://github.com/GnomedDev/T2FanRD"
 FAN_REF="48baf962697ec3d4d969c74cf601ee8e15b7aeaa"
-# DSP haut-parleurs d'Asahi (asahi-audio, GPL-2.0/MIT): FIR du MacBook Pro 13" M1 (j293), même châssis que MacBookPro16,2
+# Asahi speaker DSP (asahi-audio, GPL-2.0/MIT): FIR of the MacBook Pro 13" M1 (j293), same chassis as MacBookPro16,2
 ASAHI_AUDIO_REPO="https://github.com/AsahiLinux/asahi-audio"
 ASAHI_AUDIO_REF="ab1b46928d056bb02bb4ad72d522dab57dc9efe1"
-# Script officiel t2linux (licence MIT) pour récupérer le firmware Wi-Fi/Bluetooth
+# Official t2linux script (MIT licence) to fetch the Wi-Fi/Bluetooth firmware
 FIRMWARE_URL="https://wiki.t2linux.org/tools/firmware.sh"
 
-# Paramètres noyau (Omarchy): IOMMU, veille profonde stable avec t2bce
+# Kernel parameters (Omarchy): IOMMU, stable deep sleep with t2bce
 KERNEL_PARAMS=(intel_iommu=on iommu=pt pm_async=off mem_sleep_default=deep rd.luks.allow-discards)
-# wpa_supplicant >= 2.11 casse le Wi-Fi Broadcom (t2linux): contournement côté pilote
+# wpa_supplicant >= 2.11 breaks Broadcom Wi-Fi (t2linux): workaround on the driver side
 WIFI_PARAM="brcmfmac.feature_disable=0x82000"
 
 log() { printf '\n[t2] %s\n' "$*"; }
 warn() { printf '[t2] AVERTISSEMENT: %s\n' "$*" >&2; }
 
-# Via sysfs (lspci n'est pas forcément installé avant setup_packages)
+# Through sysfs (lspci is not necessarily installed before setup_packages)
 is_t2() {
     local d
     for d in /sys/bus/pci/devices/*; do
@@ -67,7 +65,7 @@ want() { [ -z "$ONLY" ] || [ "$ONLY" = "$1" ]; }
 
 read_list() { sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$1" | grep -v '^$' || true; }
 
-# Récupère une révision précise sans l'historique complet
+# Fetches a precise revision without the full history
 fetch_ref() { # fetch_ref DEPOT REF DESTINATION
     local repo="$1" ref="$2" dest="$3" tmp
     tmp="$(mktemp -d)"
@@ -83,7 +81,7 @@ fetch_ref() { # fetch_ref DEPOT REF DESTINATION
 
 setup_packages() {
     log "Paquets (dkms, en-têtes noyau, alsa-ucm-conf, outils firmware)"
-    # Seulement ceux qui manquent: xbps-install signale chaque paquet déjà là par un « ERROR »
+    # Only the missing ones: the package manager reports each package already there as an "ERROR"
     local pkg todo=()
     for pkg in $(read_list "$ROOT/packages/mac-t2.txt"); do
         if xbps-query "$pkg" >/dev/null 2>&1; then echo "SKIP: $pkg déjà installé"; else todo+=("$pkg"); fi
@@ -91,7 +89,7 @@ setup_packages() {
     [ ${#todo[@]} -eq 0 ] || xbps-install -y "${todo[@]}"
 }
 
-installed_kernels() { # versions dont les en-têtes sont présents
+installed_kernels() { # versions whose headers are present
     local d
     for d in /lib/modules/*/build; do
         [ -e "$d" ] && basename "$(dirname "$d")"
@@ -103,7 +101,7 @@ setup_dkms() {
     local src="/usr/src/t2bce-$T2BCE_VER" k
     [ -d "$src" ] || fetch_ref "$T2BCE_REPO" "$T2BCE_REF" "$src"
 
-    # Le dépôt amont n'a pas de dkms.conf: on construit les 4 modules dans l'ordre des dépendances
+    # The upstream repository has no dkms.conf: we build the 4 modules in dependency order
     cat > "$src/dkms.conf" <<EOF
 PACKAGE_NAME="t2bce"
 PACKAGE_VERSION="$T2BCE_VER"
@@ -138,13 +136,13 @@ EOF
     [ "$found" -eq 1 ] || warn "aucun noyau avec en-têtes trouvé (paquet linux-headers ?)"
 }
 
-cmdline_add() { # cmdline_add PARAM : ajoute à GRUB_CMDLINE_LINUX_DEFAULT s'il manque
+cmdline_add() { # cmdline_add PARAM : adds to GRUB_CMDLINE_LINUX_DEFAULT if missing
     local p="$1" key="${1%%=*}"
     grep -E "^GRUB_CMDLINE_LINUX_DEFAULT=.*[\" ]${key}([= \"])" /etc/default/grub >/dev/null && return 0
     sed -i -E "s|^(GRUB_CMDLINE_LINUX_DEFAULT=\"[^\"]*)\"|\1 ${p}\"|" /etc/default/grub
 }
 
-kcmdline_add() { # kcmdline_add PARAM : ajoute à /etc/kernel/cmdline (Limine, dualboot.sh) s'il manque
+kcmdline_add() { # kcmdline_add PARAM : adds to /etc/kernel/cmdline (Limine, dualboot.sh) if missing
     local p="$1" key="${1%%=*}"
     grep -E "(^| )${key}(=| |$)" /etc/kernel/cmdline >/dev/null && return 0
     sed -i -E "1s|\$| ${p}|" /etc/kernel/cmdline
@@ -154,17 +152,17 @@ setup_boot() {
     log "Chargement des modules, initramfs et paramètres noyau"
     mkdir -p /etc/modules-load.d /etc/dracut.conf.d
     cat > /etc/modules-load.d/t2.conf <<'EOF'
-# Clavier/trackpad internes (USB virtuel via t2bce) et audio.
-# applesmc, hid_appletb_bl/kbd (Touch Bar) et le Bluetooth sont chargés par udev (ACPI/USB):
-# les forcer ici, avant udev, bloque le démarrage sous runit.
+# Internal keyboard/trackpad (virtual USB through t2bce) and audio.
+# applesmc, hid_appletb_bl/kbd (Touch Bar) and Bluetooth are loaded by udev (ACPI/USB):
+# forcing them here, before udev, blocks the boot under runit.
 t2bce_vhci
 t2bce_audio
 EOF
-    # Clavier disponible dès l'initramfs (add_drivers: ignoré proprement si un module manque)
+    # Keyboard available from the initramfs (add_drivers: cleanly ignored if a module is missing)
     cat > /etc/dracut.conf.d/t2.conf <<'EOF'
 add_drivers+=" t2bce_dma t2bce_core t2bce_vhci usbhid hid_apple hid_generic xhci_pci xhci_hcd "
 EOF
-    # Options du clavier interne (copiées dans l'initramfs par dracut, hid_apple y est chargé)
+    # Internal keyboard options (copied into the initramfs by dracut, hid_apple is loaded there)
     echo "options hid_apple $HID_APPLE_OPTS" > /etc/modprobe.d/hid_apple.conf
 
     if [ -f /etc/kernel/cmdline ]; then
@@ -187,14 +185,14 @@ EOF
     fi
 
     command -v dracut >/dev/null && dracut --force --regenerate-all 2>&1 | tail -2 || true
-    # Double démarrage Limine: recopier les initramfs régénérés sur l'ESP
+    # Limine dual boot: copy the regenerated initramfs onto the ESP
     if [ -x /usr/local/sbin/limine-void ]; then /usr/local/sbin/limine-void sync || warn "limine-void sync a échoué"; fi
 }
 
 setup_touchbar() {
     log "Pilotes Touch Bar via DKMS (appletb $APPLETB_VER)"
     local src="/usr/src/appletb-$APPLETB_VER" k
-    # anciennes versions retirées (une seule version installée par noyau)
+    # old versions removed (a single version installed per kernel)
     dkms status -m appletb 2>/dev/null | sed -nE 's|^appletb/([^,]+),.*|\1|p' | sort -u | while read -r v; do
         [ "$v" = "$APPLETB_VER" ] || dkms remove -m appletb -v "$v" --all || true
     done
@@ -206,7 +204,7 @@ setup_touchbar() {
         if dkms status -m appletb -v "$APPLETB_VER" -k "$k" 2>/dev/null | grep -E 'installed' >/dev/null; then
             echo "appletb déjà installé pour $k"
         else
-            # non bloquant: sans Touch Bar, le clavier (t2bce) reste utilisable
+            # non-blocking: without a Touch Bar, the keyboard (t2bce) stays usable
             dkms install -m appletb -v "$APPLETB_VER" -k "$k" || warn "appletb non compilé pour $k (voir appletb/build.sh)"
         fi
     done
@@ -214,10 +212,10 @@ setup_touchbar() {
 
 setup_smc() {
     log "applesmc pour le SMC T2 via DKMS (applesmc-t2 $APPLESMC_VER)"
-    # Jamais chargé par udev: l'applesmc du noyau Void bloque "waiting for devices to settle".
-    # Le service t2fanrd charge la version DKMS (/updates) après le démarrage, si elle existe.
+    # Never loaded by udev: the applesmc of the Void kernel blocks "waiting for devices to settle".
+    # The t2fanrd service loads the DKMS version (/updates) after the boot, if it exists.
     cat > /etc/modprobe.d/t2-applesmc.conf <<'EOF'
-# filigrane: applesmc chargé par le service t2fanrd (version DKMS applesmc-t2), pas par udev
+# filigrane: applesmc loaded by the t2fanrd service (DKMS version applesmc-t2), not by udev
 blacklist applesmc
 EOF
     local src="/usr/src/applesmc-t2-$APPLESMC_VER" k
@@ -241,7 +239,7 @@ setup_trackpad() {
     cp -a "$HERE/trackpad" "$src"
     dkms status -m t2-trackpad -v "$TRACKPAD_VER" 2>/dev/null | grep -E 'added|built|installed' >/dev/null \
         || dkms add -m t2-trackpad -v "$TRACKPAD_VER"
-    # T2_TRACKPAD_KERNELS: limiter à certains noyaux (ex. garder le précédent intact pour un premier essai)
+    # T2_TRACKPAD_KERNELS: restrict to some kernels (e.g. keep the previous one untouched for a first try)
     for k in ${T2_TRACKPAD_KERNELS:-$(installed_kernels)}; do
         if dkms status -m t2-trackpad -v "$TRACKPAD_VER" -k "$k" 2>/dev/null | grep -E 'installed' >/dev/null; then
             echo "t2-trackpad déjà installé pour $k"
@@ -253,23 +251,23 @@ setup_trackpad() {
 
 setup_keys() {
     log "Touche Command façon macOS (keyd)"
-    # Le pilote Touch Bar (appletb >= 2) écoute le clavier virtuel de keyd: Fn et réveil restent actifs
+    # The Touch Bar driver (appletb >= 2) listens to the virtual keyboard of keyd: Fn and wake-up stay active
     command -v keyd >/dev/null || xbps-install -y keyd
     mkdir -p /etc/keyd
     install -m 0644 "$HERE/keyd.conf" /etc/keyd/default.conf
     install -m 0644 "$HERE/keyd-external-azerty.conf" /etc/keyd/external-azerty.conf
     keyd check /etc/keyd/default.conf /etc/keyd/external-azerty.conf
-    # Clavier virtuel de keyd déclaré interne: sinon dwt du trackpad ne réagit pas à la frappe (relu au prochain démarrage de niri)
+    # Virtual keyboard of keyd declared internal: otherwise the trackpad dwt does not react to typing (re-read at the next niri start)
     install -d /etc/libinput
     install -m 0644 "$HERE/libinput-keyd.quirks" /etc/libinput/local-overrides.quirks
     ln -sfn /etc/sv/keyd /etc/runit/runsvdir/default/keyd
     if [ -e /var/service/keyd ]; then sv restart /var/service/keyd 2>/dev/null || true; fi
 
-    # Le noyau remet le rétroéclairage clavier à 0 au boot: règle udev (le LED apparaît tard, après
-    # l'énumération USB de la T2, donc rc.local serait trop tôt). 3000 sur 14660 max, environ 20%.
+    # The kernel resets the keyboard backlight to 0 at boot: udev rule (the LED appears late, after the
+    # USB enumeration of the T2, so rc.local would be too early). 3000 out of 14660 max, about 20%.
     mkdir -p /etc/udev/rules.d
     cat > /etc/udev/rules.d/71-t2-kbd-backlight.rules <<'EOF'
-# filigrane: rétroéclairage clavier allumé dès que le LED apparaît
+# filigrane: keyboard backlight on as soon as the LED appears
 SUBSYSTEM=="leds", ACTION=="add", KERNEL==":white:kbd_backlight", ATTR{brightness}="3000"
 EOF
 }
@@ -307,7 +305,7 @@ setup_fan() {
         install -m 0755 "$tmp/src/target/release/t2fanrd" /usr/local/bin/t2fanrd
         rm -rf "$tmp"
     fi
-    # Une section par ventilateur détecté ; les sections en trop sont ignorées (valeurs Omarchy)
+    # One section per detected fan; extra sections are ignored (Omarchy values)
     if [ ! -f /etc/t2fand.conf ]; then
         cat > /etc/t2fand.conf <<'EOF'
 [Fan1]
@@ -326,7 +324,7 @@ EOF
     mkdir -p /etc/sv/t2fanrd
     cat > /etc/sv/t2fanrd/run <<'EOF'
 #!/bin/sh
-# applesmc est sur liste noire pour udev: charger ici la version T2 (DKMS, /updates) seulement
+# applesmc is blacklisted for udev: load the T2 version here (DKMS, /updates) only
 exec 2>&1
 if ! modinfo -F filename applesmc 2>/dev/null | grep -q '/updates/'; then
     echo "applesmc-t2 absent pour $(uname -r): t2fanrd arrêté, ventilateurs gérés par la T2"
@@ -337,14 +335,14 @@ timeout 30 modprobe applesmc || { echo "chargement d'applesmc échoué"; sleep 3
 exec /usr/local/bin/t2fanrd
 EOF
     chmod 755 /etc/sv/t2fanrd/run
-    # Journal (sinon "Found fan: FanController {...}" s'affiche sur la console au démarrage)
+    # Journal (otherwise "Found fan: FanController {...}" is printed on the console at boot)
     mkdir -p /etc/sv/t2fanrd/log /var/log/t2fanrd
     cat > /etc/sv/t2fanrd/log/run <<'EOF'
 #!/bin/sh
 exec svlogd -tt /var/log/t2fanrd
 EOF
     chmod 755 /etc/sv/t2fanrd/log/run
-    # Au réveil, le SMC repasse les ventilateurs en automatique (fan*_manual=0): relancer t2fanrd
+    # On wake, the SMC puts the fans back to automatic (fan*_manual=0): restart t2fanrd
     mkdir -p /etc/zzz.d/resume
     cat > /etc/zzz.d/resume/50-t2fanrd <<'EOF'
 #!/bin/sh
@@ -362,7 +360,7 @@ setup_sleeplog() {
         mkdir -p "/etc/zzz.d/$ev"
         cat > "/etc/zzz.d/$ev/10-sleeplog" <<EOF
 #!/bin/sh
-# Niveau de batterie à l'entrée et à la sortie de veille: distingue batterie vidée et plantage au réveil
+# Battery level on entering and leaving sleep: tells a drained battery from a crash on wake
 b=/sys/class/power_supply/BAT0
 logger -t sleeplog "$ev batterie=\$(cat \$b/capacity)% etat=\$(cat \$b/status) charge=\$(cat \$b/charge_now)/\$(cat \$b/charge_full)"
 exit 0
@@ -371,11 +369,11 @@ EOF
     done
 
     log "Hooks zzz.d aussi pour la veille d'elogind (capot, menu)"
-    # elogind met en veille sans passer par zzz: ses hooks system-sleep relaient vers /etc/zzz.d
+    # elogind suspends without going through zzz: its system-sleep hooks relay to /etc/zzz.d
     mkdir -p /usr/libexec/elogind/system-sleep
     cat > /usr/libexec/elogind/system-sleep/50-zzz.d <<'EOF'
 #!/bin/sh
-# filigrane: elogind appelle ce hook avec pre|post; on lance les hooks zzz.d correspondants
+# filigrane: elogind calls this hook with pre|post; we run the matching zzz.d hooks
 case "$1" in
     pre) d=/etc/zzz.d/suspend ;;
     post) d=/etc/zzz.d/resume ;;
@@ -387,8 +385,8 @@ EOF
     chmod 755 /usr/libexec/elogind/system-sleep/50-zzz.d
 
     log "Cœurs secondaires arrêtés pendant la veille"
-    # Au réveil S3, le noyau rallume les cœurs 1-7 en 10 à 35 s (firmware Apple): écran noir,
-    # le capot semble ne pas réveiller. Arrêtés avant la veille, rallumés après: quelques ms.
+    # On S3 wake, the kernel turns cores 1-7 back on in 10 to 35 s (Apple firmware): black screen,
+    # the lid seems not to wake the machine. Stopped before sleep, turned back on after: a few ms.
     cat > /etc/zzz.d/suspend/90-cpu-offline <<'EOF'
 #!/bin/sh
 for c in /sys/devices/system/cpu/cpu[1-9]*/online; do echo 0 > "$c"; done
@@ -405,11 +403,11 @@ EOF
 
 setup_net() {
     log "Interface USB interne de la T2 (cdc_ncm) ignorée par dhcpcd"
-    # Même adresse MAC sur tous les Mac T2: nom fixe, puis exclusion de dhcpcd
-    # (sinon adresse 169.254.x.x et route par défaut parasite avant le Wi-Fi)
+    # Same MAC address on all the T2 Macs: fixed name, then exclusion from dhcpcd
+    # (otherwise a 169.254.x.x address and a stray default route before the Wi-Fi)
     mkdir -p /etc/udev/rules.d
     cat > /etc/udev/rules.d/70-t2-ncm.rules <<'EOF'
-# filigrane: interface Ethernet USB interne de la puce T2 (pas un vrai réseau)
+# filigrane: internal USB Ethernet interface of the T2 chip (not a real network)
 SUBSYSTEM=="net", ACTION=="add", ATTR{address}=="ac:de:48:00:11:22", NAME="t2ncm0"
 EOF
     if [ -f /etc/dhcpcd.conf ] && ! grep -qE '^denyinterfaces.*t2ncm0' /etc/dhcpcd.conf; then
@@ -417,10 +415,10 @@ EOF
     fi
 
     log "Wi-Fi Broadcom: pas de réveil de la veille"
-    # Capot fermé, la machine se réveillait seule ~35 s après la mise en veille (ARPT dans
-    # /proc/acpi/wakeup). Le capot (LID0) et le clavier (T2) réveillent toujours la machine.
+    # With the lid closed, the machine woke up by itself ~35 s after going to sleep (ARPT in
+    # /proc/acpi/wakeup). The lid (LID0) and the keyboard (T2) always wake the machine.
     cat > /etc/udev/rules.d/72-t2-wifi-nowake.rules <<'EOF'
-# filigrane: la carte Wi-Fi Broadcom (ARPT) ne réveille pas la machine en veille
+# filigrane: the Broadcom Wi-Fi card (ARPT) does not wake the machine from sleep
 SUBSYSTEM=="pci", ACTION=="add", ATTR{vendor}=="0x14e4", ATTR{class}=="0x028000", ATTR{power/wakeup}="disabled"
 EOF
 }
@@ -429,8 +427,8 @@ setup_tools() {
     log "Outil firmware Wi-Fi/Bluetooth (t2-wifi-firmware)"
     cat > /usr/local/bin/t2-wifi-firmware <<EOF
 #!/bin/sh
-# Télécharge et lance le script officiel t2linux (MIT) qui récupère le firmware Broadcom.
-# Méthode 5 = sans macOS (télécharge l'image de récupération Apple). Dépendances: curl, dmg2img, python3.
+# Downloads and runs the official t2linux script (MIT) that fetches the Broadcom firmware.
+# Method 5 = without macOS (downloads the Apple recovery image). Dependencies: curl, dmg2img, python3.
 set -e
 tmp=\$(mktemp)
 trap 'rm -f "\$tmp"' EXIT
@@ -446,10 +444,10 @@ if ! is_t2 && [ -z "${T2_FORCE:-}" ]; then
     exit 0
 fi
 
-[ -z "$ONLY" ] && setup_packages  # avec --only: dkms et linux-headers doivent déjà être installés
-# L'horloge matérielle (RTC) de la T2 repart parfois du 1er janvier 1970 au démarrage: le système vit en 1970
-# jusqu'à la synchro NTP (certificats TLS « pas encore valides »). chronyd -s remet alors l'heure à celle de
-# son dernier arrêt (date du fichier drift) dès le démarrage, avant le réseau.
+[ -z "$ONLY" ] && setup_packages  # with --only: dkms and linux-headers must already be installed
+# The hardware clock (RTC) of the T2 sometimes restarts from 1 January 1970 at boot: the system lives in 1970
+# until the NTP sync (TLS certificates "not yet valid"). chronyd -s then sets the time back to that of
+# its last shutdown (date of the drift file) at boot, before the network.
 setup_clock() {
     log "Heure au démarrage: chronyd -s (RTC T2 parfois remise à 1970)"
     printf '%s\n' '# filigrane (hardware/mac-t2): RTC T2 peu fiable, restaurer l'"'"'heure du dernier arrêt' 'OPTS="-s"' > /etc/sv/chronyd/conf

@@ -1,8 +1,8 @@
 #!/bin/sh
-# applesmc avec le support du SMC des Mac T2 (MMIO, ventilateurs), compilé hors arbre.
-# Appelé par DKMS:  ./build.sh <kernelver> <kernel_source_dir>
-# Base: applesmc.c du noyau v6.18.7 + correctifs 30xx de t2linux/linux-t2-patches (révision épinglée),
-# tous vérifiés contre SHA256SUMS. Série 6.18 seulement: pour une autre série, rebaser et mettre à jour.
+# applesmc with support for the SMC of the T2 Macs (MMIO, fans), built out of tree.
+# Called by DKMS:  ./build.sh <kernelver> <kernel_source_dir>
+# Base: applesmc.c of the v6.18.7 kernel + 30xx patches of t2linux/linux-t2-patches (pinned revision),
+# all verified against SHA256SUMS. 6.18 series only: for another series, rebase and update.
 set -eu
 kver="$1" ksrc="$2"
 BASE=v6.18.7

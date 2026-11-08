@@ -1,7 +1,7 @@
 #!/bin/bash
-# Mise à jour système encadrée par deux instantanés snapper de la racine (@void).
-#   void-update [options de xbps-install]     ex.: void-update -y
-# Retour arrière: voir hardware/mac-t2/README.md (section Double démarrage).
+# System update framed by two snapper snapshots of the root (@void).
+# void-update [xbps-install options]     e.g.: void-update -y
+# Rollback: see hardware/mac-t2/README.md (Dual boot section).
 set -uo pipefail
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 snap() { snapper --no-dbus -c root "$@"; }

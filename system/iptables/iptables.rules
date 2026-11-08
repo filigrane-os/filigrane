@@ -1,5 +1,5 @@
-# Pare-feu IPv4: poste client, rien n'écoute depuis l'extérieur.
-# Entrant refusé par défaut; sortant libre. Podman rootless n'a pas besoin de FORWARD.
+# IPv4 firewall: client machine, nothing listens from the outside.
+# Incoming refused by default; outgoing free. Rootless Podman does not need FORWARD.
 *filter
 :INPUT DROP [0:0]
 :FORWARD DROP [0:0]
@@ -7,18 +7,18 @@
 -A INPUT -i lo -j ACCEPT
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 -A INPUT -m conntrack --ctstate INVALID -j DROP
-# Réponses DHCP (dhcpcd, avant que conntrack ne les associe)
+# DHCP replies (dhcpcd, before conntrack associates them)
 -A INPUT -p udp --sport 67 --dport 68 -j ACCEPT
-# mDNS (découverte des Chromecast par Chromium)
+# mDNS (Chromecast discovery by Chromium)
 -A INPUT -p udp -d 224.0.0.251 --dport 5353 -j ACCEPT
-# LocalSend (réception de fichiers, fili-share): découverte multicast et envoi, depuis le réseau local seulement
+# LocalSend (file reception, fili-share): multicast discovery and sending, from the local network only
 -A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 10.0.0.0/8 -j ACCEPT
 -A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 172.16.0.0/12 -j ACCEPT
 -A INPUT -p udp -d 224.0.0.167 --dport 53317 -s 192.168.0.0/16 -j ACCEPT
 -A INPUT -p tcp --dport 53317 -s 10.0.0.0/8 -j ACCEPT
 -A INPUT -p tcp --dport 53317 -s 172.16.0.0/12 -j ACCEPT
 -A INPUT -p tcp --dport 53317 -s 192.168.0.0/16 -j ACCEPT
-# Ping entrant limité
+# Incoming ping limited
 -A INPUT -p icmp --icmp-type echo-request -m limit --limit 5/second -j ACCEPT
 -A INPUT -p icmp --icmp-type destination-unreachable -j ACCEPT
 -A INPUT -p icmp --icmp-type time-exceeded -j ACCEPT

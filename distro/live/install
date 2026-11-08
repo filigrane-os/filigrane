@@ -1,7 +1,7 @@
 #!/bin/bash
-# Installateur de l'ISO live (installé en /usr/bin/<distro>-install): demande le disque, l'utilisateur et le nom
-# de la machine, puis lance install-void.sh du dépôt embarqué, distribution seule (sans couche personnelle).
-# Options supplémentaires transmises à install-void.sh (--profile, --machine, --cpu, --gpu).
+# Installer of the live ISO (installed as /usr/bin/<distro>-install): asks for the disk, the user and the machine
+# name, then runs the installer script of the embedded repository, distribution only (no personal layer).
+# Extra options passed to it (--profile, --machine, --cpu, --gpu).
 set -euo pipefail
 SRC="${SRC:-/usr/share/fili/filigrane}"
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
@@ -23,8 +23,8 @@ read -r -p "Disque cible (il sera ENTIÈREMENT effacé): " disk
 read -r -p "Nom d'utilisateur: " user
 read -r -p "Nom de la machine [$DISTRO]: " host
 
-# Copie modifiable (le live est en lecture seule): .user-layer=none fixe la distribution seule, même si le nom
-# d'utilisateur correspond à une couche users/<nom> du dépôt
+# Writable copy (the live system is read-only): .user-layer=none sets the distribution only, even if the user
+# name matches a users/<name> layer of the repository
 work="$(mktemp -d)"
 cp -a "$SRC" "$work/filigrane"
 echo none > "$work/filigrane/.user-layer"

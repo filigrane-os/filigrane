@@ -1,7 +1,7 @@
 #!/bin/sh
-# Compile hors arbre les pilotes Touch Bar (désactivés dans la config du noyau Void) pour un noyau donné.
-# Appelé par DKMS:  ./build.sh <kernelver> <kernel_source_dir>
-# Sources prises au tag stable v<version> du noyau sur git.kernel.org, vérifiées contre SHA256SUMS.
+# Builds out of tree the Touch Bar drivers (disabled in the Void kernel config) for a given kernel.
+# Called by DKMS:  ./build.sh <kernelver> <kernel_source_dir>
+# Sources taken at the stable tag v<version> of the kernel on git.kernel.org, verified against SHA256SUMS.
 set -eu
 kver="$1" ksrc="$2"
 base="${kver%%_*}"                       # 6.18.57_1 -> 6.18.57
@@ -25,7 +25,7 @@ if ! sha256sum -c --quiet SHA256SUMS; then
     exit 1
 fi
 
-# Correctifs locaux (ex. écoute du clavier virtuel de keyd), après vérification des sources amont
+# Local patches (e.g. listening to the virtual keyboard of keyd), after verifying the upstream sources
 for p in 0*.patch; do
     [ -e "$p" ] || continue
     git apply --directory=. -p3 "$p"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Le menu de la fili-bar du chat (dotfiles/config/filigrane/appmenu/fili-chat.json) reste d'accord avec FiliChat.qml:
-chaque commande `fili-shell chat ACTION` du menu est un `case "ACTION"` de act(), et chaque raccourci annoncé a sa touche
-dans le tiroir. Usage: check-fili-chat-menu.py (depuis n'importe où)."""
+"""The fili-bar menu of the chat (dotfiles/config/filigrane/appmenu/fili-chat.json) stays in agreement with FiliChat.qml:
+every `fili-shell chat ACTION` command of the menu is a `case "ACTION"` of act(), and every announced shortcut has its key
+in the drawer. Usage: check-fili-chat-menu.py (from anywhere)."""
 import json, pathlib, re, sys
 
 root = pathlib.Path(__file__).resolve().parents[2]

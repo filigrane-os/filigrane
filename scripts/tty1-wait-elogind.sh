@@ -1,17 +1,15 @@
 #!/bin/sh
-# Fait attendre le getty de tty1 que le wrapper du service runit elogind ait monté /run/user
-# (nécessaire avec l'autologin).
-#
-#   sudo ./tty1-wait-elogind.sh [on|off]      (défaut: on)
-#
-# Sans cela, la connexion automatique est le premier client D-Bus au démarrage: D-Bus active elogind
-# lui-même (login1), puis le wrapper du service runit monte un tmpfs sur /run/user et masque
-# /run/user/<uid>. Résultat: pas de XDG_RUNTIME_DIR, niri échoue ("Failed to open session", ou
-# panique PermissionDenied à la création du socket Wayland).
-# On attend que /run/user soit un point de montage, pas `sv check elogind`: celui-ci réussit dès que
-# runit lance le script run, qui quitte aussitôt si D-Bus n'est pas prêt (sv check dbus || exit 1).
-# Une fois /run/user monté, le wrapper ne remonte plus rien et ne peut plus masquer la session.
-# L'attente est bornée à 20 s: si elogind est cassé, tty1 démarre quand même (tty2 reste libre).
+# Makes the tty1 getty wait until the wrapper of the elogind runit service has mounted /run/user
+# (needed with autologin).
+# Run as root: tty1-wait-elogind.sh [on|off]      (default: on)
+# Without it, the automatic login is the first D-Bus client at boot: D-Bus activates elogind
+# itself (login1), then the wrapper of the runit service mounts a tmpfs on /run/user and masks
+# /run/user/<uid>. Result: no XDG_RUNTIME_DIR, niri fails ("Failed to open session", or
+# PermissionDenied panic when creating the Wayland socket).
+# We wait for /run/user to be a mount point, not for the service check of elogind: that one succeeds as soon as
+# runit starts the run script, which exits at once if D-Bus is not ready (the check of dbus fails).
+# Once /run/user is mounted, the wrapper mounts nothing more and can no longer mask the session.
+# The wait is bounded to 20 s: if elogind is broken, tty1 starts anyway (tty2 stays free).
 set -eu
 conf=/etc/sv/agetty-tty1/conf
 begin='# >>> void-setup: attendre elogind'
@@ -19,7 +17,7 @@ end='# <<< void-setup'
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 [ -f "$conf" ] || { echo "Introuvable: $conf" >&2; exit 1; }
 
-# retire un éventuel bloc existant (idempotent)
+# removes an existing block (idempotent)
 sed -i "\|^$begin|,\|^$end|d" "$conf"
 
 if [ "${1:-on}" = on ]; then

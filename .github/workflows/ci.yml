@@ -1,9 +1,9 @@
 name: CI
 
-# Sur les pull requests vers main et sur les push vers main et develop.
-# Rien n'installe de système: on vérifie la logique de sélection
-# (profil, machine, CPU, GPU, architecture), l'existence des paquets, la config niri et la pose des dotfiles,
-# puis les outils Rust (apps/) et le fili-shell (tests Quickshell dans un niri sans écran).
+# On pull requests to main and on pushes to main and develop.
+# Nothing installs a system: we check the selection logic
+# (profile, machine, CPU, GPU, architecture), the existence of the packages, the niri config and the placing of the dotfiles,
+# then the Rust tools (apps/) and the fili-shell (Quickshell tests in a niri without a screen).
 on:
   pull_request:
     branches: [main]
@@ -42,13 +42,13 @@ jobs:
           for f in "${files[@]}"; do python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read(), sys.argv[1])' "$f"; done
       - name: JSON valides (une erreur fait ignorer tout le fichier, sans message)
         run: |
-          # hardware/*/audio: SPA-JSON de PipeWire (virgules finales admises), pas du JSON strict
+          # hardware/*/audio: PipeWire SPA-JSON (trailing commas allowed), not strict JSON
           git ls-files '*.json' ':!:hardware/*/audio/*' | while read -r f; do
             jq empty "$f" || { echo "JSON invalide: $f"; exit 1; }
           done
       - name: Consignes et skills des agents
         run: |
-          # CLAUDE.md importe AGENTS.md (une seule source pour Claude Code, Codex et opencode)
+          # CLAUDE.md imports AGENTS.md (a single source for Claude Code, Codex and opencode)
           for d in . agents/work; do
             grep -qx '@AGENTS.md' "$d/CLAUDE.md" && test -s "$d/AGENTS.md" || { echo "$d: CLAUDE.md doit importer AGENTS.md"; exit 1; }
           done
@@ -66,8 +66,8 @@ jobs:
           # shellcheck disable=SC2086
           LANG=de_DE.UTF-8 ./bootstrap.sh $plan | grep -q '^==> Profile:'
 
-  # Outils maison en Rust (apps/<nom>/Cargo.toml) avec la chaîne Rust de Void: format (apps/rustfmt.toml), clippy sans
-  # avertissement, tests, compilation; outils tiers (apps/<nom>/source) compilés au commit fixé, comme bootstrap.sh
+  # Own tools in Rust (apps/<name>/Cargo.toml) with the Rust toolchain of Void: format (apps/rustfmt.toml), clippy without
+  # warnings, tests, build; third-party tools (apps/<name>/source) built at the pinned commit, like bootstrap.sh
   apps:
     runs-on: ubuntu-24.04
     container: ghcr.io/void-linux/void-glibc-full:latest
@@ -99,8 +99,8 @@ jobs:
             for b in $bins; do test -x "$d/target/release/$b"; done
           done
 
-  # Tests du fili-shell (tests/fili-shell/ci.sh): sway sans écran, niri imbriqué, Quickshell et la vraie config chargée
-  # avec TestShell.qml, bar-stats compilé depuis apps/; programmes appelés par la fili-bar installés comme sur le bureau
+  # fili-shell tests (tests/fili-shell/ci.sh): headless sway, nested niri, Quickshell and the real config loaded
+  # with TestShell.qml, bar-stats built from apps/; programs called by the fili-bar installed as on the desktop
   fili-shell:
     runs-on: ubuntu-24.04
     container: ghcr.io/void-linux/void-glibc-full:latest
@@ -125,7 +125,7 @@ jobs:
             ./bootstrap.sh --fili-shell --profile baremetal --machine generic --cpu other --gpu none --arch x86_64
             FILI_APPS=/tmp/apps/release tests/fili-shell/ci.sh -v'
 
-  # niri validate sur la config de la distribution, puis avec la couche personnelle (local.kdl)
+  # niri validate on the config of the distribution, then with the personal layer (local.kdl)
   niri:
     runs-on: ubuntu-24.04
     container: ghcr.io/void-linux/void-glibc-full:latest
@@ -146,7 +146,7 @@ jobs:
             niri validate -c "$d/config.kdl"
           done
 
-  # Une ligne par configuration à valider: bootstrap.sh --plan doit résoudre toutes les listes
+  # One line per configuration to validate: bootstrap.sh --plan must resolve all the lists
   plan:
     runs-on: ubuntu-24.04
     strategy:
@@ -185,14 +185,14 @@ jobs:
             if ./bootstrap.sh --plan $bad >/dev/null 2>&1; then echo "accepté à tort: $bad"; exit 1; fi
           done
 
-  # Les paquets des listes existent dans le dépôt Void de l'architecture
+  # The packages of the lists exist in the Void repository of the architecture
   packages:
     runs-on: ubuntu-24.04
     container: ghcr.io/void-linux/void-glibc-full:latest
     strategy:
       fail-fast: false
       matrix:
-        # aarch64 est informatif: des paquets Intel ou propriétaires y manquent normalement
+        # aarch64 is informational: Intel or proprietary packages are normally missing there
         arch: [x86_64, aarch64]
     steps:
       - uses: actions/checkout@v4
@@ -202,7 +202,7 @@ jobs:
           xbps-install -Sy bash
       - run: bash scripts/check-packages.sh ${{ matrix.arch }} ${{ matrix.arch != 'x86_64' && '--warn-only' || '' }}
 
-  # Pose des dotfiles dans un HOME vierge pour chaque machine: aucun lien cassé, fichiers T2 seulement sur mac-t2
+  # Placing the dotfiles in a blank HOME for each machine: no broken link, T2 files only on mac-t2
   dotfiles:
     runs-on: ubuntu-24.04
     strategy:

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Génère la liste d'émojis du menu (un par ligne: "😀 grinning face (face-smiling)")
-depuis emoji-test.txt d'Unicode. Usage: gen-emoji.py SORTIE"""
+"""Generates the emoji list of the menu (one per line: "😀 grinning face (face-smiling)")
+from the Unicode emoji-test.txt. Usage: gen-emoji.py OUTPUT"""
 import re, sys, urllib.request
 
 URL = "https://unicode.org/Public/emoji/latest/emoji-test.txt"
