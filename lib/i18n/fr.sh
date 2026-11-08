@@ -348,7 +348,6 @@ _t_lookup() {
     'Unmounted: %s') _t_fmt='Démonté: %s' ;;
     'Update agents') _t_fmt='Mettre à jour les agents' ;;
     'Update system') _t_fmt='Mettre à jour le système' ;;
-    'VPN (Proton)') _t_fmt='VPN (Proton)' ;;
     'Volume +') _t_fmt='Volume +' ;;
     'Volume -') _t_fmt='Volume -' ;;
     'Wallpaper') _t_fmt='Fond d'\''écran' ;;
