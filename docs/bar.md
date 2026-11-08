@@ -199,6 +199,12 @@ AlertModule {
 - Colours, sizes and fonts come from `FiliTheme`, never hard-coded. The interface rules are in the `filigrane-ui` skill (`agents/skills/filigrane-ui/`).
 - The bar must stay light: no resident process per module, no polling when a signal will do. Measure with `tests/fili-shell/bench.sh`.
 
+## Status of the plugin interface
+
+The interface is `api = 1` (the manifest keys, `BarModule` / `BarItem` / `BarScript`, `FiliTheme`, `FiliI18n`, `qs.controls`). It lives in this repository with the bar and is tested with it (`tests/fili-shell/run.sh`). It is not frozen yet: a change that breaks plugins raises the `api` number and is written in the changelog.
+
+The bar stays in this repository, like the rest of the fili-shell, until three things are true: the interface has stayed at `api = 1` for a while, at least one plugin lives outside this repository, and this guide is complete. Then the bar can move to its own repository pinned here (as Casier is) and an index of plugin URLs (`filigrane-os/fili-bar-plugins`) can list the plugins that are worth installing. Until then, a plugin is shared as its own git repository (a folder with a `module.toml`) that `fili-bar install` clones.
+
 ## Testing
 
 After any change to the fili-shell, `tests/fili-shell/run.sh` must pass. It starts the shell in an isolated instance and clicks every module (`expectClick("name", Qt.LeftButton, "command")` in `tests/fili-shell/TestShell.qml`). The test workflow is described in [development.md](development.md).
