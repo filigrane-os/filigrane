@@ -48,8 +48,10 @@ BarModule {
     // Drawer (trayMode): "idle" shows the module in the bar only while it is in use (not in the "idle" class)
     readonly property bool inDrawer: trayMode === "never" || BarState.trayOpen || (trayMode === "idle" && cls !== "idle")
     visible: !(hideEmpty && text === "") && inDrawer
-    implicitWidth: visible ? Math.max(FiliTheme.isIcon(mod.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
-    implicitHeight: FiliTheme.barHeight
+    readonly property bool vertical: FiliTheme.barVertical
+    // On a column the icon sits above the value (and the tag above both), and the module is as wide as the bar
+    implicitWidth: !visible ? 0 : vertical ? FiliTheme.barWidth : Math.max(FiliTheme.isIcon(mod.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad)
+    implicitHeight: !visible ? 0 : vertical ? Math.max(FiliTheme.isIcon(mod.text) ? FiliTheme.iconCell : 0, content.implicitHeight + 2 * FiliTheme.barPadV) : FiliTheme.barHeight
 
     function parse(line) {
         line = line.trim();
@@ -128,20 +130,22 @@ BarModule {
         }
     }
 
-    Row {
+    Grid {
         id: content
         anchors.centerIn: parent
-        spacing: FiliTheme.labelGap
+        flow: Grid.LeftToRight
+        columns: mod.vertical ? 1 : 3
+        spacing: mod.vertical ? 1 : FiliTheme.labelGap
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
         Text {
             visible: mod.tag !== ""
-            anchors.verticalCenter: parent.verticalCenter
             text: mod.tag
             color: FiliTheme.ardoise
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
         }
         Text {
             visible: text !== "" && mod.display !== "value"
-            anchors.verticalCenter: parent.verticalCenter
             text: FiliTheme.glyph(mod.text)
             color: FiliTheme.iconColor(label.color)
             font.family: FiliTheme.font
@@ -151,9 +155,11 @@ BarModule {
             id: label
             visible: mod.display !== "icon" || FiliTheme.glyph(mod.text) === ""
             text: FiliTheme.value(mod.text)
+            elide: Text.ElideRight
+            width: mod.vertical ? Math.min(implicitWidth, FiliTheme.barWidth - 2 * mod.pad) : implicitWidth
             color: mod.colors[mod.cls] ?? mod.colors[""] ?? mod.color
             font.family: FiliTheme.font
-            font.pixelSize: FiliTheme.size
+            font.pixelSize: mod.vertical ? FiliTheme.sizeSmall : FiliTheme.size
         }
     }
     // Blinking (backup running): opacity toggled every second, two renders per cycle instead of a continuous

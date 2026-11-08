@@ -10,7 +10,7 @@ BarModule {
     panelSource: Qt.resolvedUrl("ResourcesPanel.qml")
     anchorItem: cpu
 
-    Row {
+    BarRow {
         BarScript { id: cpu; objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.brume2; hover.onLeftClicked: res.togglePanel(hover); hint: FiliI18n.tr("click: monitor") }
         BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.sable, critical: FiliTheme.cendre }); hover.onLeftClicked: res.togglePanel(hover); hint: FiliI18n.tr("click: monitor") }
         BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.brume2; hover.onLeftClicked: res.togglePanel(hover); hint: FiliI18n.tr("click: monitor") }

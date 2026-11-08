@@ -7,13 +7,13 @@ import qs
 import qs.bar
 
 BarModule {
-    Row {
+    BarRow {
         Repeater {
             model: SystemTray.items
             Item {
                 id: trayItem
                 required property var modelData
-                implicitWidth: FiliTheme.iconCell
+                implicitWidth: FiliTheme.barVertical ? FiliTheme.barWidth : FiliTheme.iconCell
                 implicitHeight: FiliTheme.barHeight
                 IconImage {
                     anchors.centerIn: parent
@@ -33,8 +33,8 @@ BarModule {
                     id: menuAnchor
                     menu: trayItem.modelData.menu
                     anchor.item: trayItem
-                    anchor.edges: Edges.Bottom
-                    anchor.gravity: Edges.Bottom
+                    anchor.edges: FiliTheme.popupEdges
+                    anchor.gravity: FiliTheme.popupEdges
                 }
             }
         }

@@ -461,6 +461,8 @@ _t_lookup() {
     'Usage: fili-bar check DIR|NAME') _t_fmt='Usage: fili-bar check DOSSIER|NOM' ;;
     'Usage: fili-bar install URL [--commit REV] [--yes]') _t_fmt='Usage: fili-bar install URL [--commit REV] [--yes]' ;;
     'Usage: fili-bar move NAME left|right [ORDER]') _t_fmt='Usage: fili-bar move NOM left|right [ORDRE]' ;;
+    'Usage: fili-bar screens all|NAME...') _t_fmt='Usage: fili-bar screens all|NOM...' ;;
+    'Usage: fili-bar edge top|bottom|left|right') _t_fmt='Usage: fili-bar edge top|bottom|left|right' ;;
     'Usage: fili-bar new NAME [--qml] (lowercase letters, digits, hyphens)') _t_fmt='Usage: fili-bar new NOM [--qml] (minuscules, chiffres, tirets)' ;;
     'Usage: fili-bar remove NAME') _t_fmt='Usage: fili-bar remove NOM' ;;
     esac

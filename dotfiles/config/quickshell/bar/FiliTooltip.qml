@@ -67,9 +67,12 @@ Singleton {
         id: popup
         visible: false
         anchor.item: tip.target
-        anchor.edges: Edges.Bottom
-        anchor.gravity: Edges.Bottom
-        anchor.margins.top: 6
+        anchor.edges: FiliTheme.popupEdges
+        anchor.gravity: FiliTheme.popupEdges
+        anchor.margins.top: FiliTheme.barGap("top", 6)
+        anchor.margins.bottom: FiliTheme.barGap("bottom", 6)
+        anchor.margins.left: FiliTheme.barGap("left", 6)
+        anchor.margins.right: FiliTheme.barGap("right", 6)
         implicitWidth: body.implicitWidth + 28
         implicitHeight: body.implicitHeight + 22
         color: "transparent"

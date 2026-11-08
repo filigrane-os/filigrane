@@ -52,6 +52,9 @@ ColumnLayout {
         FiliTheme.run(cli + " move " + name + " " + other + " " + (last + 10));
     }
 
+    // Edge of the screen and screens (fili-bar edge, fili-bar screens; also in the right click menu of the bar)
+    BarPlacement { Layout.fillWidth: true }
+    PanelSection { text: FiliI18n.tr("MODULES") }
     Text {
         text: "Barre"
         color: FiliTheme.voile

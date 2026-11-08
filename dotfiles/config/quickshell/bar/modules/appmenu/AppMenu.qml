@@ -89,6 +89,7 @@ Singleton {
     property var sel: []
     property var levelY: []
     property real anchorX: 0
+    property real anchorY: 0
     property var screen: null
     readonly property bool open: openIndex >= 0
     // Menu opened from the keyboard (fili-shell appmenu): it takes the keyboard focus, otherwise the application keeps its own
@@ -347,6 +348,7 @@ Singleton {
         FiliShell.popupOpened("appmenu");
         readState();
         anchorX = item.mapToItem(null, 0, 0).x;
+        anchorY = item.mapToItem(null, 0, 0).y;
         screen = bar?.screen ?? null;
         more = host ? host.overflow && index === host.fit : false;
         openIndex = index;
@@ -535,7 +537,12 @@ Singleton {
         visible: am.open && !FiliTheme.testing
         screen: am.screen
         anchors { top: true; left: true; right: true; bottom: true }
-        margins.top: FiliTheme.barHeight
+        margins {
+            top: FiliTheme.barMargin("top")
+            bottom: FiliTheme.barMargin("bottom")
+            left: FiliTheme.barMargin("left")
+            right: FiliTheme.barMargin("right")
+        }
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "fili-appmenu-catcher"
@@ -552,9 +559,17 @@ Singleton {
         id: menuWin
         visible: am.open && !FiliTheme.testing
         screen: am.screen
-        anchors { top: true; left: true }
-        margins.top: FiliTheme.barHeight + 2
-        margins.left: Math.max(4, Math.min((am.screen?.width ?? 0) - implicitWidth - 4, am.anchorX))
+        // Beside the bar: under it (top), above it (bottom), or next to the clicked title (left, right)
+        anchors {
+            top: FiliTheme.barEdge !== "bottom"
+            bottom: FiliTheme.barEdge === "bottom"
+            left: FiliTheme.barEdge !== "right"
+            right: FiliTheme.barEdge === "right"
+        }
+        margins.top: FiliTheme.barVertical ? Math.max(4, Math.min((am.screen?.height ?? 0) - implicitHeight - 4, am.anchorY)) : FiliTheme.barGap("top", FiliTheme.barHeight + 2)
+        margins.bottom: FiliTheme.barGap("bottom", FiliTheme.barHeight + 2)
+        margins.left: FiliTheme.barEdge === "left" ? FiliTheme.barWidth + 2 : FiliTheme.barVertical ? 0 : Math.max(4, Math.min((am.screen?.width ?? 0) - implicitWidth - 4, am.anchorX))
+        margins.right: FiliTheme.barGap("right", FiliTheme.barWidth + 2)
         implicitWidth: Math.max(1, cards.width)
         implicitHeight: Math.max(1, cards.height)
         exclusionMode: ExclusionMode.Ignore
@@ -610,7 +625,7 @@ Singleton {
                     x: index * (cards.cardWidth - 4)
                     y: am.levelY[index] ?? 0
                     width: cards.cardWidth
-                    height: Math.min(list.contentHeight, (am.screen?.height ?? 800) - FiliTheme.barHeight - 40 - y) + 8
+                    height: Math.min(list.contentHeight, (am.screen?.height ?? 800) - (FiliTheme.barVertical ? 0 : FiliTheme.barHeight) - 40 - y) + 8
                     color: FiliTheme.nuit
                     border.color: FiliTheme.border
                     border.width: FiliTheme.borderWidth

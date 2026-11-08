@@ -4,12 +4,12 @@ import qs
 import qs.bar
 
 BarModule {
-    Row {
+    BarRow {
         Repeater {
             model: Niri.workspaces.filter(w => w.output === bar.screen.name)
             Rectangle {
                 required property var modelData
-                implicitWidth: ws.implicitWidth + 2 * FiliTheme.pad
+                implicitWidth: FiliTheme.barVertical ? FiliTheme.barWidth : ws.implicitWidth + 2 * FiliTheme.pad
                 implicitHeight: FiliTheme.barHeight
                 color: modelData.is_active || wsHover.containsMouse ? FiliTheme.nuit3 : "transparent"
                 BarLabel {

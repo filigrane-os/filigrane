@@ -18,6 +18,8 @@ Singleton {
     property string view: ""
     onViewChanged: FiliShell.panelOpen = view !== ""
     property real anchorX: 0
+    // Along a column of the bar (left, right): the middle of the item
+    property real anchorY: 0
     property var screen: null
     readonly property bool open: view !== ""
     // Loaded view (tests)
@@ -74,9 +76,24 @@ Singleton {
         }
         FiliShell.popupOpened("panel");
         anchorX = item.mapToItem(null, item.width / 2, 0).x;
+        anchorY = item.mapToItem(null, 0, item.height / 2).y;
         screen = win?.screen ?? null;
         view = name;
         last = name;
+    }
+    // Right click on the bar background: the position of the bar and its settings, at the pointer (x, y in the bar window)
+    function openBarMenu(win, x, y) {
+        FiliTooltip.hide();
+        if (view === "barmenu") {
+            close();
+            return;
+        }
+        FiliShell.popupOpened("panel");
+        sources["barmenu"] = Qt.resolvedUrl("BarMenuPanel.qml");
+        anchorX = x;
+        anchorY = y;
+        screen = win?.screen ?? null;
+        view = "barmenu";
     }
     // Command `fili-shell panel NAME|toggle|close` (keyboard shortcuts): under the module of the panel
     function summon(name) {
@@ -114,6 +131,7 @@ Singleton {
         FiliShell.popupOpened("panel");
         FiliShell.keyNav = true;
         anchorX = m ? m.item.mapToItem(null, m.item.width / 2, 0).x : 100000;
+        anchorY = m ? m.item.mapToItem(null, 0, m.item.height / 2).y : 0;
         screen = m?.win?.screen ?? screen ?? Quickshell.screens[0] ?? null;
         view = name;
         last = name;
@@ -150,9 +168,17 @@ Singleton {
         id: win
         visible: panel.open && !FiliTheme.testing
         screen: panel.screen
-        anchors { top: true; left: true }
-        margins.top: FiliTheme.barHeight + 6
-        margins.left: Math.max(8, Math.min((panel.screen?.width ?? 0) - card.width - 8, panel.anchorX - card.width / 2))
+        // Beside the bar: under it (top), above it (bottom), or next to the clicked item (left, right)
+        anchors {
+            top: FiliTheme.barEdge !== "bottom"
+            bottom: FiliTheme.barEdge === "bottom"
+            left: FiliTheme.barEdge !== "right"
+            right: FiliTheme.barEdge === "right"
+        }
+        margins.top: FiliTheme.barVertical ? Math.max(8, Math.min((panel.screen?.height ?? 0) - card.height - 8, panel.anchorY - card.height / 2)) : FiliTheme.barGap("top", FiliTheme.barHeight + 6)
+        margins.bottom: FiliTheme.barGap("bottom", FiliTheme.barHeight + 6)
+        margins.left: FiliTheme.barEdge === "left" ? FiliTheme.barWidth + 6 : FiliTheme.barVertical ? 0 : Math.max(8, Math.min((panel.screen?.width ?? 0) - card.width - 8, panel.anchorX - card.width / 2))
+        margins.right: FiliTheme.barGap("right", FiliTheme.barWidth + 6)
         implicitWidth: card.width
         implicitHeight: card.height
         exclusionMode: ExclusionMode.Ignore

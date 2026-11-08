@@ -12,7 +12,7 @@ import qs.bar.modules.appmenu
 
 ShellRoot {
     Variants {
-        model: Quickshell.screens
+        model: BarLayout.barScreens
         FiliBar {}
     }
 

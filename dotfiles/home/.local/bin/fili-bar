@@ -3,6 +3,8 @@
 # fili-bar list                       modules: name, side, order, state, kind, title
 # fili-bar enable NAME | disable NAME show or hide a module (fili-bar.toml)
 # fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)
+# fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on (shows it without argument)
+# fili-bar screens [all|NAME...]      screens that get a bar: all, or output names (niri msg outputs)
 # fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
 # fili-bar check DIR|NAME             check the manifest and the script of a module
 # fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
@@ -48,12 +50,14 @@ cval() {
 val() { v="$(cval "$1" "$2")"; [ -n "$v" ] || v="$(mval "$mods/$1/module.toml" "$2")"; printf '%s' "${v:-$3}"; }
 
 # Set (or, with an empty value, remove) KEY in [modules.NAME] of fili-bar.toml
-setkey() {
-    name="$1"; key="$2"; value="$3"
+setkey() { setsec "[modules.$1]" "$2" "$3"; }
+# The same in any section, written with its brackets: setsec "[bar]" edge '"left"'
+setsec() {
+    sec="$1"; key="$2"; value="$3"
     mkdir -p "$(dirname "$conf")"
     [ -e "$conf" ] || : > "$conf"
     tmp="$(mktemp)"
-    awk -v sec="[modules.$name]" -v key="$key" -v val="$value" '
+    awk -v sec="$sec" -v key="$key" -v val="$value" '
         function put() { if (val != "" && !done) { print key " = " val; done = 1 } }
         /^[ \t]*\[/ { if (cur) put(); h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); if (cur) seen = 1 }
         cur && $0 ~ "^[ \t]*" key "[ \t]*=" { put(); next }
@@ -230,16 +234,46 @@ cmd_sync() {
     done
 }
 
+cmd_edge() {
+    if [ -z "${1:-}" ]; then
+        v="$(awk '/^[ \t]*\[/ { cur = ($0 ~ /^[ \t]*\[bar\]/); next } cur && /^[ \t]*edge[ \t]*=/ { gsub(/^[^=]*=[ \t]*"?|"?[ \t]*$/, ""); print; exit }' "$conf" 2>/dev/null)"
+        echo "${v:-top}"
+        return
+    fi
+    case "$1" in top | bottom | left | right) ;; *) die "$(t 'Usage: fili-bar edge top|bottom|left|right')" ;; esac
+    setsec "[bar]" edge "\"$1\""
+    echo "edge: $1"
+}
+# Screens that get a bar: [bar] screens = "all" or ["DP-6", ...] (output names, as `niri msg outputs` shows them)
+cmd_screens() {
+    if [ "$#" -eq 0 ]; then
+        v="$(awk '/^[ \t]*\[/ { cur = ($0 ~ /^[ \t]*\[bar\]/); next } cur && /^[ \t]*screens[ \t]*=/ { sub(/^[^=]*=[ \t]*/, ""); sub(/[ \t]*#.*$/, ""); print; exit }' "$conf" 2>/dev/null)"
+        echo "${v:-\"all\"}"
+        return
+    fi
+    for n in "$@"; do
+        printf '%s' "$n" | grep -Eq '^[A-Za-z0-9._-]+$' || die "$(t 'Usage: fili-bar screens all|NAME...')"
+    done
+    if [ "$1" = all ]; then
+        setsec "[bar]" screens '"all"'
+    else
+        list=""; for n in "$@"; do list="$list${list:+, }\"$n\""; done
+        setsec "[bar]" screens "[$list]"
+    fi
+    echo "screens: $*"
+}
 case "${1:-list}" in
     list) cmd_list ;;
     enable) cmd_enable "${2:-}" "" ;;
     disable) cmd_enable "${2:-}" false ;;
     move) cmd_move "${2:-}" "${3:-}" "${4:-}" ;;
+    edge) cmd_edge "${2:-}" ;;
+    screens) shift; cmd_screens "$@" ;;
     new) cmd_new "${2:-}" "${3:-}" ;;
     check) cmd_check "${2:-}" ;;
     install) shift; cmd_install "$@" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
-    -h | --help | help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
-    *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+    -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

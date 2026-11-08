@@ -12,14 +12,20 @@ BarModule {
     property alias tipInfo: hov.tipInfo
     property real pad: FiliTheme.pad
     property real maxWidth: Infinity
-    implicitWidth: visible ? Math.max(FiliTheme.isIcon(nat.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad) : 0
-    implicitHeight: FiliTheme.barHeight
+    readonly property bool vertical: FiliTheme.barVertical
+    // On a column the icon sits above the value, and the module is as wide as the bar
+    implicitWidth: !visible ? 0 : vertical ? FiliTheme.barWidth : Math.max(FiliTheme.isIcon(nat.text) ? FiliTheme.iconCell : 0, content.implicitWidth + 2 * pad)
+    implicitHeight: !visible ? 0 : vertical ? Math.max(FiliTheme.isIcon(nat.text) ? FiliTheme.iconCell : 0, content.implicitHeight + 2 * FiliTheme.barPadV) : FiliTheme.barHeight
     visible: nat.text !== "" && (trayMode === "never" || BarState.trayOpen)
     // Icon in slate, value in white (FiliTheme.glyph)
-    Row {
+    Grid {
         id: content
         anchors.centerIn: parent
-        spacing: FiliTheme.labelGap
+        flow: Grid.LeftToRight
+        columns: nat.vertical ? 1 : 2
+        spacing: nat.vertical ? 1 : FiliTheme.labelGap
+        horizontalItemAlignment: Grid.AlignHCenter
+        verticalItemAlignment: Grid.AlignVCenter
         Text {
             id: glyphText
             visible: text !== "" && nat.display !== "value"
@@ -33,10 +39,10 @@ BarModule {
             text: FiliTheme.value(nat.text)
             // Truncated (…) when the text exceeds maxWidth (property set by the bar, no limit otherwise)
             elide: Text.ElideRight
-            width: Math.min(implicitWidth, Math.max(0, nat.maxWidth - 2 * nat.pad - (FiliTheme.glyph(nat.text) !== "" ? glyphText.implicitWidth + content.spacing : 0)))
+            width: nat.vertical ? Math.min(implicitWidth, FiliTheme.barWidth - 2 * nat.pad) : Math.min(implicitWidth, Math.max(0, nat.maxWidth - 2 * nat.pad - (FiliTheme.glyph(nat.text) !== "" ? glyphText.implicitWidth + content.spacing : 0)))
             color: nat.color
             font.family: FiliTheme.font
-            font.pixelSize: FiliTheme.size
+            font.pixelSize: nat.vertical ? FiliTheme.sizeSmall : FiliTheme.size
         }
     }
     BarHover {

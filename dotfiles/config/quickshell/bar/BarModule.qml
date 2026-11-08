@@ -28,8 +28,8 @@ Item {
                 return p[key];
         return def;
     }
-    implicitWidth: childrenRect.width
-    implicitHeight: FiliTheme.barHeight
+    implicitWidth: FiliTheme.barVertical ? FiliTheme.barWidth : childrenRect.width
+    implicitHeight: FiliTheme.barVertical ? childrenRect.height : FiliTheme.barHeight
 
     // Open or close the panel, under item (default: anchorItem)
     function togglePanel(item) {

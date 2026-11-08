@@ -4,7 +4,7 @@ import qs
 import qs.bar
 
 BarModule {
-    Row {
+    BarRow {
         // Screen recording: visible only while recording, click = stop (start it from menu › Capture)
         BarScript { objectName: "rec"; title: FiliI18n.tr("Recording"); cmd: FiliTheme.bin + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: FiliTheme.bin + "/bar-toggle rec" }
         // Incoming SSH session, airplane mode (click = turn off), VPN: written by bar-stats when the state changes

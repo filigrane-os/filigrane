@@ -38,11 +38,13 @@ BarModule {
             sum = w[0];
         return { fit: k, width: sum + moreTitle.implicitWidth };
     }
-    readonly property int fit: layout.fit
+    // On a column of the bar there is no room for titles: only the "…" title shows, its list opens them all
+    readonly property bool vertical: FiliTheme.barVertical
+    readonly property int fit: vertical ? 0 : layout.fit
     readonly property bool overflow: fit < count
     visible: shown
-    implicitWidth: shown ? layout.width : 0
-    implicitHeight: FiliTheme.barHeight
+    implicitWidth: !shown ? 0 : vertical ? FiliTheme.barWidth : layout.width
+    implicitHeight: !shown ? 0 : FiliTheme.barHeight
 
     // Title i; index fit is the "…"
     function titleAt(i) {
@@ -57,7 +59,7 @@ BarModule {
         property bool current: false
         signal clicked
         signal entered
-        implicitWidth: label.implicitWidth + 2 * FiliTheme.pad
+        implicitWidth: FiliTheme.barVertical ? FiliTheme.barWidth : label.implicitWidth + 2 * FiliTheme.pad
         implicitHeight: FiliTheme.barHeight
         Rectangle {
             anchors.fill: parent
@@ -85,7 +87,7 @@ BarModule {
         }
     }
 
-    Row {
+    BarRow {
         Repeater {
             id: rep
             model: AppMenu.menus
@@ -107,7 +109,7 @@ BarModule {
             id: moreTitle
             objectName: "appmenu-more"
             visible: root.overflow
-            text: "…"
+            text: root.vertical ? String.fromCodePoint(0xf0c9) : "…"
             current: AppMenu.open && AppMenu.more
             onClicked: AppMenu.toggle(root.fit, moreTitle, root.bar, root)
             onEntered: AppMenu.hoverTitle(root.fit, moreTitle, root.bar, root)

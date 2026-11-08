@@ -1291,6 +1291,33 @@ ShellRoot {
                 ok(BarLayout.choice("bogus", "display", ["both", "icon", "value"], "both") === "both", "BarLayout.choice: valeur invalide = repli");
                 BarLayout.parsed = ({});
             },
+            // Edge of the bar: [bar] edge, a column on the left and the right
+            () => {
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "left"\n');
+                const a = t.bar.anchors;
+                ok(FiliTheme.barEdge === "left" && FiliTheme.barVertical && a.left && a.top && a.bottom && !a.right, "fili-bar: edge = left -> colonne ancrée à gauche", FiliTheme.barEdge);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "bottom"\n');
+                ok(FiliTheme.barEdge === "bottom" && !FiliTheme.barVertical && a.bottom && a.left && a.right && !a.top, "fili-bar: edge = bottom -> rangée en bas", FiliTheme.barEdge);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "nope"\n');
+                ok(FiliTheme.barEdge === "top" && a.top, "fili-bar: edge invalide -> haut", FiliTheme.barEdge);
+                // Screens: all by default, a list picks them, a list that matches nothing gives every screen (never no bar)
+                const n = Quickshell.screens.length, first = Quickshell.screens[0].name;
+                BarLayout.parsed = ({});
+                ok(BarLayout.barScreens.length === n && BarLayout.screensChoice === "all", "fili-bar: screens par défaut = tous", BarLayout.barScreens.length + "/" + n);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nscreens = ["' + first + '"]\n');
+                ok(BarLayout.barScreens.length === 1 && BarLayout.barScreens[0].name === first, "fili-bar: screens = [nom] -> cet écran seul", BarLayout.barScreens.length);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nscreens = ["no-such-output"]\n');
+                ok(BarLayout.barScreens.length === n, "fili-bar: screens sans écran connu -> tous (jamais sans barre)", BarLayout.barScreens.length);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nscreens = "all"\n');
+                ok(BarLayout.barScreens.length === n, "fili-bar: screens = \"all\"", BarLayout.barScreens.length);
+                BarLayout.parsed = ({});
+            },
+            // Right click on the bar background: position of the bar and shortcut to the settings
+            wait(() => FiliPanel.openBarMenu(t.bar, 100, 10), () => FiliPanel.loaded !== null && t.find(FiliPanel.loaded, "bar-edge") !== null, 5000),
+            () => {
+                ok(FiliPanel.view === "barmenu" && t.find(FiliPanel.loaded, "open-settings") !== null && t.find(FiliPanel.loaded, "bar-screens") !== null, "fili-bar: clic droit -> panneau position, écrans de la barre + réglages");
+                FiliPanel.close();
+            },
             // Script plugin: a manifest with a cmd, no QML
             () => {
                 const m = Object.assign({}, BarLayout.manifests);

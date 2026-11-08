@@ -35,9 +35,12 @@ PopupWindow {
             }
         }
     }
-    anchor.edges: Edges.Bottom
-    anchor.gravity: Edges.Bottom
-    anchor.margins.top: 4
+    anchor.edges: FiliTheme.popupEdges
+    anchor.gravity: FiliTheme.popupEdges
+    anchor.margins.top: FiliTheme.barGap("top", 4)
+    anchor.margins.bottom: FiliTheme.barGap("bottom", 4)
+    anchor.margins.left: FiliTheme.barGap("left", 4)
+    anchor.margins.right: FiliTheme.barGap("right", 4)
     implicitWidth: 260
     implicitHeight: 276
     color: "transparent"

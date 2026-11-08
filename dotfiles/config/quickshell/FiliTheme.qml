@@ -159,6 +159,24 @@ Singleton {
     readonly property int space5: ov("space_5", 20)
     readonly property int space6: ov("space_6", 24)
     readonly property int barHeight: ov("bar_height", 24)
+    // Edge of the screen the fili-bar sits on: "top" (default) | "bottom" | "left" | "right" (set by BarLayout from
+    // [bar] edge of fili-bar.toml). On the left and the right the bar is a narrow column (barWidth): the modules stack.
+    property string barEdge: "top"
+    readonly property bool barVertical: barEdge === "left" || barEdge === "right"
+    readonly property int barWidth: ov("bar_width", 56)
+    // Vertical margin of a module in a column (the stacked modules are many: tighter than the side margin of a row)
+    readonly property int barPadV: ov("pad_v", 2)
+    readonly property int barThickness: barVertical ? barWidth : barHeight
+    // Margin to leave on `side` of a full-screen window so that it starts beside the bar (0 on the other sides)
+    function barMargin(side) {
+        return barEdge === side ? barThickness : 0;
+    }
+    // Gap (px) of a popup from the bar, on the side the bar is on only
+    function barGap(side, px) {
+        return barEdge === side ? px : 0;
+    }
+    // Edges and gravity of a popup opened beside a bar item: away from the bar
+    readonly property int popupEdges: barEdge === "top" ? Edges.Bottom : barEdge === "bottom" ? Edges.Top : barEdge === "left" ? Edges.Right : Edges.Left
     // fili-bar rhythm, a single one for all the modules (no gap of its own for groups): margin of each module
     // (the gap between two texts is therefore 2 × pad), minimum cell of a lone icon (its stroke is ~10 px: same
     // visible margin), space between the label (CPU, RAM) and its value

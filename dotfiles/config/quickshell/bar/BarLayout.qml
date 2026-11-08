@@ -6,6 +6,10 @@ pragma Singleton
 //   left  = ["logo", "workspaces", "appmenu"]
 //   right = ["status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network",
 //            "notifications", "clock", "power"]
+//   [bar]
+//   edge = "top"           # "top" (default) | "bottom" | "left" | "right" (a narrow column: the modules stack)
+//   screens = "all"        # "all" (default) or a list of output names, e.g. ["eDP-1", "DP-6"]
+// (dotfiles/config/filigrane/fili-bar.toml lists every option with its comment)
 //   [modules.clock]        # per-module override of the manifest
 //   side = "left"
 //   order = 5
@@ -40,6 +44,23 @@ Singleton {
     property var parsed: ({})
     readonly property var left: pick("left", defaultLeft)
     readonly property var right: pick("right", defaultRight)
+    // Edge of the screen: [bar] edge = "top" (default) | "bottom" | "left" | "right"
+    readonly property string edge: ["top", "bottom", "left", "right"].indexOf(parsed.bar?.edge) >= 0 ? parsed.bar.edge : "top"
+    Binding { target: FiliTheme; property: "barEdge"; value: layout.edge }
+    // Screens that get a bar: [bar] screens = "all" (default) or a list of output names. A list that matches no connected
+    // screen gives a bar on every screen, so the bar never disappears (a screen unplugged, a name mistyped).
+    readonly property var wantedScreens: {
+        const v = parsed.bar?.screens;
+        const list = Array.isArray(v) ? v : (v ? [v] : []);
+        return list.indexOf("all") >= 0 ? [] : list;
+    }
+    readonly property var barScreens: {
+        const all = Quickshell.screens;
+        const some = all.filter(s => wantedScreens.indexOf(s.name) >= 0);
+        return some.length > 0 ? some : all;
+    }
+    // What the choice shows as selected: "all", or the name when a single screen is asked for
+    readonly property string screensChoice: wantedScreens.length === 1 && barScreens.length === 1 && barScreens[0].name === wantedScreens[0] ? wantedScreens[0] : (wantedScreens.length === 0 ? "all" : "")
 
     Component.onCompleted: reload()
     function reload() {

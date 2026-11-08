@@ -8,8 +8,10 @@ import qs.bar
 
 BarModule {
     id: clockItem
-    implicitWidth: clockText.implicitWidth + (clockIcon.visible ? clockIcon.implicitWidth + FiliTheme.labelGap : 0) + 2 * FiliTheme.pad
-    implicitHeight: FiliTheme.barHeight
+    // On a column: time over date, as wide as the bar
+    readonly property bool vertical: FiliTheme.barVertical
+    implicitWidth: vertical ? FiliTheme.barWidth : clockText.implicitWidth + (clockIcon.visible ? clockIcon.implicitWidth + FiliTheme.labelGap : 0) + 2 * FiliTheme.pad
+    implicitHeight: vertical ? clockText.implicitHeight + 2 * FiliTheme.barPadV + 4 : FiliTheme.barHeight
     SystemClock { id: clock; precision: SystemClock.Minutes }
     // Running timer or stopwatch (bar-timer, state read by BarState): replaces the date
     readonly property var timerState: BarState.timer
@@ -49,7 +51,7 @@ BarModule {
     // Calendar icon before the date, like the other modules (the timer carries its own)
     BarLabel {
         id: clockIcon
-        visible: !clockItem.timing
+        visible: !clockItem.timing && !clockItem.vertical
         anchors { verticalCenter: parent.verticalCenter; right: clockText.left; rightMargin: FiliTheme.labelGap }
         text: String.fromCodePoint(0xf073)
         color: FiliTheme.ardoise
@@ -58,7 +60,8 @@ BarModule {
         id: clockText
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0
-        text: clockItem.timing ? clockItem.timerState.text : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
+        horizontalAlignment: Text.AlignHCenter
+        text: clockItem.timing ? clockItem.timerState.text.trim() : clockItem.vertical ? FiliI18n.locale.toString(clock.date, "HH:mm") + "\n" + FiliI18n.locale.toString(clock.date, "dd MMM") : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
         color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
         // Fixed-width digits: the clock does not shift every second
         font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font
@@ -96,7 +99,12 @@ BarModule {
         visible: cal.pinned && cal.visible && !FiliTheme.testing
         screen: bar.screen
         anchors { top: true; bottom: true; left: true; right: true }
-        margins.top: FiliTheme.barHeight
+        margins {
+            top: FiliTheme.barMargin("top")
+            bottom: FiliTheme.barMargin("bottom")
+            left: FiliTheme.barMargin("left")
+            right: FiliTheme.barMargin("right")
+        }
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Top
         WlrLayershell.namespace: "fili-calendar-dismiss"
@@ -105,8 +113,9 @@ BarModule {
             width: dismiss.width
             height: dismiss.height
             Region {
-                x: Math.max(0, clockItem.mapToItem(null, clockItem.width / 2, 0).x - cal.implicitWidth / 2)
-                y: 4
+                // Where the calendar opens: centred on the clock along the bar, 4 px from it
+                x: FiliTheme.barEdge === "left" ? 4 : FiliTheme.barEdge === "right" ? dismiss.width - cal.implicitWidth - 4 : Math.max(0, clockItem.mapToItem(null, clockItem.width / 2, 0).x - cal.implicitWidth / 2)
+                y: FiliTheme.barEdge === "bottom" ? dismiss.height - cal.implicitHeight - 4 : FiliTheme.barVertical ? Math.max(0, clockItem.mapToItem(null, 0, clockItem.height / 2).y - cal.implicitHeight / 2) : 4
                 width: cal.implicitWidth
                 height: cal.implicitHeight
                 intersection: Intersection.Subtract

@@ -50,9 +50,13 @@ order = 120      # position in the row, smaller = more to the left (default 50)
 
 The default rows are the manifests of each side sorted by `order`. A module with a manifest joins its row by itself, so a personal module needs nothing else: `order = 1` puts it first of the right row. The manifests are read once when the shell starts.
 
-To change the defaults, create `~/.config/filigrane/fili-bar.toml` (re-read as soon as it changes):
+To change the defaults, create `~/.config/filigrane/fili-bar.toml` (re-read as soon as it changes). `dotfiles/config/filigrane/fili-bar.toml` lists every option with its comment, all commented out at their defaults:
 
 ```toml
+[bar]
+edge = "top"         # "top" (default), "bottom", "left" or "right": on the left and the right the bar is a narrow column
+screens = "all"      # "all" (default) or a list of output names, e.g. ["eDP-1", "DP-6"]
+
 [modules]
 left  = ["logo", "workspaces", "appmenu"]
 right = ["mail", "...", "clock", "power"]
@@ -66,6 +70,7 @@ tray = "idle"        # "never" (default), "idle" or "always"
 show = "always"      # "active" (hidden while empty) or "always"
 ```
 
+- `edge` puts the bar on one edge of the screen; a column stacks the modules, folds the application menu into one button and shows the clock as time over date. `screens` limits the bar to some outputs (names as in `niri msg outputs`); a list that matches no connected screen gives every screen a bar, so the bar never disappears.
 - A name is a folder of `bar/modules/`: `my-thing` loads `my-thing/MyThingModule.qml`.
 - An explicit `left` / `right` list is the exact order of the bar, left to right, and wins over `order`.
 - `"..."` stands for the default modules of that row that are not listed yet.
@@ -81,6 +86,8 @@ Your own `fili-bar.toml` belongs to the [personal layer](configuration.md): `use
 fili-bar list                          modules: name, side, order, state, kind, title
 fili-bar enable NAME | disable NAME    show or hide a module
 fili-bar move NAME left|right [ORDER]  side and position
+fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on
+fili-bar screens [all|NAME...]         screens that get a bar
 fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML module)
 fili-bar check DIR|NAME                check a manifest and its script
 fili-bar install URL [--commit REV]    clone a plugin; shows its manifest, then --yes to install
@@ -92,7 +99,7 @@ fili-bar sync                          clone the pinned plugins of bar-plugins.t
 
 ### Settings > Barre
 
-The same choices are in **Réglages › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
+A right click on the bar background opens a panel with the edge and the screens (also `fili-bar edge` and `fili-bar screens`), and a shortcut to **Réglages › Barre**. The same choices are in **Réglages › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
 
 ## Writing a module
 

@@ -11,7 +11,9 @@ Loader {
     // fili-bar window of the screen
     property var bar: null
     property real free: -1
-    Layout.fillHeight: true
+    // Fills the thickness of the bar: its height in a row, its width in a column
+    Layout.fillHeight: !FiliTheme.barVertical
+    Layout.fillWidth: FiliTheme.barVertical
     Component.onCompleted: setSource(BarLayout.source(modelData), BarLayout.isScript(modelData) ? { bar: slot.bar, name: modelData, conf: BarLayout.manifests[modelData] } : { bar: slot.bar })
     onLoaded: {
         if (!item)
