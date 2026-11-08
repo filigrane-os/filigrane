@@ -27,7 +27,7 @@ A *filigrane* is a watermark: visible when you look for it, invisible when you r
 ## What is inside
 
 - **Void Linux**: xbps packages, runit services, no systemd, rolling release.
-- **niri + Quickshell**: bar, global application menu, notifications, launcher, panels, all in one coherent shell (the *fili-shell*) with foot as terminal.
+- **niri + Quickshell**: bar, global application menu, notifications, launcher, panels, all in one coherent shell (the *fili-shell*) with foot as terminal. The bar is built from modules you can choose, reorder and extend: see [docs/bar.md](docs/bar.md).
 - **Fili apps**: small native tools that share one standard: an *About* card, their own icon, a global menu exposed to the bar, and an editable config file (`~/.config/filigrane/<app>.toml`) for settings and theme. The first is **Casier**, the file manager; **Archiveur** (`fili-archive`, `archiveur`) is its compress and extract engine without a window, shipped in the same binary.
 - **Layered configuration**: distribution → hardware → personal.
 - **AI agent built in**: Claude Code, Codex, opencode or local models (Ollama). `Mod+Y` opens a chat drawer (sessions kept while hidden); `Mod+Shift+Y` starts the agent in a terminal.
@@ -50,6 +50,7 @@ To install from scratch (erases a whole disk), see [docs/install.md](docs/instal
 | [Install](docs/install.md) | Live ISO, `install-void.sh`, an existing Void system, Intel Macs with a T2 chip |
 | [Using the desktop](docs/usage.md) | Session, keys, menu, screenshots, packages, services, updates |
 | [Configuration and layers](docs/configuration.md) | `config.env`, distribution / hardware / personal layers, `bootstrap.sh` options, hardware detection |
+| [The bar](docs/bar.md) | The fili-bar (Barre): default modules, choosing and ordering them, writing a module or an alert |
 | [AI agent](docs/ai-agent.md) | `fili-ai`, choosing an agent and a model, signing in, safety rules |
 | [Development](docs/development.md) | Repo layout, test workflow, CI, Rust tools, translations, contributing |
 | [Distribution](distro/README.md) | xbps repository and live ISO |
