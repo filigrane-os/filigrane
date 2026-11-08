@@ -65,6 +65,7 @@
  "Disk speed test": "Test de vitesse du disque",
  "Disk test running…": "Test du disque en cours…",
  "Displays": "Écrans",
+ "Distro": "Distribution",
  "Do not disturb": "Ne pas déranger",
  "Done (click: dismiss)": "Terminé (clic: acquitter)",
  "Drawer": "Tiroir",
@@ -363,7 +364,5 @@
  "Maximize column": "Agrandir la colonne",
  "Move to next workspace": "Envoyer sur l'espace suivant",
  "Move to previous workspace": "Envoyer sur l'espace précédent",
- "Quit %1": "Quitter %1",
- "Filigrane": "Filigrane",
- "Machine": "Machine"
+ "Quit %1": "Quitter %1"
 }
