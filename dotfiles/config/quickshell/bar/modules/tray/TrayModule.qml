@@ -38,10 +38,6 @@ BarModule {
                 }
             }
         }
-        // Idle mail, WhatsApp and calendar: stored in the drawer (visible when it is open), they move out into the bar on an alert
-        BarScript { objectName: "mail-idle"; value: BarState.mailIdle; color: FiliTheme.ardoise; click: FiliTheme.bin + "/bar-alert open mail" }
-        BarScript { objectName: "whatsapp-idle"; value: BarState.whatsappIdle; color: FiliTheme.ardoise; click: FiliTheme.bin + "/bar-alert open whatsapp" }
-        BarScript { objectName: "cal-idle"; value: BarState.calIdle; color: FiliTheme.ardoise; click: FiliTheme.bin + "/bar-alert open cal" }
         // restic backup: grey when idle, blinking while running, red on failure; click = back up now
         BarScript {
             objectName: "backup"

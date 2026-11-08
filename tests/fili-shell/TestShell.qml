@@ -10,6 +10,7 @@ import Quickshell
 import Quickshell.Io
 import qs
 import qs.bar
+import qs.bar.modules.alert
 import qs.bar.modules.appmenu
 
 ShellRoot {
@@ -22,6 +23,7 @@ ShellRoot {
     property real waitUntil: 0
     property var refreshed: []
     readonly property var bar: bars.instances[0] ?? null
+    Component { id: alertComp; AlertModule {} }
     readonly property string bin: FiliTheme.bin
 
     function ok(cond, name, detail) {
@@ -166,9 +168,6 @@ ShellRoot {
             () => {
                 expectClick("logo", L, "/menu");
                 expectClick("logo", R, "foot");
-                expectClick("mail", L, "bar-alert open mail");
-                expectClick("whatsapp", L, "bar-alert open whatsapp");
-                expectClick("cal", L, "bar-alert open cal");
                 expectClick("rec", L, "bar-toggle rec");
                 expectClick("air", L, "bar-toggle air");
                 expectClick("news", L, "bar-news open");
@@ -386,14 +385,33 @@ ShellRoot {
             // BarState: états lus dans leurs fichiers (alertes, agenda, minuteur, tiroir), sans script
             () => {
                 const now = 1000000;
-                const m = BarState.alert("mail", "Alice\tBonjour\nBob\tSalut\n", null, now);
-                ok(m.text === " 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "BarState: alerte mail", JSON.stringify(m));
-                const c = BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
-                ok(c.text === " Réunion 11:00" && JSON.stringify(c.tooltip).indexOf("Vieux") < 0, "BarState: agenda, événement passé ignoré", JSON.stringify(c));
-                ok(BarState.alert("cal", (now - 400) + "\t10:00\tVieux\n", null, now).text === "", "BarState: agenda expiré masqué");
-                const w = BarState.alert("whatsapp", "", "3\n", now);
-                ok(w.text.endsWith(" 3") && w.tooltip.title === "WhatsApp" && w.tooltip.rows[0][1] === "3", "BarState: compteur de non-lus prioritaire", JSON.stringify(w));
-                ok(BarState.alert("whatsapp", "x\ty\n", "0", now).text === "", "BarState: compteur à 0 masque l'alerte");
+                // AlertModule (the mail, WhatsApp and calendar modules of the user layer are instances of it)
+                const mk = props => alertComp.createObject(null, props);
+                const mail = mk({ kind: "mail", title: "Proton Mail", glyph: "\uf0e0" });
+                const m = mail.build("Alice\tBonjour\nBob\tSalut\n", null, now);
+                ok(m.text === "\uf0e0 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "AlertModule: alerte mail", JSON.stringify(m));
+                const cal = mk({ kind: "cal", title: "Proton Calendar", glyph: "\uf073", render: (rows, n) => {
+                    const live = rows.filter(x => Number(x[0]) >= n - 300).sort((x, y) => Number(x[0]) - Number(y[0]));
+                    return live.length ? { text: live[0][2] + " " + live[0][1], rows: live.map(x => [x[1], x[2] ?? ""]) } : null;
+                } });
+                const c = cal.build((now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
+                ok(c.text === "\uf073 Réunion 11:00" && JSON.stringify(c.tooltip).indexOf("Vieux") < 0, "AlertModule: render (agenda), événement passé ignoré", JSON.stringify(c));
+                ok(cal.build((now - 400) + "\t10:00\tVieux\n", null, now).text === "", "AlertModule: agenda expiré masqué");
+                const wa = mk({ kind: "whatsapp", title: "WhatsApp", glyph: "W" });
+                const w = wa.build("", "3\n", now);
+                ok(w.text === "W 3" && w.tooltip.title === "WhatsApp" && w.tooltip.rows[0][1] === "3", "AlertModule: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(wa.build("x\ty\n", "0", now).text === "", "AlertModule: compteur à 0 masque l'alerte");
+                ok(mail.objectName === "mail" && mail.idleGlyph === "\uf0e0", "AlertModule: objectName = kind, icône du tiroir = icône");
+                // Displayed value (BarScript.value): the alert while there is one, else nothing (drawer folded)
+                const live = mk({ kind: "zzz-test", title: "Test", glyph: "T" });
+                ok(live.value.text === "" && live.shown.text === "", "AlertModule: sans fichier, rien à afficher", JSON.stringify(live.value));
+                live.destroy();
+                FiliTheme.ran = [];
+                mail.hover.press(Qt.LeftButton);
+                ok(FiliTheme.ran.join("\n").indexOf("bar-alert open mail") >= 0, "AlertModule: clic -> bar-alert open mail", JSON.stringify(FiliTheme.ran));
+                mail.destroy();
+                cal.destroy();
+                wa.destroy();
                 ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: chronomètre", BarState.timerFor("S", now - 65, now).text);
                 const r = BarState.timerFor("T", now + 3700, now);
                 ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
@@ -1191,6 +1209,8 @@ ShellRoot {
                 const p = FiliTheme.parseToml('[modules]\nleft = ["logo",\n    "workspaces", # comment\n]\nright = ["power", "clock"]\n');
                 ok(JSON.stringify(p.modules.left) === '["logo","workspaces"]' && JSON.stringify(p.modules.right) === '["power","clock"]', "FiliTheme.parseToml: tableau sur plusieurs lignes", JSON.stringify(p));
                 ok(BarLayout.left.join() === "logo,workspaces,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: sans fichier, modules par défaut", BarLayout.left.join());
+                BarLayout.parsed = FiliTheme.parseToml('[modules]\nright = ["mail", "..."]\n');
+                ok(BarLayout.right.join() === "mail," + BarLayout.defaultRight.join(), "BarLayout: « ... » = les modules par défaut", BarLayout.right.join());
                 BarLayout.parsed = FiliTheme.parseToml('[modules]\nleft = ["logo", "logo"]\nright = ["power", "clock", "../etc", "Nope", "ghost"]\n');
                 ok(BarLayout.left.join() === "logo" && BarLayout.right.join() === "power,clock,ghost", "BarLayout: noms invalides et doublons ignorés", BarLayout.right.join());
             },

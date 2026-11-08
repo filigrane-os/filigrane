@@ -5,14 +5,17 @@ pragma Singleton
 //   left  = ["logo", "workspaces", "appmenu"]
 //   right = ["status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network",
 //            "notifications", "clock", "power"]
-// A name is a folder of bar/modules/ (<name>/<Name>Module.qml, hyphens make camel case: "my-thing" -> MyThingModule).
-// Invalid names (anything but lowercase letters, digits and hyphens) and duplicates are ignored; a module that does
-// not exist leaves a loading error in the log and no gap in the bar.
+// A name is a folder of bar/modules/ (<name>/<Name>Module.qml, hyphens make camel case: "my-thing" -> MyThingModule),
+// from the distribution or from a user layer. "..." stands for the default modules of the row (the ones not listed yet),
+// so a user layer can add its own without restating the rest: right = ["mail", "..."]. Invalid names (anything but
+// lowercase letters, digits and hyphens) and duplicates are ignored; a module that does not exist leaves a loading
+// error in the log and no gap in the bar.
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs
 // Module folders with helper files next to their module: imported so that Quickshell scans them (see BarModule)
+import qs.bar.modules.alert
 import qs.bar.modules.appmenu
 import qs.bar.modules.audio
 import qs.bar.modules.clock
@@ -20,7 +23,7 @@ import qs.bar.modules.clock
 Singleton {
     id: layout
     readonly property var defaultLeft: ["logo", "workspaces", "appmenu"]
-    readonly property var defaultRight: ["alerts", "status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network", "notifications", "clock", "power"]
+    readonly property var defaultRight: ["status", "tray", "media", "resources", "agent", "audio", "keyboard", "display", "bluetooth", "network", "notifications", "clock", "power"]
     property var parsed: ({})
     readonly property var left: pick("left", defaultLeft)
     readonly property var right: pick("right", defaultRight)
@@ -36,7 +39,14 @@ Singleton {
 
     function pick(side, def) {
         const v = parsed.modules?.[side];
-        return Array.isArray(v) ? v.filter((n, i) => /^[a-z][a-z0-9-]*$/.test(n) && v.indexOf(n) === i) : def;
+        if (!Array.isArray(v))
+            return def;
+        const out = [];
+        for (const n of v)
+            for (const m of n === "..." ? def : [n])
+                if (/^[a-z][a-z0-9-]*$/.test(m) && out.indexOf(m) < 0)
+                    out.push(m);
+        return out;
     }
     // QML file of a module
     function source(name) {

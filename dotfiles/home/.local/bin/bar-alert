@@ -1,17 +1,18 @@
 #!/bin/bash
-# Alertes de la barre: nouveaux mails Proton (mail), événements Proton Calendar imminents (cal) et messages des autres
-# webapps suivies par webapp-notify (whatsapp...), dans ~/.local/state/alerts/<kind>, lus par la barre (BarState.qml).
-# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) ajoute une ligne; `bar-alert open <kind>` ouvre la webapp et efface.
-# Ajouter une webapp: son nom dans ~/.config/webapps/notify, ses fichiers dans BarState.qml et un module dans FiliBar.qml.
-#   mail: une ligne "expéditeur<TAB>sujet" par mail arrivé depuis le dernier clic
-#   cal:  une ligne "début epoch<TAB>HH:MM<TAB>titre", affichée jusqu'à 5 min après le début
+# Bar alerts: new Proton mails (mail), imminent Proton Calendar events (cal) and messages of the other web apps followed
+# by webapp-notify (whatsapp...), in ~/.local/state/alerts/<kind>, read by the bar (AlertModule).
+# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind>` opens the web app and clears.
+# Adding a web app: its name in ~/.config/webapps/notify, then an AlertModule in the user layer
+# (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/) and its name in the user's fili-bar.toml.
+#   mail: one line "sender<TAB>subject" per mail received since the last click
+#   cal:  one line "start epoch<TAB>HH:MM<TAB>title", shown until 5 minutes after the start
 D="$HOME/.local/state/alerts"
 mkdir -p "$D"
-# URL d'une webapp de la liste d'après son kind (nom en minuscules sans espace)
+# URL of a web app of the list from its kind (lowercase name without spaces)
 webapp_url() { awk -F'|' -v k="$1" '/^#/ || NF < 2 { next } { n = tolower($1); gsub(/[^a-z0-9]/, "", n); if (n == k) { gsub(/^ +| +$/, "", $2); print $2; exit } }' "${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"; }
 
 case "$1" in
-    push)  # bar-alert push mail "expéditeur" "sujet" | bar-alert push cal EPOCH HH:MM titre
+    push)  # bar-alert push mail "sender" "subject" | bar-alert push cal EPOCH HH:MM title
         kind="$2"; shift 2
         printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"; exit 0 ;;
     open)
