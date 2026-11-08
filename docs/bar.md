@@ -146,7 +146,7 @@ printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(up
 | `click`, `rclick`, `mclick`, `scroll_up`, `scroll_down` | commands run by the mouse |
 | `title`, `hint` | name and help line of the tooltip |
 
-The output protocol is the one of `BarScript` below (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
+The output protocol is the one of `BarScript` above (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
 
 ### Alerts
 
