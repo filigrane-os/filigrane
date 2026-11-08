@@ -3,8 +3,8 @@ pragma Singleton
 // pages on the left, one per module of the fili-bar (Display, Sound, Network...), the chosen page on the right. The
 // frequent, instant and reversible settings stay in the fili-panel of their module, whose foot opens the matching page
 // here (`FiliSettings.show("display")`). Pages are loaded when the window opens and freed when it closes (nothing runs
-// while it is closed). Like a fili-panel, it closes on Esc or when it loses focus (a change pending confirmation is
-// reverted by its page, see SettingsDisplay).
+// while it is closed). Unlike a fili-panel, it is a window: it closes on Esc or with the button at the top right, never
+// when it loses focus (a change pending confirmation is reverted by its page, see SettingsDisplay).
 // Opening: `fili-shell settings [PAGE]`, the foot of a fili-panel, menu > System > Settings.
 // Keyboard: Tab / Shift+Tab through the page list then the page, Enter acts, Esc closes.
 import QtQuick
@@ -75,20 +75,6 @@ Singleton {
             Keys.onEscapePressed: settings.close()
             Keys.onTabPressed: FiliPanel.moveFocus(scope, Window.activeFocusItem, true)
             Keys.onBacktabPressed: FiliPanel.moveFocus(scope, Window.activeFocusItem, false)
-            // Focus received on opening then lost (click on another window): close, as a fili-panel does
-            property bool held: false
-            Window.onActiveChanged: {
-                if (Window.active)
-                    held = true;
-                else if (held)
-                    settings.close();
-            }
-            Connections {
-                target: settings
-                function onOpenChanged() {
-                    scope.held = false;
-                }
-            }
             Rectangle {
                 id: card
                 width: 640
@@ -125,7 +111,7 @@ Singleton {
                 // Page: scrolls when taller than the window
                 Flickable {
                     id: flick
-                    anchors { left: rule.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: FiliTheme.space5 }
+                    anchors { left: rule.right; right: parent.right; top: parent.top; bottom: parent.bottom; margins: FiliTheme.space5; topMargin: 40 }
                     contentWidth: width
                     contentHeight: loader.item ? loader.item.implicitHeight : 0
                     boundsBehavior: Flickable.StopAtBounds
@@ -136,6 +122,38 @@ Singleton {
                         objectName: "settings-page"
                         width: flick.width
                         source: settings.open ? settings.current.source : ""
+                    }
+                }
+                // Close button (top right); Esc does the same
+                Rectangle {
+                    id: closeBtn
+                    objectName: "settings-close"
+                    anchors { top: parent.top; right: parent.right; margins: FiliTheme.space2 }
+                    width: 24
+                    height: 24
+                    radius: 6
+                    color: closeHover.containsMouse ? FiliTheme.nuit3 : "transparent"
+                    Accessible.role: Accessible.Button
+                    Accessible.name: FiliI18n.tr("Close")
+                    // A cross drawn with two bars (no glyph: no font dependency)
+                    Repeater {
+                        model: [45, -45]
+                        Rectangle {
+                            required property int modelData
+                            anchors.centerIn: parent
+                            width: 12
+                            height: 1.5
+                            radius: 1
+                            rotation: modelData
+                            color: closeHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
+                        }
+                    }
+                    MouseArea {
+                        id: closeHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: settings.close()
                     }
                 }
             }
