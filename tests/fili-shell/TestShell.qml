@@ -1275,6 +1275,12 @@ ShellRoot {
             () => {
                 const h = t.find(t.bar.contentItem, "hello");
                 ok(h && h.text === "hi" && h.title === "Hello" && h.signal === 40 && h.click.indexOf("true") > 0 && BarLayout.right[0] === "hello", "fili-bar: plugin script (manifest avec cmd, sans QML)", h ? h.text + "/" + h.title + "/" + h.signal : "absent");
+                ok(h && h.cmd.indexOf("FILI_BAR_OPTIONS='") >= 0 && h.cmd.indexOf("/filigrane/bar/hello.toml") > 0, "fili-bar: plugin script, FILI_BAR_OPTIONS = ~/.config/filigrane/bar/<nom>.toml", h ? h.cmd : "absent");
+                FiliI18n.catalog = { "Open instantly": "Ouvrir" };
+                FiliI18n.pluginCatalog = { "Plugin zzz": "Plugin en français", "Open instantly": "autre" };
+                ok(FiliI18n.tr("Plugin zzz") === "Plugin en français" && FiliI18n.tr("Nothing here") === "Nothing here" && FiliI18n.tr("Open instantly") === "Ouvrir", "FiliI18n: catalogue d'un plugin, celui du shell l'emporte", FiliI18n.tr("Open instantly"));
+                FiliI18n.catalog = ({});
+                FiliI18n.pluginCatalog = ({});
                 const m = Object.assign({}, BarLayout.manifests);
                 delete m.hello;
                 BarLayout.manifests = m;

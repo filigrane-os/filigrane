@@ -115,6 +115,11 @@ Singleton {
     function dir(name) {
         return Qt.resolvedUrl("modules/" + name).toString().replace(/^file:\/\//, "");
     }
+    // Options of the user for a module: ~/.config/filigrane/bar/<name>.toml (optional; a QML module reads it with a
+    // FileView and FiliTheme.parseToml, a script plugin gets the path in FILI_BAR_OPTIONS)
+    function options(name) {
+        return (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/bar/" + name + ".toml";
+    }
     // QML file of a module
     function source(name) {
         if (isScript(name))

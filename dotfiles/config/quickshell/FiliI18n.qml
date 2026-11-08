@@ -5,6 +5,7 @@ pragma Singleton
 // user's choice (fili-lang: $XDG_STATE_HOME/filigrane/locale, followed live: changing the language retranslates
 // the whole shell without restarting it), else the first one set of LC_ALL, LC_MESSAGES, LANG ("fr_FR.UTF-8" -> fr; C, POSIX
 // -> en), like lib/i18n.sh for the scripts.
+// Plugins of the fili-bar bring their own: bar/modules/<name>/i18n/<language>.json (see pluginCatalog).
 // Special key "@decimal": decimal separator (num). Dates: Qt locale of the language.
 // Adding a language: copy i18n/fr.json, translate the values, scripts/check-i18n.sh.
 import QtQuick
@@ -37,7 +38,10 @@ Singleton {
         }
     }
     // FileView does not see a file appear in a missing folder
-    Component.onCompleted: Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")])
+    Component.onCompleted: {
+        Quickshell.execDetached(["mkdir", "-p", stateFile.replace(/\/[^/]*$/, "")]);
+        scanPlugins();
+    }
     // Variable de langue retenue (LANG=fr_FR.UTF-8 -> fr_FR)
     readonly property string posix: (Quickshell.env("FILI_LANG") || choice || Quickshell.env("LC_ALL") || Quickshell.env("LC_MESSAGES") || Quickshell.env("LANG") || "en").split(/[.@]/)[0]
     readonly property string lang: {
@@ -64,9 +68,33 @@ Singleton {
         }
     }
 
+    // Translations shipped by the fili-bar modules (bar/modules/<name>/i18n/<language>.json, same format as a catalog):
+    // read when the language changes; the catalog of the shell wins over them. A plugin written in English needs none.
+    property var pluginCatalog: ({})
+    function scanPlugins() {
+        if (lang !== "en")
+            plugins.running = true;
+        else
+            pluginCatalog = ({});
+    }
+    onLangChanged: scanPlugins()
+    Process {
+        id: plugins
+        command: ["sh", "-c", 'printf "["; s=; for f in "$1"/*/i18n/"$2".json; do [ -f "$f" ] || continue; printf "%s" "$s"; cat "$f"; s=,; done; printf "]"', "sh", Quickshell.shellDir + "/bar/modules", i18n.lang]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    i18n.pluginCatalog = Object.assign({}, ...JSON.parse(text).reverse());
+                } catch (e) {
+                    i18n.pluginCatalog = ({});
+                }
+            }
+        }
+    }
+
     // Translated text, %1, %2... replaced by the arguments
     function tr(s, ...args) {
-        const t = catalog[s] ?? s;
+        const t = catalog[s] ?? pluginCatalog[s] ?? s;
         return args.length ? t.replace(/%(\d)/g, (m, n) => args[n - 1] ?? m) : t;
     }
     // Number with d decimals and the separator of the language

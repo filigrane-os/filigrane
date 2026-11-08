@@ -167,6 +167,11 @@ printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(up
 
 The output protocol is the one of `BarScript` above (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
 
+### Translations and options of a plugin
+
+- **Translations**: write the plugin in English. To translate it, add `i18n/<language>.json` in its folder (`{"English text": "translation"}`, `%1`, `%2` for arguments, same format as the catalogs of the shell). The shell merges them with its own catalog, which wins on a clash; the bar reads them when it starts and when the language changes. In a QML module, texts go through `FiliI18n.tr("...")`.
+- **Options**: the user's options for a plugin are in `~/.config/filigrane/bar/<name>.toml` (optional; the plugin documents its keys). A script plugin finds the path in `FILI_BAR_OPTIONS`; a QML module reads it with a `FileView` on `BarLayout.options("<name>")` and `FiliTheme.parseToml`.
+
 ### Alerts
 
 An alert (new mail, unread messages, next event) is an `AlertModule` of a few lines. It reads `~/.local/state/alerts/<kind>` (one line per item, fields separated by a tab; added with `bar-alert push`) and optionally `<kind>.count`, the real number of unread items, which wins. It shows in the bar while there is something to read and, at rest, only in the open drawer. A click runs `bar-alert open <kind> [URL]`.
