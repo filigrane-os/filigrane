@@ -363,5 +363,7 @@
  "Maximize column": "Agrandir la colonne",
  "Move to next workspace": "Envoyer sur l'espace suivant",
  "Move to previous workspace": "Envoyer sur l'espace précédent",
- "Quit %1": "Quitter %1"
+ "Quit %1": "Quitter %1",
+ "Filigrane": "Filigrane",
+ "Machine": "Machine"
 }

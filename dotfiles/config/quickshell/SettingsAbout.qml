@@ -28,9 +28,9 @@ ColumnLayout {
             onStreamFinished: {
                 try {
                     const sec = JSON.parse(text).sections;
-                    const pick = (n, k) => (sec.find(s => s.name === n)?.rows ?? []).slice(0, k);
-                    view.sys = pick(FiliI18n.tr("Filigrane"), 1)
-                        .concat(pick(FiliI18n.tr("System"), 2), pick(FiliI18n.tr("Machine"), 1));
+                    // Sections come in a fixed order (Filigrane, System, Machine); their names are translated, so go by position
+                    const pick = (i, k) => (sec[i]?.rows ?? []).slice(0, k);
+                    view.sys = pick(0, 1).concat(pick(1, 2), sec.length > 2 ? pick(2, 1) : []);
                 } catch (e) {
                     view.sys = [];
                 }
