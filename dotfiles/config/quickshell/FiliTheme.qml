@@ -57,8 +57,9 @@ Singleton {
     function parseToml(text) {
         const out = {};
         let sec = "";
-        for (const raw of text.split("\n")) {
-            const line = stripComment(raw).trim();
+        const lines = text.split("\n");
+        for (let n = 0; n < lines.length; n++) {
+            const line = stripComment(lines[n]).trim();
             const h = /^\[(.+)\]$/.exec(line);
             if (h) {
                 sec = h[1].trim();
@@ -68,7 +69,10 @@ Singleton {
             if (i < 0)
                 continue;
             const k = line.slice(0, i).trim();
-            const v = line.slice(i + 1).trim();
+            let v = line.slice(i + 1).trim();
+            // An array can span several lines: gather them up to the closing bracket
+            while (v.startsWith("[") && !v.endsWith("]") && n + 1 < lines.length)
+                v += " " + stripComment(lines[++n]).trim();
             if (!out[sec])
                 out[sec] = {};
             out[sec][k] = v.startsWith("[") && v.endsWith("]") ? v.slice(1, -1).split(",").map(x => x.trim().replace(/^"|"$/g, "").trim()).filter(x => x) : v.replace(/^"|"$/g, "").trim();

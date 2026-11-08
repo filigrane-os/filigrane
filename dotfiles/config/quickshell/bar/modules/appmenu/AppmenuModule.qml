@@ -1,21 +1,20 @@
-// Menu de l'application active dans la fili-bar (voir AppMenu): le nom de l'application en gras, puis ses menus, autant
-// que la place libre (maxWidth, posée par la barre) en laisse voir. Les menus qui ne tiennent plus passent dans un
-// titre «…», dont la liste les ouvre en sous-menus. Clic = ouvre ou ferme un menu; menu ouvert, passer sur un autre
-// titre l'ouvre.
+// Menu of the active application in the fili-bar (see AppMenu): the application name in bold, then its menus, as many as
+// the free space (maxWidth, set by BarSlot) shows. The menus that no longer fit move into a "…" title whose list opens
+// them as submenus. Click = open or close a menu; with a menu open, moving over another title opens it.
 import QtQuick
 import qs
+import qs.bar
 
-Item {
+BarModule {
     id: root
-    // Fenêtre de la fili-bar qui porte ce menu (son écran reçoit le menu déroulé)
-    property var bar
-    // Place libre dans la barre
+    objectName: "appmenu"
+    // Free space in the bar
     property real maxWidth: Infinity
     readonly property int count: AppMenu.menus.length
     readonly property bool shown: count > 0
 
-    // Titres affichés (au moins le premier) et largeur utilisée. Tout tient: aucun «…». Sinon «…» prend la place
-    // des derniers titres qui ne tiennent plus avec lui. La largeur d'un titre ne dépend pas de sa visibilité.
+    // Titles shown (at least the first) and width used. Everything fits: no "…". Otherwise "…" takes the place of the
+    // last titles that no longer fit with it. The width of a title does not depend on its visibility.
     readonly property var layout: {
         void rep.count;
         const n = count;
@@ -45,7 +44,7 @@ Item {
     implicitWidth: shown ? layout.width : 0
     implicitHeight: FiliTheme.barHeight
 
-    // Titre i; l'index fit est «…»
+    // Title i; index fit is the "…"
     function titleAt(i) {
         return i < fit ? rep.itemAt(i) : (overflow && i === fit ? moreTitle : null);
     }
@@ -103,7 +102,7 @@ Item {
                 onEntered: AppMenu.hoverTitle(index, t, root.bar, root)
             }
         }
-        // Menus qui ne tiennent plus dans la barre
+        // Menus that no longer fit in the bar
         Title {
             id: moreTitle
             objectName: "appmenu-more"

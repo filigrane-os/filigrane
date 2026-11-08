@@ -7,25 +7,9 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
 import qs
-import qs.bar.modules.appmenu
-import qs.bar.modules.logo
-import qs.bar.modules.media
-import qs.bar.modules.notifications
-import qs.bar.modules.status
-import qs.bar.modules.tray
-import qs.bar.modules.workspaces
-import qs.bar.modules.agent
-import qs.bar.modules.audio
-import qs.bar.modules.bluetooth
-import qs.bar.modules.clock
-import qs.bar.modules.display
-import qs.bar.modules.keyboard
-import qs.bar.modules.network
-import qs.bar.modules.power
-import qs.bar.modules.resources
 
 PanelWindow {
-    id: bar
+    id: barWin
     required property var modelData
     screen: modelData
     anchors { top: true; left: true; right: true }
@@ -33,8 +17,6 @@ PanelWindow {
     color: FiliTheme.nuit
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
-
-    readonly property string b: FiliTheme.bin
 
     // Click on the bar background (outside the modules): closes fili-panel, the pinned calendar and the notification center
     MouseArea {
@@ -52,50 +34,25 @@ PanelWindow {
         color: FiliTheme.nuit3
     }
 
-    // ───────── Left: logo, workspaces, application menu ─────────
+    // ───────── Left: modules of BarLayout.left (logo, workspaces, application menu...) ─────────
     RowLayout {
         id: leftRow
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
-
-        LogoModule { bar: bar; Layout.leftMargin: 10 }
-        WorkspacesModule { bar: bar; Layout.fillHeight: true }
-
-        // Menu of the active application (AppMenu): AT-SPI menu bar or fallback menu; replaces the window title.
-        // Folded to the application name alone when the menus do not fit before the first right-hand module
-        AppmenuModule {
-            id: appMenu
-            objectName: "appmenu"
-            bar: bar
-            maxWidth: Math.max(0, rightRow.x - leftRow.x - appMenu.x - FiliTheme.space3)
+        Repeater {
+            model: BarLayout.left
+            BarSlot { bar: barWin; free: rightRow.x - leftRow.x }
         }
     }
 
-    // ───────── Right: indicators, drawer, media, resources, system, date, battery ─────────
+    // ───────── Right: modules of BarLayout.right ─────────
     RowLayout {
         id: rightRow
         anchors { right: parent.right; top: parent.top; bottom: parent.bottom; rightMargin: 6 }
         spacing: 0
-
-        // Personal alerts: new Proton mails / imminent Proton Calendar event (hidden otherwise, see BarState), click = open and clear
-        BarScript { objectName: "mail"; value: BarState.mail; color: FiliTheme.voile; click: bar.b + "/bar-alert open mail" }
-        BarScript { objectName: "whatsapp"; value: BarState.whatsapp; click: bar.b + "/bar-alert open whatsapp" }
-        BarScript { objectName: "cal"; value: BarState.cal; color: FiliTheme.sable; click: bar.b + "/bar-alert open cal" }
-        StatusModule { bar: bar }
-
-        TrayModule { bar: bar }
-
-        MediaModule { bar: bar }
-
-        ResourcesModule { bar: bar }
-        AgentModule { bar: bar }
-        AudioModule { bar: bar }
-        KeyboardModule { bar: bar }
-        DisplayModule { bar: bar }
-        BluetoothModule { bar: bar }
-        NetworkModule { bar: bar }
-        NotificationsModule { bar: bar }
-        ClockModule { bar: bar }
-        PowerModule { bar: bar }
+        Repeater {
+            model: BarLayout.right
+            BarSlot { bar: barWin }
+        }
     }
 }

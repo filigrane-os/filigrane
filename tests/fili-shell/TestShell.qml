@@ -1186,6 +1186,22 @@ ShellRoot {
                 } catch (e) {}
                 ok(n && typeof n.device === "string" && Array.isArray(n.networks), "fili-net list: JSON { device, networks }", t.shellOut.out);
             },
+            // fili-bar layout (~/.config/filigrane/fili-bar.toml, optional; defaults in BarLayout)
+            () => {
+                const p = FiliTheme.parseToml('[modules]\nleft = ["logo",\n    "workspaces", # comment\n]\nright = ["power", "clock"]\n');
+                ok(JSON.stringify(p.modules.left) === '["logo","workspaces"]' && JSON.stringify(p.modules.right) === '["power","clock"]', "FiliTheme.parseToml: tableau sur plusieurs lignes", JSON.stringify(p));
+                ok(BarLayout.left.join() === "logo,workspaces,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: sans fichier, modules par défaut", BarLayout.left.join());
+                BarLayout.parsed = FiliTheme.parseToml('[modules]\nleft = ["logo", "logo"]\nright = ["power", "clock", "../etc", "Nope", "ghost"]\n');
+                ok(BarLayout.left.join() === "logo" && BarLayout.right.join() === "power,clock,ghost", "BarLayout: noms invalides et doublons ignorés", BarLayout.right.join());
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "network") === null && t.find(t.bar.contentItem, "clock") !== null, 5000),
+            () => {
+                ok(t.find(t.bar.contentItem, "appmenu") === null && t.find(t.bar.contentItem, "power") !== null, "fili-bar: seuls les modules du fichier (menu absent)");
+                ok(FiliPanel.ring().join() === "power", "fili-bar: le panneau d'un module retiré est désenregistré", FiliPanel.ring().join());
+                BarLayout.parsed = ({});
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "network") !== null && t.find(t.bar.contentItem, "appmenu") !== null, 5000),
+            () => ok(FiliPanel.ring().length === 9, "fili-bar: modules par défaut de retour, panneaux réenregistrés", FiliPanel.ring().join()),
         ];
         tick.start();
     }
