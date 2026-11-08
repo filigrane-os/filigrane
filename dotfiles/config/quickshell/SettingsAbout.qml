@@ -13,7 +13,7 @@ ColumnLayout {
     // Display name (alias) and program name (aka)
     readonly property string name: "Réglages"
     readonly property string aka: "fili-settings"
-    // Rows read from fili-about: Filigrane version, OS and kernel, machine model
+    // Rows read from fili-about: distro, OS and kernel, then the whole Machine section (model, CPU, GPU, RAM, disk, displays, battery)
     property var sys: []
     readonly property var rows: [
         [FiliI18n.tr("Also known as"), aka + " (Settings)"],
@@ -30,7 +30,7 @@ ColumnLayout {
                     const sec = JSON.parse(text).sections;
                     // Sections come in a fixed order (Filigrane, System, Machine); their names are translated, so go by position
                     const pick = (i, k) => (sec[i]?.rows ?? []).slice(0, k);
-                    view.sys = pick(0, 1).concat(pick(1, 2), sec.length > 2 ? pick(2, 1) : []);
+                    view.sys = pick(0, 1).map(r => [FiliI18n.tr("Distro"), "Filigrane " + r[1]]).concat(pick(1, 2), pick(2, 99));
                 } catch (e) {
                     view.sys = [];
                 }
