@@ -66,6 +66,8 @@ ColumnLayout {
     Text {
         visible: view.sessions.length === 0 && view.chatState === ""
         text: FiliI18n.tr("No session")
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
         Layout.leftMargin: FiliTheme.space2
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }

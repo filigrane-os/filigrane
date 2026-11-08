@@ -123,6 +123,8 @@ ColumnLayout {
         Text {
             text: view.page === "viewer" ? FiliI18n.tr("Keyboard viewer") : view.page === "emoji" ? FiliI18n.tr("Emoji") : FiliI18n.tr("Keyboard")
             color: FiliTheme.voile
+            elide: Text.ElideRight
+            Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
         }
     }
@@ -155,6 +157,8 @@ ColumnLayout {
     Text {
         visible: view.page === "layouts" && Niri.layouts.length === 0
         text: FiliI18n.tr("No layout found")
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
     }
@@ -197,6 +201,8 @@ ColumnLayout {
         visible: view.page === "layouts" && Niri.layouts.length > 1
         Layout.topMargin: FiliTheme.space1
         text: FiliI18n.tr("Layouts: XKB_LAYOUT in config.env")
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
@@ -312,6 +318,8 @@ ColumnLayout {
             Text {
                 visible: !search.text
                 anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                elide: Text.ElideRight
                 text: FiliI18n.tr("Search (smile, heart, thumbs…)")
                 color: FiliTheme.ardoise
                 font: search.font

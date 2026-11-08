@@ -61,7 +61,7 @@ BarModule {
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0
         horizontalAlignment: Text.AlignHCenter
-        text: clockItem.timing ? clockItem.timerState.text.trim() : clockItem.vertical ? FiliI18n.locale.toString(clock.date, "HH:mm") + "\n" + FiliI18n.locale.toString(clock.date, "dd MMM") : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
+        text: clockItem.timing ? (clockItem.vertical ? clockItem.timerState.text.trim() : clockItem.timerState.text) : clockItem.vertical ? FiliI18n.locale.toString(clock.date, "HH:mm") + "\n" + FiliI18n.locale.toString(clock.date, "dd MMM") : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
         color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
         // Fixed-width digits: the clock does not shift every second
         font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font

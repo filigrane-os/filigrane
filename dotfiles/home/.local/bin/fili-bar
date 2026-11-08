@@ -236,7 +236,7 @@ cmd_sync() {
 
 cmd_edge() {
     if [ -z "${1:-}" ]; then
-        v="$(awk '/^[ \t]*\[/ { cur = ($0 ~ /^[ \t]*\[bar\]/); next } cur && /^[ \t]*edge[ \t]*=/ { gsub(/^[^=]*=[ \t]*"?|"?[ \t]*$/, ""); print; exit }' "$conf" 2>/dev/null)"
+        v="$(awk '/^[ \t]*\[/ { cur = ($0 ~ /^[ \t]*\[bar\]/); next } cur && /^[ \t]*edge[ \t]*=/ { sub(/[ \t]*#.*$/, ""); gsub(/^[^=]*=[ \t]*"?|"?[ \t]*$/, ""); print; exit }' "$conf" 2>/dev/null)"
         echo "${v:-top}"
         return
     fi

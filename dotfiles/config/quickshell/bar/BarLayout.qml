@@ -60,7 +60,9 @@ Singleton {
         return some.length > 0 ? some : all;
     }
     // What the choice shows as selected: "all", or the name when a single screen is asked for
-    readonly property string screensChoice: wantedScreens.length === 1 && barScreens.length === 1 && barScreens[0].name === wantedScreens[0] ? wantedScreens[0] : (wantedScreens.length === 0 ? "all" : "")
+    // (no name matches a connected screen: the bar is on all of them, so "all" is what shows)
+    readonly property bool wantedConnected: wantedScreens.some(n => Quickshell.screens.some(sc => sc.name === n))
+    readonly property string screensChoice: wantedScreens.length === 0 || !wantedConnected ? "all" : wantedScreens.length === 1 && barScreens.length === 1 ? barScreens[0].name : ""
 
     Component.onCompleted: reload()
     function reload() {

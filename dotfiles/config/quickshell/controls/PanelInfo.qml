@@ -26,6 +26,7 @@ ColumnLayout {
     }
     // Same standard as the fili-tooltip: title on the left, label / value rows on the right
     RowLayout {
+        Layout.fillWidth: true
         spacing: FiliTheme.space4
         Text {
             visible: info.title && !!info.card.title
@@ -38,6 +39,8 @@ ColumnLayout {
         }
         GridLayout {
             Layout.alignment: Qt.AlignTop
+            // The values take what the title and the labels leave and are elided: nothing goes past the card
+            Layout.fillWidth: true
             columns: 2
             columnSpacing: 16
             rowSpacing: 3
@@ -48,6 +51,7 @@ ColumnLayout {
                     text: modelData.t
                     color: modelData.key ? FiliTheme.ardoise : FiliTheme.brume
                     Layout.maximumWidth: modelData.key ? 130 : 200
+                    Layout.fillWidth: !modelData.key
                     elide: Text.ElideRight
                     font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                 }

@@ -41,10 +41,14 @@ ColumnLayout {
         pairing = true;
         pairProc.command = [FiliTheme.bin + "/fili-bt-pair", addr];
         pairProc.running = true;
+        if (!pairProc.running)
+            pairing = false;
     }
     Process {
         id: pairProc
         onRunningChanged: if (!running) view.pairing = false
+        // Never started (command missing): no running change follows, so release here too
+        onExited: view.pairing = false
     }
 
     RowLayout {
@@ -101,6 +105,8 @@ ColumnLayout {
         visible: view.devices.length > 0
         Layout.topMargin: FiliTheme.space1
         text: FiliI18n.tr("click: connect / disconnect · right click: forget")
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }
@@ -197,6 +203,8 @@ ColumnLayout {
     }
     Text {
         text: FiliI18n.tr("Receive: visible to nearby devices")
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
     }

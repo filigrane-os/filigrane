@@ -50,6 +50,9 @@ Rectangle {
             visible: btn.detail !== ""
             text: btn.detail
             color: FiliTheme.ardoise
+            // A long detail (speed test result) leaves the label some room and is elided
+            Layout.maximumWidth: btn.width * 0.6
+            elide: Text.ElideRight
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
         }
     }

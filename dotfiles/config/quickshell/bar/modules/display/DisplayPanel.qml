@@ -62,6 +62,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Text {
             text: FiliI18n.tr("Warm tint (4500 K)")
+            wrapMode: Text.Wrap
             color: FiliTheme.brume
             Layout.fillWidth: true
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }

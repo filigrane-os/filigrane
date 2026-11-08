@@ -416,6 +416,7 @@ _t_lookup() {
     'No focused workspace found.') _t_fmt='Aucun espace de travail actif trouvé.' ;;
     'Workspace %s stays on %s.') _t_fmt='L'\''espace %s reste sur %s.' ;;
     'Workspace %s is no longer pinned to a monitor.') _t_fmt='L'\''espace %s n'\''est plus lié à un moniteur.' ;;
+    'Monitor of the workspace not found.') _t_fmt='Moniteur de l'\''espace de travail introuvable.' ;;
     'Monitor of the workspace') _t_fmt='Moniteur de l'\''espace de travail' ;;
     'Monitor of the application') _t_fmt='Moniteur de l'\''application' ;;
     'Language') _t_fmt='Langue' ;;

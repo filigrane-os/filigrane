@@ -584,7 +584,8 @@ Singleton {
         id: win
         visible: chat.open && !FiliTheme.testing
         anchors { top: true; bottom: true; right: true }
-        margins.top: FiliTheme.barHeight
+        // Starts beside the bar, whichever edge it is on
+        margins { top: FiliTheme.barMargin("top"); bottom: FiliTheme.barMargin("bottom"); right: FiliTheme.barMargin("right") }
         implicitWidth: chat.viewWidth
         // Docked: the place is reserved (windows shrink); floating: above, without reserving
         exclusionMode: chat.dock ? ExclusionMode.Normal : ExclusionMode.Ignore

@@ -31,4 +31,13 @@ check "install --yes clones, links and pins the commit" '[ -L "$XDG_CONFIG_HOME/
 rm -rf "$T/data/filigrane/bar/plugins/ext" "$XDG_CONFIG_HOME/quickshell/bar/modules/ext"
 "$FB" sync > /dev/null
 check "sync clones the pinned plugins again" '[ -f "$T/data/filigrane/bar/plugins/ext/module.toml" ]'
+printf '[bar]\nedge = "left"   # sidebar\n' > "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
+check "edge ignores an inline comment" '[ "$("$FB" edge)" = left ]'
+"$FB" edge bottom > /dev/null
+check "edge writes [bar] edge" '[ "$("$FB" edge)" = bottom ]'
+check "edge refuses a bad value" '! "$FB" edge middle 2> /dev/null'
+"$FB" screens DP-6 HDMI-A-1 > /dev/null
+check "screens writes a list" '[ "$("$FB" screens)" = "[\"DP-6\", \"HDMI-A-1\"]" ]'
+check "screens refuses a bad name" '! "$FB" screens "a b" 2> /dev/null'
+rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

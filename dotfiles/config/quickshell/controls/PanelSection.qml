@@ -27,6 +27,7 @@ Item {
         id: label
         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
         color: FiliTheme.ardoise
+        elide: Text.ElideRight
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
     }
 

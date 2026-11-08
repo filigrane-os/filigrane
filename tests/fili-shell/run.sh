@@ -74,6 +74,12 @@ if want 'fili-bar|bar/modules/'; then
 # The fili-bar command (modules, plugins)
 "$ROOT/tests/fili-shell/check-fili-bar-cli.sh" || exit 1
 fi
+if want 'fili-app-output'; then
+"$ROOT/tests/fili-shell/check-fili-app-output.sh" || exit 1
+fi
+if want 'bar/modules/|controls/|check-panel-text-fit'; then
+python3 -I "$ROOT/tests/fili-shell/check-panel-text-fit.py" "$ROOT" || exit 1
+fi
 if want 'fili-bt-pair|bluetooth'; then
 "$ROOT/tests/fili-shell/check-fili-bt-pair.sh" || exit 1
 fi

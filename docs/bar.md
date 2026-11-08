@@ -99,7 +99,7 @@ fili-bar sync                          clone the pinned plugins of bar-plugins.t
 
 ### Settings > Barre
 
-A right click on the bar background opens a panel with the edge and the screens (also `fili-bar edge` and `fili-bar screens`), and a shortcut to **Réglages › Barre**. The same choices are in **Réglages › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
+A right click on the bar background opens a panel with the edge and the screens (also `fili-bar edge` and `fili-bar screens`), and a shortcut to **Settings › Barre**. The same choices are in **Settings › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
 
 ## Writing a module
 
