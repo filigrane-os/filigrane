@@ -1,5 +1,5 @@
-# Les icônes de sujet des sessions: la liste TOPICS du démon (apps/fili-chat) et celle de la police
-# (scripts/fili-icons.py) doivent être identiques et dans le même ordre (code = 0xF2000 + position).
+# The topic icons of the sessions: the TOPICS list of the daemon (apps/fili-chat) and that of the font
+# (scripts/fili-icons.py) must be identical and in the same order (code = 0xF2000 + position).
 import re
 import sys
 

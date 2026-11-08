@@ -1,11 +1,11 @@
 #!/bin/sh
-# Tests du fili-shell (Quickshell): une instance isolée charge la vraie config (dotfiles/config/quickshell) avec
-# tests/fili-shell/TestShell.qml comme shell.qml, sans toucher à la session: bus D-Bus privé (dbus-run-session, donc
-# serveur de notifications à elle), dossier d'exécution et tuyau fili-shell temporaires, fenêtres masquées et
-# commandes des clics enregistrées au lieu d'être lancées (FILI_TEST=1). Scripts du dépôt d'abord (FILI_BIN). Textes en
-# anglais (LANG=C.UTF-8, état de fili-lang dans $T/state), quelle que soit la langue de la session.
-# Usage: tests/fili-shell/run.sh [-v]   (-v: journal complet de Quickshell). Code 0 si tout passe.
-# Il faut une session Wayland (niri) en cours: lancer depuis le bureau, pas en ssh.
+# Tests of the fili-shell (Quickshell): an isolated instance loads the real config (dotfiles/config/quickshell) with
+# tests/fili-shell/TestShell.qml as shell.qml, without touching the session: private D-Bus bus (dbus-run-session, hence its
+# own notification server), temporary runtime folder and fili-shell pipe, windows hidden and
+# click commands recorded instead of run (FILI_TEST=1). Scripts of the repository first (FILI_BIN). Texts in
+# English (LANG=C.UTF-8, fili-lang state in $T/state), whatever the language of the session.
+# Usage: tests/fili-shell/run.sh [-v]   (-v: full Quickshell log). Exit code 0 if everything passes.
+# A running Wayland session (niri) is needed: run from the desktop, not over ssh.
 set -u
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 T="$(mktemp -d "${TMPDIR:-/tmp}/fili-shell-test.XXXXXX")"
@@ -29,14 +29,14 @@ rc=$?
 
 sed 's/\x1b\[[0-9;]*m//g' "$T/log" > "$T/clean"
 [ "${1:-}" = -v ] && cat "$T/clean"
-# Résultats TAP, et erreurs QML (chargement, exceptions) qui comptent comme des échecs
+# TAP results, and QML errors (loading, exceptions) that count as failures
 grep -oE '(not ok|ok) [0-9]+ - .*|# fin: .*' "$T/clean"
 errors="$(grep -E 'caused by|TypeError|ReferenceError|SyntaxError|is not a function|Cannot assign' "$T/clean" | grep -v 'TestShell' | sort -u)"
 if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
     exit 1
 fi
-# Le menu de fili-file dans la fili-bar suit les commandes et raccourcis de l'application
+# The fili-file menu in the fili-bar follows the commands and shortcuts of the application
 python3 -I "$ROOT/tests/fili-shell/check-fili-file-menu.py" || exit 1
 # Casier (fili-file) lives in its own repository: the pinned version (apps/fili-file/upstream, or FILI_SRC_FILI_FILE for a
 # local checkout) is built, must follow the shell (same theme defaults and kinetic scroll: opt-in tests of its unit
@@ -49,8 +49,8 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 "$FILI_FILE_SRC/tests/run.sh" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
-# Config live: chaque fichier QML du dépôt doit être lié dans ~/.config/quickshell (bootstrap.sh), sinon la session
-# ne charge plus le shell (type introuvable) alors que ces tests, sur une copie du dépôt, passent
+# Live config: every QML file of the repository must be linked in ~/.config/quickshell (bootstrap.sh), otherwise the session
+# no longer loads the shell (type not found) while these tests, on a copy of the repository, pass
 QS_DIR="$ROOT/dotfiles/config/quickshell"
 missing="$(cd "$QS_DIR" && find . -name '*.qml' | while read -r f; do [ -e "$HOME/.config/quickshell/$f" ] || printf '%s ' "${f#./}"; done)"
 if [ -n "$missing" ]; then

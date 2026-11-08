@@ -1,15 +1,15 @@
 #!/bin/sh
-# Coût du fili-shell en marche (Quickshell et ses processus enfants), pour comparer avant / après une optimisation:
-# mémoire (PSS, partage des bibliothèques réparti), temps CPU pendant la fenêtre de mesure (Quickshell, enfants
-# résidents et enfants terminés: commandes des modules, fiches...) et processus créés sur toute la machine.
-# Usage: tests/fili-shell/bench.sh [secondes]   (défaut 60; au repos, ou en survolant / ouvrant ce qu'on veut mesurer)
+# Cost of the running fili-shell (Quickshell and its child processes), to compare before / after an optimisation:
+# memory (PSS, sharing of libraries split), CPU time during the measuring window (Quickshell, resident
+# children and finished children: module commands, cards...) and processes created on the whole machine.
+# Usage: tests/fili-shell/bench.sh [seconds]   (default 60; at rest, or while hovering / opening what you want to measure)
 set -u
 secs="${1:-60}"
 q="$(pgrep -xo quickshell)" || { echo "quickshell ne tourne pas" >&2; exit 1; }
 hz="$(getconf CLK_TCK)"
 
 pss() { awk '/^Pss:/ { print $2 }' "/proc/$1/smaps_rollup" 2>/dev/null; }
-# utime+stime (et cutime+cstime avec "all") en ticks; le nom peut contenir des espaces: on coupe après la dernière ")"
+# utime+stime (and cutime+cstime with "all") in ticks; the name can contain spaces: cut after the last ")"
 ticks() { sed 's/.*) //' "/proc/$1/stat" 2>/dev/null | awk -v all="${2:-}" '{ print $12 + $13 + (all ? $14 + $15 : 0) }'; }
 kids() { pgrep -P "$q"; }
 sum_kids() { t=0; for p in $(kids); do t=$((t + $(ticks "$p" || echo 0))); done; echo "$t"; }
