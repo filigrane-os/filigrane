@@ -172,12 +172,15 @@ jobs:
           if grep -qE '^hardware/mac-t2|mac-t2\.txt' <<<"$out"; then
             echo "mac-t2 ne doit pas apparaître hors de la machine mac-t2"; exit 1
           fi
-      - name: Couche personnelle (users/thomas) résolue en plus de la distribution
+      - name: Personal layer (users/ci, throwaway) resolved on top of the distribution
         run: |
-          out="$(./bootstrap.sh --plan ${{ matrix.args }} --user-layer thomas)"
-          grep -qx 'users/thomas/packages/personal.txt' <<<"$out"
-          grep -qx 'users/thomas' <<<"$out"
-          if ./bootstrap.sh --plan ${{ matrix.args }} | grep -q '^users/'; then echo "couche personnelle hors --user-layer"; exit 1; fi
+          mkdir -p users/ci/packages
+          echo htop > users/ci/packages/personal.txt
+          out="$(./bootstrap.sh --plan ${{ matrix.args }} --user-layer ci)"
+          grep -qx 'users/ci/packages/personal.txt' <<<"$out"
+          grep -qx 'users/ci' <<<"$out"
+          rm -r users/ci
+          if ./bootstrap.sh --plan ${{ matrix.args }} | grep -q '^users/'; then echo "personal layer without --user-layer"; exit 1; fi
       - name: Options invalides refusées
         run: |
           for bad in "--machine inconnue" "--cpu arm" "--gpu inconnu" "--user-layer inconnue"; do

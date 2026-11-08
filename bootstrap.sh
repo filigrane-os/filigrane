@@ -99,7 +99,7 @@ if [ "$USER_LAYER" != none ]; then
 fi
 # Settings: the personal layer first (its values take precedence over the defaults of the distribution)
 if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/config.env" ]; then
-    # shellcheck source=users/thomas/config.env
+    # shellcheck source=users/<name>/config.env
     source "$LAYER_DIR/config.env"
 fi
 # AI agent chosen at installation or with `fili-ai use`, if neither the environment nor the layer sets it
@@ -695,7 +695,7 @@ setup_dotfiles() {
 # Optional functions of the personal layer: layer_system (root rights, after the distribution)
 # and layer_dotfiles (after the links). They have log, warn, read_list, install_list, run_as_user, $SUDO...
 if [ -n "$LAYER_DIR" ] && [ -f "$LAYER_DIR/layer.sh" ]; then
-    # shellcheck source=users/thomas/layer.sh
+    # shellcheck source=users/<name>/layer.sh
     source "$LAYER_DIR/layer.sh"
 fi
 
