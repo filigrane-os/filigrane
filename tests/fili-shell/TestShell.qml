@@ -468,6 +468,7 @@ ShellRoot {
                 const q = FiliLauncher.parse("Google Chrome");
                 ok(q.glyph === "" && q.text === "Google Chrome" && !q.sub && q.key === "", "fili-launcher ligne simple", JSON.stringify(q));
                 ok(FiliLauncher.match("Night light", ["nig"]) !== null && FiliLauncher.match("Night light", ["xyz"]) === null, "fili-launcher correspondance");
+                ok(FiliLauncher.match("Réglages", ["regl"]) !== null && FiliLauncher.match("Réglages", ["regl"]).hits.join() === "0,1,2,3" && FiliLauncher.fold("Éé À") === "ee a", "fili-launcher accents ignorés (regl -> Réglages)");
                 ok(FiliLauncher.match("Casier", ["file"], " files fichiers file ") !== null && FiliLauncher.match("Casier", ["file"], "") === null
                     && FiliLauncher.match("Rob", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Rob", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher mots-clés (Casier <- file, Rob <- ia)");
             },

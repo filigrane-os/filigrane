@@ -103,7 +103,7 @@ Singleton {
             const p = parse(label);
             list.push({
                 // Mots-clés: colonne cherchée mais jamais affichée (Keywords des .desktop)
-                kw: opts.searchNth > 0 ? (cols[opts.searchNth - 1] ?? "").toLowerCase() : "",
+                kw: opts.searchNth > 0 ? fold(cols[opts.searchNth - 1] ?? "") : "",
                 accept: opts.acceptNth > 0 ? (cols[opts.acceptNth - 1] ?? text) : text,
                 glyph: p.glyph, text: p.text, key: p.key, sub: p.sub,
                 // Fichier image (miniature de fond d'écran, icône d'appli en chemin) ou nom d'icône du thème
@@ -122,8 +122,13 @@ Singleton {
 
     // Correspondance: chaque mot de la saisie doit apparaître (sous-chaîne, sinon lettres dans l'ordre);
     // score: début de libellé > début de mot > sous-chaîne > lettres dispersées. --no-sort garde l'ordre d'origine.
+    // Accents folded, one character for one (é -> e), so that the highlighted positions still fit the label:
+    // "regl" finds "Réglages"
+    function fold(s) {
+        return s.toLowerCase().replace(/[\u00c0-\u017f]/g, c => c.normalize("NFD").charAt(0));
+    }
     function match(label, words, kw) {
-        const l = label.toLowerCase();
+        const l = fold(label);
         let score = 0;
         const hits = [];
         for (const w of words) {
@@ -151,7 +156,7 @@ Singleton {
         return { score: score - label.length / 100, hits: hits };
     }
     function filter() {
-        const words = input.text.toLowerCase().split(/\s+/).filter(w => w);
+        const words = fold(input.text).split(/\s+/).filter(w => w);
         let out = [];
         for (const e of entries) {
             const m = words.length ? match(e.text, words, e.kw) : { score: 0, hits: [] };
