@@ -11,7 +11,7 @@
   <img src="docs/img/desktop.png" alt="The Filigrane desktop: niri, the fili-bar and the AI drawer over a misty forest" width="860">
 </p>
 
-**Filigrane** is a light, modern Linux desktop built on Void and niri. It is described entirely by a git repository, so any x86_64 machine can replay it: a virtual machine, a PC or an Intel Mac.
+**Filigrane** is a light, modern Linux desktop built on Void Linux and the niri compositor, with a Quickshell shell (the *fili-shell*) and a handful of small native apps. The whole machine is described by this git repository, so any x86_64 machine can replay it: a virtual machine, a PC or an Intel Mac.
 
 ## The idea
 
@@ -19,17 +19,18 @@ A *filigrane* is a watermark: visible when you look for it, invisible when you r
 
 - **It gets out of the way.** The system is a thin veil. Idle, it takes about 0.8 GB of RAM and almost no CPU, so memory, cycles and battery go to what you actually run: the browser, your tools, containers, AI agents.
 - **Light by construction.** Native Void packages, runit instead of systemd, no resident Electron, JVM or Node. Home-made tools are small Rust binaries. A `budget` tool measures the cost of everything installed.
-- **Modern where it counts.** A scrollable-tiling Wayland compositor (niri), a Quickshell shell with a thin one-line bar, fine-stroke icons, Jost typography, an interface that follows one written guideline (inspired by classic Mac OS X) rather than whatever each toolkit does.
-- **Agentic.** An AI agent is a first-class citizen, not an add-on. `Mod+Y` opens it, it knows the machine's rules (xbps, runit, layers, resource budget), sees what you were looking at ("rename these files" works), and every change it makes to your files is one `fili-tx undo` away.
+- **Modern where it counts.** A scrollable-tiling Wayland compositor (niri), a thin bar you can put on any screen edge, fine-stroke icons, Jost typography, dark and light modes with a configurable accent, and an interface that follows one written guideline (inspired by classic Mac OS X) rather than whatever each toolkit does.
+- **Agentic.** An AI agent is a first-class citizen, not an add-on. `Mod+Y` opens a chat drawer, it knows the machine's rules (xbps, runit, layers, resource budget), sees what you were looking at ("rename these files" works), and every change it makes to your files is one `fili-tx undo` away.
 - **Declarative and yours.** Packages, services, settings and dotfiles live in the repo. `bootstrap.sh` applies them, idempotently. Your personal accounts and tastes sit in their own layer and never fork the distribution.
 - **Universal.** Developed on an Intel MacBook, built for any PC: one x86_64, glibc, UEFI image of the system, with hardware layers (`hardware/<machine>`) for what differs, such as the T2 drivers of recent Macs.
 
 ## What is inside
 
 - **Void Linux**: xbps packages, runit services, no systemd, rolling release.
-- **niri + Quickshell**: bar, global application menu, notifications, launcher, panels, all in one coherent shell (the *fili-shell*) with foot as terminal. The bar is built from modules you can choose, reorder and extend: see [docs/bar.md](docs/bar.md).
-- **Fili apps**: small native tools that share one standard: an *About* card, their own icon, a global menu exposed to the bar, and an editable config file (`~/.config/filigrane/<app>.toml`) for settings and theme. The first is **Casier**, the file manager; **Archiveur** (`fili-archive`, `archiveur`) is its compress and extract engine without a window, shipped in the same binary.
-- **Layered configuration**: distribution → hardware → personal.
+- **niri + Quickshell**: bar, global application menu, notifications, launcher, panels and a settings window (*Réglages*: display, language, power, bar, files), all in one coherent shell (the *fili-shell*) with foot as terminal. The bar is built from modules you can choose, reorder, move to another edge or screen, and extend with plugins: see [docs/bar.md](docs/bar.md). Each panel has a gear at its top right that opens the matching settings page.
+- **Fili apps**: small native tools that share one standard: an *About* card, their own icon, a global menu exposed to the bar, and an editable config file (`~/.config/filigrane/<app>.toml`) for settings and theme. The first is **Casier** (`fili-file`), the file manager, developed in its own repository and pinned here by version; **Archiveur** (`fili-archive`, `archiveur`) is its compress and extract engine without a window, shipped in the same binary.
+- **Layered configuration**: distribution → hardware → personal. The personal layer (`users/<login>/`) is kept out of this repository, in a private one of your own.
+- **Safe file changes**: the agent changes your files through `fili-tx`, so any request is undone with `fili-tx undo`.
 - **AI agent built in**: Claude Code, Codex, opencode or local models (Ollama). `Mod+Y` opens a chat drawer (sessions kept while hidden); `Mod+Shift+Y` starts the agent in a terminal.
 
 ## Quick start
