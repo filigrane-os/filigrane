@@ -651,6 +651,24 @@ ShellRoot {
                 ok(FiliTheme.ran[1] === "/usr/bin/fili-file spare off" && !d.resident, "fili-settings casier: spare off", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings Barre: modules of the manifests, switch, move up / down and to the other side by fili-bar
+            () => {
+                FiliSettings.show("bar");
+                const d = FiliSettings.loaded;
+                ok(d !== null && d.entries("left").map(e => e.name).join() === "logo,workspaces,appmenu" && t.find(d, "show-logo") !== null, "fili-settings barre: modules de gauche, dans l'ordre", d ? d.entries("left").map(e => e.name).join() : "null");
+                FiliTheme.ran = [];
+                d.toggle("logo");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-bar disable logo", "fili-settings barre: interrupteur = fili-bar disable", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.shift("left", "workspaces", -1);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-bar move workspaces left 10 && " + FiliTheme.bin + "/fili-bar move logo left 20", "fili-settings barre: monter renumérote la rangée", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.shift("left", "logo", -1);
+                ok(FiliTheme.ran.length === 0, "fili-settings barre: premier module, monter ne fait rien");
+                d.flip("left", "appmenu");
+                ok(FiliTheme.ran[0].indexOf("fili-bar move appmenu right ") > 0, "fili-settings barre: changer de côté", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings About: the card of Réglages (alias), aka fili-settings
             () => {
                 FiliSettings.show("about");
