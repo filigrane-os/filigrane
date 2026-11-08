@@ -20,11 +20,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Syntaxe bash
         run: |
-          for f in bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/*.sh distro/*.sh distro/live/install users/*/layer.sh; do
+          for f in bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/*.sh distro/*.sh distro/live/install; do
             bash -n "$f"
           done
       - name: shellcheck (erreurs seulement)
-        run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install users/*/layer.sh lib/i18n.sh lib/i18n/*.sh
+        run: shellcheck -x -S error bootstrap.sh install-void.sh scripts/*.sh hardware/mac-t2/setup.sh hardware/mac-t2/dualboot.sh distro/*.sh distro/live/install lib/i18n.sh lib/i18n/*.sh
       - name: shellcheck des scripts utilisateur (~/.local/bin, hooks; pas les scripts Python)
         run: |
           scripts=()
