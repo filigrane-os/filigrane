@@ -170,7 +170,6 @@ ShellRoot {
                 expectClick("logo", R, "foot");
                 expectClick("rec", L, "bar-toggle rec");
                 expectClick("air", L, "bar-toggle air");
-                expectClick("news", L, "bar-news open");
                 expectClick("update", L, "bar-update run");
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
@@ -229,7 +228,7 @@ ShellRoot {
                 FiliTheme.ran = [];
             },
             // The commands of the clicks exist (scripts of the repository)
-            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-news bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats fili-ai fili-ai-session; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
+            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats fili-ai fili-ai-session; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts appelés par la fili-bar présents dans " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installed

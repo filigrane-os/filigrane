@@ -1,4 +1,4 @@
-// Indicators and toggles: screen recording, SSH, airplane mode, VPN, watch reports, updates
+// Indicators and toggles: screen recording, SSH, airplane mode, VPN, updates
 import QtQuick
 import qs
 import qs.bar
@@ -11,8 +11,6 @@ BarModule {
         BarScript { objectName: "remote"; title: "SSH"; stat: "remote"; color: FiliTheme.cendre }
         BarScript { objectName: "air"; title: FiliI18n.tr("Airplane mode"); stat: "air"; color: FiliTheme.sable; click: FiliTheme.bin + "/bar-toggle air" }
         BarScript { objectName: "vpn"; title: "VPN"; stat: "vpn" }
-        // Unread watch reports, click = read them
-        BarScript { objectName: "news"; title: FiliI18n.tr("News"); cmd: FiliTheme.bin + "/bar-news"; interval: 3600; signal: 15; color: FiliTheme.brume2; click: FiliTheme.bin + "/bar-news open" }
         // xbps updates (hidden when there are none), click = update in a floating terminal
         BarScript { objectName: "update"; title: FiliI18n.tr("Updates"); cmd: FiliTheme.bin + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: FiliTheme.bin + "/bar-update run" }
     }
