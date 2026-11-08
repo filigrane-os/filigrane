@@ -1,4 +1,6 @@
 {
+ "Rescan": "Rescanner",
+ "%1 is connected to the graphics card but the compositor has no output for it, so it cannot be turned on here. Try Rescan, unplug and replug it, or close the lid to free a graphics pipe.": "%1 est branché sur la carte graphique mais le compositeur n'a pas de sortie pour lui: impossible de l'allumer ici. Essayer Rescanner, le débrancher puis rebrancher, ou fermer le capot pour libérer un pipe graphique.",
  "%1 volume": "Volume de %1",
  "%1 / %2 (%3 free)": "%1 / %2 (%3 libres)",
  "%1 / %2 GiB": "%1 / %2 Gio",

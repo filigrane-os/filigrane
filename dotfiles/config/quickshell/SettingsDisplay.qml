@@ -4,12 +4,13 @@
 // be confirmed within 15 s (or when the window closes), else the previous state comes back. Scale applies without
 // confirmation: it never makes the screen unusable and can be picked again with one click. Dragging only stages the
 // layout; "Apply" commits it (the screens do not move at each drag), "Reset" lines the screens up again and
-// "Identify" shows each output's name on its own screen. All connected outputs are listed, on or off; turning one on
+// "Identify" shows each output's name on its own screen, "Rescan" reads the connected outputs again. All connected outputs are listed, on or off; turning one on
 // beyond what the graphics card drives shows a message (turn another one off first). "Save" writes the kanshi
 // profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
 // the fili-panel (DisplayPanel): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Io
 import qs.controls
 
 ColumnLayout {
@@ -18,6 +19,10 @@ ColumnLayout {
     // Outputs sorted by name (niri msg -j outputs); logical = null for an output that is off
     property var outputs: []
     property string sel: ""
+    // Connectors the kernel reports as connected but niri has no output for (e.g. MST ports whose display cannot be
+    // read: no EDID). Listed as off, with an explanation, instead of vanishing.
+    property var undetected: []
+    readonly property var undetectedNames: undetected.filter(n => !outputs.some(o => o.name === n))
     readonly property var cur: outputs.find(o => o.name === sel) ?? null
     readonly property var active: outputs.filter(o => o.logical)
     // Drag in progress: {name, x, y} in logical pixels
@@ -52,6 +57,8 @@ ColumnLayout {
 
     // Outputs requested on niri's socket (Outputs request), without `niri msg`
     function read() {
+        if (!FiliTheme.testing)
+            sysfs.running = true;
         Niri.request("Outputs", o => {
             // Closed before the reply: nothing left to update
             if (!o || !view)
@@ -71,6 +78,13 @@ ColumnLayout {
     }
     Component.onCompleted: {
         read();
+    }
+    Process {
+        id: sysfs
+        command: ["sh", "-c", "for d in /sys/class/drm/card*-*; do [ \"$(cat \"$d/status\" 2>/dev/null)\" = connected ] && { n=${d##*/}; echo \"${n#card?-}\"; }; done"]
+        stdout: StdioCollector {
+            onStreamFinished: view.undetected = text.split("\n").filter(n => n !== "")
+        }
     }
     Timer {
         id: reread
@@ -208,20 +222,6 @@ ColumnLayout {
             FiliTheme.run(c.join("; "));
         reread.restart();
     }
-    function identify() {
-        const l = {};
-        for (const o of outputs)
-            l[o.name] = ((o.make ?? "") + " " + (o.model ?? "")).trim();
-        FiliIdentify.show(l);
-    }
-
-    // Resolution and refresh rate choices of the chosen output
-    readonly property var resolutions: {
-        if (!cur || !cur.logical)
-            return [];
-        const seen = {}, out = [];
-        for (const m of cur.modes) {
-            const k = m.width + "x" + m.height;
     // Workspaces of an output (niri: each output has its own stack), with their windows
     function workspacesOf(name) {
         return Niri.workspaces.filter(w => w.output === name);
@@ -242,6 +242,26 @@ ColumnLayout {
         if (cur)
             FiliTheme.run("niri msg action focus-monitor '" + cur.name + "'; fili-app-output pin");
     }
+    // Re-reads the connected outputs (a display plugged in or woken up after the page opened)
+    function rescan() {
+        notice = "";
+        limit = 0;
+        read();
+    }
+    function identify() {
+        const l = {};
+        for (const o of outputs)
+            l[o.name] = ((o.make ?? "") + " " + (o.model ?? "")).trim();
+        FiliIdentify.show(l);
+    }
+
+    // Resolution and refresh rate choices of the chosen output
+    readonly property var resolutions: {
+        if (!cur || !cur.logical)
+            return [];
+        const seen = {}, out = [];
+        for (const m of cur.modes) {
+            const k = m.width + "x" + m.height;
             if (!seen[k]) {
                 seen[k] = true;
                 out.push({ label: m.width + "×" + m.height, value: k, area: m.width * m.height, w: m.width, h: m.height });
@@ -367,8 +387,8 @@ ColumnLayout {
         Item { Layout.fillWidth: true }
         PanelChips {
             Layout.fillWidth: false
-            model: [{ label: FiliI18n.tr("Identify"), value: "identify" }, { label: FiliI18n.tr("Reset"), value: "reset" }]
-            onPicked: v => v === "identify" ? view.identify() : view.resetLayout()
+            model: [{ label: FiliI18n.tr("Identify"), value: "identify" }, { label: FiliI18n.tr("Rescan"), value: "rescan" }, { label: FiliI18n.tr("Reset"), value: "reset" }]
+            onPicked: v => v === "identify" ? view.identify() : v === "rescan" ? view.rescan() : view.resetLayout()
         }
         PanelChips {
             objectName: "apply"
@@ -389,12 +409,22 @@ ColumnLayout {
     }
 
     // All connected outputs, on or off (the lid closed removes the internal one from the canvas, not from here)
-    PanelSection { visible: view.outputs.length > 0; text: FiliI18n.tr("CONNECTED DISPLAYS") }
+    PanelSection { visible: view.outputs.length + view.undetectedNames.length > 0; text: FiliI18n.tr("CONNECTED DISPLAYS") }
     PanelChips {
-        visible: view.outputs.length > 0
+        visible: view.outputs.length + view.undetectedNames.length > 0
         model: view.outputs.map(o => ({ label: o.name + " · " + (o.logical ? FiliI18n.tr("on") : FiliI18n.tr("off")), value: o.name }))
+            .concat(view.undetectedNames.map(n => ({ label: n + " · " + FiliI18n.tr("off"), value: n })))
         current: view.sel
         onPicked: v => view.sel = v
+    }
+    Text {
+        objectName: "undetected"
+        visible: view.cur === null && view.undetectedNames.indexOf(view.sel) >= 0
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("%1 is connected to the graphics card but the compositor has no output for it, so it cannot be turned on here. Try Rescan, unplug and replug it, or close the lid to free a graphics pipe.", view.sel)
+        color: FiliTheme.sable
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
 
     // Chosen output
@@ -418,6 +448,35 @@ ColumnLayout {
         }
     }
 
+    // Workspaces of the chosen output; those of the other outputs can be brought here
+    PanelSection { visible: view.cur !== null && view.cur.logical !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("WORKSPACES") }
+    Repeater {
+        model: view.cur && view.cur.logical ? view.workspacesOf(view.cur.name) : []
+        Text {
+            required property var modelData
+            objectName: "workspace-row"
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            text: view.wsLabel(modelData)
+            color: modelData.is_active ? FiliTheme.brume : FiliTheme.ardoise
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
+        }
+    }
+    PanelChips {
+        objectName: "pin-workspace"
+        visible: view.cur !== null && view.cur.logical !== null
+        model: [{ label: FiliI18n.tr("Keep the active workspace on this display"), value: "pin" }]
+        current: ""
+        onPicked: view.pinHere()
+    }
+    PanelChips {
+        objectName: "bring-workspace"
+        readonly property var others: view.cur && view.cur.logical ? Niri.workspaces.filter(w => w.output !== view.cur.name && w.is_active) : []
+        visible: others.length > 0
+        model: others.map(w => ({ label: FiliI18n.tr("Bring %1 here", w.output), value: w.output }))
+        current: ""
+        onPicked: v => view.bringHere(v)
+    }
     PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
@@ -448,35 +507,6 @@ ColumnLayout {
         visible: view.curMode !== null
         model: view.transforms
         current: view.cur && view.cur.logical ? view.transformName(view.cur.logical.transform) : ""
-    // Workspaces of the chosen output; those of the other outputs can be brought here
-    PanelSection { visible: view.cur !== null && view.cur.logical !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("WORKSPACES") }
-    Repeater {
-        model: view.cur && view.cur.logical ? view.workspacesOf(view.cur.name) : []
-        Text {
-            required property var modelData
-            objectName: "workspace-row"
-            Layout.fillWidth: true
-            elide: Text.ElideRight
-            text: view.wsLabel(modelData)
-            color: modelData.is_active ? FiliTheme.brume : FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
-        }
-    }
-    PanelChips {
-        objectName: "pin-workspace"
-        visible: view.cur !== null && view.cur.logical !== null
-        model: [{ label: FiliI18n.tr("Keep the active workspace on this display"), value: "pin" }]
-        current: ""
-        onPicked: view.pinHere()
-    }
-    PanelChips {
-        objectName: "bring-workspace"
-        readonly property var others: view.cur && view.cur.logical ? Niri.workspaces.filter(w => w.output !== view.cur.name && w.is_active) : []
-        visible: others.length > 0
-        model: others.map(w => ({ label: FiliI18n.tr("Bring %1 here", w.output), value: w.output }))
-        current: ""
-        onPicked: v => view.bringHere(v)
-    }
         onPicked: v => view.setTransform(view.cur, v)
     }
     RowLayout {
