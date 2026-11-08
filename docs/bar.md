@@ -75,6 +75,21 @@ show = "always"      # "active" (hidden while empty) or "always"
 
 Your own `fili-bar.toml` belongs to the [personal layer](configuration.md): `users/<login>/dotfiles/config/filigrane/fili-bar.toml`.
 
+## The `fili-bar` command
+
+```
+fili-bar list                          modules: name, side, order, state, kind, title
+fili-bar enable NAME | disable NAME    show or hide a module
+fili-bar move NAME left|right [ORDER]  side and position
+fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML module)
+fili-bar check DIR|NAME                check a manifest and its script
+fili-bar install URL [--commit REV]    clone a plugin; shows its manifest, then --yes to install
+fili-bar remove NAME                   remove a plugin (to the trash)
+fili-bar sync                          clone the pinned plugins of bar-plugins.toml (new machine)
+```
+
+`enable`, `disable` and `move` write `[modules.<name>]` in `~/.config/filigrane/fili-bar.toml`, which the bar re-reads at once. Plugins you add live in `~/.local/share/filigrane/bar/plugins/<name>/`, never in the repository, and are linked into `~/.config/quickshell/bar/modules/<name>`. `install` records `name = "url@commit"` in `~/.config/filigrane/bar-plugins.toml`, so `sync` brings the same commits back on another machine. A manifest with an `api` newer than the bar's is refused. A plugin is code with your rights, without a sandbox: read what `install` shows, and the script, before saying `--yes`. A new plugin shows after the shell restarts.
+
 ## Writing a module
 
 A module is a folder `bar/modules/<name>/` with `<Name>Module.qml` and, if it opens a panel, `<Name>Panel.qml` next to it. Add a `module.toml` (see above) so it is placed without a `fili-bar.toml`. A personal module (an account, a third-party service) goes in `users/<login>/dotfiles/config/quickshell/bar/modules/<name>/`, never in the distribution. After adding a file, run `./bootstrap.sh --fili-shell` (files are linked one by one, a new one is not seen before) and restart Quickshell if it is already running.

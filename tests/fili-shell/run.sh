@@ -49,6 +49,8 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 "$FILI_FILE_SRC/tests/run.sh" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
+# The fili-bar command (modules, plugins)
+"$ROOT/tests/fili-shell/check-fili-bar-cli.sh" || exit 1
 # Live config: every QML file of the repository must be linked in ~/.config/quickshell (bootstrap.sh), otherwise the session
 # no longer loads the shell (type not found) while these tests, on a copy of the repository, pass
 QS_DIR="$ROOT/dotfiles/config/quickshell"

@@ -1,0 +1,245 @@
+#!/bin/sh
+# Manage the modules of the fili-bar (Barre). Usage:
+# fili-bar list                       modules: name, side, order, state, kind, title
+# fili-bar enable NAME | disable NAME show or hide a module (fili-bar.toml)
+# fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)
+# fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
+# fili-bar check DIR|NAME             check the manifest and the script of a module
+# fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
+# fili-bar remove NAME                remove a plugin installed by `new` or `install`
+# fili-bar sync                       clone the plugins of bar-plugins.toml (pinned to a commit) on a new machine
+# A plugin is a folder with a module.toml (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
+# (never in the repository) and are linked into ~/.config/quickshell/bar/modules/NAME, where the bar finds them.
+# The settings go to ~/.config/filigrane/fili-bar.toml, which the bar re-reads as soon as it changes (when that file is a
+# link to the repository, the file of the repository is edited). A plugin runs with your rights: read it before adding it.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+share="${XDG_DATA_HOME:-$HOME/.local/share}/filigrane/bar/plugins"
+mods="$cfg/quickshell/bar/modules"
+conf="$cfg/filigrane/fili-bar.toml"
+plugins="$cfg/filigrane/bar-plugins.toml"
+API=1
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+valid_name() { printf '%s' "$1" | grep -Eq '^[a-z][a-z0-9-]*$'; }
+
+# Top-level value of a key of a manifest file ("" if absent), without quotes
+mval() {
+    awk -v key="$2" '
+        /^[ \t]*\[/ { exit }
+        { line = $0; sub(/[ \t]*#[^"]*$/, "", line) }
+        match(line, "^[ \t]*" key "[ \t]*=[ \t]*") { v = substr(line, RLENGTH + 1); gsub(/^"|"[ \t]*$/, "", v); gsub(/[ \t]+$/, "", v); print v; exit }
+    ' "$1" 2>/dev/null
+}
+# Value of a key of [modules.NAME] in fili-bar.toml ("" if absent)
+cval() {
+    [ -r "$conf" ] || return 0
+    awk -v sec="[modules.$1]" -v key="$2" '
+        /^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); next }
+        cur { line = $0; sub(/[ \t]*#[^"]*$/, "", line)
+              if (match(line, "^[ \t]*" key "[ \t]*=[ \t]*")) { v = substr(line, RLENGTH + 1); gsub(/^"|"[ \t]*$/, "", v); gsub(/[ \t]+$/, "", v); print v; exit } }
+    ' "$conf"
+}
+# Value of a module: fili-bar.toml, then manifest, then the default
+val() { v="$(cval "$1" "$2")"; [ -n "$v" ] || v="$(mval "$mods/$1/module.toml" "$2")"; printf '%s' "${v:-$3}"; }
+
+# Set (or, with an empty value, remove) KEY in [modules.NAME] of fili-bar.toml
+setkey() {
+    name="$1"; key="$2"; value="$3"
+    mkdir -p "$(dirname "$conf")"
+    [ -e "$conf" ] || : > "$conf"
+    tmp="$(mktemp)"
+    awk -v sec="[modules.$name]" -v key="$key" -v val="$value" '
+        function put() { if (val != "" && !done) { print key " = " val; done = 1 } }
+        /^[ \t]*\[/ { if (cur) put(); h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); if (cur) seen = 1 }
+        cur && $0 ~ "^[ \t]*" key "[ \t]*=" { put(); next }
+        { print }
+        END { if (cur) put(); else if (!seen && val != "") { if (NR > 0) print ""; print sec; print key " = " val } }
+    ' "$conf" > "$tmp" && cat "$tmp" > "$conf"
+    rm -f "$tmp"
+}
+
+names() {
+    for d in "$mods"/*/; do
+        [ -f "${d}module.toml" ] && basename "$d"
+    done
+}
+
+cmd_list() {
+    printf '%-16s %-6s %5s  %-9s %-7s %s\n' NAME SIDE ORDER STATE KIND TITLE
+    for n in $(names); do
+        state=on; [ "$(val "$n" enabled true)" = false ] && state=off
+        kind=qml; [ -n "$(mval "$mods/$n/module.toml" cmd)" ] && kind=script
+        origin=; [ -L "$mods/$n" ] && origin=" (plugin)"
+        printf '%-16s %-6s %5s  %-9s %-7s %s%s\n' "$n" "$(val "$n" side right)" "$(val "$n" order 50)" "$state" "$kind" "$(mval "$mods/$n/module.toml" title)" "$origin"
+    done | sort -b -k2,2 -k3,3n
+}
+
+need_module() { valid_name "$1" || die "$(t 'Invalid module name: %s' "$1")"; [ -f "$mods/$1/module.toml" ] || die "$(t 'No such module: %s (fili-bar list)' "$1")"; }
+
+cmd_enable() { need_module "$1"; setkey "$1" enabled "$2"; echo "$1: $([ -n "$2" ] && echo disabled || echo enabled)"; }
+cmd_move() {
+    need_module "$1"
+    case "${2:-}" in left | right) ;; *) die "$(t 'Usage: fili-bar move NAME left|right [ORDER]')" ;; esac
+    if [ -n "${3:-}" ]; then printf '%s' "$3" | grep -Eq '^-?[0-9]+$' || die "$(t 'The order is a whole number')"; fi
+    setkey "$1" side "\"$2\""
+    [ -n "${3:-}" ] && setkey "$1" order "$3"
+    echo "$1: $2${3:+, order $3}"
+}
+
+cmd_new() {
+    name="${1:-}"; valid_name "$name" || die "$(t 'Usage: fili-bar new NAME [--qml] (lowercase letters, digits, hyphens)')"
+    [ -e "$mods/$name" ] && die "$(t 'A module named %s already exists' "$name")"
+    dir="$share/$name"
+    [ -e "$dir" ] && die "$(t 'Already there: %s' "$dir")"
+    mkdir -p "$dir"
+    if [ "${2:-}" = "--qml" ]; then
+        type="$(printf '%s' "$name" | awk -F- '{ for (i = 1; i <= NF; i++) printf "%s%s", toupper(substr($i, 1, 1)), substr($i, 2) }')"
+        cat > "$dir/module.toml" <<EOF
+title = "$type"
+description = ""
+api = $API
+side = "right"
+order = 50
+EOF
+        cat > "$dir/${type}Module.qml" <<EOF
+import QtQuick
+import qs
+import qs.bar
+
+BarItem {
+    text: "$name"
+}
+EOF
+    else
+        cat > "$dir/module.toml" <<EOF
+title = "$name"
+description = ""
+api = $API
+side = "right"
+order = 50
+cmd = "./$name.sh"
+interval = 60
+EOF
+        cat > "$dir/$name.sh" <<'EOF'
+#!/bin/sh
+# One JSON line per run: text (empty = hidden), class, tooltip
+printf '{"text": "hello", "tooltip": "my plugin"}\n'
+EOF
+        chmod +x "$dir/$name.sh"
+    fi
+    link "$name"
+    echo "$(t 'Created %s (linked in the bar)' "$dir")"
+}
+
+link() { mkdir -p "$mods" && ln -sfn "$share/$1" "$mods/$1"; }
+
+cmd_check() {
+    target="${1:-}"
+    [ -n "$target" ] || die "$(t 'Usage: fili-bar check DIR|NAME')"
+    case "$target" in */*) [ -d "$target" ] || die "$(t 'No such folder: %s' "$target")"; dir="$(cd "$target" && pwd)" ;; *) dir="$mods/$target" ;; esac
+    f="$dir/module.toml"; name="$(basename "$dir")"; bad=0
+    fail() { printf 'x %s\n' "$*"; bad=1; }
+    pass() { printf 'ok %s\n' "$*"; }
+    [ -f "$f" ] || { fail "$(t 'No module.toml in %s' "$dir")"; exit 1; }
+    valid_name "$name" && pass "$(t 'name %s' "$name")" || fail "$(t 'folder name %s: lowercase letters, digits and hyphens only' "$name")"
+    api="$(mval "$f" api)"
+    if [ -n "$api" ]; then
+        printf '%s' "$api" | grep -Eq '^[0-9]+$' && [ "$api" -le "$API" ] && pass "api = $api" || fail "$(t 'api = %s: this bar knows api %s' "$api" "$API")"
+    fi
+    s="$(mval "$f" side)"; case "$s" in "" | left | right) pass "side = ${s:-right}" ;; *) fail "side = $s ($(t 'left or right'))" ;; esac
+    o="$(mval "$f" order)"; if [ -n "$o" ]; then printf '%s' "$o" | grep -Eq '^-?[0-9]+$' && pass "order = $o" || fail "order = $o ($(t 'a whole number'))"; fi
+    for k in display tray show; do
+        v="$(mval "$f" $k)"; [ -n "$v" ] || continue
+        case "$k:$v" in display:both | display:icon | display:value | tray:never | tray:idle | tray:always | show:active | show:always) pass "$k = $v" ;; *) fail "$k = $v ($(t 'unknown value'))" ;; esac
+    done
+    cmd="$(mval "$f" cmd)"
+    if [ -n "$cmd" ]; then
+        first="${cmd%% *}"
+        case "$first" in ./*) [ -x "$dir/$first" ] && pass "$first ($(t 'executable'))" || fail "$(t '%s is missing or not executable' "$first")" ;; esac
+        iv="$(mval "$f" interval)"
+        if [ "${iv:-0}" != -1 ]; then
+            out="$(cd "$dir" && timeout 5 sh -c "$cmd" 2>/dev/null | head -n1)"
+            if printf '%s' "$out" | jq -e 'type == "object" and has("text")' > /dev/null 2>&1; then pass "$(t 'the script prints JSON: %s' "$out")"
+            elif [ -n "$out" ]; then pass "$(t 'the script prints plain text: %s' "$out")"
+            else fail "$(t 'the script prints nothing within 5 s')"; fi
+        fi
+    else
+        ls "$dir"/*Module.qml > /dev/null 2>&1 && pass "$(t 'QML module %s' "$(basename "$(ls "$dir"/*Module.qml | head -n1)")")" || fail "$(t 'neither a cmd nor a <Name>Module.qml')"
+    fi
+    for r in $(mval "$f" requires | tr -d '[],"'); do command -v "$r" > /dev/null 2>&1 && pass "requires $r" || fail "$(t 'requires %s: not installed' "$r")"; done
+    exit "$bad"
+}
+
+cmd_remove() {
+    name="${1:-}"; valid_name "$name" || die "$(t 'Usage: fili-bar remove NAME')"
+    [ -d "$share/$name" ] || die "$(t '%s is not a plugin of the home (see fili-bar list)' "$name")"
+    gio trash "$share/$name" 2> /dev/null || die "$(t 'Could not move %s to the trash' "$share/$name")"
+    rm -f "$mods/$name"
+    echo "$(t 'Removed %s (in the trash)' "$name")"
+}
+
+cmd_install() {
+    url="${1:-}"; [ -n "$url" ] || die "$(t 'Usage: fili-bar install URL [--commit REV] [--yes]')"
+    shift; rev=""; yes=0
+    while [ $# -gt 0 ]; do
+        case "$1" in --commit) rev="${2:-}"; shift ;; --yes) yes=1 ;; esac
+        shift
+    done
+    tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
+    git clone -q "$url" "$tmp/p" 2> /dev/null || die "$(t 'Could not clone %s' "$url")"
+    [ -z "$rev" ] || git -C "$tmp/p" checkout -q "$rev" 2> /dev/null || die "$(t 'No such revision: %s' "$rev")"
+    rev="$(git -C "$tmp/p" rev-parse HEAD)"
+    name="$(basename "$url" .git)"
+    valid_name "$name" || die "$(t 'The plugin name (%s) must be lowercase letters, digits and hyphens' "$name")"
+    [ -f "$tmp/p/module.toml" ] || die "$(t 'No module.toml in this repository')"
+    api="$(mval "$tmp/p/module.toml" api)"
+    if [ -n "$api" ] && [ "$api" -gt "$API" ] 2> /dev/null; then die "$(t 'This plugin needs api %s, this bar has api %s' "$api" "$API")"; fi
+    echo "$(t 'Plugin %s at %s' "$name" "$rev")"
+    sed 's/^/  /' "$tmp/p/module.toml"
+    [ "$yes" = 1 ] || { echo "$(t 'It runs with your rights. Read it, then run again with --yes.')"; exit 2; }
+    [ -e "$share/$name" ] && die "$(t 'Already there: %s' "$share/$name")"
+    mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name"
+    pin "$name" "$url@$rev"
+    echo "$(t 'Installed %s' "$name")"
+}
+
+# Record NAME = "url@commit" in bar-plugins.toml
+pin() {
+    mkdir -p "$(dirname "$plugins")"
+    [ -f "$plugins" ] || printf '[plugins]\n' > "$plugins"
+    tmp="$(mktemp)"
+    awk -v n="$1" -v v="$2" '$0 ~ "^" n "[ \t]*=" { next } { print } END { print n " = \"" v "\"" }' "$plugins" > "$tmp" && cat "$tmp" > "$plugins"
+    rm -f "$tmp"
+}
+
+# Clone, or bring to the pinned commit, every plugin of bar-plugins.toml
+cmd_sync() {
+    [ -r "$plugins" ] || { echo "$(t 'No %s' "$plugins")"; return 0; }
+    sed -n 's/^\([a-z][a-z0-9-]*\)[ \t]*=[ \t]*"\(.*\)@\([0-9a-f]\{7,40\}\)"[ \t]*$/\1 \2 \3/p' "$plugins" | while read -r name url rev; do
+        if [ -d "$share/$name/.git" ]; then
+            git -C "$share/$name" fetch -q 2> /dev/null; git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $rev" || echo "$name: $(t 'could not reach %s' "$rev")"
+        else
+            mkdir -p "$share" && git clone -q "$url" "$share/$name" 2> /dev/null && git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $(t 'installed')" || echo "$name: $(t 'failed')"
+        fi
+        [ -d "$share/$name" ] && link "$name"
+    done
+}
+
+case "${1:-list}" in
+    list) cmd_list ;;
+    enable) cmd_enable "${2:-}" "" ;;
+    disable) cmd_enable "${2:-}" false ;;
+    move) cmd_move "${2:-}" "${3:-}" "${4:-}" ;;
+    new) cmd_new "${2:-}" "${3:-}" ;;
+    check) cmd_check "${2:-}" ;;
+    install) shift; cmd_install "$@" ;;
+    remove) cmd_remove "${2:-}" ;;
+    sync) cmd_sync ;;
+    -h | --help | help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+esac
