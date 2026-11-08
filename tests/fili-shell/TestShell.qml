@@ -627,6 +627,16 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-settings écran: échelle sans confirmation", JSON.stringify(FiliTheme.ran));
                 d.keep();
                 ok(d.snap === null, "fili-settings écran: garder");
+                // Workspaces: those of the chosen output are listed, the active one of another output can be brought here
+                Niri.workspaces = [{ id: 1, idx: 1, output: "A-1", is_active: true }, { id: 2, idx: 1, output: "B-1", is_active: true }];
+                d.sel = "A-1";
+                ok(d.workspacesOf("A-1").length === 1 && d.workspacesOf("B-1")[0].id === 2, "fili-settings écran: espaces de travail par écran");
+                FiliTheme.ran = [];
+                d.bringHere("B-1");
+                ok(FiliTheme.ran[0] === "niri msg action focus-monitor 'B-1'; niri msg action move-workspace-to-monitor 'A-1'", "fili-settings écran: amener l'espace d'un autre écran", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.pinHere();
+                ok(FiliTheme.ran[0] === "niri msg action focus-monitor 'A-1'; fili-app-output pin", "fili-settings écran: garder l'espace actif sur cet écran", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
             // fili-settings language: the choices of fili-lang list, a choice runs fili-lang set

@@ -222,6 +222,26 @@ ColumnLayout {
         const seen = {}, out = [];
         for (const m of cur.modes) {
             const k = m.width + "x" + m.height;
+    // Workspaces of an output (niri: each output has its own stack), with their windows
+    function workspacesOf(name) {
+        return Niri.workspaces.filter(w => w.output === name);
+    }
+    function wsLabel(w) {
+        const apps = Object.values(Niri.windows).filter(x => x.workspace_id === w.id).map(x => x.app_id ?? x.title ?? "");
+        return FiliI18n.tr("Workspace %1", w.idx) + " · " + (apps.length ? apps.join(", ") : FiliI18n.tr("no window"));
+    }
+    // Brings the active workspace of another output here (niri has no workspace-by-id action: focus its output, then move
+    // the focused workspace)
+    function bringHere(from) {
+        if (cur)
+            FiliTheme.run("niri msg action focus-monitor '" + from + "'; niri msg action move-workspace-to-monitor '" + cur.name + "'");
+    }
+    // Pins the active workspace of this output to it (named workspace, open-on-output): it stays there and comes back when the
+    // display is plugged in again
+    function pinHere() {
+        if (cur)
+            FiliTheme.run("niri msg action focus-monitor '" + cur.name + "'; fili-app-output pin");
+    }
             if (!seen[k]) {
                 seen[k] = true;
                 out.push({ label: m.width + "×" + m.height, value: k, area: m.width * m.height, w: m.width, h: m.height });
@@ -428,6 +448,35 @@ ColumnLayout {
         visible: view.curMode !== null
         model: view.transforms
         current: view.cur && view.cur.logical ? view.transformName(view.cur.logical.transform) : ""
+    // Workspaces of the chosen output; those of the other outputs can be brought here
+    PanelSection { visible: view.cur !== null && view.cur.logical !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("WORKSPACES") }
+    Repeater {
+        model: view.cur && view.cur.logical ? view.workspacesOf(view.cur.name) : []
+        Text {
+            required property var modelData
+            objectName: "workspace-row"
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            text: view.wsLabel(modelData)
+            color: modelData.is_active ? FiliTheme.brume : FiliTheme.ardoise
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
+        }
+    }
+    PanelChips {
+        objectName: "pin-workspace"
+        visible: view.cur !== null && view.cur.logical !== null
+        model: [{ label: FiliI18n.tr("Keep the active workspace on this display"), value: "pin" }]
+        current: ""
+        onPicked: view.pinHere()
+    }
+    PanelChips {
+        objectName: "bring-workspace"
+        readonly property var others: view.cur && view.cur.logical ? Niri.workspaces.filter(w => w.output !== view.cur.name && w.is_active) : []
+        visible: others.length > 0
+        model: others.map(w => ({ label: FiliI18n.tr("Bring %1 here", w.output), value: w.output }))
+        current: ""
+        onPicked: v => view.bringHere(v)
+    }
         onPicked: v => view.setTransform(view.cur, v)
     }
     RowLayout {
