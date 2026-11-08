@@ -120,6 +120,13 @@ overview {
     backdrop-color "#181d25"
 }
 
+// No hot corner: moving the mouse to the top-left corner must not open the Overview (Mod+O does).
+gestures {
+    hot-corners {
+        off
+    }
+}
+
 // Find more information on the wiki:
 // https://niri-wm.github.io/niri/Configuration:-Layout
 layout {
@@ -517,8 +524,7 @@ binds {
     Shift+XF86MonBrightnessDown allow-when-locked=true { spawn-sh "brightnessctl -q -d intel_backlight set 30-; $HOME/.local/bin/fili-shell bar refresh 23"; }
 
     // Open/close the Overview: a zoomed-out view of workspaces and windows.
-    // You can also move the mouse into the top-left hot corner,
-    // or do a four-finger swipe up on a touchpad.
+    // Four-finger swipe up on a touchpad does it too (the hot corner is turned off).
     Mod+O repeat=false { toggle-overview; }
 
     Mod+Q repeat=false { close-window; }
