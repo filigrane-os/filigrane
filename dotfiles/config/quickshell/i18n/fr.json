@@ -343,5 +343,7 @@
  "LEFT": "GAUCHE",
  "RIGHT": "DROITE",
  "fili-bar.toml has an explicit list of modules: it wins over the order set here.": "fili-bar.toml donne une liste explicite de modules: elle l’emporte sur l’ordre réglé ici.",
- "Show, hide and order the modules of the bar. The drawer and the details of each module are in its own panel.": "Afficher, masquer et ordonner les modules de la barre. Le tiroir et le détail de chaque module sont dans son propre panneau."
+ "Show, hide and order the modules of the bar. The drawer and the details of each module are in its own panel.": "Afficher, masquer et ordonner les modules de la barre. Le tiroir et le détail de chaque module sont dans son propre panneau.",
+ "Always open on this monitor": "Toujours ouvrir sur ce moniteur",
+ "Forget the monitor of this app": "Oublier le moniteur de cette app"
 }

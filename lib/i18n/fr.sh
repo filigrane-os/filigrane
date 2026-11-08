@@ -409,6 +409,11 @@ _t_lookup() {
     'Filigrane is translated; dates and other apps stay in the system language until ./bootstrap.sh generates %s.') _t_fmt='Filigrane est traduit; les dates et les autres applications restent dans la langue du système tant que ./bootstrap.sh n'\''a pas généré %s.' ;;
     'New windows use it; restart open apps to switch them.') _t_fmt='Les nouvelles fenêtres l'\''utilisent; relancer les applications ouvertes pour les basculer.' ;;
     'Language: %s') _t_fmt='Langue: %s' ;;
+    'No window with an application name has the focus.') _t_fmt='Aucune fenêtre avec un nom d'\''application n'\''a le focus.' ;;
+    'Monitor of the window not found.') _t_fmt='Moniteur de la fenêtre introuvable.' ;;
+    '%s now opens on %s.') _t_fmt='%s s'\''ouvre désormais sur %s.' ;;
+    '%s opens wherever niri decides again.') _t_fmt='%s s'\''ouvre de nouveau où niri le décide.' ;;
+    'Monitor of the application') _t_fmt='Moniteur de l'\''application' ;;
     'Language') _t_fmt='Langue' ;;
     'System: Language') _t_fmt='Système: Langue' ;;
     'Language › ') _t_fmt='Langue › ' ;;

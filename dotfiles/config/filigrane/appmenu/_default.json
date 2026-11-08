@@ -1,6 +1,8 @@
 {
   "app": [
-    { "label": "Quit %1", "niri": ["close-window"] }
+    { "label": "Quit %1", "niri": ["close-window"] },
+    { "sep": true },
+    { "label": "Always open on this monitor", "exec": "fili-app-output here" }
   ],
   "window": [
     { "label": "Close window", "niri": ["close-window"] },
@@ -11,6 +13,9 @@
     { "label": "Floating window", "niri": ["toggle-window-floating"] },
     { "sep": true },
     { "label": "Move to previous workspace", "niri": ["move-window-to-workspace-up"] },
-    { "label": "Move to next workspace", "niri": ["move-window-to-workspace-down"] }
+    { "label": "Move to next workspace", "niri": ["move-window-to-workspace-down"] },
+    { "sep": true },
+    { "label": "Always open on this monitor", "exec": "fili-app-output here" },
+    { "label": "Forget the monitor of this app", "exec": "fili-app-output forget" }
   ]
 }

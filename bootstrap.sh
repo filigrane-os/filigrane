@@ -669,6 +669,7 @@ setup_dotfiles() {
     # gsettings (xdg portal: Chromium, GTK, libadwaita; no effect outside a D-Bus session)
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-theme" apply || warn 'fili-theme apply failed'
     run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-lang" apply || warn 'fili-lang apply failed'
+    run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-app-output" apply || warn 'fili-app-output apply failed'
     if gsettings set org.gnome.desktop.interface font-name 'Jost 10' 2>/dev/null; then
         gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
     else
