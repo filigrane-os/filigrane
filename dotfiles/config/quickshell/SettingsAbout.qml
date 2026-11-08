@@ -1,8 +1,10 @@
 // Settings page "About" (fili-settings): the About card of Réglages. Every fili-* application with a display name
 // (alias) has one: the alias as the name, "Also known as" the program name (skill filigrane-ui, references/hig.md §7).
-// Nothing is read from the system: the page is static, so it costs nothing while the window is closed.
+// The machine rows (model, Void Linux, kernel, Filigrane version) come from fili-about, run once when the page is created,
+// so nothing runs while the settings window is closed.
 import QtQuick
 import QtQuick.Layouts
+import Quickshell.Io
 import qs.controls
 
 ColumnLayout {
@@ -11,11 +13,30 @@ ColumnLayout {
     // Display name (alias) and program name (aka)
     readonly property string name: "Réglages"
     readonly property string aka: "fili-settings"
+    // Rows read from fili-about: Filigrane version, OS and kernel, machine model
+    property var sys: []
     readonly property var rows: [
         [FiliI18n.tr("Also known as"), aka + " (Settings)"],
         [FiliI18n.tr("Part of"), "Filigrane"],
         [FiliI18n.tr("Opens with"), "fili-shell settings [PAGE]"]
-    ]
+    ].concat(sys)
+
+    Process {
+        running: true
+        command: [FiliTheme.bin + "/fili-about"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const sec = JSON.parse(text).sections;
+                    const pick = (n, k) => (sec.find(s => s.name === n)?.rows ?? []).slice(0, k);
+                    view.sys = pick(FiliI18n.tr("Filigrane"), 1)
+                        .concat(pick(FiliI18n.tr("System"), 2), pick(FiliI18n.tr("Machine"), 1));
+                } catch (e) {
+                    view.sys = [];
+                }
+            }
+        }
+    }
 
     Text {
         Layout.alignment: Qt.AlignHCenter

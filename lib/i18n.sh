@@ -25,11 +25,20 @@ if [ "$FILI_LANG" != en ] && [ -r "$FILI_LIB/i18n/$FILI_LANG.sh" ]; then
 else
     _t_lookup() { :; }
 fi
+# Optional personal catalog (messages of the scripts of a personal layer), same format, defining _t_lookup_personal:
+# ~/.config/filigrane/i18n/<lang>.sh. It is asked for what the distribution catalog does not translate.
+_t_lookup_personal() { :; }
+if [ "$FILI_LANG" != en ] && [ -r "${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/i18n/$FILI_LANG.sh" ]; then
+    # shellcheck source=/dev/null
+    . "${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/i18n/$FILI_LANG.sh"
+fi
 
 t() {
     _t_fmt=$1
     shift
+    _t_orig=$_t_fmt
     _t_lookup "$_t_fmt"
+    [ "$_t_fmt" != "$_t_orig" ] || _t_lookup_personal "$_t_fmt"
     # shellcheck disable=SC2059
     printf -- "$_t_fmt" "$@"
 }

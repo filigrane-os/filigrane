@@ -62,6 +62,7 @@ _t_lookup() {
     'gsettings: fonts not applied (no D-Bus session)') _t_fmt='gsettings: polices non appliquées (pas de session D-Bus)' ;;
     'fili-theme apply failed') _t_fmt='fili-theme apply a échoué' ;;
     'fili-lang apply failed') _t_fmt='fili-lang apply a échoué' ;;
+    'fili-app-output apply failed') _t_fmt='fili-app-output apply a échoué' ;;
     'fili-shell (symlinks to %s)') _t_fmt='fili-shell (liens symboliques vers %s)' ;;
     'Mac T2: Speaker route volume set to 1.0 (restart wireplumber to apply)') _t_fmt='Mac T2: volume de la route Speaker à 1.0 (relancer wireplumber pour l'\''appliquer)' ;;
     'Done') _t_fmt='Terminé' ;;
@@ -117,7 +118,6 @@ _t_lookup() {
     'Stopwatch') _t_fmt='Chronomètre' ;;
     'Timer: ') _t_fmt='Minuteur: ' ;;
     'Timer') _t_fmt='Minuteur' ;;
-    '(click: read)') _t_fmt='(clic: lire)' ;;
     'Done, press Enter to close.') _t_fmt='Terminé, Entrée pour fermer.' ;;
     '%s updates available (click: update)') _t_fmt='%s mises à jour disponibles (clic: mettre à jour)' ;;
     'Backup') _t_fmt='Sauvegarde' ;;
@@ -197,11 +197,6 @@ _t_lookup() {
     'cancelled\n') _t_fmt='annulé\n' ;;
     'removed from %s\n') _t_fmt='retiré de %s\n' ;;
     'Preview: %s') _t_fmt='Aperçu: %s' ;;
-    'No config in %s (see the header of this script)\n') _t_fmt='Aucune config dans %s (voir l'\''en-tête de ce script)\n' ;;
-    'Number: ') _t_fmt='Numéro: ' ;;
-    'Invalid choice\n') _t_fmt='Choix invalide\n' ;;
-    'VPN on: %s\n') _t_fmt='VPN actif: %s\n' ;;
-    'VPN off\n') _t_fmt='VPN coupé\n' ;;
     'list not found: %s (run ./bootstrap.sh --dotfiles-only)\n') _t_fmt='liste introuvable: %s (lancer ./bootstrap.sh --dotfiles-only)\n' ;;
     'already there: %s\n') _t_fmt='déjà présent: %s\n' ;;
     'added: %s (web)\n') _t_fmt='ajouté: %s (web)\n' ;;
@@ -322,7 +317,6 @@ _t_lookup() {
     'System ›') _t_fmt='Système ›' ;;
     'System › ') _t_fmt='Système › ' ;;
     'System: About') _t_fmt='Système: À propos' ;;
-    'System: Settings') _t_fmt='Système: Réglages' ;;
     'System: Lock') _t_fmt='Système: Verrouiller' ;;
     'System: Log out') _t_fmt='Système: Quitter la session' ;;
     'System: Power off') _t_fmt='Système: Éteindre' ;;

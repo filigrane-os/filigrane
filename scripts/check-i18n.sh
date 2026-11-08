@@ -50,6 +50,9 @@ import glob, json, re, sys
 keys = set()
 for f in glob.glob("dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("users/*/dotfiles/config/quickshell/**/*.qml", recursive=True):
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\bFili(?:I18n)?\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
+# Labels of the default fallback menu (appmenu/_default.json): translated by the bar from the same catalog
+for f in glob.glob("dotfiles/config/filigrane/appmenu/_default.json"):
+    keys |= set(re.findall(r'"label":\s*"((?:[^"\\]|\\.)*)"', open(f).read()))
 for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs") + glob.glob("apps/fili-automount/src/*.rs"):
     src = open(f).read().split("#[cfg(test)]")[0]
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\btrf?\("((?:[^"\\]|\\.)*)"', src)}
@@ -59,10 +62,14 @@ bad = False
 for cat in sorted(glob.glob("dotfiles/config/quickshell/i18n/*.json")):
     lang = cat.rsplit("/", 1)[1][:-5]
     c = json.load(open(cat))
+    # Bar modules (also those of a personal layer) bring their own catalog: bar/modules/<name>/i18n/<lang>.json
+    own = set()
+    for m in glob.glob(f"dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json") + glob.glob(f"users/*/dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json"):
+        own |= set(json.load(open(m)))
     for k in sorted(keys):
-        if k not in c:
+        if k not in c and k not in own:
             print(f"{lang}.json: missing: {k}"); bad = True
-        elif ph(k) != ph(c[k]):
+        elif k in c and ph(k) != ph(c[k]):
             print(f"{lang}.json: placeholders differ: {k}"); bad = True
     for k in sorted(k for k in set(c) - keys if not k.startswith("@")):
         print(f"{lang}.json: unused entry: {k}"); bad = True
