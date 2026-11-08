@@ -18,7 +18,8 @@ pragma Singleton
 // stands for the default modules of the row (the ones not listed yet), so a user layer can add its own without restating
 // the rest: right = ["mail", "..."]. A module with a manifest joins the default row by itself. Invalid names (anything but
 // lowercase letters, digits and hyphens), duplicates and disabled modules are ignored; a module that does not exist
-// leaves a loading error in the log and no gap in the bar. The manifests are read once at start (reload() reads them again).
+// leaves a loading error in the log and no gap in the bar. A manifest with a `cmd` makes a script plugin (ScriptModule).
+// The manifests are read once at start (reload() reads them again).
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -106,8 +107,18 @@ Singleton {
                     out.push(m);
         return out;
     }
+    // A module whose manifest has a cmd is a script plugin (no QML): it runs ScriptModule
+    function isScript(name) {
+        return manifests[name]?.cmd !== undefined;
+    }
+    // Folder of a module
+    function dir(name) {
+        return Qt.resolvedUrl("modules/" + name).toString().replace(/^file:\/\//, "");
+    }
     // QML file of a module
     function source(name) {
+        if (isScript(name))
+            return Qt.resolvedUrl("ScriptModule.qml");
         const type = name.split("-").map(s => s.charAt(0).toUpperCase() + s.slice(1)).join("");
         return Qt.resolvedUrl("modules/" + name + "/" + type + "Module.qml");
     }

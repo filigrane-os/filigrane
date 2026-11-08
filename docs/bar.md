@@ -118,6 +118,36 @@ BarScript {
 }
 ```
 
+### A script plugin, without QML
+
+The simplest module is a folder with a `module.toml` and a script, no QML. A manifest with a `cmd` is loaded by the generic `ScriptModule`:
+
+```toml
+# bar/modules/uptime/module.toml
+title = "Uptime"
+side = "right"
+order = 35
+cmd = "./uptime.sh"
+interval = 60
+click = "foot -e htop"
+```
+
+```sh
+#!/bin/sh
+# uptime.sh: one JSON line per run
+printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(uptime -s)"
+```
+
+| Key | Role |
+|---|---|
+| `cmd` | command that prints the state (run in the folder of the module) |
+| `interval` | seconds between two runs; `0` (default): once, then on signal; `-1`: resident, one line per update |
+| `signal` | refreshed by `fili-shell signal N` |
+| `click`, `rclick`, `mclick`, `scroll_up`, `scroll_down` | commands run by the mouse |
+| `title`, `hint` | name and help line of the tooltip |
+
+The output protocol is the one of `BarScript` below (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
+
 ### Alerts
 
 An alert (new mail, unread messages, next event) is an `AlertModule` of a few lines. It reads `~/.local/state/alerts/<kind>` (one line per item, fields separated by a tab; added with `bar-alert push`) and optionally `<kind>.count`, the real number of unread items, which wins. It shows in the bar while there is something to read and, at rest, only in the open drawer. A click runs `bar-alert open <kind> [URL]`.

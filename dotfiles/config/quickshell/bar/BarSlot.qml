@@ -12,7 +12,7 @@ Loader {
     property var bar: null
     property real free: -1
     Layout.fillHeight: true
-    Component.onCompleted: setSource(BarLayout.source(modelData), { bar: slot.bar })
+    Component.onCompleted: setSource(BarLayout.source(modelData), BarLayout.isScript(modelData) ? { bar: slot.bar, name: modelData, conf: BarLayout.manifests[modelData] } : { bar: slot.bar })
     onLoaded: {
         if (!item)
             return;

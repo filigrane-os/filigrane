@@ -1247,6 +1247,22 @@ ShellRoot {
                 ok(BarLayout.choice("bogus", "display", ["both", "icon", "value"], "both") === "both", "BarLayout.choice: valeur invalide = repli");
                 BarLayout.parsed = ({});
             },
+            // Script plugin: a manifest with a cmd, no QML
+            () => {
+                const m = Object.assign({}, BarLayout.manifests);
+                m.hello = { cmd: "printf '{\"text\":\"hi\",\"tooltip\":\"tip\"}\\n'", side: "right", order: "1", title: "Hello", click: "true", signal: "40" };
+                BarLayout.manifests = m;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "hello")?.text === "hi", 5000),
+            () => {
+                const h = t.find(t.bar.contentItem, "hello");
+                ok(h && h.text === "hi" && h.title === "Hello" && h.signal === 40 && h.click.indexOf("true") > 0 && BarLayout.right[0] === "hello", "fili-bar: plugin script (manifest avec cmd, sans QML)", h ? h.text + "/" + h.title + "/" + h.signal : "absent");
+                const m = Object.assign({}, BarLayout.manifests);
+                delete m.hello;
+                BarLayout.manifests = m;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "hello") === null, 5000),
+            () => ok(BarLayout.right.indexOf("hello") < 0, "fili-bar: plugin script retiré"),
         ];
         tick.start();
     }
