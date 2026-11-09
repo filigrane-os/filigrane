@@ -28,7 +28,7 @@ Réglages appliqués : paramètres noyau `intel_iommu=on iommu=pt pm_async=off m
 ## Installer
 
 ```
-./install-void.sh --disk /dev/nvme0n1 --user thomas --profile baremetal
+./install-void.sh --disk /dev/nvme0n1 --user <login> --profile baremetal
 ```
 
 Attention : `install-void.sh` utilise **tout le disque** et **efface macOS**. Pas de double démarrage pour l'instant. Pour garder macOS, installer sur un SSD externe (`--disk /dev/sdX`).

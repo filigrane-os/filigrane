@@ -1,7 +1,7 @@
 // Alert indicator of one kind: ~/.local/state/alerts/<kind> (one line "field<TAB>field" per item, added by `bar-alert push`)
 // and, optionally, <kind>.count (the real number of unread items, which takes priority). Shown in the bar while there is
 // something; at rest it only shows in the open drawer (bar-tray toggle). Click = `bar-alert open <kind>` (opens the web
-// app and clears the alert). The modules of a user layer (mail, WhatsApp, calendar...) are an AlertModule with their
+// app and clears the alert). The plugins (mail, chat, calendar...) are an AlertModule with their
 // kind, title, glyph and colour; `render` gives a kind its own format and expiry.
 import QtQuick
 import qs

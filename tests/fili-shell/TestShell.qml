@@ -174,7 +174,7 @@ ShellRoot {
                 expectClick("update", L, "bar-update run");
                 expectClick("backup", L, "bar-backup run");
                 expectClick("tray-handle", L, "bar-tray toggle");
-                // Clock: the click pins the calendar, it no longer opens Proton Calendar
+                // Clock: the click pins the calendar, it no longer opens a calendar web app
                 const clk = act("clock", L);
                 ok(clk === "", "fili-bar clock, clic -> aucune commande (calendrier épinglé)", JSON.stringify(clk));
                 act("clock", L);
@@ -300,7 +300,7 @@ ShellRoot {
             wait(() => {}, () => AppMenu.appId === "google-chrome" && AppMenu.menus.length === 6),
             () => {
                 ok(AppMenu.menus[0].label === "Chrome" && AppMenu.menus[1].children[0].exec === "google-chrome-stable --new-window", "appmenu: Chrome -> liens utiles", AppMenu.menus.map(m => m.label).join(","));
-                Niri.setWindows({ 10: { id: 10, pid: 4242, app_id: "fili-file", title: "thomas" } });
+                Niri.setWindows({ 10: { id: 10, pid: 4242, app_id: "fili-file", title: "user" } });
                 Niri.focusedId = 10;
             },
             wait(() => {}, () => AppMenu.appId === "fili-file" && AppMenu.menus.length === 6),
@@ -385,21 +385,21 @@ ShellRoot {
             // BarState: states read from their files (agenda, timer, drawer), without a script
             () => {
                 const now = 1000000;
-                // AlertModule (the mail, WhatsApp and calendar modules of the user layer are instances of it)
+                // AlertModule (the mail, chat and calendar plugins are instances of it)
                 const mk = props => alertComp.createObject(null, props);
-                const mail = mk({ kind: "mail", title: "Proton Mail", glyph: "\uf0e0", url: "https://mail.example.org" });
+                const mail = mk({ kind: "mail", title: "Mail", glyph: "\uf0e0", url: "https://mail.example.org" });
                 const m = mail.build("Alice\tBonjour\nBob\tSalut\n", null, now);
-                ok(m.text === "\uf0e0 2" && m["class"] === "active" && m.tooltip.title === "Proton Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "AlertModule: alerte mail", JSON.stringify(m));
-                const cal = mk({ kind: "cal", title: "Proton Calendar", glyph: "\uf073", render: (rows, n) => {
+                ok(m.text === "\uf0e0 2" && m["class"] === "active" && m.tooltip.title === "Mail" && m.tooltip.rows[0][0] === "Alice" && m.tooltip.rows[0][1] === "Bonjour" && m.tooltip.rows[1][0] === "Bob", "AlertModule: alerte mail", JSON.stringify(m));
+                const cal = mk({ kind: "cal", title: "Calendar", glyph: "\uf073", render: (rows, n) => {
                     const live = rows.filter(x => Number(x[0]) >= n - 300).sort((x, y) => Number(x[0]) - Number(y[0]));
                     return live.length ? { text: live[0][2] + " " + live[0][1], rows: live.map(x => [x[1], x[2] ?? ""]) } : null;
                 } });
                 const c = cal.build((now - 400) + "\t10:00\tVieux\n" + (now + 600) + "\t11:00\tRéunion\n", null, now);
                 ok(c.text === "\uf073 Réunion 11:00" && JSON.stringify(c.tooltip).indexOf("Vieux") < 0, "AlertModule: render (agenda), événement passé ignoré", JSON.stringify(c));
                 ok(cal.build((now - 400) + "\t10:00\tVieux\n", null, now).text === "", "AlertModule: agenda expiré masqué");
-                const wa = mk({ kind: "whatsapp", title: "WhatsApp", glyph: "W" });
+                const wa = mk({ kind: "chat", title: "Chat", glyph: "W" });
                 const w = wa.build("", "3\n", now);
-                ok(w.text === "W 3" && w.tooltip.title === "WhatsApp" && w.tooltip.rows[0][1] === "3", "AlertModule: compteur de non-lus prioritaire", JSON.stringify(w));
+                ok(w.text === "W 3" && w.tooltip.title === "Chat" && w.tooltip.rows[0][1] === "3", "AlertModule: compteur de non-lus prioritaire", JSON.stringify(w));
                 ok(wa.build("x\ty\n", "0", now).text === "", "AlertModule: compteur à 0 masque l'alerte");
                 ok(mail.objectName === "mail" && mail.idleGlyph === "\uf0e0", "AlertModule: objectName = kind, icône du tiroir = icône");
                 // Displayed value (BarScript.value): the alert while there is one, else nothing (drawer folded)

@@ -766,7 +766,7 @@ binds {
     // Mod+Space       { switch-layout "next"; }
     // Mod+Shift+Space { switch-layout "prev"; }
 
-    // Screenshots (niri's built-in tool, 0 MB). Saved in ~/Screenshots (local, outside iCloud) and copied to the clipboard.
+    // Screenshots (niri's built-in tool, 0 MB). Saved in ~/Screenshots (local, outside any cloud-synced folder) and copied to the clipboard.
     // Alternatives without a Print key (Mac keyboards): Mod+Shift+3 screen, 4 area, 5 interface.
     // macOS shortcuts (Mod = Cmd, keys 3/4/5 as bépo symbols): 3 screen, 4 area, 5 capture interface (area/screen/window), Ctrl+4 window
     Mod+Shift+guillemotright { screenshot-screen; }
