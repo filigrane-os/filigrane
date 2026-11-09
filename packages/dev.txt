@@ -1,4 +1,4 @@
-# Shell et outils CLI (tous profils), repris du Mac
+# Shell and CLI tools (all profiles), carried over from the Mac
 zsh
 zsh-autosuggestions
 zsh-syntax-highlighting
@@ -8,20 +8,20 @@ fd
 fzf
 ripgrep
 zoxide
-mise  # versions Ruby/Rust/Node par projet; binaire seul, aucun démon (118 Mo disque)
-cargo  # compile les outils maison de apps/ (bootstrap.sh, setup_apps)
-qt6-base-devel  # fili-file (Rust + QML via cxx-qt): en-têtes et qmake de Qt 6, compilation seulement (rien de résident)
+mise  # Ruby/Rust/Node versions per project; single binary, no daemon (118 MB disk)
+cargo  # builds the in-house tools in apps/ (bootstrap.sh, setup_apps)
+qt6-base-devel  # fili-file (Rust + QML via cxx-qt): Qt 6 headers and qmake, build only (nothing resident)
 qt6-declarative-devel
-fonttools  # génère la police d'icônes Fili Icons (scripts/fili-icons.py), 4 Mo, bibliothèque Python sans démon
+fonttools  # generates the Fili Icons font (scripts/fili-icons.py), 4 MB, Python library without a daemon
 bat
 lazygit
 github-cli
 nerd-fonts-symbols-ttf
 wl-clipboard
-# Conteneurs sans démon (remplace docker du Mac)
+# Daemonless containers (replaces Docker on the Mac)
 podman
-lazydocker  # TUI conteneurs (binaire Go de 13 Mo, rien de résident); a besoin du socket podman (DOCKER_HOST)
-# LazyVim: compilation des parsers treesitter (gcc = 234 Mo)
+lazydocker  # containers TUI (13 MB Go binary, nothing resident); needs the podman socket (DOCKER_HOST)
+# LazyVim: building the treesitter parsers (gcc = 234 MB)
 gcc
 make
 unzip

@@ -1,3 +1,3 @@
-# CPU Intel (machine physique)
+# Intel CPU (physical machine)
 linux-firmware-intel
-intel-ucode  # microcode, dépôt nonfree
+intel-ucode  # microcode, nonfree repository

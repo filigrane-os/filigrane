@@ -1,7 +1,7 @@
 # Bureau niri (tous profils)
 niri
-# Navigateur: chromium n'est installé par bootstrap.sh que si aucun navigateur par défaut n'existe (natif Wayland, CHROME_FLAGS posé par niri, sert aux webapps)
-# Shell Quickshell (dotfiles/config/quickshell): barre, notifications et sélecteur du menu (remplace Waybar, mako, fuzzel)
+# Browser: chromium is installed by bootstrap.sh only when no default browser exists (native Wayland, CHROME_FLAGS set by niri, used by web apps)
+# Quickshell shell (dotfiles/config/quickshell): bar, notifications and menu picker (replaces Waybar, mako, fuzzel)
 quickshell
 foot
 swaybg
@@ -16,58 +16,58 @@ xdg-desktop-portal-gtk
 mesa-dri
 dejavu-fonts-ttf
 noto-fonts-ttf
-liberation-fonts-ttf  # mêmes dimensions qu'Arial, Times et Courier (documents bureautiques)
+liberation-fonts-ttf  # same metrics as Arial, Times and Courier (office documents)
 font-awesome6
-# Menu tout-en-un (dotfiles/home/.local/bin/menu)
+# All-in-one menu (dotfiles/home/.local/bin/menu)
 cliphist
-libsecret  # trousseau (Secret Service) pour les applis et CLI qui gardent une session
-gnome-keyring  # démon lancé à la demande par D-Bus
-vips  # miniatures des fonds d'écran dans le menu (vipsthumbnail)
+libsecret  # keyring (Secret Service) for apps and CLIs that keep a session
+gnome-keyring  # daemon started on demand by D-Bus
+vips  # wallpaper thumbnails in the menu (vipsthumbnail)
 libnotify
 qalculate
 noto-fonts-emoji
-# Panneau clavier: visualiseur (fili-keymap lit le keymap avec xkbcli) et emoji, frappe dans la fenêtre active (wtype)
+# Keyboard panel: viewer (fili-keymap reads the keymap with xkbcli) and emoji, typing into the active window (wtype)
 wtype
 libxkbcommon-tools
-# Écrans: profils automatiques (kanshi)
+# Displays: automatic profiles (kanshi)
 kanshi
 python3
-# Clics de la barre: moniteur système et mixeur audio en TUI (pas de daemon)
+# Bar clicks: system monitor and audio mixer as TUIs (no daemon)
 btop
 wiremix
-# Wi-Fi et Bluetooth (pile d'Omarchy): iwd + impala, bluez + bluetui. Démons au repos si aucun adaptateur.
-# iwd remplace wpa_supplicant et configure l'IP du Wi-Fi (dhcpcd: filaire seulement).
+# Wi-Fi and Bluetooth (Omarchy stack): iwd + impala, bluez + bluetui. Daemons idle when there is no adapter.
+# iwd replaces wpa_supplicant and configures the Wi-Fi IP (dhcpcd: wired only).
 iwd
 impala
 bluez
-sound-theme-freedesktop   # sons: notification et chargeur branché (fili-sound)
-bluez-obex         # envoi/réception de fichiers Bluetooth (fili-share); obexd ne tourne que sur demande
-libspa-bluetooth   # son Bluetooth (casques) dans PipeWire
+sound-theme-freedesktop   # sounds: notification and charger plugged in (fili-sound)
+bluez-obex         # Bluetooth file send/receive (fili-share); obexd runs only on demand
+libspa-bluetooth   # Bluetooth audio (headsets) in PipeWire
 bluetui
-# Indicateurs de la barre: veilleuse et enregistrement d'écran
+# Bar indicators: night light and screen recording
 wlsunset
 wf-recorder
 
-# Verrouillage auto et écran éteint au repos (38 Ko, bascule dans la barre)
+# Auto lock and screen off when idle (38 KB, toggle in the bar)
 swayidle
 
-# Visionneuse, USB sans daemon (udisks2 à la demande), santé du disque (le gestionnaire de fichiers est fili-file, apps/)
+# Image viewer, USB without a daemon (udisks2 on demand), disk health (the file manager is fili-file, apps/)
 imv
-poppler  # pdftoppm: pages PDF en image pour l'aperçu rapide (quicklook)
-pspg  # tableaux CSV/TSV dans l'aperçu rapide (343 Ko + postgresql-libs 1,4 Mo)
+poppler  # pdftoppm: PDF pages as images for quick look
+pspg  # CSV/TSV tables in quick look (343 KB + postgresql-libs 1.4 MB)
 udisks2
 smartmontools
 nvme-cli
 rtkit
 
-# Lecteurs réseau de Casier (Se connecter au serveur…, Ctrl+K): gvfs (SFTP, WebDAV, FTP, NFS) et son backend SMB; démarrent à la demande par D-Bus, pas de daemon résident
+# Network drives for Casier (Connect to Server…, Ctrl+K): gvfs (SFTP, WebDAV, FTP, NFS) and its SMB backend; started on demand by D-Bus, no resident daemon
 gvfs
 gvfs-smb
-# Téléphones et appareils photo MTP (Casier: apparaissent dans les emplacements, un clic les monte); 1 Mo, sans daemon
+# MTP phones and cameras (Casier: they appear in the places list, one click mounts them); 1 MB, no daemon
 gvfs-mtp
-# Archives (fili-archive): zip pour créer, 7zip pour 7z/rar
+# Archives (fili-archive): zip to create, 7zip for 7z/rar
 zip
 7zip
-# Icônes: Adwaita (adwaita-icon-theme, dépendance de GTK) pour les types de fichiers; dossiers et glyphes du thème Filigrane-Icons
-# (scripts/icon-theme.sh, lancé par bootstrap.sh). Plus de Papirus.
+# Icons: Adwaita (adwaita-icon-theme, a GTK dependency) for file types; folders and glyphs from the Filigrane-Icons theme
+# (scripts/icon-theme.sh, run by bootstrap.sh). No more Papirus.
 

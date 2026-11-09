@@ -45,7 +45,7 @@ else RAN_QML=0; rc=0; : > "$T/log"; fi
 sed 's/\x1b\[[0-9;]*m//g' "$T/log" > "$T/clean"
 [ "$VERBOSE" = 1 ] && cat "$T/clean"
 # TAP results, and QML errors (loading, exceptions) that count as failures
-grep -oE '(not ok|ok) [0-9]+ - .*|# fin: .*' "$T/clean"
+grep -oE '(not ok|ok) [0-9]+ - .*|# end: .*' "$T/clean"
 errors="$(grep -E 'caused by|TypeError|ReferenceError|SyntaxError|is not a function|Cannot assign' "$T/clean" | grep -v 'TestShell' | sort -u)"
 if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
@@ -96,9 +96,9 @@ fi
 QS_DIR="$ROOT/dotfiles/config/quickshell"
 missing="$(cd "$QS_DIR" && find . -name '*.qml' | while read -r f; do [ -e "$HOME/.config/quickshell/$f" ] || printf '%s ' "${f#./}"; done)"
 if [ -n "$missing" ]; then
-    echo "not ok - non liés dans ~/.config/quickshell (lancer ./bootstrap.sh --dotfiles-only): $missing"
+    echo "not ok - not linked in ~/.config/quickshell (run ./bootstrap.sh --dotfiles-only): $missing"
     exit 1
 fi
 [ "$RAN_QML" = 1 ] || exit 0
-grep -q '^# fin: 0 échec' "$T/clean" 2>/dev/null || grep -q '# fin: 0 échec' "$T/clean" || { [ "$rc" -eq 124 ] && echo "not ok - délai dépassé (90 s)"; exit 1; }
+grep -q '^# end: 0 failure' "$T/clean" 2>/dev/null || grep -q '# end: 0 failure' "$T/clean" || { [ "$rc" -eq 124 ] && echo "not ok - timed out (90 s)"; exit 1; }
 exit 0

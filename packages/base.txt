@@ -1,4 +1,4 @@
-# Outils de base (tous profils)
+# Base tools (all profiles)
 sudo
 git
 curl
@@ -11,10 +11,10 @@ dbus
 elogind
 socklog-void
 
-# Traitement JSON en ligne de commande (553 Ko)
+# JSON processing on the command line (553 KB)
 jq
 
-# Tue le processus gourmand avant le gel mémoire (réglages: system/earlyoom.conf)
+# Kills the hungry process before memory freezes (settings: system/earlyoom.conf)
 earlyoom
-# Swap compressé en RAM (réglages: system/zramen.conf)
+# Compressed swap in RAM (settings: system/zramen.conf)
 zramen
