@@ -646,6 +646,15 @@ ShellRoot {
                 FiliTheme.ran = [];
                 d.pinHere();
                 ok(FiliTheme.ran[0] === "niri msg action focus-monitor 'A-1'; fili-app-output pin", "fili-settings display: keep the active workspace on this output", JSON.stringify(FiliTheme.ran));
+                // Connected without a niri output (no graphics pipe left): listed, and it can be turned on
+                d.undetected = ["A-1", "C-9"];
+                d.sel = "C-9";
+                ok(d.undetectedNames.length === 1 && d.undetectedNames[0] === "C-9" && d.cur === null, "fili-settings display: a connected output without niri output is listed", JSON.stringify(d.undetectedNames));
+                FiliTheme.ran = [];
+                d.turnOnUndetected("C-9");
+                ok(FiliTheme.ran[0] === "niri msg output 'C-9' on" && d.enabling === "C-9", "fili-settings display: an output without niri output can be turned on", JSON.stringify(FiliTheme.ran));
+                d.undetected = [];
+                d.enabling = "";
                 FiliSettings.close();
             },
             // fili-settings language: the choices of fili-lang list, a choice runs fili-lang set

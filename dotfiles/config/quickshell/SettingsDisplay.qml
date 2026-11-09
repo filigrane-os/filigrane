@@ -4,12 +4,15 @@
 // be confirmed within 15 s (or when the window closes), else the previous state comes back. Scale applies without
 // confirmation: it never makes the screen unusable and can be picked again with one click. Dragging only stages the
 // layout; "Apply" commits it (the screens do not move at each drag), "Reset" lines the screens up again and
-// "Identify" shows each output's name on its own screen, "Rescan" reads the connected outputs again. All connected outputs are listed, on or off; turning one on
-// beyond what the graphics card drives shows a message (turn another one off first). "Save" writes the kanshi
+// "Identify" shows each output's name on its own screen, "Rescan" reads the connected outputs again (the page also does
+// it by itself when a screen appears or goes away). All connected outputs are listed, on or off, including those niri
+// has no output for (no graphics pipe left): they can be turned on too; turning one on beyond what the graphics card
+// drives shows a message (turn another one off first). "Save" writes the kanshi
 // profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
 // the fili-panel (DisplayPanel): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import qs.controls
 
@@ -82,6 +85,9 @@ ColumnLayout {
             if (eo && !eo.logical && view.active.length > 0) {
                 view.limit = view.active.length;
                 view.notice = FiliI18n.tr("Only %1 display(s) can be on at once with this graphics card: turn one off first", view.active.length);
+            } else if (e && !eo) {
+                // Connected without an output: niri found no graphics pipe for it
+                view.notice = FiliI18n.tr("No graphics pipe is free for %1: turn another display off first, then turn it on again", e);
             }
         });
     }
@@ -99,6 +105,13 @@ ColumnLayout {
         id: reread
         interval: 500
         onTriggered: view.read()
+    }
+    // A screen appears or goes away (plugged, turned on or off from elsewhere: niri msg, kanshi, the lid): read again
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            reread.restart();
+        }
     }
     // Applies `niri msg output` arguments; risky = to be confirmed (back to the previous state after 15 s)
     function apply(name, args, risky) {
@@ -143,6 +156,14 @@ ColumnLayout {
         }
     }
 
+    // Turns on a connected output niri has no output for: niri gives it a free graphics pipe, or that of a display
+    // turned off
+    function turnOnUndetected(name) {
+        notice = "";
+        enabling = name;
+        FiliTheme.run(cmd(name, "on"));
+        reread.restart();
+    }
     function setPower(o, on) {
         notice = "";
         if (on && limit > 0 && active.length >= limit) {
@@ -454,12 +475,29 @@ ColumnLayout {
         current: view.sel
         onPicked: v => view.sel = v
     }
+    // Connected output niri has no output for: same row as a known output (name and power), then why it is off
+    RowLayout {
+        visible: view.cur === null && view.undetectedNames.indexOf(view.sel) >= 0
+        Layout.fillWidth: true
+        Text {
+            text: view.sel
+            color: FiliTheme.brume
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+        }
+        PanelSwitch {
+            objectName: "undetectedPower"
+            checked: false
+            onToggled: view.turnOnUndetected(view.sel)
+        }
+    }
     Text {
         objectName: "undetected"
         visible: view.cur === null && view.undetectedNames.indexOf(view.sel) >= 0
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
-        text: FiliI18n.tr("%1 is connected to the graphics card but the compositor has no output for it, so it cannot be turned on here. Try Rescan, unplug and replug it, or close the lid to free a graphics pipe.", view.sel)
+        text: FiliI18n.tr("%1 is connected but has no graphics pipe: the graphics card drives a limited number of displays. Turning it on takes the pipe of a display that is off; if none is free, turn another display off first.", view.sel)
         color: FiliTheme.sable
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
