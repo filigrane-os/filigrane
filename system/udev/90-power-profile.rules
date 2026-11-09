@@ -1,4 +1,4 @@
-# Profil CPU (intel_pstate EPP) selon la source: économie sur batterie, équilibré sur secteur.
-# Sans daemon (pas de TLP): udev rejoue la règle à chaque changement de l'adaptateur et au démarrage.
+# CPU profile (intel_pstate EPP) by source: power saving on battery, balanced on mains.
+# Without a daemon (no TLP): udev replays the rule at every adapter change and at boot.
 SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="0", RUN+="/bin/sh -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do echo balance_power > $f; done'"
 SUBSYSTEM=="power_supply", KERNEL=="ADP1", ATTR{online}=="1", RUN+="/bin/sh -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do echo balance_performance > $f; done'"

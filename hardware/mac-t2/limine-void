@@ -1,15 +1,13 @@
 #!/bin/bash
-# Noyaux Void sur une ESP Limine partagée avec un autre système (ex. Omarchy).
-#
-#   limine-void sync          copie les KEEP noyaux les plus récents (et l'épinglé) dans $ESP/void/
-#                             et réécrit le seul bloc "/+Void Linux" de limine.conf
-#   limine-void purge [--yes] supprime les autres noyaux installés (remplace "vkpurge rm all")
-#   limine-void status
-#
-# Appelé par /etc/kernel.d/post-install et post-remove (60-limine-void). Le bloc Void est placé
-# avant les entrées de l'autre système (order-priority=90 > 50 d'Omarchy, que limine-entry-tool
-# respecte quand il réécrit le fichier): avec default_entry: 2, Limine démarre le noyau Void le plus
-# récent. Le reste de limine.conf n'est jamais modifié; une copie précédente est gardée dans
+# Void kernels on a Limine ESP shared with another system (e.g. Omarchy).
+# limine-void sync          copies the KEEP most recent kernels (and the pinned one) into $ESP/void/
+# and rewrites only the "/+Void Linux" block of limine.conf
+# limine-void purge [--yes] removes the other installed kernels (replaces "vkpurge rm all")
+# limine-void status
+# Called by /etc/kernel.d/post-install and post-remove (60-limine-void). The Void block is placed
+# before the entries of the other system (order-priority=90 > 50 of Omarchy, which limine-entry-tool
+# respects when it rewrites the file): with default_entry: 2, Limine boots the most recent Void
+# kernel. The rest of limine.conf is never modified; a previous copy is kept in
 # limine.conf.void-bak.
 set -euo pipefail
 
@@ -17,15 +15,15 @@ ESP="${ESP:-/boot/efi}"
 SUBDIR=void
 KEEP="${KEEP:-2}"
 TITLE="Void Linux"
-PRIORITY=90   # ordre des entrées de premier niveau dans limine.conf (plus grand = plus haut)
+PRIORITY=90   # order of the top-level entries in limine.conf (bigger = higher)
 PIN_FILE=/etc/void-setup/kernel-pin
 CMDLINE_FILE=/etc/kernel/cmdline
-LOCK=/run/lock/boot-partition.lock   # même verrou que les outils Limine d'Omarchy
+LOCK=/run/lock/boot-partition.lock   # same lock as the Limine tools of Omarchy
 
 die() { echo "limine-void: $*" >&2; exit 1; }
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 
-installed() { # versions avec noyau et initramfs dans /boot, de la plus ancienne à la plus récente
+installed() { # versions with kernel and initramfs in /boot, from the oldest to the most recent
     local f v
     for f in /boot/vmlinuz-*; do
         [ -e "$f" ] || continue
@@ -36,7 +34,7 @@ installed() { # versions avec noyau et initramfs dans /boot, de la plus ancienne
 
 pinned() { [ -s "$PIN_FILE" ] && cat "$PIN_FILE" || true; }
 
-selected() { # ordre du menu: épinglé d'abord, puis du plus récent au plus ancien
+selected() { # menu order: pinned first, then from the most recent to the oldest
     local pin all
     pin="$(pinned)"
     all="$(installed)"
@@ -58,7 +56,7 @@ block() {
     mid="$(cat /etc/machine-id 2>/dev/null || cat /var/lib/dbus/machine-id)"
     echo "/+$TITLE"
     echo "comment: machine-id=$mid order-priority=$PRIORITY"
-    echo "comment: généré par limine-void (void-setup), ne pas éditer"
+    echo "comment: généré par limine-void (filigrane), ne pas éditer"
     while read -r v; do
         label="Linux $v"
         if [ "$v" = "$pin" ]; then label="$label (épinglé)"
@@ -105,8 +103,8 @@ sync_esp() {
         grep -qxF "$v" <<<"$sel" || rm -f "$f"
     done
 
-    # Retire l'ancien bloc (du titre jusqu'à la prochaine entrée de premier niveau), puis l'insère
-    # avant la première entrée de premier niveau (après les options globales)
+    # Removes the old block (from the title to the next top-level entry), then inserts it
+    # before the first top-level entry (after the global options)
     cp -p "$conf" "$conf.void-bak"
     block <<<"$sel" > "$conf.block"
     awk -v t="$TITLE" -v bf="$conf.block" '

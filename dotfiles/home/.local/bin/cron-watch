@@ -1,26 +1,24 @@
 #!/bin/bash
-# Mini-cron utilisateur (lancé par niri): exécute des tâches périodiques, sans daemon cron.
-# Chaque tâche a un fichier-témoin dans ~/.local/state/watch/; elle est rejouée quand il est plus vieux que son intervalle
-# (donc rattrapage après un reboot). Échec (réseau...) = témoin intact, nouvel essai au prochain tour.
+# Mini user cron (started by niri): runs periodic tasks, without a cron daemon.
+# Each task has a witness file in ~/.local/state/watch/; it runs again when it is older than its interval
+# (hence catching up after a reboot). Failure (network...) = witness untouched, new try at the next round.
 STATE="$HOME/.local/state/watch"
 mkdir -p "$STATE"
 exec 9>"$STATE/lock"
 flock -n 9 || exit 0
 
-# nom:intervalle en minutes:script:argument
-JOBS=(
-    "void:360:watch-void:"
-    "backup:1440:watch-backup:"
-    "omarchy:10080:watch-claude:omarchy"
-    "t2:10080:watch-claude:t2"
-)
+# Tasks: one per line "name:interval in minutes:script:argument" in ~/.config/cron-watch/jobs.d/*
+# (one file per layer: 00-core for the distribution, then hardware and personal). Re-read at each round.
+JOBS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cron-watch/jobs.d"
 
 while :; do
+    mapfile -t JOBS < <(cat "$JOBS_DIR"/* 2>/dev/null | sed -e 's/#.*//' -e '/^[[:space:]]*$/d')
     for job in "${JOBS[@]}"; do
         IFS=: read -r name every script arg <<<"$job"
         stamp="$STATE/$name.stamp"
         if [ ! -e "$stamp" ] || [ -n "$(find "$stamp" -mmin "+$every")" ]; then
-            "$HOME/.local/bin/$script" $arg && touch "$stamp"
+            # ~/.local/bin first (dotfiles, compiled tools), then the PATH (fili-apps package in /usr/bin)
+            PATH="$HOME/.local/bin:$PATH" "$script" $arg && touch "$stamp"
         fi
     done
     sleep 1800

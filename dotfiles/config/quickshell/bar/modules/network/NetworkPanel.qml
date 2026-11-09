@@ -1,0 +1,184 @@
+// fili-panel network (iwd): Wi-Fi networks (click = connect, password if new, right click = forget), turn on,
+// disconnect, link state (FiliInfo network). The actions go through fili-net (iwctl).
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Io
+import qs.bar
+import qs.controls
+import qs
+
+ColumnLayout {
+    id: view
+    spacing: FiliTheme.space1
+    property var wifi: ({ device: "", powered: false, networks: [] })
+    property string asking: ""
+    property string message: ""
+    readonly property string net: FiliTheme.bin + "/fili-net"
+
+    // Icon by signal strength (0-100, in steps of 25): md-wifi_strength_1..4 codes (Fili Icons font)
+    function signalGlyph(signal) {
+        return String.fromCodePoint(signal >= 75 ? 0xF0928 : signal >= 50 ? 0xF0925 : signal >= 25 ? 0xF0922 : 0xF091F);
+    }
+    function refresh() {
+        if (!list.running)
+            list.running = true;
+    }
+    function act(args, env) {
+        message = "";
+        job.command = ["sh", "-c", (env ?? "") + 'exec "$0" "$@"', net].concat(args);
+        job.running = true;
+    }
+    function connect(n) {
+        if (n.connected) {
+            act(["disconnect"]);
+        } else if (n.known || n.security === "open") {
+            act(["connect", n.ssid]);
+        } else {
+            asking = n.ssid;
+        }
+    }
+    Component.onCompleted: {
+        refresh();
+        scan.start();
+    }
+    Process {
+        id: list
+        command: [view.net, "list"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    view.wifi = JSON.parse(text);
+                } catch (e) {}
+            }
+        }
+    }
+    Process {
+        id: job
+        stderr: StdioCollector { id: jobErr }
+        onExited: code => {
+            view.message = code === 0 ? "" : jobErr.text.replace(/\x1b\[[0-9;]*m/g, "").trim().split("\n")[0];
+            view.asking = "";
+            view.refresh();
+            info.refresh();
+        }
+    }
+    // Scan on opening, list re-read afterwards (iwd takes a few seconds to refresh)
+    Timer {
+        id: scan
+        interval: 100
+        onTriggered: {
+            view.act(["scan"]);
+            relist.start();
+        }
+    }
+    Timer { id: relist; interval: 3000; repeat: true; running: false; onTriggered: view.refresh() }
+
+    RowLayout {
+        Layout.fillWidth: true
+        Text {
+            text: "Wi-Fi"
+            color: FiliTheme.voile
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+        }
+        Item { Layout.fillWidth: true }
+        PanelSwitch {
+            objectName: "wifi-power"
+            visible: view.wifi.device !== ""
+            checked: view.wifi.powered
+            onToggled: view.act(["power", view.wifi.powered ? "off" : "on"])
+        }
+    }
+    PanelSection { visible: view.wifi.networks.length > 0; text: FiliI18n.tr("NETWORKS") }
+    Repeater {
+        model: view.wifi.powered ? view.wifi.networks : []
+        ColumnLayout {
+            required property var modelData
+            required property int index
+            spacing: 2
+            Layout.fillWidth: true
+            PanelButton {
+                objectName: "network"
+                glyph: view.signalGlyph(modelData.signal)
+                label: modelData.ssid
+                sel: modelData.connected
+                detail: modelData.connected ? FiliI18n.tr("connected") : modelData.known ? FiliI18n.tr("known") : modelData.security === "open" ? FiliI18n.tr("open") : FiliI18n.tr("encrypted")
+                onClicked: b => {
+                    if (b === Qt.RightButton) {
+                        if (modelData.known)
+                            view.act(["forget", modelData.ssid]);
+                    } else {
+                        view.connect(modelData);
+                    }
+                }
+            }
+            // Password field, aligned with the network labels; Enter = connect, Escape = cancel
+            Rectangle {
+                visible: view.asking === modelData.ssid
+                Layout.fillWidth: true
+                Layout.leftMargin: 34
+                Layout.topMargin: 2
+                Layout.bottomMargin: FiliTheme.space1
+                implicitHeight: 30
+                radius: FiliTheme.radiusControl
+                color: FiliTheme.nuit2
+                border { width: 1; color: pass.activeFocus ? FiliTheme.nuit4 : FiliTheme.nuit3 }
+                TextInput {
+                    id: pass
+                    objectName: "passphrase"
+                    anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: 30 }
+                    verticalAlignment: TextInput.AlignVCenter
+                    echoMode: TextInput.Password
+                    passwordCharacter: "⦁"
+                    activeFocusOnTab: true
+                    clip: true
+                    onVisibleChanged: if (visible) { text = ""; forceActiveFocus(); }
+                    color: FiliTheme.brume
+                    selectionColor: FiliTheme.nuit4
+                    selectedTextColor: FiliTheme.brume
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                    onAccepted: view.act(["connect", view.asking], "FILI_NET_PASS=" + "'" + text.replace(/'/g, "'\\''") + "' ")
+                    Keys.onEscapePressed: view.asking = ""
+                    Text {
+                        visible: !pass.text
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: FiliI18n.tr("Password")
+                        color: FiliTheme.ardoise
+                        font: pass.font
+                    }
+                }
+                Text {
+                    anchors { right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                    text: "↵"
+                    color: pass.text ? FiliTheme.voile : FiliTheme.nuit4
+                    font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                }
+            }
+            Rectangle {
+                visible: modelData.connected && index < view.wifi.networks.length - 1
+                Layout.fillWidth: true
+                Layout.topMargin: FiliTheme.space1
+                Layout.bottomMargin: 2
+                implicitHeight: 1
+                color: FiliTheme.nuit3
+            }
+        }
+    }
+    Text {
+        visible: view.message !== ""
+        text: view.message
+        color: FiliTheme.cendre
+        wrapMode: Text.Wrap
+        Layout.fillWidth: true
+        Layout.maximumWidth: 300
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+    }
+    PanelSection { text: FiliI18n.tr("LINK") }
+    PanelInfo { id: info; topic: "network" }
+    PanelButton {
+        Layout.topMargin: FiliTheme.space1
+        glyph: ""
+        label: FiliI18n.tr("Advanced networks (impala)")
+        dim: true
+        onClicked: { FiliPanel.close(); FiliTheme.run(FiliTheme.bin + "/bar-tui impala"); }
+    }
+}

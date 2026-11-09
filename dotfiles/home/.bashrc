@@ -1,6 +1,6 @@
 # .bashrc
 
-# Claude Code et binaires utilisateur (aussi pour les shells non interactifs, ex: ssh)
+# Claude Code and user binaries (also for non-interactive shells, e.g. ssh)
 export PATH="$HOME/.local/bin:$PATH"
 
 # If not running interactively, don't do anything

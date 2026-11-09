@@ -1,0 +1,34 @@
+{
+  "name": "Chrome",
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        { "label": "New window", "exec": "google-chrome-stable --new-window" },
+        { "label": "New private window", "exec": "google-chrome-stable --incognito" }
+      ]
+    },
+    {
+      "label": "Go",
+      "children": [
+        { "label": "History", "exec": "google-chrome-stable chrome://history" },
+        { "label": "Downloads", "exec": "google-chrome-stable chrome://downloads" },
+        { "label": "Bookmarks", "exec": "google-chrome-stable chrome://bookmarks" }
+      ]
+    },
+    {
+      "label": "Tools",
+      "children": [
+        { "label": "Extensions", "exec": "google-chrome-stable chrome://extensions" },
+        { "label": "Settings", "exec": "google-chrome-stable chrome://settings" },
+        { "label": "Clear browsing data", "exec": "google-chrome-stable chrome://settings/clearBrowserData" }
+      ]
+    },
+    {
+      "label": "Help",
+      "children": [
+        { "label": "About Chrome", "exec": "google-chrome-stable chrome://version" }
+      ]
+    }
+  ]
+}

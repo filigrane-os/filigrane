@@ -1,61 +1,26 @@
 #!/bin/bash
-# Indicateurs Waybar: nouveaux mails Proton (mail), événements Proton Calendar imminents (cal) et messages des autres
-# webapps suivies par webapp-notify (whatsapp...), vides sinon (module masqué).
-# Alimentés par mail-notify, cal-notify et webapp-notify via ~/.local/state/alerts/<kind>; `bar-alert open <kind>` ouvre la webapp et efface.
-# Ajouter une webapp: son nom dans ~/.config/webapps/notify, un signal ici, un module custom/<kind> dans Waybar.
-#   mail: une ligne "expéditeur<TAB>sujet" par mail arrivé depuis le dernier clic
-#   cal:  une ligne "début epoch<TAB>HH:MM<TAB>titre", affichée jusqu'à 5 min après le début
+# Bar alerts: one file per kind in ~/.local/state/alerts/<kind> (new mails, imminent events, messages of the web apps
+# followed by webapp-notify...), read by the bar (AlertModule).
+# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind> [URL]` clears the
+# alert and opens the web app: the URL given by the AlertModule of the kind, else the web app of the list named like the kind.
+# Adding a web app: its name in ~/.config/webapps/notify, then an AlertModule in the user layer
+# (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/, with a module.toml, or a bar plugin: docs/bar.md).
+#   mail: one line "sender<TAB>subject" per mail received since the last click
+#   cal:  one line "start epoch<TAB>HH:MM<TAB>title", shown until 5 minutes after the start
+# (those two kinds, with their service and URL, are defined in the user layer.)
 D="$HOME/.local/state/alerts"
 mkdir -p "$D"
-sig() { case "$1" in mail) echo 16 ;; cal) echo 17 ;; whatsapp) echo 19 ;; esac; }
-# URL d'une webapp de la liste d'après son kind (nom en minuscules sans espace)
+# URL of a web app of the list from its kind (lowercase name without spaces)
 webapp_url() { awk -F'|' -v k="$1" '/^#/ || NF < 2 { next } { n = tolower($1); gsub(/[^a-z0-9]/, "", n); if (n == k) { gsub(/^ +| +$/, "", $2); print $2; exit } }' "${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"; }
 
 case "$1" in
-    push)  # bar-alert push mail "expéditeur" "sujet" | bar-alert push cal EPOCH HH:MM titre
+    push)  # bar-alert push mail "sender" "subject" | bar-alert push cal EPOCH HH:MM title
         kind="$2"; shift 2
-        printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"
-        pkill -RTMIN+"$(sig "$kind")" waybar; exit 0 ;;
-    open)
+        printf '%s\t%s\t%s\n' "$@" | sed 's/\t$//' >>"$D/$kind"; exit 0 ;;
+    open)  # bar-alert open KIND [URL]: clear the alert, open URL (default: the web app of that name in the list)
         : >"$D/$2"
-        pkill -RTMIN+"$(sig "$2")" waybar
-        case "$2" in
-            mail) exec "$HOME/.local/bin/webapp" https://mail.proton.me ;;
-            cal)  exec "$HOME/.local/bin/webapp" https://calendar.proton.me ;;
-            *)    exec "$HOME/.local/bin/webapp" "$(webapp_url "$2")" ;;
-        esac ;;
-esac
-
-f="$D/$1"
-# Compteur réel de non-lus (wa-count): prioritaire sur les lignes de notifications, le badge reste tant que ce n'est pas lu
-if [ -f "$f.count" ]; then
-    n="$(cat "$f.count")"
-    [ "${n:-0}" -gt 0 ] 2>/dev/null || { printf '{"text":""}\n'; exit 0; }
-    tip="$(awk -F'\t' '{print $1 ": " $2}' "$f" 2>/dev/null | tail -8)"
-    jq -nc --arg t "$n" --arg tip "${tip:+$tip
-}$n non lu(s) (clic: ouvrir la webapp)" '{text: ("󰖣 " + $t), class: "active", tooltip: $tip}'
-    exit 0
-fi
-[ -s "$f" ] || { printf '{"text":""}\n'; exit 0; }
-case "$1" in
-    mail)
-        n="$(wc -l <"$f")"
-        tip="$(awk -F'\t' '{print $1 ": " $2}' "$f" | tail -8)"
-        jq -nc --arg t "$n" --arg tip "$tip
-(clic: ouvrir Proton Mail)" '{text: (" " + $t), class: "active", tooltip: $tip}' ;;
-    cal)
-        now="$(date +%s)"
-        rows="$(awk -F'\t' -v lim="$((now - 300))" '$1 >= lim' "$f")"
-        printf '%s\n' "$rows" | grep -q . || { : >"$f"; printf '{"text":""}\n'; exit 0; }
-        next="$(printf '%s\n' "$rows" | sort -n | head -1)"
-        title="$(cut -f3 <<<"$next")"; hm="$(cut -f2 <<<"$next")"
-        short="$title"; [ ${#short} -gt 28 ] && short="${short:0:27}…"
-        tip="$(printf '%s\n' "$rows" | sort -n | awk -F'\t' '{print $2 " " $3}')"
-        jq -nc --arg t " $short $hm" --arg tip "$tip
-(clic: ouvrir Proton Calendar)" '{text: $t, class: "active", tooltip: $tip}' ;;
-    *)
-        n="$(wc -l <"$f")"
-        tip="$(awk -F'\t' '{print $1 ": " $2}' "$f" | tail -8)"
-        jq -nc --arg t "$n" --arg tip "$tip
-(clic: ouvrir la webapp)" '{text: ("󰖣 " + $t), class: "active", tooltip: $tip}' ;;
+        url="${3:-$(webapp_url "$2")}"
+        [ -n "$url" ] || { echo "bar-alert: no URL for $2 (give one, or name a web app of the list after it)" >&2; exit 1; }
+        exec "$HOME/.local/bin/webapp" "$url" ;;
+    *) echo "usage: bar-alert push KIND FIELDS... | open KIND [URL]" >&2; exit 2 ;;
 esac

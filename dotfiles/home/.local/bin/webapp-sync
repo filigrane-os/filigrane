@@ -1,7 +1,7 @@
 #!/bin/sh
-# Génère un .desktop par ligne de ~/.config/webapps/list (Nom | URL | icône) dans ~/.local/share/applications.
-# Le nom reçoit le suffixe "(web)" pour distinguer ces applis des applications natives.
-# Icône: nom du thème ou chemin; vide = web-browser. Les anciens webapp-*.desktop absents de la liste sont supprimés.
+# Generates one .desktop per line of ~/.config/webapps/list (Name | URL | icon) in ~/.local/share/applications.
+# The name gets the suffix "(web)" to tell these apps from the native applications.
+# Icon: theme name or path; empty = web-browser. The old webapp-*.desktop files absent from the list are deleted.
 LIST="${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"
 OUT="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 mkdir -p "$OUT"

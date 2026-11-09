@@ -1,0 +1,3 @@
+fili-appmenu s'inspire de noctalia-appmenu (yolo-labz, Apache-2.0, https://github.com/yolo-labz/noctalia-appmenu):
+principe (menu d'une application lu par AT-SPI), parcours de l'arbre, ouverture à la demande des menus GTK3 et menu de
+repli sans frappes simulées. Le code est réécrit (synchrone, sans tokio ni serde, un seul fichier) pour la fili-bar.

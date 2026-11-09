@@ -1,9 +1,7 @@
 #!/bin/bash
-# Vérifie que chaque paquet des listes packages/*.txt existe dans le dépôt Void d'une architecture.
-#
-#   scripts/check-packages.sh [x86_64|aarch64|riscv64] [--warn-only]     (défaut: architecture courante)
-#
-# Sans modifier le système: la base de dépôt va dans un dossier temporaire. Code 1 si des paquets manquent.
+# Checks that every package of the packages/*.txt lists (and users/*/packages/*.txt) exists in the Void repository of an architecture.
+# scripts/check-packages.sh [x86_64|aarch64|riscv64] [--warn-only]     (default: current architecture)
+# Without changing the system: the repository database goes into a temporary folder. Code 1 if packages are missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -16,11 +14,12 @@ trap 'rm -rf "$TMP"' EXIT
 export XBPS_ARCH="$ARCH"
 REPOS=("--repository=$BASE$SUB" "--repository=$BASE$SUB/nonfree")
 mkdir -p "$TMP/var/db/xbps/keys"
-cp /var/db/xbps/keys/* "$TMP/var/db/xbps/keys/"  # clés du système courant (comme install-void.sh)
+cp /var/db/xbps/keys/* "$TMP/var/db/xbps/keys/"  # keys of the current system (like the installer)
 xbps-install -r "$TMP" "${REPOS[@]}" -Sy >/dev/null
 
 missing=0
-for list in "$ROOT"/packages/*.txt; do
+for list in "$ROOT"/packages/*.txt "$ROOT"/users/*/packages/*.txt; do
+    [ "${list##*/}" = restricted.txt ] && continue  # built with xbps-src, absent from the repositories
     for pkg in $(sed -e 's/#.*//' -e 's/[[:space:]]*$//' "$list" | grep -v '^$' || true); do
         if ! xbps-query -r "$TMP" "${REPOS[@]}" -R "$pkg" >/dev/null 2>&1; then
             echo "$ARCH: paquet introuvable: $pkg ($(basename "$list"))"
@@ -29,6 +28,6 @@ for list in "$ROOT"/packages/*.txt; do
     done
 done
 [ "$missing" -eq 0 ] && echo "$ARCH: tous les paquets existent"
-# --warn-only: manquants signalés sans échec (autre architecture: des paquets x86 y manquent normalement)
+# --warn-only: missing ones reported without failing (other architecture: x86 packages are normally missing there)
 [ "${2:-}" = --warn-only ] && exit 0
 exit "$missing"

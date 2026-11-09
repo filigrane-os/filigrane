@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Workspaces"
+description = "niri workspaces"
+side = "left"
+order = 20

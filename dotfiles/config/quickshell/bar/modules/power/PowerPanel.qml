@@ -1,0 +1,69 @@
+// fili-panel power: battery (FiliInfo power), system actions (lock, sleep, quit, restart, shut down).
+// No power profiles: Void has no power-profiles-daemon (see the filigrane skill for tlp/cpupower).
+import QtQuick
+import QtQuick.Layouts
+import Quickshell.Io
+import qs.bar
+import qs.controls
+import qs
+
+ColumnLayout {
+    id: view
+    // Settings page opened by the gear at the top right of the panel (FiliPanel)
+    readonly property string settingsPage: "power"
+    spacing: FiliTheme.space1
+    // Caffeine: automatic lock turned off (swayidle stopped, see bar-toggle idle)
+    property bool caffeine: false
+
+    Component.onCompleted: readIdle.running = true
+    Process {
+        id: readIdle
+        command: ["sh", "-c", "pgrep -x swayidle >/dev/null"]
+        onExited: code => view.caffeine = code !== 0
+    }
+
+    PanelInfo { title: true; topic: "power" }
+    PanelSection { text: FiliI18n.tr("CAFFEINE") }
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: FiliTheme.space1
+        Layout.leftMargin: FiliTheme.space2
+        Layout.rightMargin: FiliTheme.space2
+        spacing: FiliTheme.space2
+        Text {
+            text: ""
+            color: view.caffeine ? FiliTheme.sable : FiliTheme.brume
+            Layout.preferredWidth: 18
+            horizontalAlignment: Text.AlignHCenter
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        }
+        Text {
+            text: FiliI18n.tr("Caffeine (no auto lock)")
+            color: FiliTheme.brume
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        }
+        PanelSwitch {
+            objectName: "caffeine"
+            checked: view.caffeine
+            onToggled: {
+                view.caffeine = !view.caffeine;
+                FiliTheme.run(FiliTheme.bin + "/bar-toggle idle");
+            }
+        }
+    }
+    PanelSection { text: FiliI18n.tr("SYSTEM") }
+    // Actions of the system menu (menu system <action>: confirmation asked to quit, restart and shut down)
+    Repeater {
+        model: [["", FiliI18n.tr("Lock"), "Lock"], ["", FiliI18n.tr("Sleep"), "Sleep"], ["", FiliI18n.tr("Log out"), "Log out"], ["", FiliI18n.tr("Reboot"), "Reboot"], ["", FiliI18n.tr("Power off"), "Power off"]]
+        PanelButton {
+            required property var modelData
+            objectName: "system"
+            glyph: modelData[0]
+            label: modelData[1]
+            onClicked: { FiliPanel.close(); FiliTheme.run("setsid -f " + FiliTheme.bin + "/menu system '" + modelData[2] + "'"); }
+        }
+    }
+
+}

@@ -1,8 +1,9 @@
 #!/bin/sh
-# Application web dans sa propre fenêtre (Chromium --app: sans barre d'onglets ni d'adresse).
-# Même profil que le navigateur: pas de second Chromium résident, session conservée.
-# Si une fenêtre de cette appli existe déjà (app-id "chrome-<hôte>__-Profile_1"), elle prend le focus au lieu d'être rouverte.
-#   webapp https://web.whatsapp.com
+# Web application in its own window (Chrome or Chromium --app: no tab bar or address bar).
+# Browser: $WEBAPP_BROWSER, else Google Chrome if installed, else Chromium (package of the distribution).
+# Same profile as the browser: no second resident browser, session kept.
+# If a window of this app already exists (app-id "chrome-<host>__-<profile>"), it gets the focus instead of being reopened.
+# webapp https://web.whatsapp.com
 [ -n "$1" ] || { echo "usage: webapp URL" >&2; exit 1; }
 host="${1#*://}"; host="${host%%/*}"
 win="$(niri msg -j windows 2>/dev/null | jq -r --arg p "chrome-$host" '
@@ -10,4 +11,6 @@ win="$(niri msg -j windows 2>/dev/null | jq -r --arg p "chrome-$host" '
 if [ -n "$win" ]; then
     exec niri msg action focus-window --id "$win"
 fi
-exec chromium --app="$1"
+# Detached: otherwise Chrome stays a child of the launcher (click in the bar) and blocks the refresh of the module
+browser="${WEBAPP_BROWSER:-$(command -v google-chrome-stable || echo chromium)}"
+setsid -f "$browser" --app="$1" >/dev/null 2>&1

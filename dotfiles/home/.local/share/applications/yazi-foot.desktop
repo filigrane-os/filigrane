@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Fichiers (yazi)
-Comment=Gestionnaire de fichiers en terminal, dans foot
-Exec=foot --app-id yazi -e yazi %u
-Icon=system-file-manager
-Categories=System;FileManager;
-MimeType=inode/directory;
-Terminal=false

@@ -1,0 +1,9 @@
+apps/*/target/
+apps/*/.qmlls.ini
+__pycache__/
+distro/out/
+.user-layer
+dotfiles/config/htop/htop_history
+
+# Personal layers live in their own private repositories (clone or link them as users/<login>)
+/users/*

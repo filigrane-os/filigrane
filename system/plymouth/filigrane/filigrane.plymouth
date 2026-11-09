@@ -1,0 +1,11 @@
+[Plymouth Theme]
+Name=filigrane
+Description=Écran de démarrage Filigrane (invite de passphrase LUKS).
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/filigrane
+ScriptFile=/usr/share/plymouth/themes/filigrane/filigrane.script
+ConsoleLogBackgroundColor=0x1c222b
+MonospaceFont=DejaVu Sans Mono 11
+Font=DejaVu Sans 11

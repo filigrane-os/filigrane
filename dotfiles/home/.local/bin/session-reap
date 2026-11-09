@@ -1,0 +1,24 @@
+#!/bin/sh
+# Stops the processes left by a previous niri session (logout, crash): without systemd, what niri starts
+# at login (pipewire, wireplumber, wa-daemon, goimapnotify...) is attached to runit and survives, each login
+# added a set. A process is orphaned if the niri of its NIRI_SOCKET (niri.wayland-1.<pid>.sock) no longer exists.
+# Those without NIRI_SOCKET (SSH, TTY) are not touched. Started by ~/.zprofile on leaving niri, not when the next
+# session opens: an old pipewire that stops deletes the socket (same path) of the new one on the way. `-n`: list without stopping.
+# A single gawk reads all the environ files (BEGINFILE skips those of other users and of finished processes).
+pids="$(gawk 'BEGIN { RS = "\0" } BEGINFILE { if (ERRNO != "") nextfile }
+    /^NIRI_SOCKET=/ {
+        n = $0; sub(/\.sock$/, "", n); sub(/.*\./, "", n)
+        if (!(n in alive)) { c = ""; f = "/proc/" n "/comm"; RS = "\n"; getline c < f; close(f); RS = "\0"; alive[n] = (c == "niri") }
+        if (!alive[n]) { p = FILENAME; sub(/^\/proc\//, "", p); sub(/\/environ$/, "", p); print p }
+        nextfile
+    }' /proc/[0-9]*/environ 2>/dev/null)"
+[ -n "$pids" ] || exit 0
+if [ "$1" = -n ]; then
+    for p in $pids; do printf '%s %s\n' "$p" "$(tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | cut -c1-80)"; done
+else
+    kill $pids 2>/dev/null
+    # Wait for their end (5 s at most), so that the next session starts on a clean slate (rclone unmounted...)
+    alive() { for p in $pids; do [ -d "/proc/$p" ] && return 0; done; return 1; }
+    i=0; while [ "$i" -lt 50 ] && alive; do sleep 0.1; i=$((i + 1)); done
+fi
+exit 0

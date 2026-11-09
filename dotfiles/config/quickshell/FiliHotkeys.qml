@@ -1,0 +1,199 @@
+pragma Singleton
+// fili-hotkeys: window of the niri keyboard shortcuts, in the middle of the screen, in place of the "Important Hotkeys"
+// of niri (skip-at-startup). Lines of ~/.local/bin/fili-hotkeys (binds with hotkey-overlay-title), keys as
+// pills. Shown once per session at start (marker in $XDG_RUNTIME_DIR), then by
+// `fili-shell hotkeys` (Super+Shift+/) or the keyboard panel. Closing: Escape, click, or 20 s at start.
+import QtQuick
+import QtQuick.Layouts
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+import qs.bar
+
+Singleton {
+    id: hk
+    property bool open: false
+    property var entries: []
+    // Opened by the start: closes by itself
+    property bool auto: false
+    readonly property var caps: ({ Shift: FiliI18n.tr("Shift"), Space: FiliI18n.tr("Space"), Slash: "/", Return: "↵", Tab: "Tab", Print: FiliI18n.tr("Print"), Escape: FiliI18n.tr("Esc") })
+
+    function show() {
+        FiliShell.popupOpened("hotkeys");
+        FiliPanel.close();
+        read.running = false;
+        read.running = true;
+        open = true;
+    }
+    function toggle() {
+        if (open)
+            close();
+        else
+            show();
+    }
+    function close() {
+        open = false;
+        auto = false;
+    }
+    // Once per session: the marker disappears with $XDG_RUNTIME_DIR (tmpfs)
+    function startup() {
+        if (FiliTheme.testing)
+            return;
+        mark.running = true;
+    }
+
+    Process {
+        id: read
+        command: [FiliTheme.bin + "/fili-hotkeys"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    hk.entries = JSON.parse(text);
+                } catch (e) {
+                    hk.entries = [];
+                }
+            }
+        }
+    }
+    Process {
+        id: mark
+        command: ["sh", "-c", 'm="${XDG_RUNTIME_DIR:-/tmp}/fili-hotkeys-shown"; [ -e "$m" ] && exit 1; : > "$m"']
+        onExited: code => {
+            if (code === 0) {
+                hk.auto = true;
+                hk.show();
+            }
+        }
+    }
+    Timer { interval: 20000; running: hk.open && hk.auto; onTriggered: hk.close() }
+    Connections {
+        target: FiliShell
+        function onPopupOpened(who) {
+            if (who !== "hotkeys")
+                hk.close();
+        }
+    }
+
+    PanelWindow {
+        visible: hk.open && !FiliTheme.testing
+        anchors { top: true; bottom: true; left: true; right: true }
+        exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.namespace: "fili-hotkeys"
+        WlrLayershell.keyboardFocus: hk.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+        color: "#99101419"
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.AllButtons
+            onPressed: hk.close()
+        }
+        FocusScope {
+            anchors.fill: parent
+            focus: true
+            Keys.onPressed: hk.close()
+            Rectangle {
+                id: card
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 48, 820)
+                height: Math.min(parent.height - 48, content.implicitHeight + 40)
+                color: FiliTheme.nuit
+                border { color: FiliTheme.border; width: FiliTheme.borderWidth }
+                radius: FiliTheme.radiusWindow
+                MouseArea { anchors.fill: parent }
+                ColumnLayout {
+                    id: content
+                    anchors { fill: parent; margins: FiliTheme.space5 }
+                    spacing: FiliTheme.space3
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: FiliI18n.tr("Keyboard shortcuts")
+                            color: FiliTheme.voile
+                            Layout.fillWidth: true
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle; weight: FiliTheme.weightAccent }
+                        }
+                        Text {
+                            text: FiliI18n.tr("Esc to close")
+                            color: FiliTheme.ardoise
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                        }
+                    }
+                    Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: FiliTheme.nuit4 }
+                    Item {
+                    Layout.fillWidth: true
+                    implicitHeight: grid.implicitHeight
+                    // Filet entre les deux colonnes
+                    Rectangle {
+                        visible: grid.columns === 2
+                        anchors { horizontalCenter: parent.horizontalCenter; top: parent.top; bottom: parent.bottom }
+                        width: 1
+                        color: FiliTheme.nuit4
+                    }
+                    GridLayout {
+                        id: grid
+                        anchors { left: parent.left; right: parent.right; top: parent.top }
+                        columns: card.width > 640 ? 2 : 1
+                        columnSpacing: 40
+                        rowSpacing: 6
+                        Layout.fillWidth: true
+                        Repeater {
+                            model: hk.entries
+                            RowLayout {
+                                id: row
+                                required property var modelData
+                                readonly property int colon: modelData.title.indexOf(": ")
+                                Layout.fillWidth: true
+                                Layout.preferredWidth: 1
+                                Layout.preferredHeight: 38
+                                Layout.alignment: Qt.AlignTop
+                                spacing: FiliTheme.space2
+                                Row {
+                                    Layout.preferredWidth: 150
+                                    Layout.alignment: Qt.AlignVCenter
+                                    spacing: FiliTheme.space1
+                                    Repeater {
+                                        model: row.modelData.key.split("+").map(k => hk.caps[k] ?? k)
+                                        Rectangle {
+                                            required property string modelData
+                                            width: cap.implicitWidth + 12
+                                            height: 22
+                                            radius: FiliTheme.radiusControl
+                                            color: FiliTheme.nuit3
+                                            border { color: FiliTheme.border; width: FiliTheme.borderWidth }
+                                            Text {
+                                                id: cap
+                                                anchors.centerIn: parent
+                                                text: parent.modelData
+                                                color: FiliTheme.brume
+                                                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                                            }
+                                        }
+                                    }
+                                }
+                                Column {
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignVCenter
+                                    Text {
+                                        width: parent.width
+                                        text: row.colon > 0 ? row.modelData.title.slice(row.colon + 2) : row.modelData.title
+                                        elide: Text.ElideRight
+                                        color: FiliTheme.brume
+                                        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+                                    }
+                                    Text {
+                                        visible: row.colon > 0
+                                        text: row.modelData.title.slice(0, row.colon)
+                                        color: FiliTheme.ardoise
+                                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,90 +1,62 @@
 #!/bin/sh
-# Indicateurs Waybar (JSON): mic | dnd | night | rec | idle | remote | air | vpn | temp | cpu | mem | batwatch. Rafraîchis par signal (clic) ou par intervalle.
+# Bar indicators (JSON, protocol of the custom Waybar modules): mic | night | rec | idle | batwatch. Refreshed by signal (click) or by interval.
+# CPU, memory, temperature, disk, network, incoming SSH, airplane mode and VPN: bar-stats (apps/bar-stats, Rust, resident).
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 case "$1" in
     mic)
         v="$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@ 2>/dev/null)" || { printf '{"text":""}\n'; exit 0; }
         case "$v" in
-            *MUTED*) printf '{"text":"\\uf131","class":"muted","tooltip":"Micro coupé"}\n' ;;
-            *) printf '{"text":"\\uf130","tooltip":"Micro actif: %s"}\n' "$(echo "$v" | awk '{printf "%d%%", $2*100}')" ;;
+            *MUTED*) printf '{"text":"\\uf131","class":"muted","tooltip":"%s"}\n' "$(t 'Microphone muted')" ;;
+            *) printf '{"text":"\\uf130","tooltip":"%s"}\n' "$(t 'Microphone on: %s' "$(echo "$v" | awk '{printf "%d%%", $2*100}')")" ;;
         esac ;;
-    dnd)
-        if makoctl mode 2>/dev/null | grep -q do-not-disturb; then
-            printf '{"text":"\\uf1f6","class":"active","tooltip":"Ne pas déranger (clic: réactiver les notifications)"}\n'
-        else
-            printf '{"text":"\\uf0f3","class":"idle","tooltip":"Notifications actives (clic: les couper)"}\n'
-        fi ;;
     night)
+        # Active only if the screen is really warmed (forced, or auto in the evening); auto during the day = at rest.
         if pgrep -x wlsunset >/dev/null; then
-            printf '{"text":"\\uf186","class":"active","tooltip":"Veilleuse active (clic: désactiver)"}\n'
+            # Last applied temperature, from the output of wlsunset (bar-toggle night)
+            if pgrep -f 'wlsunset .* -T 4501$' >/dev/null; then k=4500
+            else k=$(awk '/^setting temperature to/ { k = $4 } END { print k }' "${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>/dev/null); fi
+            if [ "${k:-6500}" -lt 6400 ]; then
+                printf '{"text":"\\uf186","class":"active","tooltip":"%s"}\n' "$(t 'Night light %s K (click: turn off)' "$k")"
+            else
+                printf '{"text":"\\uf186","class":"idle","tooltip":"%s"}\n' "$(t 'Automatic night light, on at sunset (click: turn off)')"
+            fi
         else
-            printf '{"text":"\\uf186","class":"idle","tooltip":"Veilleuse éteinte (clic: activer)"}\n'
+            printf '{"text":"\\uf186","class":"idle","tooltip":"%s"}\n' "$(t 'Night light off (click: force 4500 K)')"
         fi ;;
     rec)
         if pgrep -x wf-recorder >/dev/null; then
-            printf '{"text":"\\uf111","class":"active","tooltip":"Enregistrement en cours (clic: arrêter)"}\n'
+            printf '{"text":"\\uf111","class":"active","tooltip":"%s"}\n' "$(t 'Recording (click: stop)')"
         else
             printf '{"text":""}\n'
         fi ;;
     idle)
-        # Caféine (comme "Stay Awake" d'Omarchy): tasse jaune = écran jamais verrouillé ni éteint
+        # Caffeine (like Omarchy "Stay Awake"): yellow cup = screen never locked or turned off
         if pgrep -x swayidle >/dev/null; then
-            printf '{"text":"\\uf0f4","class":"idle","tooltip":"Verrouillage auto actif (clic: garder éveillé)"}\n'
+            printf '{"text":"\\uf0f4","class":"idle","tooltip":"%s"}\n' "$(t 'Auto lock on (click: keep awake)')"
         else
-            printf '{"text":"\\uf0f4","class":"active","tooltip":"Gardé éveillé: pas de verrouillage auto (clic: réactiver)"}\n'
+            printf '{"text":"\\uf0f4","class":"active","tooltip":"%s"}\n' "$(t 'Kept awake: no auto lock (click: turn back on)')"
         fi ;;
-    remote)
-        # Session SSH entrante (comme RemoteSession d'Omarchy); rien sinon
-        n="$(ss -Htn state established '( sport = :22 )' 2>/dev/null | wc -l)"
-        if [ "$n" -gt 0 ]; then
-            printf '{"text":"\\uf233","class":"active","tooltip":"%s session(s) SSH entrante(s)"}\n' "$n"
-        else
-            printf '{"text":""}\n'
-        fi ;;
-    air)
-        if rfkill list 2>/dev/null | grep -q 'Soft blocked: yes'; then
-            printf '{"text":"\\uf072","class":"active","tooltip":"Mode avion (clic: désactiver)"}\n'
-        else
-            printf '{"text":""}\n'
-        fi ;;
-    vpn)
-        i="$(ip -o link show up 2>/dev/null | awk -F': ' '$2 ~ /^(tun|tap|wg|tailscale|proton|nordlynx)/ {print $2; exit}')"
-        if [ -n "$i" ]; then
-            printf '{"text":"\\uf023 VPN","class":"active","tooltip":"VPN actif: %s"}\n' "$i"
-        else
-            printf '{"text":""}\n'
-        fi ;;
-    temp)
-        # Première sonde disponible (hwmon puis thermal_zone); rien dans une VM
-        t="$(cat /sys/class/hwmon/hwmon*/temp1_input /sys/class/thermal/thermal_zone*/temp 2>/dev/null | head -n1)"
-        [ -n "$t" ] || { printf '{"text":""}\n'; exit 0; }
-        c=$((t / 1000)); cl=""
-        [ "$c" -ge 80 ] && cl="critical"
-        printf '{"text":"\\uf2c9 %s°","class":"%s","tooltip":"Température CPU: %s°C"}\n' "$c" "$cl" "$c" ;;
-    cpu)
-        # Usage global + top 5 processus (échantillon top de 0,5 s); tooltip en pango
-        top -bn2 -d0.5 -w 200 -o %CPU 2>/dev/null | awk '
-            /^top -/ {n++; next}
-            n < 2 {next}
-            /^%Cpu/ {u = 100 - $8}
-            /^ *[0-9]+ / && ++k <= 5 {c = $12; for (i = 13; i <= NF; i++) c = c " " $i; gsub(/[&<>"\\]/, "", c); t = t sprintf("%-22s %5.1f%%  %s\\n", substr(c, 1, 22), $9, $6 >= 1048576 ? sprintf("%.1fG", $6 / 1048576) : sprintf("%dM", $6 / 1024))}
-            END {printf "{\"text\":\"\\uf2db %d%%\",\"tooltip\":\"<tt>Top CPU\\n%s</tt>\"}\n", u, substr(t, 1, length(t) - 2)}' ;;
-    mem)
-        # Mémoire utilisée + top 5 (RSS cumulé par nom de processus)
-        used="$(awk '/^MemTotal/ {t = $2} /^MemAvailable/ {a = $2} END {printf "%.1f", (t - a) / 1048576}' /proc/meminfo)"
-        top5="$(ps -eo rss=,comm= --sort=-rss | awk '{r[$2] += $1} END {for (n in r) print r[n], n}' | sort -rn | head -5 |
-            awk '{gsub(/[&<>"\\]/, "", $2); printf "%-22s %s\\n", substr($2, 1, 22), $1 >= 1048576 ? sprintf("%.1f Go", $1 / 1048576) : sprintf("%d Mo", $1 / 1024)}')"
-        printf '{"text":"\\uf538 %sG","tooltip":"<tt>Top RAM\\n%s</tt>"}\n' "$used" "${top5%\\n}" ;;
     batwatch)
-        # Alerte batterie faible (<=10 %) puis veille (<=5 %), une seule fois par décharge; aucun affichage
+        # Run by bar-stats (below 10% on battery, then once when the charger returns); output ignored.
+        # Low battery alert (<=10%, stays until closed), then a clean power off (<=1%) after 1 min unless the charger is plugged in,
+        # once per discharge; nothing displayed. No suspend: in S3 the battery would finish draining (hard cut).
         printf '{"text":""}\n'
         b=/sys/class/power_supply/BAT0; [ -r "$b/capacity" ] || exit 0
         f="${XDG_RUNTIME_DIR:-/tmp}/battery-notified"
         if [ "$(cat "$b/status")" = "Discharging" ] && [ "$(cat "$b/capacity")" -le 10 ]; then
-            [ -e "$f" ] || { notify-send -u critical "Batterie faible" "$(cat "$b/capacity")%: brancher le chargeur"; : > "$f"; }
-            if [ "$(cat "$b/capacity")" -le 5 ] && [ ! -e "$f.zzz" ]; then
-                : > "$f.zzz"; notify-send -u critical "Batterie critique" "Mise en veille"; (sleep 3; sudo -n zzz) >/dev/null 2>&1 &
+            [ -e "$f" ] || { notify-send -a fili-battery -u critical "$(t 'Low battery')" "$(t '%s%%: plug in the charger' "$(cat "$b/capacity")")"; : > "$f"; }
+            if [ "$(cat "$b/capacity")" -le 1 ] && [ ! -e "$f.off" ]; then
+                : > "$f.off"
+                notify-send -u critical -t 60000 "$(t 'Critical battery: power off in 1 min')" "$(t 'Plug in the charger to cancel')"
+                setsid -f sh -c '
+                    sleep 60
+                    if [ "$(cat '"$b"'/status)" = "Discharging" ]; then sync; sudo -n poweroff
+                    else rm -f '"$f.off"'; notify-send "$1" "$2"; fi' sh "$(t 'Power off cancelled')" "$(t 'Charger plugged in')" >/dev/null 2>&1
             fi
         else
-            rm -f "$f" "$f.zzz"
+            rm -f "$f" "$f.off"
         fi ;;
 esac

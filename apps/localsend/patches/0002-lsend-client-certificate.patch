@@ -1,0 +1,165 @@
+diff --git a/crates/cli/src/commands/scan.rs b/crates/cli/src/commands/scan.rs
+index d7bcd37..4f01924 100644
+--- a/crates/cli/src/commands/scan.rs
++++ b/crates/cli/src/commands/scan.rs
+@@ -35,7 +35,7 @@ pub async fn run(
+     let registry = PeerRegistry::new();
+ 
+     let announcement = MulticastAnnouncement::new(
+-        "lsend-scanner",
++        &std::env::var("LSEND_ALIAS").ok().filter(|a| !a.is_empty()).unwrap_or_else(|| "FILIGRANE".to_string()),
+         "SCANNER_TEMP_FP",
+         53317,
+         ProtocolType::Https,
+diff --git a/crates/cli/src/commands/send.rs b/crates/cli/src/commands/send.rs
+index dd3a900..fbc8ed4 100644
+--- a/crates/cli/src/commands/send.rs
++++ b/crates/cli/src/commands/send.rs
+@@ -9,7 +9,7 @@ use crate::tls_client::{create_pinned_client, create_probe_client};
+ use console::style;
+ use futures_util::StreamExt;
+ use localsend_protocol::{
+-    DeviceType, FileMetadata, InfoResponseDto, PrepareUploadRequest, PrepareUploadResponse,
++    DeviceType, FileMetadata, PrepareUploadRequest, PrepareUploadResponse,
+     ProtocolType, RegisterDto,
+ };
+ use sha2::{Digest, Sha256};
+@@ -160,11 +160,11 @@ pub async fn run(
+     }
+ 
+     let our_info = RegisterDto {
+-        alias: "lsend-cli".to_string(),
++        alias: std::env::var("LSEND_ALIAS").ok().filter(|a| !a.is_empty()).unwrap_or_else(|| "FILIGRANE".to_string()),
+         version: "2.0".to_string(),
+-        device_model: Some("CLI Utility".to_string()),
++        device_model: Some("FILIGRANE".to_string()),
+         device_type: Some(DeviceType::Headless),
+-        fingerprint: "LSEND_CLI_CLIENT_FP".to_string(),
++        fingerprint: crate::tls_client::client_fingerprint(),
+         port: 0,
+         protocol: ProtocolType::Https,
+         download: false,
+@@ -383,8 +383,12 @@ async fn probe_peer_fingerprint(
+ 
+     let res = probe_client.get(&info_url).send().await?;
+     if res.status().is_success() {
+-        let dto: InfoResponseDto = res.json().await?;
+-        return Ok(dto.fingerprint);
++        // Seule l'empreinte compte ici; les versions récentes de l'application n'envoient plus tous les champs
++        let info: serde_json::Value = res.json().await?;
++        if let Some(fp) = info.get("fingerprint").and_then(|f| f.as_str()) {
++            return Ok(fp.to_string());
++        }
++        return Err("peer info has no fingerprint".into());
+     }
+ 
+     Err(format!(
+diff --git a/crates/cli/src/tls_client.rs b/crates/cli/src/tls_client.rs
+index b5afd3c..ea54b9f 100644
+--- a/crates/cli/src/tls_client.rs
++++ b/crates/cli/src/tls_client.rs
+@@ -15,6 +15,68 @@ use sha2::{Digest, Sha256};
+ use std::sync::Arc;
+ use subtle::ConstantTimeEq;
+ 
++/// Identité TLS du client (certificat auto-signé), générée une fois par processus. Les téléphones récents exigent un
++/// certificat client (TLS mutuel): sans lui, la connexion échoue avec « certificate required ».
++fn client_identity() -> &'static localsend_protocol::crypto::TlsIdentity {
++    static ID: std::sync::OnceLock<localsend_protocol::crypto::TlsIdentity> = std::sync::OnceLock::new();
++    ID.get_or_init(|| {
++        localsend_protocol::crypto::generate_tls_identity("lsend", &[]).expect("client TLS identity")
++    })
++}
++
++/// Empreinte du certificat client présenté (à annoncer comme empreinte de l'expéditeur).
++pub fn client_fingerprint() -> String {
++    client_identity().fingerprint.clone()
++}
++
++fn client_auth(
++    builder: rustls::ConfigBuilder<ClientConfig, rustls::client::WantsClientCert>,
++) -> Result<ClientConfig, rustls::Error> {
++    let id = client_identity();
++    builder.with_client_auth_cert(
++        vec![CertificateDer::from(id.cert_der.clone())],
++        rustls::pki_types::PrivateKeyDer::Pkcs8(rustls::pki_types::PrivatePkcs8KeyDer::from(
++            id.key_der_pkcs8.clone(),
++        )),
++    )
++}
++
++/// Vérificateur qui accepte tout certificat serveur (sondage de l'empreinte seulement).
++#[derive(Debug)]
++struct AcceptAny(WebPkiSupportedAlgorithms);
++
++impl ServerCertVerifier for AcceptAny {
++    fn verify_server_cert(
++        &self,
++        _end_entity: &CertificateDer<'_>,
++        _intermediates: &[CertificateDer<'_>],
++        _server_name: &ServerName<'_>,
++        _ocsp_response: &[u8],
++        _now: UnixTime,
++    ) -> Result<ServerCertVerified, rustls::Error> {
++        Ok(ServerCertVerified::assertion())
++    }
++    fn verify_tls12_signature(
++        &self,
++        message: &[u8],
++        cert: &CertificateDer<'_>,
++        dss: &DigitallySignedStruct,
++    ) -> Result<HandshakeSignatureValid, rustls::Error> {
++        rustls::crypto::verify_tls12_signature(message, cert, dss, &self.0)
++    }
++    fn verify_tls13_signature(
++        &self,
++        message: &[u8],
++        cert: &CertificateDer<'_>,
++        dss: &DigitallySignedStruct,
++    ) -> Result<HandshakeSignatureValid, rustls::Error> {
++        rustls::crypto::verify_tls13_signature(message, cert, dss, &self.0)
++    }
++    fn supported_verify_schemes(&self) -> Vec<SignatureScheme> {
++        self.0.supported_schemes()
++    }
++}
++
+ /// Error type for TLS client operations.
+ #[derive(Debug, thiserror::Error)]
+ pub enum TlsClientError {
+@@ -107,11 +169,11 @@ impl ServerCertVerifier for FingerprintVerifier {
+ pub fn build_pinned_tls_config(expected_fingerprint: &str) -> Result<ClientConfig, rustls::Error> {
+     let verifier = Arc::new(FingerprintVerifier::new(expected_fingerprint));
+     let provider = Arc::new(rustls::crypto::ring::default_provider());
+-    let mut config = ClientConfig::builder_with_provider(provider)
++    let config = ClientConfig::builder_with_provider(provider)
+         .with_safe_default_protocol_versions()?
+         .dangerous()
+-        .with_custom_certificate_verifier(verifier)
+-        .with_no_client_auth();
++        .with_custom_certificate_verifier(verifier);
++    let mut config = client_auth(config)?;
+ 
+     config.alpn_protocols = vec![b"http/1.1".to_vec()];
+     Ok(config)
+@@ -129,8 +191,19 @@ pub fn create_pinned_client(expected_fingerprint: &str) -> Result<reqwest::Clien
+ 
+ /// Constructs a direct probe client (accepts any certificate) for initial handshake / fingerprint discovery.
+ pub fn create_probe_client() -> reqwest::Client {
++    let provider = Arc::new(rustls::crypto::ring::default_provider());
++    let algorithms = provider.signature_verification_algorithms;
++    let config = ClientConfig::builder_with_provider(provider)
++        .with_safe_default_protocol_versions()
++        .map(|b| b.dangerous().with_custom_certificate_verifier(Arc::new(AcceptAny(algorithms))))
++        .and_then(client_auth)
++        .map(|mut c| {
++            c.alpn_protocols = vec![b"http/1.1".to_vec()];
++            c
++        });
++    let Ok(config) = config else { return reqwest::Client::new() };
+     reqwest::Client::builder()
+-        .danger_accept_invalid_certs(true)
++        .use_preconfigured_tls(config)
+         .connect_timeout(std::time::Duration::from_secs(5))
+         .build()
+         .unwrap_or_else(|_| reqwest::Client::new())

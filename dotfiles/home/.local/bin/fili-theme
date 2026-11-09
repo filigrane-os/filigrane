@@ -1,0 +1,124 @@
+#!/bin/sh
+# Filigrane dark (default) or light mode, and accent colour.
+# Usage: fili-theme [get|dark|light|toggle|apply] | accent [default|voile|ardoise|sauge|sable|cendre|brume]
+# Chosen in the displays fili-panel (APPEARANCE). State: $XDG_STATE_HOME/filigrane/theme (absent = dark) and .../accent
+# (absent = default: sable in dark, ardoise in light), re-read live by the fili-shell and fili-file (FiliTheme.qml). "apply" (bootstrap.sh) reapplies the saved state. Applied to:
+# xdg portal (gsettings color-scheme): Chromium, GTK4/libadwaita (~/.config/gtk-4.0/gtk.css follows the preference)
+# GTK3: Adwaita or Adwaita-dark theme, Filigrane-Icons icons, Filigrane colours and accent (~/.config/gtk-3.0/theme.css, generated)
+# GTK4: accent in ~/.config/gtk-4.0/accent.css (generated, imported by gtk.css)
+# foot: windows already open by signal (SIGUSR1 dark, SIGUSR2 light), later ones through ~/.config/foot/theme.ini (generated,
+# with the cursor in the accent colour)
+# niri: focus ring, borders, shadow, overview (~/.config/niri/theme.kdl, generated, re-read by niri)
+# Filigrane light or dark wallpaper (wallpaper), unless the user chose an image
+set -u
+dir="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+cur=$(cat "$dir/theme" 2>/dev/null)
+[ "$cur" = light ] || cur=dark
+# Accent: name -> dark shade, light shade (same values as FiliTheme.qml, accentTones)
+accents="default voile ardoise sauge sable cendre brume"
+tones() {
+    case "$1" in
+        ardoise) echo "#7f9ab6 #4f6884" ;;
+        sauge) echo "#a3bfa8 #4a7354" ;;
+        sable) echo "#d2bf92 #80662b" ;;
+        cendre) echo "#c98f93 #9a4f55" ;;
+        brume) echo "#dbe7f4 #4f5e70" ;;
+        voile) echo "#9dbbd6 #3f5a78" ;;
+        *) echo "#d2bf92 #4f6884" ;;
+    esac
+}
+acc=$(cat "$dir/accent" 2>/dev/null)
+case " $accents " in *" $acc "*) ;; *) acc=default ;; esac
+changed=mode
+case "${1:-get}" in
+    get) echo "$cur"; exit 0 ;;
+    accent)
+        [ -n "${2:-}" ] || { echo "$acc"; exit 0; }
+        case " $accents " in *" $2 "*) ;; *) echo "accent inconnu: $2 ($accents)" >&2; exit 2 ;; esac
+        acc=$2 mode=$cur changed=accent ;;
+    toggle) [ "$cur" = light ] && mode=dark || mode=light ;;
+    dark | light) mode=$1 ;;
+    apply) mode=$cur ;;
+    *) echo "usage: fili-theme [get|dark|light|toggle|apply|accent [nom]]" >&2; exit 2 ;;
+esac
+
+mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/gtk-4.0" "$cfg/foot" "$cfg/niri"
+# Written in place (no rename): the fili-shell follows the file through inotify
+printf '%s\n' "$mode" > "$dir/theme"
+printf '%s\n' "$acc" > "$dir/accent"
+set -- $(tones "$acc") "$@"
+dark_tone=$1 light_tone=$2
+[ "$mode" = light ] && tone=$2 || tone=$1
+shift 2
+
+if [ "$mode" = light ]; then
+    scheme=prefer-light gtk=Adwaita icons=Filigrane-Icons sig=USR2
+else
+    scheme=prefer-dark gtk=Adwaita-dark icons=Filigrane-Icons sig=USR1
+fi
+gen="// Généré par fili-theme ($mode), ne pas modifier ici"
+
+# GTK: accent (selection, links, focus). Text on the accent: nuit on the light shades of the dark mode, paper on the
+# dark shades of the light mode. GTK3: theme.css (after the import, the last definition wins); GTK4: accent.css,
+# imported by gtk.css (libadwaita: accent_color, accent_bg_color, accent_fg_color)
+[ "$mode" = light ] && on_accent="#f3f1ec" || on_accent="#1c222b"
+printf '/* %s */\n@import url("filigrane-%s.css");\n@define-color theme_selected_bg_color %s;\n@define-color theme_selected_fg_color %s;\n' \
+    "${gen#// }" "$mode" "$tone" "$on_accent" > "$cfg/gtk-3.0/theme.css"
+printf '/* %s */\n@define-color fili_accent %s;\n@define-color fili_accent_fg %s;\n' "${gen#// }" "$tone" "$on_accent" > "$cfg/gtk-4.0/accent.css"
+# foot: initial theme and cursor in the accent colour (windows already open keep their cursor)
+printf '# %s\n[main]\ninitial-color-theme=%s\n\n[colors-dark]\ncursor=1c222b %s\n\n[colors-light]\ncursor=f3f1ec %s\n' \
+    "${gen#// }" "$mode" "${dark_tone#\#}" "${light_tone#\#}" > "$cfg/foot/theme.ini"
+if [ "$mode" = light ]; then
+    cat > "$cfg/niri/theme.kdl" <<EOF
+$gen
+// Mode clair (brand.md): anneau et bordure à la couleur d'accent, liserés et vue d'ensemble papier
+layout {
+    focus-ring {
+        active-color "${tone}99"
+        inactive-color "#cdc8bd55"
+    }
+    border {
+        active-color "$tone"
+        inactive-color "#cdc8bd"
+        urgent-color "#9a4f55"
+    }
+    shadow {
+        color "#1c222b33"
+    }
+}
+overview {
+    backdrop-color "#dfdbd2"
+}
+EOF
+else
+    cat > "$cfg/niri/theme.kdl" <<EOF
+$gen
+// Mode sombre: couleurs de config.kdl, sauf l'accent
+layout {
+    focus-ring {
+        active-color "${tone}99"
+    }
+    border {
+        active-color "$tone"
+    }
+}
+EOF
+fi
+
+# Without a D-Bus session (installation), only the files are written
+gsettings set org.gnome.desktop.interface color-scheme "$scheme" 2>/dev/null
+gsettings set org.gnome.desktop.interface gtk-theme "$gtk" 2>/dev/null
+gsettings set org.gnome.desktop.interface icon-theme "$icons" 2>/dev/null
+
+# Open windows and wallpaper: only on a mode change ("apply" switches nothing visible)
+[ -n "${WAYLAND_DISPLAY:-}" ] && [ "$changed" = mode ] && [ "${1:-}" != apply ] || exit 0
+pkill -"$sig" -x foot 2>/dev/null
+pkill -"$sig" -x footclient 2>/dev/null
+# Wallpaper: only the Filigrane one (a chosen image stays)
+wp=$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper" 2>/dev/null)
+case "$wp" in
+    "" | */wallpapers/filigrane.png | */wallpapers/filigrane-clair.png)
+        setsid -f "$HOME/.local/bin/wallpaper" >/dev/null 2>&1 ;;
+esac
+exit 0

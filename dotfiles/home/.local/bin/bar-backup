@@ -1,20 +1,10 @@
 #!/bin/sh
-# Indicateur Waybar de la sauvegarde restic (watch-backup). Sans argument: JSON d'état; `run`: sauvegarde immédiate.
-#   idle (gris) | active (vert clignotant, en cours: verrou backup.lock tenu) | failed (rouge, dernier essai en échec)
-STATE="$HOME/.local/state/watch"
-if [ "$1" = run ]; then
-    pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "Sauvegarde" "Déjà en cours"; exit 0; }
-    setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &
-    exit 0
-fi
-if ! flock -n "$STATE/backup.lock" true 2>/dev/null; then
-    printf '{"text":"\\uf0ee","class":"active","tooltip":"Sauvegarde NAS en cours..."}\n'
-    exit 0
-fi
-last="jamais"
-[ -e "$STATE/backup.stamp" ] && last="$(date -d "@$(stat -c %Y "$STATE/backup.stamp")" '+%d/%m %H:%M')"
-if [ "$(cat "$STATE/backup.status" 2>/dev/null)" = fail ]; then
-    printf '{"text":"\\uf0ee","class":"failed","tooltip":"Dernière sauvegarde en échec (dernier succès: %s). Clic: réessayer"}\n' "$last"
-else
-    printf '{"text":"\\uf0ee","class":"idle","tooltip":"Sauvegarde NAS (dernière: %s). Clic: sauvegarder maintenant"}\n' "$last"
-fi
+# Immediate restic backup from the bar (`bar-backup run`, watch-backup now). The displayed state (idle, active, failed)
+# is written by bar-stats (apps/bar-stats, stat backup).
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+[ "$1" = run ] || { echo "usage: bar-backup run" >&2; exit 2; }
+pgrep -f '^restic backup' >/dev/null && { notify-send -u low -a backup "$(t 'Backup')" "$(t 'Already running')"; exit 0; }
+setsid "$HOME/.local/bin/watch-backup" now >/dev/null 2>&1 &

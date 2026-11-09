@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Réglages
+GenericName=Settings
+Comment=Display, language, power and other settings of this machine
+Comment[fr]=Écran, langue, énergie et autres réglages de cette machine
+Exec=fili-shell settings
+Icon=preferences-system
+Keywords=settings;fili-settings;preferences;options;configuration;config;
+Categories=System;Settings;
+Terminal=false

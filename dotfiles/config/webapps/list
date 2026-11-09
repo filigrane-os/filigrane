@@ -1,5 +1,4 @@
-# Applications web (Chromium --app). Une par ligne :   Nom | URL | icône
-# Icône: nom du thème ou ~/.config/webapps/icons/x.png; vide = web-browser.
-# Ajouter: webapp-add "Nom" URL [icône]. Appliquer à la main: webapp-sync.
-WhatsApp | https://web.whatsapp.com | ~/.config/webapps/icons/whatsapp.png
-Proton Mail | https://mail.proton.me | ~/.config/webapps/icons/proton-mail.png
+# Web applications (Chrome/Chromium --app). One per line:   Name | URL | icon
+# Icon: theme name or ~/.config/webapps/icons/x.png; empty = web-browser.
+# Add: webapp-add "Name" URL [icon]. Apply by hand: webapp-sync.
+# A personal layer (users/<login>/dotfiles/config/webapps/list) replaces this file.

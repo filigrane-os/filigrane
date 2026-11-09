@@ -1,0 +1,41 @@
+// Battery (sysfs, no UPower): capacity and state re-read every minute; warning <= 25 %, critical <= 10 %.
+// Click = power panel, right click = system menu (lock, sleep, quit...)
+import QtQuick
+import Quickshell.Io
+import qs
+import qs.bar
+
+BarItem {
+    id: batt
+    objectName: "power"
+    panel: "power"
+    panelSource: Qt.resolvedUrl("PowerPanel.qml")
+    tipInfo: "power"
+    hover.onLeftClicked: togglePanel()
+    hover.rclick: "setsid -f " + FiliTheme.bin + "/menu system"
+    readonly property string dir: "/sys/class/power_supply/BAT0"
+    property int capacity: -1
+    property string status: ""
+    readonly property bool charging: status === "Charging" || status === "Full"
+
+    text: capacity < 0 ? "" : (status === "Charging" ? "" : ["", "", "", "", ""][Math.min(4, Math.floor(capacity / 20))]) + " " + capacity + "%"
+    color: status === "Charging" ? FiliTheme.voile : capacity <= 10 ? FiliTheme.cendre : capacity <= 25 ? FiliTheme.sable : FiliTheme.brume
+    tip: status ? { title: FiliI18n.tr("Battery"), rows: [[FiliI18n.tr("Level"), capacity + " %"], [FiliI18n.tr("State"), { Charging: FiliI18n.tr("Charging"), Discharging: FiliI18n.tr("On battery"), Full: FiliI18n.tr("Full"), "Not charging": FiliI18n.tr("Plugged in, charging paused") }[status] ?? status]] } : ""
+
+    FileView { id: cap; path: batt.dir + "/capacity"; blockLoading: true; printErrors: false }
+    FileView { id: st; path: batt.dir + "/status"; blockLoading: true; printErrors: false }
+    function read() {
+        cap.reload();
+        st.reload();
+        const c = parseInt(cap.text());
+        batt.capacity = isNaN(c) ? -1 : c;
+        batt.status = st.text().trim();
+    }
+    Component.onCompleted: read()
+    Timer {
+        running: true
+        repeat: true
+        interval: 60000
+        onTriggered: batt.read()
+    }
+}

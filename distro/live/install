@@ -1,0 +1,31 @@
+#!/bin/bash
+# Installer of the live ISO (installed as /usr/bin/<distro>-install): asks for the disk, the user and the machine
+# name, then runs the installer script of the embedded repository, distribution only (no personal layer).
+# Extra options passed to it (--profile, --machine, --cpu, --gpu).
+set -euo pipefail
+SRC="${SRC:-/usr/share/fili/filigrane}"
+[ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
+# shellcheck source=distro/distro.env
+source "$SRC/distro/distro.env"
+
+echo "Installation de $DISTRO_TITLE"
+if ! curl -fsI --max-time 10 "$VOID_REPO/$(uname -m)-repodata" >/dev/null; then
+    echo "Réseau requis (paquets téléchargés depuis $VOID_REPO)."
+    echo "Câble: automatique (dhcpcd). Wi-Fi: wpa_passphrase <SSID> <clé> >> /etc/wpa_supplicant/wpa_supplicant.conf,"
+    echo "puis sv restart wpa_supplicant. Relancer ensuite: $DISTRO-install"
+    exit 1
+fi
+
+echo
+lsblk -dpno NAME,SIZE,MODEL -e 7,11  # sans boucles (7) ni lecteurs optiques (11)
+echo
+read -r -p "Disque cible (il sera ENTIÈREMENT effacé): " disk
+read -r -p "Nom d'utilisateur: " user
+read -r -p "Nom de la machine [$DISTRO]: " host
+
+# Writable copy (the live system is read-only): .user-layer=none sets the distribution only, even if the user
+# name matches a users/<name> layer of the repository
+work="$(mktemp -d)"
+cp -a "$SRC" "$work/filigrane"
+echo none > "$work/filigrane/.user-layer"
+exec "$work/filigrane/install-void.sh" --disk "$disk" --user "$user" --hostname "${host:-$DISTRO}" "$@"

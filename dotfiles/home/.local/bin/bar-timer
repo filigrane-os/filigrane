@@ -1,16 +1,16 @@
 #!/bin/bash
-# Minuteur / chronomètre Waybar, sans daemon: l'état est un petit fichier dans $XDG_RUNTIME_DIR/bar-timer
-# ("T <fin>" minuteur, "S <début>" chronomètre, "done" minuteur terminé). Bash pour EPOCHSECONDS (aucun fork par rafraîchissement).
-# Usage: bar-timer (JSON pour Waybar) | click (choisir / arrêter / acquitter) | add (+5 min au minuteur) | tick (interne)
-# Durées du minuteur: 5 (minutes), 90s, 10m, 1h.
+# Bar timer / stopwatch, without a daemon: the state is a small file in $XDG_RUNTIME_DIR/bar-timer
+# ("T <end>" timer, "S <start>" stopwatch, "done" finished timer), read and counted down by the bar (BarState.qml).
+# Usage: bar-timer click (choose / stop / acknowledge) | add (+5 min on the timer) | expire (timer elapsed, called by the bar)
+# Timer durations: 5 (minutes), 90s, 10m, 1h.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-timer"
-icon='\\uf2f2'
 kind=''; val=''
 [ -r "$f" ] && read -r kind val <"$f"
 
-refresh() { pkill -RTMIN+12 waybar; }
-# Waybar n'interroge pas ce module (interval once): un ticker d'une seconde n'existe que tant qu'un minuteur ou chronomètre tourne
-start_tick() { pgrep -f 'bar-timer tick' >/dev/null || setsid -f "$0" tick >/dev/null 2>&1; }
 fmt() { # secondes -> [H:]MM:SS
     if [ "$1" -ge 3600 ]; then printf '%d:%02d:%02d' $(($1 / 3600)) $(($1 % 3600 / 60)) $(($1 % 60))
     else printf '%02d:%02d' $(($1 / 60)) $(($1 % 60)); fi
@@ -19,40 +19,23 @@ fmt() { # secondes -> [H:]MM:SS
 case "$1" in
     click)
         case "$kind" in
-            S) notify-send "Chronomètre" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; refresh; exit 0 ;;
-            T|done) rm -f "$f"; refresh; exit 0 ;;
+            S) notify-send "$(t 'Stopwatch')" "$(fmt $((EPOCHSECONDS - val)))"; rm -f "$f"; exit 0 ;;
+            T|done) rm -f "$f"; exit 0 ;;
         esac
-        out="$(printf '%s\n' Chronomètre 1m 5m 10m 15m 25m 45m 1h | fuzzel --dmenu --prompt 'Minuteur: ' --lines 8)" || exit 0
-        if [ "$out" = Chronomètre ]; then
+        sw="$(t 'Stopwatch')"
+        out="$(printf '%s\n' "$sw" 1m 5m 10m 15m 25m 45m 1h | "$HOME/.local/bin/fili-shell" launcher --prompt "$(t 'Timer: ')" --lines 8)" || exit 0
+        if [ "$out" = "$sw" ]; then
             echo "S $EPOCHSECONDS" >"$f"
         else
             n="${out//[!0-9]/}"; [ -n "$n" ] || exit 0
             case "$out" in *h*) s=$((n * 3600)) ;; *s*) s=$n ;; *) s=$((n * 60)) ;; esac
             echo "T $((EPOCHSECONDS + s))" >"$f"
-        fi
-        refresh; start_tick ;;
+        fi ;;
     add)
         [ "$kind" = T ] || exit 0
-        echo "T $((val + 300))" >"$f"; refresh; start_tick ;;
-    tick)
-        while sleep 1; do
-            read -r kind val <"$f" 2>/dev/null || break
-            case "$kind" in S|T) refresh ;; *) break ;; esac
-        done
-        refresh ;;
-    *)
-        case "$kind" in
-            '') printf '{"text":"%b","class":"idle","tooltip":"Minuteur / chronomètre (clic: choisir)"}\n' "$icon" ;;
-            S) printf '{"text":"%b %s","class":"stopwatch","tooltip":"Chronomètre (clic: arrêter)"}\n' "$icon" "$(fmt $((EPOCHSECONDS - val)))" ;;
-            T)
-                r=$((val - EPOCHSECONDS))
-                if [ "$r" -gt 0 ]; then
-                    printf '{"text":"%b %s","class":"active","tooltip":"Minuteur (clic: annuler, clic droit: +5 min)"}\n' "$icon" "$(fmt "$r")"
-                else
-                    echo done >"$f"
-                    notify-send -u critical "Minuteur" "Terminé"
-                    printf '{"text":"%b 00:00","class":"done","tooltip":"Terminé (clic: acquitter)"}\n' "$icon"
-                fi ;;
-            *) printf '{"text":"%b 00:00","class":"done","tooltip":"Terminé (clic: acquitter)"}\n' "$icon" ;;
-        esac ;;
+        echo "T $((val + 300))" >"$f" ;;
+    expire)
+        [ "$kind" = T ] && [ "$val" -le "$EPOCHSECONDS" ] || exit 0
+        echo done >"$f"
+        notify-send -u critical "$(t 'Timer')" "$(t 'Done')" ;;
 esac

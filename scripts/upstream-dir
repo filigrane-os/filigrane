@@ -1,0 +1,34 @@
+#!/bin/bash
+# Source directory of a first-party application that lives in its own repository.
+#
+#   scripts/upstream-dir NAME      e.g. scripts/upstream-dir fili-file
+#
+# The version the distribution builds is pinned in apps/NAME/upstream (url= and ref=, a tag). The pinned ref is cloned
+# once into the cache ($FILI_UPSTREAM_CACHE, default ~/.cache/filigrane-upstream) and the directory is printed.
+# FILI_SRC_<NAME> (upper case, dashes as underscores: FILI_SRC_FILI_FILE) points to a local checkout instead, to work on
+# the application without tagging: FILI_SRC_FILI_FILE=~/Projects/fili-file tests/fili-shell/run.sh
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+name="${1:?usage: upstream-dir NAME}"
+override="FILI_SRC_$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')"
+if [ -n "${!override:-}" ]; then
+    printf '%s\n' "${!override}"
+    exit 0
+fi
+
+pin="$ROOT/apps/$name/upstream"
+[ -f "$pin" ] || { echo "upstream-dir: $pin does not exist" >&2; exit 1; }
+url="$(sed -n 's/^url=//p' "$pin" | head -1)"
+ref="$(sed -n 's/^ref=//p' "$pin" | head -1)"
+[ -n "$url" ] && [ -n "$ref" ] || { echo "upstream-dir: url= and ref= are required in $pin" >&2; exit 1; }
+
+cache="${FILI_UPSTREAM_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/filigrane-upstream}"
+dir="$cache/$name-$ref"
+if [ ! -d "$dir/.git" ]; then
+    mkdir -p "$cache"
+    rm -rf "$dir.part"
+    git -c advice.detachedHead=false clone -q --depth 1 --branch "$ref" "$url" "$dir.part" >&2
+    mv "$dir.part" "$dir"
+fi
+printf '%s\n' "$dir"

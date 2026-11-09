@@ -1,0 +1,25 @@
+/* Filigrane (brand.md), dark mode on Adwaita-dark: night, mist, slate/veil accent (imported by gtk.css through theme.css) */
+@define-color theme_bg_color #1c222b;
+@define-color theme_base_color #181d25;
+@define-color theme_fg_color #dbe7f4;
+@define-color theme_text_color #dbe7f4;
+@define-color theme_selected_bg_color #5f7894;
+@define-color theme_selected_fg_color #f3f1ec;
+@define-color theme_unfocused_bg_color #1c222b;
+@define-color theme_unfocused_base_color #181d25;
+@define-color theme_unfocused_fg_color #a9b8c8;
+@define-color theme_unfocused_text_color #a9b8c8;
+@define-color theme_unfocused_selected_bg_color #3c4858;
+@define-color theme_unfocused_selected_fg_color #dbe7f4;
+@define-color insensitive_bg_color #1c222b;
+@define-color insensitive_fg_color #5f7894;
+@define-color insensitive_base_color #181d25;
+@define-color borders #2d3744;
+@define-color unfocused_borders #2d3744;
+@define-color warning_color #d2bf92;
+@define-color error_color #c98f93;
+@define-color success_color #a3bfa8;
+@define-color content_view_bg #181d25;
+@define-color wm_bg #1c222b;
+@define-color wm_title #dbe7f4;
+

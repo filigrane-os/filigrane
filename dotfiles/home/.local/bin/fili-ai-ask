@@ -1,0 +1,57 @@
+#!/bin/sh
+# Claude Code PermissionRequest hook: the request is also shown as a notification (fili-notification) whose buttons
+# match what is actually asked, and the answer is returned to Claude Code, which then skips its terminal prompt:
+#   - AskUserQuestion (one single-choice question): one button per option, the chosen label is the answer;
+#   - ExitPlanMode: Approve / Keep planning;
+#   - any other tool: Allow / Deny.
+# Without an answer within 30 s (bubble expired or dismissed), or for what a button cannot express (several questions,
+# multiple selection, free text), the hook decides nothing and the terminal prompt appears as usual.
+# Input: hook JSON on stdin. Output: decision JSON, or nothing.
+# Setting (settings.json, hooks.PermissionRequest): "command": "fili-ai-ask".
+command -v notify-send >/dev/null && command -v jq >/dev/null || exit 0
+in=$(cat)
+tool=$(printf '%s' "$in" | jq -r '.tool_name // "tool"')
+project=$(printf '%s' "$in" | jq -r '.cwd // "" | split("/") | last')
+# The body is markup text (bodyMarkupSupported): escape & < >
+esc() { sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g'; }
+[ -n "$project" ] && prefix="Claude Code ($project)" || prefix="Claude Code"
+
+ask() { # ask TITLE BODY ACTION_ARGS... -> chosen action key on stdout
+    t=$1; b=$2; shift 2
+    timeout 35 notify-send -a "Claude Code" -u critical -t 30000 "$@" "$t" "$b" 2>/dev/null
+}
+emit() { printf '%s\n' "$1"; exit 0; }
+
+case "$tool" in
+AskUserQuestion)
+    # Only a single, single-choice question fits buttons.
+    [ "$(printf '%s' "$in" | jq '.tool_input.questions | length == 1 and (.[0].multiSelect | not)')" = true ] || exit 0
+    question=$(printf '%s' "$in" | jq -r '.tool_input.questions[0].question')
+    n=$(printf '%s' "$in" | jq '.tool_input.questions[0].options | length')
+    [ "$n" -ge 1 ] || exit 0
+    set --
+    i=0
+    while [ "$i" -lt "$n" ]; do
+        label=$(printf '%s' "$in" | jq -r ".tool_input.questions[0].options[$i].label")
+        set -- "$@" -A "$i=$label"
+        i=$((i + 1))
+    done
+    choice=$(ask "$prefix" "$(printf '%s' "$question" | esc)" "$@")
+    case "$choice" in ''|*[!0-9]*) exit 0 ;; esac
+    emit "$(printf '%s' "$in" | jq -c --argjson i "$choice" '
+        .tool_input as $t
+        | {hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: "allow",
+            updatedInput: ($t + {answers: {($t.questions[0].question): $t.questions[0].options[$i].label}})}}}')" ;;
+ExitPlanMode)
+    plan=$(printf '%s' "$in" | jq -r '.tool_input.plan // "" | .[0:240]' | esc)
+    choice=$(ask "$prefix: plan" "$plan" -A allow=Approuver -A deny="Continuer à planifier") ;;
+*)
+    detail=$(printf '%s' "$in" | jq -r '.tool_input | (.command // .file_path // .url // .pattern // tostring) | .[0:240]' | esc)
+    choice=$(ask "$prefix: $tool" "$detail" -A allow=Autoriser -A deny=Refuser) ;;
+esac
+case "$choice" in
+    allow) behavior=allow ;;
+    deny) behavior=deny ;;
+    *) exit 0 ;;
+esac
+jq -n --arg b "$behavior" '{hookSpecificOutput: {hookEventName: "PermissionRequest", decision: {behavior: $b}}}'

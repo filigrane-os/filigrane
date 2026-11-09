@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Status"
+description = "Recording, SSH, airplane mode, VPN and update indicators"
+side = "right"
+order = 10

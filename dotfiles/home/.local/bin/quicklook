@@ -1,0 +1,63 @@
+#!/bin/sh
+# QuickLook-style quick preview (fili-file: Space). Floating window app-id "quicklook" (niri rule).
+# Image -> imv, video/audio -> mpv, PDF -> first 10 pages as an image, CSV/TSV -> pspg,
+# text -> bat, folder -> eza.
+# Space, Escape or q closes. Running again on the same file closes the open preview.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+
+[ $# -gt 0 ] || exit 0
+last="${XDG_RUNTIME_DIR:-/tmp}/quicklook-last"
+
+# Toggle: an already open preview is closed; if it was the same file, stop there
+open=$(niri msg --json windows | jq -r '.[] | select(.app_id == "quicklook") | .id')
+if [ -n "$open" ]; then
+    for id in $open; do niri msg action close-window --id "$id"; done
+    [ "$(cat "$last" 2>/dev/null)" = "$1" ] && { rm -f "$last"; exit 0; }
+fi
+printf '%s' "$1" > "$last"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+f="$1"
+title="$(t 'Preview: %s' "$(basename "$f")")"
+
+page() { # page COMMAND... : output in less (Space or q closes)
+    "$@" > "$tmp/out" 2>&1
+    foot --app-id=quicklook --title="$title" less -R --lesskey-content='\40 quit' "$tmp/out"
+}
+images() { imv -i quicklook -w "$title" -c 'bind <space> quit' -c 'bind <Escape> quit' "$@"; }
+
+if [ -d "$f" ]; then
+    if command -v eza >/dev/null; then page eza -la --group-directories-first --color=always "$f"
+    else page ls -la --group-directories-first --color=always "$f"; fi
+    exit 0
+fi
+
+# Tables: pspg (separator detected, q or Escape closes); file often sees them as text/plain
+case "$f" in
+    *.[cC][sS][vV]|*.[tT][sS][vV])
+        fmt=--csv; case "$f" in *.[tT][sS][vV]) fmt=--tsv ;; esac
+        foot --app-id=quicklook --title="$title" pspg "$fmt" --on-sigint-exit "$f"
+        exit 0 ;;
+esac
+
+case "$(file -b --mime-type "$f")" in
+    image/*)
+        # Several images selected: all in imv (arrows to navigate)
+        images "$@" ;;
+    video/*|audio/*)
+        mpv --wayland-app-id=quicklook --force-window=yes --keep-open=yes \
+            --input-conf="$HOME/.config/mpv/quicklook-input.conf" "$f" ;;
+    application/pdf)
+        pdftoppm -l 10 -r 100 -png "$f" "$tmp/page" && images "$tmp"/page-*.png ;;
+    *)
+        if [ "$(file -b --mime-encoding "$f")" != binary ]; then
+            if command -v bat >/dev/null; then page bat --color=always --style=numbers,header --paging=never "$f"
+            else page cat "$f"; fi
+        else
+            page sh -c 'file -b "$1"; echo; ls -lh "$1"' sh "$f"
+        fi ;;
+esac

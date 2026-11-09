@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Enregistre la disposition d'écrans actuelle comme profil kanshi.
+"""Saves the current screen layout as a kanshi profile.
 
 Usage: display-save
-Lit `niri msg --json outputs` et écrit ~/.config/kanshi/profiles.d/<écrans>.conf.
-Réenregistrer le même jeu d'écrans remplace le profil. Workflow: régler avec
-wdisplays (Mod+P), puis display-save (Mod+Ctrl+P).
+Reads `niri msg --json outputs` and writes ~/.config/kanshi/profiles.d/<screens>.conf.
+Saving the same set of screens again replaces the profile. Workflow: adjust with
+the displays panel (Mod+P), then display-save (Mod+Ctrl+P).
 """
 import json
 import os
@@ -13,15 +13,24 @@ import subprocess
 import sys
 
 DIR = os.path.expanduser("~/.config/kanshi/profiles.d")
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh), through the shell
+FILI_LIB = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../../../lib")
+
+
+def t(fmt, *args):
+    if not os.path.exists(f"{FILI_LIB}/i18n.sh"):
+        return fmt.replace("%s", "{}").format(*args)
+    cmd = 'FILI_LIB="$1"; shift; . "$FILI_LIB/i18n.sh"; t "$@"'
+    return subprocess.run(["sh", "-c", cmd, "sh", FILI_LIB, fmt, *map(str, args)], capture_output=True, text=True).stdout
 
 
 def notify(msg):
     print(msg)
-    subprocess.run(["notify-send", "-a", "display-save", "Écrans", msg], check=False)
+    subprocess.run(["notify-send", "-a", "display-save", t('Displays'), msg], check=False)
 
 
 def criteria(o):
-    # kanshi identifie un écran par "marque modèle série"; sans EDID exploitable, par connecteur.
+    # kanshi identifies a screen by "make model serial"; without a usable EDID, by connector.
     if o["make"] in (None, "Unknown") and o["model"] in (None, "Unknown"):
         return o["name"]
     return " ".join(str(o[k] or "Unknown") for k in ("make", "model", "serial"))
@@ -43,10 +52,10 @@ def output_line(o):
 def main():
     raw = subprocess.run(["niri", "msg", "--json", "outputs"], capture_output=True, text=True)
     if raw.returncode != 0:
-        sys.exit(f"niri msg a échoué: {raw.stderr.strip()}")
+        sys.exit(t('niri msg failed: %s', raw.stderr.strip()))
     outputs = sorted(json.loads(raw.stdout).values(), key=criteria)
     if not outputs:
-        sys.exit("aucun écran détecté")
+        sys.exit(t('no display found'))
     ident = "+".join(criteria(o) for o in outputs)
     slug = re.sub(r"[^A-Za-z0-9]+", "-", ident).strip("-")[:120]
     os.makedirs(DIR, exist_ok=True)
@@ -55,7 +64,7 @@ def main():
     with open(path, "w") as f:
         f.write(body)
     subprocess.run(["pkill", "-HUP", "-x", "kanshi"], check=False)  # recharge la config
-    notify(f"Profil enregistré: {len(outputs)} écran(s)")
+    notify(t('Profile saved: %s display(s)', len(outputs)))
 
 
 main()

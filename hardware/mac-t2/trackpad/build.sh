@@ -1,8 +1,8 @@
 #!/bin/sh
-# Trackpad multitouch des Mac T2: hid-apple (ignore le trackpad) et hid-magicmouse (le pilote), hors arbre.
-# Appelé par DKMS:  ./build.sh <kernelver> <kernel_source_dir>
-# Base v6.18.7 + t2linux/linux-t2-patches (4001 partie HID, 4003-4005, révision épinglée)
-# + 9001 (port des correctifs stables jusqu'à v6.18.57). Tout vérifié contre SHA256SUMS. Série 6.18 seulement.
+# Multitouch trackpad of the T2 Macs: hid-apple (ignores the trackpad) and hid-magicmouse (the driver), out of tree.
+# Called by DKMS:  ./build.sh <kernelver> <kernel_source_dir>
+# Base v6.18.7 + t2linux/linux-t2-patches (4001 HID part, 4003-4005, pinned revision)
+# + 9001 (port of the stable fixes up to v6.18.57). Everything verified against SHA256SUMS. 6.18 series only.
 set -eu
 kver="$1" ksrc="$2"
 BASE=v6.18.7
@@ -30,7 +30,7 @@ w="$(mktemp -d)"
 mkdir -p "$w/tree/drivers/hid" "$w/split"
 cp hid-apple.c hid-magicmouse.c hid-ids.h "$w/tree/drivers/hid/"
 git -C "$w/tree" init -q
-# 4001 est une série Asahi de 18 correctifs: seules les parties sur ces trois fichiers servent aux T2
+# 4001 is an Asahi series of 18 patches: only the parts on these three files are used by the T2
 git mailsplit -o"$w/split" 4001-asahi-trackpad.patch >/dev/null
 for p in $(find "$w/split" -type f | sort); do
     git -C "$w/tree" apply --include=drivers/hid/hid-apple.c --include=drivers/hid/hid-magicmouse.c \

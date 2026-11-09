@@ -1,0 +1,233 @@
+#!/bin/sh
+# File sharing of the Bluetooth panel of the fili-shell: a single interface, three protocols.
+# airdrop    omdrop (https://github.com/netmojo-systems/omdrop-plugin), AWDL radio (awdl0) required
+# bluetooth  OBEX Object Push (bluez-obex: obexd, over D-Bus), paired devices
+# localsend  LocalSend v2 (apps/localsend: lsend to send, localsendd to receive), same local network
+# Usage: fili-share protocols                    JSON [{id, label, available, why}]
+# fili-share peers PROTO                  JSON [{id, name}]
+# fili-share send PROTO ID NAME           chooses the files (fili-file), sends them, notifies
+# fili-share send-files PROTO ID NAME F... sends these files (Casier: Share…), notifies
+# fili-share receive PROTO on|off|status  status: prints on or off
+# fili-share receive-info                 JSON {dest, confirm, minutes, name, protocols: [{id, label, available, why, on}]}
+# fili-share received [N]                 JSON of the last N received files (journal of fili-receive)
+# Receiving: fili-receive (apps/fili-receive) asks "Accept / Decline" and announces the end in a notification.
+# Optional settings: ~/.config/filigrane/fili-file.toml (receive_dir, receive_confirm = ask | always, receive_minutes)
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+OBEXD=/usr/libexec/bluetooth/obexd
+PIDF="${XDG_RUNTIME_DIR:-/tmp}/fili-share-obexd.pid"
+setting() { fili-receive settings 2>/dev/null | sed -n "s/^$1=//p"; }
+DEST="$(setting dir)"; [ -n "$DEST" ] || DEST="${XDG_DOWNLOAD_DIR:-$HOME/Downloads}"
+CONFIRM="$(setting confirm)"; MINUTES="$(setting minutes)"
+ME="$(setting name)"; [ -n "$ME" ] || ME=FILIGRANE
+FRPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-receive"
+LSPID="${XDG_RUNTIME_DIR:-/tmp}/fili-share-localsendd.pid"
+export LOCALSEND_SOCKET_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend.sock"
+export LOCALSEND_CONFIG_PATH="${XDG_RUNTIME_DIR:-/tmp}/localsend-trusted.yaml"
+
+# The notification server of the shell shows no icon: the state is a sign in the text (✓ success, ✕ failure)
+notify() { notify-send -a fili-share "${2:+$2 }$(t 'Sharing')" "${2:+$2  }$1" 2>/dev/null; }
+# Notification of a send: each step (sending, waiting, end) replaces the previous one instead of stacking
+NID=""
+status() {
+    if [ -n "$NID" ]; then NID="$(notify-send -a fili-share -p -r "$NID" "$(t 'Sharing')" "$1" 2>/dev/null)"
+    else NID="$(notify-send -a fili-share -p "$(t 'Sharing')" "$1" 2>/dev/null)"; fi
+}
+# Result of a send: a new notification (replacing the running step that expires at the same moment would show nothing again),
+# the running step is closed
+status_end() {
+    if [ -n "$NID" ]; then
+        gdbus call --session --dest org.freedesktop.Notifications --object-path /org/freedesktop/Notifications \
+            --method org.freedesktop.Notifications.CloseNotification "$NID" >/dev/null 2>&1
+        NID=""
+    fi
+    notify "$1" "$2"
+}
+json_peers() { jq -Rsc '[split("\n")[] | select(length > 0) | split("\t") | { id: .[0], name: (.[1] // .[0]) }]'; }
+
+# Reason why a protocol is unavailable (empty = available)
+why() {
+    case "$1" in
+    airdrop)
+        command -v omdrop >/dev/null || { t 'omdrop not installed'; return; }
+        [ -d /sys/class/net/awdl0 ] || t 'no AWDL radio (awdl0)' ;;
+    bluetooth)
+        [ -x "$OBEXD" ] || { t 'bluez-obex not installed'; return; }
+        bluetoothctl list 2>/dev/null | grep -q Controller || t 'no Bluetooth adapter' ;;
+    localsend) command -v lsend >/dev/null && command -v localsendd >/dev/null || t 'not installed (./bootstrap.sh)' ;;
+    *) t 'unknown protocol' ;;
+    esac
+}
+
+# ───── Bluetooth (OBEX Object Push) ─────
+obex() { gdbus call --session --dest org.bluez.obex "$@"; }
+bt_send() { # bt_send MAC FICHIER...
+    mac="$1"; shift
+    s="$(obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.CreateSession "$mac" "{'Target': <'opp'>}" | sed -n "s/.*'\(\/[^']*\)'.*/\1/p")"
+    [ -n "$s" ] || return 1
+    rc=0
+    for f in "$@"; do
+        t="$(obex --object-path "$s" --method org.bluez.obex.ObjectPush1.SendFile "$f" | sed -n "s/^(objectpath '\([^']*\)'.*/\1/p")"
+        [ -n "$t" ] || { rc=1; break; }
+        while :; do
+            st="$(obex --object-path "$t" --method org.freedesktop.DBus.Properties.Get org.bluez.obex.Transfer1 Status | sed -n "s/.*'\([a-z]*\)'.*/\1/p")"
+            case "$st" in complete) break ;; error | "") rc=1; break 2 ;; esac
+            sleep 1
+        done
+    done
+    obex --object-path /org/bluez/obex --method org.bluez.obex.Client1.RemoveSession "$s" >/dev/null 2>&1
+    return $rc
+}
+# is fili-receive PROTO running? (one pid file per protocol)
+fr_running() { [ -r "$FRPID-$1.pid" ] && [ "$(cat "/proc/$(cat "$FRPID-$1.pid")/comm" 2>/dev/null)" = fili-receive ]; }
+fr_start() { # fr_start PROTO
+    command -v fili-receive >/dev/null || return 1
+    fr_running "$1" && return 0
+    setsid -f sh -c 'echo $$ > "$1"; exec fili-receive "$2"' sh "$FRPID-$1.pid" "$1" >/dev/null 2>&1
+}
+fr_stop() { if fr_running "$1"; then kill "$(cat "$FRPID-$1.pid")"; fi; rm -f "$FRPID-$1.pid"; }
+# Reception limited in time (minutes setting): turns the protocol off after this delay
+auto_off() { # auto_off PROTO
+    [ "${MINUTES:-0}" -gt 0 ] 2>/dev/null || return 0
+    setsid -f sh -c 'sleep "$1"; exec "$2" receive "$3" off' sh "$((MINUTES * 60))" "$0" "$1" >/dev/null 2>&1
+}
+# LocalSend send. The phone application only answers when it is open in the foreground: as long as the
+# connection fails, retry for 90 s (saying so) before giving up. A refusal on the other side is not retried.
+ls_send() { # ls_send IP NOM FICHIER...
+    ip="$1"; who="$2"; shift 2
+    end=$(($(date +%s) + 90)); waiting=0
+    while :; do
+        out="$(lsend send "$ip" "$@" 2>&1)" && return 0
+        case "$out" in *"error sending request"*) ;; *) return 1 ;; esac
+        [ "$(date +%s)" -lt "$end" ] || return 1
+        if [ "$waiting" -eq 0 ]; then waiting=1; status "$(t 'Waiting for %s… open LocalSend on the device' "$who")"; fi
+        sleep 3
+    done
+}
+ls_running() { [ -r "$LSPID" ] && [ "$(cat "/proc/$(cat "$LSPID")/comm" 2>/dev/null)" = localsendd ]; }
+bt_running() { [ -r "$PIDF" ] && [ "$(cat "/proc/$(cat "$PIDF")/comm" 2>/dev/null)" = obexd ]; }
+
+case "$1" in
+protocols)
+    for p in airdrop:AirDrop bluetooth:Bluetooth localsend:LocalSend; do
+        id="${p%%:*}"; r="$(why "$id")"
+        jq -nc --arg id "$id" --arg label "${p#*:}" --arg why "$r" '{ id: $id, label: $label, available: ($why == ""), why: $why }'
+    done | jq -sc .
+    ;;
+peers)
+    [ -z "$(why "$2")" ] || { echo '[]'; exit 0; }
+    case "$2" in
+    airdrop)
+        # Names answering `omdrop peers -n`: lines without a header or "(no response)" / "(anonymous)"
+        omdrop peers -n 2>/dev/null | sed 's/^ *//; s/ *$//' | grep -v -E '^\(|:$|^$' | awk '{ print $0 "\t" $0 }' | json_peers ;;
+    bluetooth)
+        # Paired devices that can receive a file: phones, computers, or the Object Push profile (00001105)
+        # advertised; not mice, headsets, keyboards...
+        bluetoothctl devices Paired 2>/dev/null | awk '$1 == "Device" { id = $2; $1 = $2 = ""; sub(/^ +/, ""); print id "\t" $0 }' |
+            while IFS="$(printf '\t')" read -r id name; do
+                info="$(bluetoothctl info "$id" 2>/dev/null)"
+                case "$info" in
+                *"Icon: phone"* | *"Icon: computer"* | *"Icon: multimedia-player"* | *00001105-0000-1000-8000-00805f9b34fb*) printf '%s\t%s\n' "$id" "$name" ;;
+                esac
+            done | json_peers ;;
+    localsend)
+        # Peers the reception daemon has seen (the IP address is the identifier): nothing is emitted. Without the daemon, a
+        # 2 s multicast scan; the tool announces itself as "lsend-scanner" to the others, hence this preference.
+        if ls_running; then peers="$(lsend peers --json 2>/dev/null)"; else peers="$(lsend scan --json -d 2 2>/dev/null)"; fi
+        printf '%s' "${peers:-[]}" | jq -c --arg me "$ME" '[.[] | select(.alias != $me and .alias != "lsend-scanner") | { id: .ip, name: .alias }]' ;;
+    *) echo '[]' ;;
+    esac
+    ;;
+send | send-files)
+    cmd="$1"; proto="$2"; id="$3"; name="$4"
+    export LSEND_ALIAS="$ME"
+    r="$(why "$proto")"
+    [ -z "$r" ] || { notify "$(t '%s unavailable: %s' "$proto" "$r")"; exit 1; }
+    if [ "$cmd" = send ]; then
+        sel="$(mktemp)"
+        fili-file --pick open --multiple --title "$(t 'Send to %s' "$name")" --out "$sel"
+        set --
+        while IFS= read -r f; do [ -f "$f" ] && set -- "$@" "$f"; done < "$sel"
+        rm -f "$sel"
+    else
+        shift 4
+        skipped=0
+        for f in "$@"; do shift; if [ -f "$f" ]; then set -- "$@" "$f"; else skipped=$((skipped + 1)); fi; done
+        [ "$skipped" -eq 0 ] || notify "$(t '%s item(s) not sent: only files can be sent, not folders' "$skipped")"
+    fi
+    [ "$#" -gt 0 ] || exit 0
+    status "$(t 'Sending to %s…' "$name")"
+    case "$proto" in
+    airdrop) omdrop send "$@" "$name" ;;
+    bluetooth) bt_send "$id" "$@" ;;
+    localsend) ls_send "$id" "$name" "$@" ;;
+    esac
+    if [ $? -eq 0 ]; then status_end "$(t 'Sent to %s' "$name")" ✓; else status_end "$(t 'Sending to %s failed' "$name")" ✕; exit 1; fi
+    ;;
+receive)
+    proto="$2"
+    case "$proto:$3" in
+    airdrop:on) omdrop on 15 ;;
+    airdrop:off) omdrop off ;;
+    airdrop:status) omdrop status 2>/dev/null | grep -qiE 'visible|receiving|listening|\bon\b' && echo on || echo off ;;
+    bluetooth:on)
+        bt_running && exit 0
+        mkdir -p "$DEST"
+        pkill -x obexd 2>/dev/null
+        # Without fili-receive (no agent to ask the question), obexd accepts everything (-a)
+        accept=-a; if command -v fili-receive >/dev/null && [ "$CONFIRM" != always ]; then accept=; fi
+        setsid -f sh -c 'echo $$ > "$1"; exec "$2" -n $4 -r "$3"' sh "$PIDF" "$OBEXD" "$DEST" "$accept" >/dev/null 2>&1
+        fr_start bluetooth
+        auto_off bluetooth
+        bluetoothctl pairable on >/dev/null 2>&1
+        bluetoothctl discoverable on >/dev/null 2>&1
+        ;;
+    bluetooth:off)
+        fr_stop bluetooth
+        if bt_running; then kill "$(cat "$PIDF")"; fi
+        rm -f "$PIDF"
+        bluetoothctl discoverable off >/dev/null 2>&1
+        ;;
+    bluetooth:status) bt_running && echo on || echo off ;;
+    localsend:on)
+        ls_running && exit 0
+        mkdir -p "$DEST"
+        # fili-receive asks the question (Accept / Decline notification) or accepts by itself (confirm = "always"); without it,
+        # the daemon receives everything while the mode is on (like AirDrop "visible"). `receive localsend off` stops it
+        mode=always; if command -v fili-receive >/dev/null; then mode=never; fi
+        setsid -f sh -c 'echo $$ > "$1"; exec localsendd -d "$2" -a "$3" --auto-accept "$4"' sh "$LSPID" "$DEST" "$ME" "$mode" >/dev/null 2>&1
+        fr_start localsend
+        auto_off localsend
+        ;;
+    localsend:off)
+        fr_stop localsend
+        if ls_running; then kill "$(cat "$LSPID")"; fi
+        rm -f "$LSPID"
+        ;;
+    localsend:status) ls_running && echo on || echo off ;;
+    any:status)  # one of the protocols is receiving (SHARE dot of the bar)
+        for p in airdrop bluetooth localsend; do
+            [ "$("$0" receive "$p" status 2>/dev/null)" = on ] && { echo on; exit 0; }
+        done
+        echo off ;;
+    *:status) echo off ;;
+    *) exit 1 ;;
+    esac
+    # SHARE dot of the fili-bar (signal 24), after the start of the daemon
+    case "$3" in on|off) setsid -f sh -c 'sleep 1; "$HOME/.local/bin/fili-shell" bar refresh 24' >/dev/null 2>&1 ;; esac
+    ;;
+receive-info)
+    for p in airdrop:AirDrop bluetooth:Bluetooth localsend:LocalSend; do
+        id="${p%%:*}"; r="$(why "$id")"; on=false
+        if [ -z "$r" ] && [ "$("$0" receive "$id" status 2>/dev/null)" = on ]; then on=true; fi
+        jq -nc --arg id "$id" --arg label "${p#*:}" --arg why "$r" --argjson on "$on" '{ id: $id, label: $label, available: ($why == ""), why: $why, on: $on }'
+    done | jq -sc --arg dest "$DEST" --arg confirm "${CONFIRM:-ask}" --arg name "$ME" --argjson minutes "${MINUTES:-0}" \
+        '{ dest: $dest, confirm: $confirm, minutes: $minutes, name: $name, protocols: . }'
+    ;;
+received)
+    fili-receive received "${2:-20}" 2>/dev/null || echo '[]'
+    ;;
+*) echo "usage: fili-share protocols | peers PROTO | send PROTO ID NAME | send-files PROTO ID NAME FILE... | receive PROTO on|off|status | receive-info | received [N]" >&2; exit 2 ;;
+esac

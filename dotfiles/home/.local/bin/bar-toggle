@@ -1,44 +1,90 @@
 #!/bin/sh
-# Actions de la barre qui changent un état, puis rafraîchissent l'indicateur par signal. Usage: bar-toggle night|rec|idle [start]|air|present
+# Bar actions that change a state, then refresh the indicator by signal. Usage: bar-toggle night|rec|idle [start|get|set L S Z]|air|present
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
 case "$1" in
     night)
-        if pgrep -x wlsunset >/dev/null; then pkill -x wlsunset; else setsid wlsunset -t 3500 -T 3501 -S 00:00 -s 23:59 >/dev/null 2>&1 & fi
-        sleep 0.3; pkill -RTMIN+10 waybar ;;
+        # wlsunset (only wakes up during dawn and dusk, gammastep sent the gamma table every 5 s).
+        # "start" (login): automatic by the sun, 4500 K at night. Click: turns off, or forces 4500 K continuously
+        # (-T 4501: wlsunset wants T > t). Position (outside the repository): ~/.local/state/night-location, "LAT:LON".
+        # "on" forces 4500 K, "off" turns off (switch of the brightness fili-panel).
+        # Its output (applied temperatures) feeds the indicator (bar-status night).
+        loc=$(cat "$HOME/.local/state/night-location" 2>/dev/null || echo 48.9:2.3)
+        run() { setsid wlsunset -l "${loc%:*}" -L "${loc#*:}" -t 4500 -T "$1" >"${XDG_RUNTIME_DIR:-/tmp}/wlsunset.log" 2>&1 & }
+        stop() { pkill -x wlsunset; for _ in 1 2 3 4 5 6 7 8 9 10; do pgrep -x wlsunset >/dev/null || break; sleep 0.5; done; }
+        if [ "$2" = resume ]; then
+            # Wake from sleep: restart the auto mode to re-evaluate the time at once
+            pgrep -x wlsunset >/dev/null && ! pgrep -f 'wlsunset .* -T 4501$' >/dev/null || exit 0
+            stop; run 6500
+        elif [ "$2" = start ]; then
+            pgrep -x wlsunset >/dev/null || run 6500
+        elif [ "$2" = on ]; then stop; run 4501
+        elif [ "$2" = off ]; then stop
+        elif pgrep -x wlsunset >/dev/null; then stop
+        else run 4501; fi
+        sleep 0.3; "$HOME/.local/bin/fili-shell" bar refresh 10 ;;
     rec)
         if pgrep -x wf-recorder >/dev/null; then
-            pkill -INT -x wf-recorder; notify-send "Enregistrement" "Terminé: ~/Videos"
+            pkill -INT -x wf-recorder; notify-send "$(t 'Recording')" "$(t 'Done: ~/Videos')"
         else
             mkdir -p "$HOME/Videos"
             setsid wf-recorder -f "$HOME/Videos/rec-$(date +%Y%m%d-%H%M%S).mp4" >/dev/null 2>&1 &
-            notify-send "Enregistrement" "Démarré (clic sur l'indicateur pour arrêter)"
+            notify-send "$(t 'Recording')" "$(t 'Started (click the indicator to stop)')"
         fi
-        sleep 0.5; pkill -RTMIN+11 waybar ;;
+        sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 11 ;;
     idle)
+        # Delays in seconds, 0 = never: ~/.config/filigrane/power.toml, [idle] lock, screen_off, sleep (written by the
+        # Power page of fili-settings through `bar-toggle idle set`). Defaults: lock 5 min, screen off 10 min, no
+        # automatic sleep (a long S3 sleep on battery can lose the session, see hardware/mac-t2/README.md).
+        conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/power.toml"
+        get() { v=$(sed -n "/^\[idle\]/,/^\[/s/^$1 *= *\([0-9][0-9]*\).*/\1/p" "$conf" 2>/dev/null | head -n1); echo "${v:-$2}"; }
+        lock=$(get lock 300); off=$(get screen_off 600); sleep_after=$(get sleep 0)
+        human() { if [ "$1" -eq 0 ]; then t 'never'; else printf '%s min' $(($1 / 60)); fi; }
+        start() {
+            set --
+            [ "$lock" -gt 0 ] && set -- "$@" timeout "$lock" '$HOME/.local/bin/lock auto'
+            [ "$off" -gt 0 ] && set -- "$@" timeout "$off" 'niri msg action power-off-monitors' resume 'niri msg action power-on-monitors'
+            [ "$sleep_after" -gt 0 ] && set -- "$@" timeout "$sleep_after" 'sudo -n zzz'
+            setsid swayidle -w "$@" \
+                before-sleep '$HOME/.local/bin/lock auto' \
+                after-resume '$HOME/.local/bin/bar-toggle night resume' >/dev/null 2>&1 &
+        }
+        case "$2" in
+            get) echo "$lock $off $sleep_after"; exit 0 ;;
+            set)
+                # bar-toggle idle set LOCK SCREEN_OFF SLEEP (seconds, 0 = never)
+                for v in "$3" "$4" "$5"; do case "$v" in '' | *[!0-9]*) echo "usage: bar-toggle idle set LOCK SCREEN_OFF SLEEP" >&2; exit 2 ;; esac; done
+                mkdir -p "${conf%/*}"
+                printf '# Idle delays in seconds, 0 = never (Settings > Power)\n[idle]\nlock = %s\nscreen_off = %s\nsleep = %s\n' "$3" "$4" "$5" >"$conf"
+                lock=$3; off=$4; sleep_after=$5
+                # Applied at once, unless auto lock is off (caffeine, presentation): it starts with these delays
+                if pgrep -x swayidle >/dev/null; then pkill -x swayidle; start; fi
+                exit 0 ;;
+        esac
         if [ "$2" = start ] || ! pgrep -x swayidle >/dev/null; then
-            pgrep -x swayidle >/dev/null || setsid swayidle -w \
-                timeout 300 '$HOME/.local/bin/lock auto' \
-                timeout 600 'niri msg action power-off-monitors' resume 'niri msg action power-on-monitors' \
-                before-sleep '$HOME/.local/bin/lock auto' >/dev/null 2>&1 &
-            [ "$2" = start ] || notify-send -u low "Verrouillage auto" "Activé (5 min, écran éteint à 10 min, pas de veille automatique)"
+            pgrep -x swayidle >/dev/null || start
+            [ "$2" = start ] || notify-send -u low "$(t 'Auto lock')" "$(t 'On (lock: %s, screen off: %s, sleep: %s)' "$(human "$lock")" "$(human "$off")" "$(human "$sleep_after")")"
         else
-            pkill -x swayidle; notify-send -u low "Verrouillage auto" "Désactivé"
+            pkill -x swayidle; notify-send -u low "$(t 'Auto lock')" "$(t 'Off')"
         fi
-        sleep 0.3; pkill -RTMIN+13 waybar ;;
+        sleep 0.3; "$HOME/.local/bin/fili-shell" bar refresh 13 ;;
     air)
         if rfkill list 2>/dev/null | grep -q 'Soft blocked: yes'; then
-            rfkill unblock all; notify-send -u low "Mode avion" "Désactivé"
+            rfkill unblock all; notify-send -u low "$(t 'Airplane mode')" "$(t 'Off')"
         else
-            rfkill block all; notify-send -u low "Mode avion" "Activé (Wi-Fi et Bluetooth coupés)"
+            rfkill block all; notify-send -u low "$(t 'Airplane mode')" "$(t 'On (Wi-Fi and Bluetooth off)')"
         fi
-        sleep 0.5; pkill -RTMIN+14 waybar ;;
+        sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 14 ;;
     present)
-        # Mode présentation: ni verrouillage auto ni notifications
+        # Presentation mode: neither automatic lock nor notifications
         if pgrep -x swayidle >/dev/null; then
-            pkill -x swayidle; makoctl mode -a do-not-disturb >/dev/null
-            notify-send -u low "Présentation" "Activée"
+            pkill -x swayidle; "$HOME/.local/bin/fili-shell" notification dnd on
+            notify-send -u low "$(t 'Presentation')" "$(t 'On')"
         else
-            "$0" idle start; makoctl mode -r do-not-disturb >/dev/null
-            notify-send -u low "Présentation" "Terminée"
+            "$0" idle start; "$HOME/.local/bin/fili-shell" notification dnd off
+            notify-send -u low "$(t 'Presentation')" "$(t 'Over')"
         fi
-        pkill -RTMIN+13 waybar; pkill -RTMIN+9 waybar ;;
+        "$HOME/.local/bin/fili-shell" bar refresh 13 ;;
 esac

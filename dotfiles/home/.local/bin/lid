@@ -1,0 +1,33 @@
+#!/bin/sh
+# Lid (called by niri, switch-events). Usage: lid close|open
+# Closed without an external display: lock and screen off, sleep only if the lid is still
+# closed after LID_DELAY seconds. Reopened before: immediate wake (the T2 Mac does not wake from
+# sleep on lid opening, only the power button wakes it).
+# With an external display: nothing (kanshi handles the internal display).
+LID_DELAY=${LID_DELAY:-300}
+pidf="${XDG_RUNTIME_DIR:-/tmp}/lid-timer.pid"
+
+stop_timer() {
+    [ -f "$pidf" ] && kill "$(cat "$pidf")" 2>/dev/null
+    rm -f "$pidf"
+}
+
+case "$1" in
+    close)
+        niri msg --json outputs | grep -q '"name":"\(DP\|HDMI\)' && exit 0
+        stop_timer
+        "$HOME/.local/bin/lock" auto &
+        niri msg action power-off-monitors
+        (
+            sleep "$LID_DELAY"
+            rm -f "$pidf"
+            grep -q closed /proc/acpi/button/lid/*/state && sudo -n zzz
+        ) &
+        echo $! > "$pidf"
+        ;;
+    open)
+        stop_timer
+        niri msg action power-on-monitors
+        ;;
+    *) echo "Usage: lid close|open" >&2; exit 1 ;;
+esac

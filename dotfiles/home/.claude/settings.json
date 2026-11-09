@@ -17,13 +17,12 @@
       "Bash(wpctl status *)",
       "Bash(niri validate *)",
       "Bash(niri msg *)",
-      "Bash(git -C ~/void-setup status *)",
-      "Bash(git -C ~/void-setup diff *)",
-      "Bash(git -C ~/void-setup log *)",
-      "Read(~/Projects/void-setup/**)",
-      "Edit(~/Projects/void-setup/**)",
-      "Read(~/work/**)",
-      "Edit(~/work/**)"
+      "Bash(fili-tx *)",
+      "Bash(fili-file ctl *)",
+      "Bash(sudo xbps-remove *)",
+      "Bash(rm /tmp/claude-*/*)",
+      "Bash(rm -f /tmp/claude-*/*)",
+      "Bash(rm -rf /tmp/claude-*/*)"
     ],
     "deny": [
       "Bash(*install-void.sh*)",
@@ -45,12 +44,18 @@
       "Edit(~/.ssh/**)",
       "Edit(~/.claude/.credentials.json)",
       "Read(~/.claude/.credentials.json)",
-      "Read(~/.ssh/id_*)"
+      "Read(~/.ssh/id_*)",
+      "Bash(sudo xbps-remove *-R*)",
+      "Bash(sudo xbps-remove *-f*)",
+      "Bash(sudo xbps-remove *base-system*)",
+      "Read(~/.codex/auth.json)",
+      "Edit(~/.codex/auth.json)",
+      "Read(~/.local/share/opencode/auth.json)",
+      "Edit(~/.local/share/opencode/auth.json)"
     ],
     "ask": [
       "Bash(sudo xbps-install -u*)",
       "Bash(sudo xbps-install -*u*)",
-      "Bash(sudo xbps-remove *)",
       "Bash(sudo xbps-reconfigure *)",
       "Bash(sudo sv restart *)",
       "Bash(sudo sv start *)",
@@ -60,18 +65,15 @@
       "Bash(sudo sv once *)",
       "Bash(sudo ln *)",
       "Bash(sudo rm *)",
-      "Bash(rm *)",
       "Bash(sudo reboot*)",
       "Bash(sudo poweroff*)",
       "Bash(sudo grub-*)",
-      "Bash(git -C ~/void-setup commit *)",
-      "Bash(git -C ~/void-setup push *)",
-      "Bash(git commit *)",
-      "Bash(git push *)",
-      "Edit(/etc/**)"
+      "Edit(/etc/**)",
+      "Bash(git push*main*)",
+      "Bash(git push*--force*)",
+      "Bash(git push* -f*)"
     ]
   },
-  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -79,7 +81,85 @@
         "hooks": [
           {
             "type": "command",
-            "command": "/home/thomas/.claude/hooks/guard-destructive.sh"
+            "command": "\"$HOME/.claude/hooks/guard-destructive.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ],
+        "matcher": "permission_prompt|elicitation_dialog"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-session hook",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "fili-ai-ask",
+            "timeout": 45
           }
         ]
       }
@@ -87,10 +167,8 @@
   },
   "statusLine": {
     "type": "command",
-    "command": "/bin/bash /home/thomas/.claude/statusline-command.sh"
+    "command": "fili-ai-session statusline"
   },
-  "tui": "fullscreen",
-  "skipDangerousModePermissionPrompt": true,
   "theme": "dark",
-  "agentPushNotifEnabled": true
+  "skipDangerousModePermissionPrompt": true
 }

@@ -1,0 +1,27 @@
+{
+  "name": "Terminal",
+  "menus": [
+    {
+      "label": "Shell",
+      "children": [
+        { "label": "New terminal", "exec": "foot" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/foot/foot.ini" }
+      ]
+    },
+    {
+      "label": "Go",
+      "children": [
+        { "label": "Files", "exec": "fili-file" },
+        { "label": "System monitor", "exec": "bar-tui btop" }
+      ]
+    },
+    {
+      "label": "Help",
+      "children": [
+        { "label": "Keyboard shortcuts", "exec": "fili-shell hotkeys" },
+        { "label": "About Filigrane", "exec": "fili-shell about" }
+      ]
+    }
+  ]
+}

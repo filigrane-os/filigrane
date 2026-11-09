@@ -1,7 +1,6 @@
-# Applications par défaut (xdg-open, portails, clic dans les applis)
 [Default Applications]
-inode/directory=yazi-foot.desktop
-application/pdf=chromium.desktop
+inode/directory=fili-file.desktop
+application/pdf=ai.storyteller.pdfcraft.desktop
 text/html=chromium.desktop
 x-scheme-handler/http=chromium.desktop
 x-scheme-handler/https=chromium.desktop
@@ -25,4 +24,20 @@ text/plain=nvim-foot.desktop
 text/markdown=nvim-foot.desktop
 application/json=nvim-foot.desktop
 text/x-shellscript=nvim-foot.desktop
-text/csv=nvim-foot.desktop
+text/csv=ai.storyteller.gridcraft.desktop
+application/zip=fili-archive.desktop
+application/x-7z-compressed=fili-archive.desktop
+application/vnd.rar=fili-archive.desktop
+application/x-rar=fili-archive.desktop
+application/x-tar=fili-archive.desktop
+application/x-compressed-tar=fili-archive.desktop
+application/x-bzip-compressed-tar=fili-archive.desktop
+application/x-xz-compressed-tar=fili-archive.desktop
+application/zstd=fili-archive.desktop
+application/gzip=fili-archive.desktop
+x-scheme-handler/about=chromium.desktop
+x-scheme-handler/unknown=chromium.desktop
+
+[Added Associations]
+application/pdf=ai.storyteller.pdfcraft.desktop;
+text/csv=ai.storyteller.gridcraft.desktop;

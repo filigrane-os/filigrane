@@ -1,0 +1,111 @@
+# Development
+
+How the repository is organised, how to test a change, and what the CI checks.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `install-void.sh` | From the Void live ISO: partitions the disk, installs the base system, runs `bootstrap.sh`, installs GRUB |
+| `bootstrap.sh` | On an existing Void system: packages, runit services, keyboard and time zone, groups, sudo, dotfiles, Rust tools, AI agent. Idempotent |
+| `config.env` | Distribution defaults, see [configuration.md](configuration.md) |
+| `packages/*.txt` | xbps lists: `base`, `desktop`, `dev`, `vm`, `baremetal`, `cpu-{intel,amd}`, `gpu-{intel,amd,nvidia}`, `mac-t2`, `dualboot` |
+| `services/*.txt` | runit services: `common`, `vm`, `baremetal` |
+| `system/` | Files installed under `/etc` and elsewhere: elogind, iwd, iptables, sysctl, udev, plymouth, earlyoom, zramen |
+| `dotfiles/home`, `dotfiles/config` | Linked into `~` and `~/.config` |
+| `apps/` | Native Rust tools: `bar-stats` (fili-shell's resident helper: bar stats, state watcher, pipe reader, charger events), `budget` (resource budget) |
+| `lib/` | `i18n.sh` and `i18n/<lang>.sh`: translations for the scripts, see [Translations](#translations) |
+| `agents/` | `skills/filigrane/` (the agent skill) and `work/` (instructions linked into the agent working directory) |
+| `brand/` | Master logo files (SVG), colours and typography: see `agents/skills/filigrane/references/brand.md` |
+| `hardware/<machine>/` | Everything specific to a hardware model |
+| `users/<login>/` | Personal layer, see [configuration.md](configuration.md#personal-layer) |
+| `distro/` | xbps repository and live ISO, see [distro/README.md](../distro/README.md) |
+| `scripts/` | `check-packages.sh`, `brand-assets.sh` (regenerates wallpaper and Plymouth theme from `brand/`), `pull-from-vm.sh`, `gen-emoji.py` |
+| `.github/workflows/` | CI |
+
+## Principles
+
+- **Light first.** A native Void package beats everything else: no daemon that is not needed, no Electron, JVM or resident Node. Home-made tools are small Rust binaries in `apps/`, built by `bootstrap.sh`, rather than scripts that load a heavy runtime. Measure with `budget save before` / `budget diff before`.
+- **Declarative.** A durable change goes in the repo, in the right layer, then `./bootstrap.sh`.
+- **No personal data in the distribution layer**: no account, service URL or `/home/<login>` path outside `users/`.
+
+## Testing a change
+
+- `./bootstrap.sh --plan [options]` prints the lists selected for any configuration without touching the system. Use it to check hardware-specific logic.
+- `niri validate` before reloading the niri configuration.
+- `scripts/check-packages.sh [arch]` checks that every listed package exists in the Void repository.
+- `shellcheck -x -S error <script>` for shell scripts.
+- In `apps/<name>/`: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and `cargo test` (style in `apps/rustfmt.toml`).
+- `tests/fili-shell/run.sh` for the Quickshell shell (bar, notifications, launcher): an isolated instance on a private D-Bus loads the real config and checks every bar click, the `fili-shell` channel, the launcher, notifications and the `FiliInfo` cards. Needs a running Wayland session; `tests/fili-shell/ci.sh` provides one without a desktop (headless sway hosting a nested niri) and is what the CI runs.
+- A virtual machine is the best test bed: dotfiles there are links into a clone of the repo, so edits are live. `scripts/pull-from-vm.sh [host]` copies the configuration folders back to your working copy; read `git diff`, then commit.
+- Never run `install-void.sh` on a disk you care about.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on pull requests to `main` and on pushes to `main` and `develop`. Nothing installs a system; it checks:
+
+| Job | Checks |
+|---|---|
+| `lint` | `bash -n` and `shellcheck` on scripts (including `~/.local/bin`), Python syntax, valid JSON, translation catalogs, `CLAUDE.md` imports `AGENTS.md`, skills have `name` and `description` |
+| `plan` | `bootstrap.sh --plan` for 8 configurations (VM, Intel / AMD / NVIDIA / hybrid PCs, T2 Mac, ARM, RISC-V), invalid options rejected, the personal layer only appears with `--user-layer` |
+| `packages` | Every listed package exists in the Void repository (aarch64 is informational: some Intel or proprietary packages are missing there) |
+| `niri` | `niri validate` on the distribution config and with each personal `local.kdl` |
+| `apps` | Rust tools in `apps/`: `cargo fmt --check`, `clippy -D warnings`, tests and release build with Void's toolchain; third-party tools (`apps/<name>/source`) built at their pinned commit |
+| `fili-shell` | `tests/fili-shell/ci.sh` in a Void container: Quickshell loads the real config inside a nested niri on headless sway, with `bar-stats` built from `apps/` |
+| `dotfiles` | Dotfiles applied in a clean `HOME` for `generic` and `mac-t2`: no broken link, T2 files only on the T2 machine, agent skills linked, `fili-ai` smoke test, idempotence |
+
+`.github/workflows/distro.yml` (pushes to `main`, or by hand) builds the xbps repository and the ISO in a privileged Void container, boots it in QEMU up to the login prompt, and keeps the ISO as an artifact for 7 days.
+
+## Translations
+
+Messages shown by the scripts are written in English in the code and translated at display time. `lib/i18n.sh` picks the language from `FILI_LANG`, else `LC_ALL`, `LC_MESSAGES` or `LANG` (`fr_FR.UTF-8` → `fr`). A catalog `lib/i18n/<lang>.sh` maps each exact English text to its translation; a language without a catalog, or a message without an entry, is shown in English.
+
+```sh
+FILI_LIB="$ROOT/lib"
+. "$FILI_LIB/i18n.sh"
+t 'Installing %s' "$name"          # printf-style, no newline
+```
+
+Scripts using it (`bootstrap.sh`, `fili-ai`) define `log`, `warn`, `die`, `say` and `note` on top of `t`; they all take the English text first, then the `printf` arguments. Write the English text in single quotes, without an apostrophe inside, and put variables in arguments, never in the text.
+
+To add or fix a language:
+
+1. Copy `lib/i18n/fr.sh` to `lib/i18n/<lang>.sh` (two letters, as in `LANG`) and translate the right-hand sides, keeping the same `%s` placeholders in the same order.
+2. Run `scripts/check-i18n.sh`: it fails on a missing entry, on a different number of placeholders, and on an entry no script uses any more. CI runs it.
+3. Try it: `LANG=<lang>_XX.UTF-8 ./bootstrap.sh --plan`.
+
+### Switching language
+
+`fili-lang set fr|en|system` (or the LANGUAGE row of the keyboard panel, or menu › System › Language) changes the language of the session live, without root or logging out. The choice is a locale in `$XDG_STATE_HOME/filigrane/locale` (empty = the system language, `LOCALE` of `config.env`), read before `LC_ALL`/`LC_MESSAGES`/`LANG` by `lib/i18n.sh`, `FiliI18n.qml` (which follows it at once: `fili-lang` also sends `fili-shell lang`) and `bar-stats` (restarted by the shell). Apps launched afterwards by niri get `LANG` from `~/.config/niri/locale.kdl`, written by `fili-lang` when the glibc locale exists; `bootstrap.sh` generates `LOCALE` and `LOCALES` (one per shipped language). Apps already open keep their language until restarted. The languages offered are English plus each `dotfiles/config/quickshell/i18n/<lang>.json` (its `@name` key is the language's own name).
+
+### fili-shell
+
+The desktop shell (Quickshell QML in `dotfiles/config/quickshell/`) and `bar-stats` share one catalog per language: `dotfiles/config/quickshell/i18n/<lang>.json`, a flat object `{"English text": "translation"}`. Placeholders are `%1`, `%2`... and may be reordered. The special key `@decimal` is the decimal separator. The language follows the same rule as `lib/i18n.sh`; dates (clock, calendar, notification times) use the Qt locale of that language.
+
+```qml
+text: FiliI18n.tr("Battery %1 %", capacity)   // FiliI18n.qml
+```
+```rust
+trf("Battery %1 %", &[&cap])                  // apps/bar-stats/src/i18n.rs; tr("...") without arguments
+```
+
+The bar scripts (`bar-*`, `fili-*`, notifications of `watch-*`, `captive-portal`...) use `lib/i18n.sh` like `bootstrap.sh`, with the guarded header found at the top of `bar-status`. A Python script (`display-save`) calls it through a small `t()` helper. `scripts/check-i18n.sh` checks the JSON catalogs too. To add a language to the shell, copy `fr.json` to `<lang>.json`; `tests/fili-shell/run.sh` runs in English (`FILI_LANG=en`).
+
+The menu keeps its labels in English inside the script (dispatch, key hints, `menu system Lock` from the power panel) and translates them only for display: `item 'System: Lock' "$GLYPH"` for the main list, `choose 'System › ' N 'Lock' ...` for a sub-menu. The fili-launcher shows the translated first column and returns the English second one (`--with-nth 1 --accept-nth 2`). The niri shortcut titles (`hotkey-overlay-title` in `dotfiles/config/niri/config.kdl`) are English too, translated by `fili-hotkeys` and the menu; titles of a personal `local.kdl` are shown as written.
+
+Not translated: `config.env` comments and the agent skill. Documentation is in English only.
+
+## Rust tools
+
+`apps/<name>/` are ordinary Cargo projects with a committed `Cargo.lock`. `bootstrap.sh` builds them with `cargo build --release --locked` (`cargo` comes from `packages/dev.txt`); the xbps repository ships them pre-built as `fili-apps`.
+
+## Visual identity
+
+Edit `brand/` and `agents/skills/filigrane/references/brand.md` first, then run `scripts/brand-assets.sh` (needs `rsvg-convert`, ImageMagick and the Jost font) to regenerate the wallpaper and the Plymouth theme. Generated images are committed. Downloaded images are never added to the repo (unknown licence).
+
+## Contributing
+
+1. Branch from `develop`, keep commits focused.
+2. Run `./bootstrap.sh --plan` and `shellcheck` on what you touched.
+3. Do not commit secrets, tokens, e-mail addresses or IPs: the repository is public.
+4. Open a pull request; the CI must pass.

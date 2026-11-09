@@ -1,0 +1,312 @@
+#!/bin/bash
+# Transactions on files: every change goes into a journal, so the whole thing can be undone (and redone) in one command.
+# For the AI agent (and for you): rename, move, trash and create files with fili-tx instead of mv/rm.
+#
+#   fili-tx mv SRC... DEST        move (DEST: an existing folder, or the new path of a single SRC); never overwrites
+#   fili-tx mv -                  batch: "old<TAB>new" lines on standard input (one call for any number of files)
+#   fili-tx trash PATH...         to the Trash (recoverable), never rm
+#   fili-tx mkdir DIR...          create folders
+#   fili-tx cp SRC DEST           copy (reflink when possible); the copy is journaled
+#   fili-tx made PATH...          register files that another tool just created (tar, convert...): undo trashes them
+#   fili-tx commit                close the open transaction (optional: the next change or `begin` closes it)
+#   fili-tx undo | rollback       undo the open or latest transaction (repeat to go further back)
+#   fili-tx redo                  redo the latest undone transaction
+#   fili-tx status                open transaction and the recent ones
+#   fili-tx begin [LABEL]         start a named transaction (any change starts one by itself)
+#
+# A command checks everything first and changes nothing if one item is wrong; if one step fails midway, the steps
+# already done by that command are undone. Output is one line (`tx ID: N changes`); errors go to stderr.
+# Journals: $XDG_STATE_HOME/filigrane/tx/<id>/journal (op<TAB>a<TAB>b), the last 20 transactions are kept.
+# Limits: only files on the home volume can be trashed here; paths with a tab or a newline are refused; no swaps (a->b, b->a).
+set -euo pipefail
+
+ROOT="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane/tx"
+TRASH="${XDG_DATA_HOME:-$HOME/.local/share}/Trash"
+KEEP=20
+mkdir -p "$ROOT"
+
+die() { echo "fili-tx: $*" >&2; exit 1; }
+abs() { realpath -s -m -- "$1"; }
+check_name() { case $1 in *$'\t'* | *$'\n'*) die "unsupported character (tab or newline) in a path: $1" ;; esac; }
+
+# ---- transaction state -------------------------------------------------------------------------------
+# ROOT/open: id of the open transaction; ROOT/redo: ids undone, most recent last
+open_id() { [ -s "$ROOT/open" ] && cat "$ROOT/open" || true; }
+state_of() { cat "$ROOT/$1/state" 2>/dev/null || echo gone; }
+prune() {
+    local d n=0
+    for d in $(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | sort -r); do
+        n=$((n + 1))
+        [ "$n" -le "$KEEP" ] || rm -rf "$d"
+    done
+}
+begin() {
+    local label="${1:-}" cur id
+    cur="$(open_id)"
+    [ -z "$cur" ] || commit_quiet
+    id="$(date +%Y%m%d-%H%M%S)"
+    while [ -e "$ROOT/$id" ]; do id="$id-"; done
+    mkdir -p "$ROOT/$id"
+    : >"$ROOT/$id/journal"
+    echo open >"$ROOT/$id/state"
+    printf '%s\n' "$label" >"$ROOT/$id/label"
+    echo "$id" >"$ROOT/open"
+    : >"$ROOT/redo"   # a new change drops the undone transactions
+    prune
+}
+commit_quiet() {
+    local cur
+    cur="$(open_id)"
+    [ -z "$cur" ] || { echo committed >"$ROOT/$cur/state"; : >"$ROOT/open"; }
+}
+ensure_open() { [ -n "$(open_id)" ] || begin auto; }
+
+# ---- primitives (each returns non-zero with a message on stderr) ---------------------------------------
+# trash: prints the name the item got in the Trash
+trash_one() {
+    local p="$1" before after name
+    before="$(ls -1 "$TRASH/info" 2>/dev/null | sort || true)"
+    gio trash -- "$p" 2>/dev/null || { echo "cannot trash $p" >&2; return 1; }
+    after="$(ls -1 "$TRASH/info" 2>/dev/null | sort || true)"
+    name="$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -1)"
+    [ -n "$name" ] || { echo "trashed $p but cannot find it in the Trash" >&2; return 1; }
+    printf '%s\n' "${name%.trashinfo}"
+}
+restore_one() { # NAME PATH
+    local name="$1" p="$2"
+    [ -e "$TRASH/files/$name" ] || [ -L "$TRASH/files/$name" ] || { echo "no longer in the Trash: $name (for $p)" >&2; return 1; }
+    [ ! -e "$p" ] && [ ! -L "$p" ] || { echo "already exists: $p" >&2; return 1; }
+    mkdir -p "$(dirname "$p")"
+    mv -- "$TRASH/files/$name" "$p"
+    rm -f -- "$TRASH/info/$name.trashinfo"
+}
+same_volume_as_trash() { [ "$(stat -c %d -- "$1")" = "$(stat -c %d -- "$TRASH/files" 2>/dev/null || stat -c %d -- "$HOME")" ]; }
+
+# apply OP A B -> performs the forward operation; prints the journal line fields it wants stored (third field)
+forward() {
+    local op="$1" a="$2" b="${3:-}"
+    case $op in
+        mv) mv -n -- "$a" "$b"; [ ! -e "$a" ] || { echo "not moved: $a" >&2; return 1; } ;;
+        trash) trash_one "$a" ;;
+        mkdir) mkdir -- "$a" ;;
+        made) # redo of a made file: bring it back from the Trash (b = its name there)
+            [ -z "$b" ] || restore_one "$b" "$a" ;;
+        *) echo "unknown op $op" >&2; return 1 ;;
+    esac
+}
+backward() {
+    local op="$1" a="$2" b="${3:-}"
+    case $op in
+        mv) [ -e "$b" ] || [ -L "$b" ] || { echo "missing: $b" >&2; return 1; }
+            [ ! -e "$a" ] && [ ! -L "$a" ] || { echo "already exists: $a" >&2; return 1; }
+            mkdir -p "$(dirname "$a")"; mv -- "$b" "$a" ;;
+        trash) restore_one "$b" "$a" ;;
+        mkdir) rmdir -- "$a" 2>/dev/null || { echo "cannot remove $a (not empty?)" >&2; return 1; } ;;
+        made) [ -e "$a" ] || [ -L "$a" ] || { echo "missing: $a" >&2; return 1; }
+              trash_one "$a" ;;
+        *) echo "unknown op $op" >&2; return 1 ;;
+    esac
+}
+
+# ---- running a set of operations as one command ------------------------------------------------------
+# ops are collected in OPS (lines "op<TAB>a<TAB>b"), validated by the caller, then applied; a failure undoes this command's steps
+OPS=()
+apply_ops() {
+    local line op a b out done=() i
+    [ "${#OPS[@]}" -gt 0 ] || die "nothing to do"
+    ensure_open
+    local id; id="$(open_id)"
+    for line in "${OPS[@]}"; do
+        IFS=$'\t' read -r op a b <<<"$line"
+        if out="$(forward "$op" "$a" "$b")"; then
+            case $op in trash) b="$out" ;; esac
+            done+=("$op"$'\t'"$a"$'\t'"$b")
+        else
+            echo "fili-tx: failed at $op $a, undoing this command" >&2
+            for ((i = ${#done[@]} - 1; i >= 0; i--)); do
+                IFS=$'\t' read -r op a b <<<"${done[i]}"
+                backward "$op" "$a" "$b" >/dev/null 2>&1 || echo "fili-tx: could not undo $op $a" >&2
+            done
+            exit 1
+        fi
+    done
+    printf '%s\n' "${done[@]}" >>"$ROOT/$id/journal"
+    echo "tx $id: ${#done[@]} changes"
+}
+
+need_free() { [ ! -e "$1" ] && [ ! -L "$1" ] || die "already exists: $1"; }
+
+cmd_mv() {
+    local -a src=() pairs=()
+    local dest a b line seen=$'\n'
+    if [ "${1:-}" = "-" ]; then
+        while IFS=$'\t' read -r a b; do
+            [ -n "$a" ] || continue
+            [ -n "$b" ] || die "line without a new name: $a"
+            pairs+=("$(abs "$a")"$'\t'"$(abs "$b")")
+        done
+    else
+        [ $# -ge 2 ] || die "usage: fili-tx mv SRC... DEST | fili-tx mv -"
+        dest="$(abs "${!#}")"
+        src=("${@:1:$#-1}")
+        for a in "${src[@]}"; do
+            a="$(abs "$a")"
+            if [ -d "$dest" ]; then b="$dest/$(basename "$a")"
+            elif [ ${#src[@]} -eq 1 ]; then b="$dest"
+            else die "destination is not a folder: $dest"; fi
+            pairs+=("$a"$'\t'"$b")
+        done
+    fi
+    [ ${#pairs[@]} -gt 0 ] || die "nothing to move"
+    for line in "${pairs[@]}"; do
+        IFS=$'\t' read -r a b <<<"$line"
+        check_name "$a"; check_name "$b"
+        [ -e "$a" ] || [ -L "$a" ] || die "does not exist: $a"
+        [ "$a" != "$b" ] || die "same path: $a"
+        need_free "$b"
+        case $seen in *$'\n'"$b"$'\n'*) die "two items to the same path: $b" ;; esac
+        seen+="$b"$'\n'
+        [ -d "$(dirname "$b")" ] || die "folder does not exist: $(dirname "$b")"
+        OPS+=("mv"$'\t'"$a"$'\t'"$b")
+    done
+    apply_ops
+}
+
+cmd_trash() {
+    local a p
+    [ $# -ge 1 ] || die "usage: fili-tx trash PATH..."
+    for a in "$@"; do
+        p="$(abs "$a")"
+        check_name "$p"
+        [ -e "$p" ] || [ -L "$p" ] || die "does not exist: $p"
+        same_volume_as_trash "$p" || die "not on the home volume, cannot be trashed with undo: $p"
+        OPS+=("trash"$'\t'"$p"$'\t')
+    done
+    apply_ops
+}
+
+cmd_mkdir() {
+    local a p
+    [ $# -ge 1 ] || die "usage: fili-tx mkdir DIR..."
+    for a in "$@"; do
+        p="$(abs "$a")"; check_name "$p"; need_free "$p"
+        [ -d "$(dirname "$p")" ] || die "folder does not exist: $(dirname "$p")"
+        OPS+=("mkdir"$'\t'"$p"$'\t')
+    done
+    apply_ops
+}
+
+cmd_made() {
+    local a p
+    [ $# -ge 1 ] || die "usage: fili-tx made PATH..."
+    for a in "$@"; do
+        p="$(abs "$a")"; check_name "$p"
+        [ -e "$p" ] || [ -L "$p" ] || die "does not exist: $p"
+        same_volume_as_trash "$p" || die "not on the home volume, cannot be undone: $p"
+        OPS+=("made"$'\t'"$p"$'\t')
+    done
+    # Nothing to perform: the files exist already; only the journal changes
+    ensure_open
+    local id n=0 line a2
+    id="$(open_id)"
+    for line in "${OPS[@]}"; do IFS=$'\t' read -r _ a2 _ <<<"$line"; printf 'made\t%s\t\n' "$a2" >>"$ROOT/$id/journal"; n=$((n + 1)); done
+    echo "tx $id: $n changes"
+}
+
+cmd_cp() {
+    [ $# -eq 2 ] || die "usage: fili-tx cp SRC DEST"
+    local a b
+    a="$(abs "$1")"; b="$(abs "$2")"
+    check_name "$a"; check_name "$b"
+    [ -e "$a" ] || die "does not exist: $a"
+    [ -d "$b" ] && b="$b/$(basename "$a")"
+    need_free "$b"
+    same_volume_as_trash "$(dirname "$b")" || die "destination not on the home volume: $b"
+    cp -a --reflink=auto -- "$a" "$b"
+    cmd_made "$b"
+}
+
+# ---- undo, redo, status -------------------------------------------------------------------------------
+cmd_undo() {
+    local id lines i op a b out failed=0 tmp
+    id="$(open_id)"
+    if [ -n "$id" ]; then commit_quiet
+    else
+        id="$(for d in $(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | sort -r); do
+                [ "$(cat "$d/state" 2>/dev/null)" = committed ] && { basename "$d"; break; }; done)"
+    fi
+    [ -n "$id" ] || die "nothing to undo"
+    mapfile -t lines <"$ROOT/$id/journal"
+    tmp="$ROOT/$id/journal.new"; : >"$tmp"
+    for ((i = ${#lines[@]} - 1; i >= 0; i--)); do
+        [ -n "${lines[i]}" ] || continue
+        IFS=$'\t' read -r op a b <<<"${lines[i]}"
+        if out="$(backward "$op" "$a" "$b")"; then
+            # undoing "made" trashes the file: keep its Trash name for a redo
+            case $op in made) printf 'made\t%s\t%s\n' "$a" "$out" >>"$tmp" ;; *) printf '%s\t%s\t%s\n' "$op" "$a" "$b" >>"$tmp" ;; esac
+        else
+            failed=$((failed + 1)); printf '%s\t%s\t%s\n' "$op" "$a" "$b" >>"$tmp.left"
+        fi
+    done
+    # journal.new is in reverse order: restore the forward order
+    tac "$tmp" >"$ROOT/$id/journal.done" 2>/dev/null || true
+    rm -f "$tmp"
+    if [ "$failed" -eq 0 ]; then
+        mv "$ROOT/$id/journal.done" "$ROOT/$id/journal"
+        echo undone >"$ROOT/$id/state"
+        echo "$id" >>"$ROOT/redo"
+        echo "tx $id: undone (${#lines[@]} changes)"
+    else
+        # keep what could not be undone; running undo again retries it
+        tac "$tmp.left" >"$ROOT/$id/journal"; rm -f "$tmp.left" "$ROOT/$id/journal.done"
+        echo committed >"$ROOT/$id/state"
+        echo "fili-tx: $failed change(s) could not be undone, they stay in tx $id" >&2
+        exit 1
+    fi
+}
+
+cmd_redo() {
+    local id lines line op a b out i
+    id="$(tail -1 "$ROOT/redo" 2>/dev/null || true)"
+    [ -n "$id" ] || die "nothing to redo"
+    mapfile -t lines <"$ROOT/$id/journal"
+    : >"$ROOT/$id/journal.new"
+    for line in "${lines[@]}"; do
+        [ -n "$line" ] || continue
+        IFS=$'\t' read -r op a b <<<"$line"
+        if out="$(forward "$op" "$a" "$b")"; then
+            case $op in trash) b="$out" ;; made) b="" ;; esac
+            printf '%s\t%s\t%s\n' "$op" "$a" "$b" >>"$ROOT/$id/journal.new"
+        else
+            echo "fili-tx: redo failed at $op $a" >&2; rm -f "$ROOT/$id/journal.new"; exit 1
+        fi
+    done
+    mv "$ROOT/$id/journal.new" "$ROOT/$id/journal"
+    echo committed >"$ROOT/$id/state"
+    sed -i '$d' "$ROOT/redo"
+    echo "tx $id: redone (${#lines[@]} changes)"
+}
+
+cmd_status() {
+    local d id n o; o="$(open_id)"
+    [ -n "$o" ] && echo "open: $o" || echo "open: none"
+    for d in $(find "$ROOT" -mindepth 1 -maxdepth 1 -type d | sort -r | head -8); do
+        id="$(basename "$d")"; n="$(grep -c . "$d/journal" 2>/dev/null || echo 0)"
+        printf '%s  %-9s %3s changes  %s\n' "$id" "$(state_of "$id")" "$n" "$(cat "$d/label" 2>/dev/null)"
+    done
+}
+
+case "${1:-}" in
+    begin) shift; begin "${1:-}"; echo "tx $(open_id): open" ;;
+    mv) shift; cmd_mv "$@" ;;
+    trash) shift; cmd_trash "$@" ;;
+    mkdir) shift; cmd_mkdir "$@" ;;
+    cp) shift; cmd_cp "$@" ;;
+    made) shift; cmd_made "$@" ;;
+    commit) id="$(open_id)"; [ -n "$id" ] || die "no open transaction"; commit_quiet; echo "tx $id: committed" ;;
+    undo | rollback) cmd_undo ;;
+    redo) cmd_redo ;;
+    status | "") cmd_status ;;
+    -h | --help | help) sed -n '2,/^set -e/{/^set -e/!p}' "$0" ;;
+    *) die "unknown command: $1 (fili-tx help)" ;;
+esac

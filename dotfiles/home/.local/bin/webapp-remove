@@ -1,0 +1,30 @@
+#!/bin/sh
+# Removes a web app from the menu (inverse of webapp-add).
+# webapp-remove "WhatsApp"
+# Deletes the line of ~/.config/webapps/list, its icon if nobody else uses it, then webapp-sync.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+[ -n "$1" ] || { echo 'usage: webapp-remove "Name"' >&2; exit 1; }
+name="$1"
+list="${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list"
+[ -f "$list" ] || { t 'list not found: %s\n' "$list" >&2; exit 1; }
+pat="^[[:space:]]*$(printf '%s' "$name" | sed 's/[][\.*^$/]/\\&/g')[[:space:]]*\|"
+line="$(grep -iE "$pat" "$list" | head -1)"
+[ -n "$line" ] || { t 'not found: %s\n' "$name" >&2; exit 1; }
+icon="$(printf '%s' "$line" | cut -d'|' -f3 | sed 's/^ *//;s/ *$//')"
+# Rewritten with cat: the list is a link to the repository, sed -i would replace it with a file
+tmp="$(mktemp)"
+grep -viE "$pat" "$list" > "$tmp"
+cat "$tmp" > "$list"; rm -f "$tmp"
+case "$icon" in
+    "~/.config/webapps/icons/"*)
+        f="${icon#\~/}"
+        if ! grep -qF "$icon" "$list"; then
+            real="$(readlink -f "$HOME/$f")"
+            rm -f "$HOME/$f" "$real"
+        fi ;;
+esac
+webapp-sync
+t 'removed: %s (web)\n' "$name"

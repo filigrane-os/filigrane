@@ -1,11 +1,10 @@
 # Bureau niri (tous profils)
 niri
-Waybar
+# Navigateur: chromium n'est installé par bootstrap.sh que si aucun navigateur par défaut n'existe (natif Wayland, CHROME_FLAGS posé par niri, sert aux webapps)
+# Shell Quickshell (dotfiles/config/quickshell): barre, notifications et sélecteur du menu (remplace Waybar, mako, fuzzel)
+quickshell
 foot
-fuzzel
-mako
 swaybg
-chromium
 swaylock
 brightnessctl
 playerctl
@@ -17,27 +16,32 @@ xdg-desktop-portal-gtk
 mesa-dri
 dejavu-fonts-ttf
 noto-fonts-ttf
+liberation-fonts-ttf  # mêmes dimensions qu'Arial, Times et Courier (documents bureautiques)
 font-awesome6
 # Menu tout-en-un (dotfiles/home/.local/bin/menu)
 cliphist
-libsecret  # trousseau (Secret Service) pour la CLI Proton Drive et les applis
+libsecret  # trousseau (Secret Service) pour les applis et CLI qui gardent une session
 gnome-keyring  # démon lancé à la demande par D-Bus
 vips  # miniatures des fonds d'écran dans le menu (vipsthumbnail)
 libnotify
 qalculate
 noto-fonts-emoji
-# Écrans: réglage visuel (wdisplays) et profils automatiques (kanshi)
-wdisplays
+# Panneau clavier: visualiseur (fili-keymap lit le keymap avec xkbcli) et emoji, frappe dans la fenêtre active (wtype)
+wtype
+libxkbcommon-tools
+# Écrans: profils automatiques (kanshi)
 kanshi
 python3
-# Clics de la barre Waybar: moniteur système et mixeur audio en TUI (pas de daemon)
+# Clics de la barre: moniteur système et mixeur audio en TUI (pas de daemon)
 btop
 wiremix
 # Wi-Fi et Bluetooth (pile d'Omarchy): iwd + impala, bluez + bluetui. Démons au repos si aucun adaptateur.
-# iwd remplace wpa_supplicant (DHCP reste géré par dhcpcd).
+# iwd remplace wpa_supplicant et configure l'IP du Wi-Fi (dhcpcd: filaire seulement).
 iwd
 impala
 bluez
+sound-theme-freedesktop   # sons: notification et chargeur branché (fili-sound)
+bluez-obex         # envoi/réception de fichiers Bluetooth (fili-share); obexd ne tourne que sur demande
 libspa-bluetooth   # son Bluetooth (casques) dans PipeWire
 bluetui
 # Indicateurs de la barre: veilleuse et enregistrement d'écran
@@ -47,31 +51,23 @@ wf-recorder
 # Verrouillage auto et écran éteint au repos (38 Ko, bascule dans la barre)
 swayidle
 
-# Notifications Proton Mail: pont IMAP local (démon Go, ~100-200 Mo, lancé par niri) + écoute IMAP IDLE (10 Mo)
-protonmail-bridge
-goimapnotify
-
-# Notifications Proton Calendar: lecture du lien ICS (cal-notify), sans daemon propre
-python3-icalendar
-
-# Gestionnaire de fichiers, visionneuse, USB sans daemon (udisks2 à la demande), santé du disque
-yazi
+# Visionneuse, USB sans daemon (udisks2 à la demande), santé du disque (le gestionnaire de fichiers est fili-file, apps/)
 imv
+poppler  # pdftoppm: pages PDF en image pour l'aperçu rapide (quicklook)
+pspg  # tableaux CSV/TSV dans l'aperçu rapide (343 Ko + postgresql-libs 1,4 Mo)
 udisks2
 smartmontools
 nvme-cli
 rtkit
 
-# Explorateur graphique: Thunar, montage auto des disques externes (volman) via gvfs; gvfs/thunar démarrent à la demande, pas de daemon résident
-Thunar
-thunar-volman
+# Lecteurs réseau de Casier (Se connecter au serveur…, Ctrl+K): gvfs (SFTP, WebDAV, FTP, NFS) et son backend SMB; démarrent à la demande par D-Bus, pas de daemon résident
 gvfs
-# Icônes du Thunar/GTK (fichiers statiques, ~100 Mo disque)
-papirus-icon-theme
-papirus-folders  # couleur des dossiers: sudo papirus-folders -C violet -t Papirus-Dark (à relancer après mise à jour des icônes)
+gvfs-smb
+# Téléphones et appareils photo MTP (Casier: apparaissent dans les emplacements, un clic les monte); 1 Mo, sans daemon
+gvfs-mtp
+# Archives (fili-archive): zip pour créer, 7zip pour 7z/rar
+zip
+7zip
+# Icônes: Adwaita (adwaita-icon-theme, dépendance de GTK) pour les types de fichiers; dossiers et glyphes du thème Filigrane-Icons
+# (scripts/icon-theme.sh, lancé par bootstrap.sh). Plus de Papirus.
 
-# VPN Proton via WireGuard (wg-quick, sans daemon; script dotfiles/home/.local/bin/vpn)
-wireguard-tools
-
-# Relais de la socket du compteur WhatsApp (wa-daemon), remplace un script Python (~1 Mo)
-socat

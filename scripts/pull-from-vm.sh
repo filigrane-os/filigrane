@@ -1,15 +1,15 @@
 #!/bin/bash
-# Rapatrie la configuration depuis la VM de référence (hôte ssh "void").
-# Sur la VM, les dotfiles sont des liens vers ~/void-setup: ce qu'on y modifie atterrit
-# dans sa copie du dépôt. On récupère donc les dossiers de configuration en bloc.
-# Usage: pull-from-vm.sh [hôte]   puis relire `git diff` et commiter.
+# Brings the configuration back from the reference VM (ssh host "void").
+# On the VM, the dotfiles are links to ~/filigrane (~/void-setup before the renaming): what is changed there lands
+# in its copy of the repository. So the configuration folders are fetched as a whole.
+# Usage: pull-from-vm.sh [host]   then read the git diff again and commit.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 HOST="${1:-void}"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-ssh "$HOST" 'cd ~/void-setup && tar -cf - dotfiles packages services hardware config.env' | tar -xf - -C .
+ssh "$HOST" '{ cd ~/filigrane || cd ~/void-setup; } && tar -cf - dotfiles packages services hardware users config.env' | tar -xf - -C .
 
 echo "Paquets installés manuellement sur $HOST mais absents des listes:"
 ssh "$HOST" 'xbps-query -m' | sed -E 's/-[^-]+$//' | sort > "$TMP/vm.txt"

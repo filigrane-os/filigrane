@@ -1,0 +1,25 @@
+/* Filigrane (brand.md), light mode on Adwaita: paper, night text, slate accent (imported by gtk.css through theme.css) */
+@define-color theme_bg_color #f3f1ec;
+@define-color theme_base_color #f8f7f3;
+@define-color theme_fg_color #1c222b;
+@define-color theme_text_color #1c222b;
+@define-color theme_selected_bg_color #5f7894;
+@define-color theme_selected_fg_color #f3f1ec;
+@define-color theme_unfocused_bg_color #f3f1ec;
+@define-color theme_unfocused_base_color #f8f7f3;
+@define-color theme_unfocused_fg_color #4f5e70;
+@define-color theme_unfocused_text_color #4f5e70;
+@define-color theme_unfocused_selected_bg_color #cdc8bd;
+@define-color theme_unfocused_selected_fg_color #1c222b;
+@define-color insensitive_bg_color #f3f1ec;
+@define-color insensitive_fg_color #5f7894;
+@define-color insensitive_base_color #f8f7f3;
+@define-color borders #dfdbd2;
+@define-color unfocused_borders #dfdbd2;
+@define-color warning_color #80662b;
+@define-color error_color #9a4f55;
+@define-color success_color #4a7354;
+@define-color content_view_bg #f8f7f3;
+@define-color wm_bg #f3f1ec;
+@define-color wm_title #1c222b;
+
