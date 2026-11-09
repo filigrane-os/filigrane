@@ -311,6 +311,8 @@ spawn-sh-at-startup "while :; do quickshell; sleep 1; done"
 spawn-at-startup "sh" "-c" "$HOME/.local/bin/bar-toggle night start"
 // Automatic display profiles (config: ~/.config/kanshi/config)
 spawn-at-startup "kanshi"
+// Internal panel back on when the dock is unplugged (and off again when it is plugged back), see fili-internal-panel
+spawn-at-startup "sh" "-c" "exec $HOME/.local/bin/fili-internal-panel watch"
 // Mounts USB sticks, SD cards and external disks when plugged in (can be disabled: automount = false in ~/.config/filigrane/fili-file.toml)
 spawn-at-startup "sh" "-c" "/usr/bin/fili-automount"
 // Resident Casier (Settings > Casier > Open instantly): loads a hidden copy so that Casier opens at once; does nothing when the setting is off

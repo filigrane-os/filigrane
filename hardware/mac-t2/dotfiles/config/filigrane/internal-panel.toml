@@ -1,0 +1,3 @@
+# Internal panel (fili-internal-panel). The Intel Ice Lake GPU of the T2 MacBooks drives three displays at most: with
+# three external displays connected at login, the panel starts off so that the third one gets a graphics pipe.
+off-at = 3
