@@ -27,7 +27,7 @@ Les questions de la section 23 de la source ont leur réponse :
 | Thèmes | sombre par défaut, clair optionnel (`fili-theme`), même sémantique |
 | Palette | `FiliTheme.qml`, tokens sémantiques dans `tokens.md` |
 | Icônes | « Fili Icons » (Lucide, trait fin, jamais pleines) ; Nerd Fonts dans le terminal |
-| Raccourcis | `Mod+…` pour niri (bépo main droite, flèches aussi), liste `Mod+K` ; Esc / Entrée / Tab / flèches dans le shell |
+| Raccourcis | `Mod+…` pour niri (flèches et chiffres; les touches propres à une disposition comme le bépo vont dans la couche utilisateur), liste `Mod+K` ; Esc / Entrée / Tab / flèches dans le shell |
 | Langue | anglais dans le code, `FiliI18n.tr()`, catalogue `i18n/<lang>.json` |
 
 Reste **[À valider]** : la taille minimale des cibles, la prise en charge des technologies d'assistance (le shell n'expose pas encore d'accessibilité AT-SPI), une préférence de réduction des animations.
