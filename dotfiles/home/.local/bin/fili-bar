@@ -216,6 +216,11 @@ cmd_install() {
     if [ -n "$api" ] && [ "$api" -gt "$API" ] 2> /dev/null; then die "$(t 'This plugin needs api %s, this bar has api %s' "$api" "$API")"; fi
     echo "$(t 'Plugin %s at %s' "$name" "$rev")"
     sed 's/^/  /' "$tmp/p/module.toml"
+    missing="$(missing_packages "$tmp/p/module.toml")"
+    if [ -n "$(mlist "$tmp/p/module.toml" packages)" ]; then
+        echo "$(t 'packages: %s' "$(mlist "$tmp/p/module.toml" packages | tr '\n' ' ')")"
+        [ -z "$missing" ] || echo "$(t 'to install with xbps (sudo): %s' "$(echo $missing)")"
+    fi
     if [ -f "$tmp/p/install.sh" ]; then
         echo "$(t 'install.sh (runs once installed, with your rights):')"
         sed 's/^/  | /' "$tmp/p/install.sh"
@@ -224,8 +229,25 @@ cmd_install() {
     [ -e "$share/$name" ] && die "$(t 'Already there: %s' "$share/$name")"
     mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name"
     pin "$name" "$url@$rev"
+    install_packages "$name"
     echo "$(t 'Installed %s' "$name")"
     run_setup "$name"
+}
+
+# Packages of a manifest (packages = ["socat", "go"]) that xbps does not have yet, one per line
+missing_packages() {
+    mlist "$1" packages | while IFS= read -r pkg; do
+        [ -n "$pkg" ] || continue
+        xbps-query "$pkg" > /dev/null 2>&1 || echo "$pkg"
+    done
+}
+# Install the missing packages of an installed plugin with xbps (sudo); a failure is reported, the plugin stays installed
+install_packages() {
+    m="$(missing_packages "$share/$1/module.toml")"
+    [ -n "$m" ] || return 0
+    echo "$(t 'Installing packages: %s' "$(echo $m)")"
+    # shellcheck disable=SC2086
+    sudo xbps-install -y $m || { echo "$(t '%s: packages not installed (run: fili-bar setup %s)' "$1" "$1")" >&2; return 1; }
 }
 
 # Run the install.sh of an installed plugin, in its folder (a failure is reported, the plugin stays installed)
@@ -238,6 +260,7 @@ run_setup() {
 
 cmd_setup() {
     valid_name "${1:-}" && [ -d "$share/$1" ] || die "$(t 'No such plugin: %s' "${1:-}")"
+    install_packages "$1"
     [ -f "$share/$1/install.sh" ] || { echo "$(t '%s has no install.sh' "$1")"; return 0; }
     run_setup "$1"
 }
@@ -259,6 +282,7 @@ cmd_sync() {
             git -C "$share/$name" fetch -q 2> /dev/null; git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $rev" || echo "$name: $(t 'could not reach %s' "$rev")"
         else
             mkdir -p "$share" && git clone -q "$url" "$share/$name" 2> /dev/null && git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $(t 'installed')" || echo "$name: $(t 'failed')"
+            [ -d "$share/$name" ] && install_packages "$name"
             [ -d "$share/$name" ] && run_setup "$name"
         fi
         [ -d "$share/$name" ] && link "$name"

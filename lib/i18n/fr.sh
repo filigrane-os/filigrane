@@ -430,6 +430,10 @@ _t_lookup() {
     'installed') _t_fmt='installé' ;;
     'No such plugin: %s') _t_fmt='Plugin inconnu: %s' ;;
     'Installed %s') _t_fmt='%s installé' ;;
+    'packages: %s') _t_fmt='paquets: %s' ;;
+    'to install with xbps (sudo): %s') _t_fmt='à installer avec xbps (sudo): %s' ;;
+    'Installing packages: %s') _t_fmt='Installation des paquets: %s' ;;
+    '%s: packages not installed (run: fili-bar setup %s)') _t_fmt='%s: paquets non installés (relancer: fili-bar setup %s)' ;;
     'install.sh (runs once installed, with your rights):') _t_fmt='install.sh (lancé après l’installation, avec vos droits):' ;;
     'Setting up %s') _t_fmt='Configuration de %s' ;;
     '%s: install.sh failed (run: fili-bar setup %s)') _t_fmt='%s: install.sh a échoué (relancer: fili-bar setup %s)' ;;

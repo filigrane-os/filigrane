@@ -68,5 +68,13 @@ check "autostart skips a disabled plugin" '[ "$(wc -l < "$T_AUTO")" = 2 ]'
 "$FB" enable auto > /dev/null; "$FB" autostart --force > /dev/null; sleep 0.5
 check "autostart --force runs again" '[ "$(wc -l < "$T_AUTO")" = 4 ]'
 unset T_AUTO
+R5="$T/src/fili-bar-pkgs"; mkdir -p "$R5" "$T/stub"
+printf '#!/bin/sh\n[ "$1" = have ]\n' > "$T/stub/xbps-query"; printf '#!/bin/sh\necho "sudo $*" >> %s\n' "$T/sudo.log" > "$T/stub/sudo"; chmod +x "$T/stub/xbps-query" "$T/stub/sudo"
+(cd "$R5" && git init -q && printf 'title = "Pk"\napi = 1\ncmd = "./e.sh"\npackages = ["have", "need-a", "need-b"]\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
+check "install shows the packages and only the missing ones to install" 'out="$(PATH="$T/stub:$PATH" "$FB" install "$R5" 2> /dev/null)"; echo "$out" | grep -q "packages: have need-a need-b" && echo "$out" | grep -q "to install with xbps (sudo): need-a need-b" && [ ! -e "$T/sudo.log" ]'
+PATH="$T/stub:$PATH" "$FB" install "$R5" --yes > /dev/null
+check "install --yes installs the missing packages with xbps" 'grep -qx "sudo xbps-install -y need-a need-b" "$T/sudo.log"'
+rm -f "$T/sudo.log"; PATH="$T/stub:$PATH" "$FB" setup pkgs > /dev/null
+check "setup installs the missing packages again" 'grep -qx "sudo xbps-install -y need-a need-b" "$T/sudo.log"'
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

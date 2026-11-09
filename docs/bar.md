@@ -176,6 +176,16 @@ printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(up
 
 The output protocol is the one of `BarScript` above (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
 
+### Packages a plugin needs
+
+A plugin lists the xbps packages it depends on in its manifest:
+
+```toml
+packages = ["socat", "go"]
+```
+
+`fili-bar install` shows them, with the ones that are missing; with `--yes` it installs the missing ones with `sudo xbps-install -y` before running `install.sh`. `fili-bar setup NAME` and `fili-bar sync` do the same on another machine. Name only what the plugin needs; the Filigrane rule applies: if a package is heavy, say so in the README of the plugin (the user sees the list before saying `--yes`).
+
 ### `install.sh`: first-run setup
 
 A plugin may ship an optional `install.sh` at its root: the steps that make it work (build a daemon, store a credential in the keyring, copy `config.example.toml` to the options file, run `rclone config`). `fili-bar install` shows it with the manifest, runs it with `--yes` once the plugin is in place, and `fili-bar sync` runs it for every plugin it clones on a new machine. `fili-bar setup NAME` runs it again.
