@@ -602,6 +602,8 @@ ShellRoot {
                 const b = d.outputs[1];
                 const p = d.snapPos(b, 1300, 30);
                 ok(p.x === 1280 && p.y === 0, "fili-settings écran: aimantation au bord voisin", JSON.stringify(p));
+                const g = d.snapPos(b, 1400, 900);
+                ok(g.x === 1400 && g.y === 800 || g.x === 1280, "fili-settings écran: jamais d'écart entre deux écrans (bord collé)", JSON.stringify(g));
                 FiliTheme.ran = [];
                 d.setResolution(d.outputs[0], d.resolutions[1]);
                 ok(FiliTheme.ran[0] === "niri msg output 'A-1' mode 1920x1200@120.000", "fili-settings écran: définition -> plus haute fréquence", JSON.stringify(FiliTheme.ran));
@@ -617,8 +619,15 @@ ShellRoot {
                 d.move(b, 1500, 400);
                 ok(FiliTheme.ran.length === 0 && d.dirty, "fili-settings écran: le déplacement n'est qu'en attente", JSON.stringify(d.pending));
                 d.applyLayout();
-                ok(FiliTheme.ran[0] === "niri msg output 'B-1' position set 1280 0" + "".padEnd(0) || FiliTheme.ran[0].indexOf("niri msg output 'B-1' position set") === 0, "fili-settings écran: Appliquer valide la position", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' position set 0 0; niri msg output 'B-1' position set 1280 400", "fili-settings écran: Appliquer fige la position de tous les écrans (niri replace les autres)", JSON.stringify(FiliTheme.ran));
                 ok(!d.dirty && d.snap === null, "fili-settings écran: plus rien en attente après Appliquer");
+                // Two outputs 67 px apart: Apply closes the gap
+                d.outputs = [out("A-1", 0, 2, [mode(2560, 1600, 60001)]), out("B-1", 1347, 1, [mode(1920, 1080, 60000)])];
+                ok(d.dirty && d.gapped.length === 2, "fili-settings écran: écart détecté, Appliquer actif", JSON.stringify(d.gapped));
+                FiliTheme.ran = [];
+                d.applyLayout();
+                ok(FiliTheme.ran[0] === "niri msg output 'A-1' position set 67 0; niri msg output 'B-1' position set 1347 0", "fili-settings écran: Appliquer ferme l'écart (A-1 se recolle à B-1)", JSON.stringify(FiliTheme.ran));
+                d.outputs = [out("A-1", 0, 2, [mode(2560, 1600, 60001), mode(1920, 1200, 60000), mode(1920, 1200, 120000)]), out("B-1", 1280, 1, [mode(1920, 1080, 60000)])];
                 FiliTheme.ran = [];
                 d.resetLayout();
                 ok(FiliTheme.ran[0] === "niri msg output 'A-1' position set 0 0; niri msg output 'B-1' position set 1280 0", "fili-settings écran: Réinitialiser aligne les écrans", JSON.stringify(FiliTheme.ran));

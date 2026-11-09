@@ -29,7 +29,16 @@ ColumnLayout {
     property var ghost: null
     // Positions staged by dragging, not applied yet: name -> {x, y}
     property var pending: ({})
-    readonly property bool dirty: Object.keys(pending).length > 0
+    // Staged moves, or an output touching no other one (the pointer cannot cross a gap): Apply has something to do
+    readonly property bool dirty: Object.keys(pending).length > 0 || gapped.length > 0
+    readonly property var gapped: {
+        if (active.length < 2)
+            return [];
+        const rs = active.map(o => rect(o));
+        const touch = (a, b) => ((a.x + a.w === b.x || b.x + b.w === a.x) && a.y < b.y + b.h && b.y < a.y + a.h)
+            || ((a.y + a.h === b.y || b.y + b.h === a.y) && a.x < b.x + b.w && b.x < a.x + a.w);
+        return active.filter((o, i) => !rs.some((r, j) => j !== i && touch(rs[i], r))).map(o => o.name);
+    }
     // Message under the canvas (e.g. too many outputs for the graphics card), and the number of outputs found
     // drivable at once (0 = not known yet)
     property string notice: ""
@@ -167,22 +176,37 @@ ColumnLayout {
         apply(o.name, "transform " + t, true);
     }
 
-    // Snapping: edges stuck or aligned to the other outputs within 40 logical px
+    // Snapping: the output always ends up touching another one (the pointer cannot cross a gap), on the side nearest
+    // to where it was dropped, keeping at least `m` px of shared edge; then edges align to the others within 40 logical px
     function snapPos(o, x, y) {
         const r = rect(o);
         const T = 40;
-        let bx = x, by = y, dx = T, dy = T;
-        for (const p of active) {
-            if (p.name === o.name)
-                continue;
-            const q = rect(p);
-            q.width = q.w;
-            q.height = q.h;
-            for (const c of [q.x + q.width, q.x - r.w, q.x, q.x + q.width - r.w]) {
-                if (Math.abs(c - x) < dx) { dx = Math.abs(c - x); bx = c; }
+        const others = active.filter(p => p.name !== o.name).map(p => rect(p));
+        if (!others.length)
+            return { x: Math.round(x), y: Math.round(y) };
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        let best = null, bd = Infinity;
+        for (const q of others) {
+            const mx = Math.min(100, r.w, q.w), my = Math.min(100, r.h, q.h);
+            const cx = clamp(x, q.x - r.w + mx, q.x + q.w - mx), cy = clamp(y, q.y - r.h + my, q.y + q.h - my);
+            for (const c of [{ x: q.x + q.w, y: cy }, { x: q.x - r.w, y: cy }, { x: cx, y: q.y + q.h }, { x: cx, y: q.y - r.h }]) {
+                // not overlapping any output
+                if (others.some(z => c.x < z.x + z.w && c.x + r.w > z.x && c.y < z.y + z.h && c.y + r.h > z.y))
+                    continue;
+                const d = Math.hypot(c.x - x, c.y - y);
+                if (d < bd) { bd = d; best = c; }
             }
-            for (const c of [q.y + q.height, q.y - r.h, q.y, q.y + q.height - r.h]) {
-                if (Math.abs(c - y) < dy) { dy = Math.abs(c - y); by = c; }
+        }
+        if (!best)
+            return { x: Math.round(x), y: Math.round(y) };
+        // Align edges on the free axis (only if it keeps the contact)
+        let bx = best.x, by = best.y;
+        const vertical = others.some(q => best.y === q.y + q.h || best.y === q.y - r.h);
+        for (const q of others) {
+            const cs = vertical ? [q.x, q.x + q.w - r.w] : [q.y, q.y + q.h - r.h];
+            for (const c of cs) {
+                if (vertical && Math.abs(c - bx) < T && c < q.x + q.w && c + r.w > q.x) bx = c;
+                if (!vertical && Math.abs(c - by) < T && c < q.y + q.h && c + r.h > q.y) by = c;
             }
         }
         return { x: Math.round(bx), y: Math.round(by) };
@@ -198,11 +222,22 @@ ColumnLayout {
         pending = m;
         return p;
     }
-    // Commits the staged positions in one go
+    // Commits the layout in one go. Every output that is on gets an explicit position (staged or current): niri keeps
+    // re-placing the outputs without one whenever another output moves, which scrambled the layout after Apply.
     function applyLayout() {
         if (!dirty)
             return;
-        const c = Object.keys(pending).map(n => cmd(n, "position set " + pending[n].x + " " + pending[n].y));
+        // Close the gaps first (snapPos reads the staged positions of the others)
+        for (const o of active.filter(x => gapped.indexOf(x.name) >= 0)) {
+            const r = rect(o);
+            const m = Object.assign({}, pending);
+            m[o.name] = snapPos(o, r.x, r.y);
+            pending = m;
+        }
+        const c = active.map(o => {
+            const p = pending[o.name] ?? o.logical;
+            return cmd(o.name, "position set " + p.x + " " + p.y);
+        });
         pending = ({});
         FiliTheme.run(c.join("; "));
         reread.restart();
@@ -349,6 +384,8 @@ ColumnLayout {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.SizeAllCursor
+                    // The page scrolls (Flickable): without this it steals the drag and the screen does not move
+                    preventStealing: true
                     property point from
                     property var start
                     onPressed: m => {
