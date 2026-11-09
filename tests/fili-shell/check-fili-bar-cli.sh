@@ -43,5 +43,17 @@ R2="$T/src/fili-bar-pfx"; mkdir -p "$R2"
 (cd "$R2" && git init -q && printf 'title = "Pfx"\napi = 1\ncmd = "./e.sh"\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
 "$FB" install "$R2" --yes > /dev/null
 check "install strips the fili-bar- prefix of the repository name" '[ -L "$XDG_CONFIG_HOME/quickshell/bar/modules/pfx" ]'
+R3="$T/src/fili-bar-hook"; mkdir -p "$R3"
+(cd "$R3" && git init -q && printf 'title = "Hook"\napi = 1\ncmd = "./e.sh"\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && printf '#!/bin/sh\necho x >> "$FILI_BAR_OPTIONS.ran"\n' > install.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
+export FILI_BAR_OPTIONS="$T/hook.toml"
+check "install without --yes shows install.sh and runs nothing" '"$FB" install "$R3" 2> /dev/null | grep -q "echo x" && [ ! -e "$T/hook.toml.ran" ]'
+"$FB" install "$R3" --yes > /dev/null
+check "install --yes runs install.sh once" '[ "$(wc -l < "$T/hook.toml.ran")" = 1 ]'
+"$FB" setup hook > /dev/null
+check "setup runs install.sh again" '[ "$(wc -l < "$T/hook.toml.ran")" = 2 ]'
+check "setup refuses an unknown plugin" '! "$FB" setup nope 2> /dev/null'
+rm -rf "$T/data/filigrane/bar/plugins/hook"; "$FB" sync > /dev/null
+check "sync runs install.sh of a plugin it clones" '[ "$(wc -l < "$T/hook.toml.ran")" = 3 ]'
+unset FILI_BAR_OPTIONS
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

@@ -8,9 +8,10 @@
 # fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
 # fili-bar check DIR|NAME             check the manifest and the script of a module
 # fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
+# fili-bar setup NAME                run the install.sh of a plugin again (idempotent: credentials, daemons, first-run steps)
 # fili-bar remove NAME                remove a plugin installed by `new` or `install`
 # fili-bar sync                       clone the plugins of bar-plugins.toml (pinned to a commit) on a new machine
-# A plugin is a folder with a module.toml (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
+# A plugin is a folder with a module.toml and, optionally, an install.sh (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
 # (never in the repository) and are linked into ~/.config/quickshell/bar/modules/NAME, where the bar finds them.
 # The settings go to ~/.config/filigrane/fili-bar.toml, which the bar re-reads as soon as it changes (when that file is a
 # link to the repository, the file of the repository is edited). A plugin runs with your rights: read it before adding it.
@@ -205,11 +206,30 @@ cmd_install() {
     if [ -n "$api" ] && [ "$api" -gt "$API" ] 2> /dev/null; then die "$(t 'This plugin needs api %s, this bar has api %s' "$api" "$API")"; fi
     echo "$(t 'Plugin %s at %s' "$name" "$rev")"
     sed 's/^/  /' "$tmp/p/module.toml"
+    if [ -f "$tmp/p/install.sh" ]; then
+        echo "$(t 'install.sh (runs once installed, with your rights):')"
+        sed 's/^/  | /' "$tmp/p/install.sh"
+    fi
     [ "$yes" = 1 ] || { echo "$(t 'It runs with your rights. Read it, then run again with --yes.')"; exit 2; }
     [ -e "$share/$name" ] && die "$(t 'Already there: %s' "$share/$name")"
     mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name"
     pin "$name" "$url@$rev"
     echo "$(t 'Installed %s' "$name")"
+    run_setup "$name"
+}
+
+# Run the install.sh of an installed plugin, in its folder (a failure is reported, the plugin stays installed)
+run_setup() {
+    [ -f "$share/$1/install.sh" ] || return 0
+    echo "$(t 'Setting up %s' "$1")"
+    ( cd "$share/$1" && FILI_BAR_PLUGIN="$1" FILI_BAR_OPTIONS="${FILI_BAR_OPTIONS:-$cfg/filigrane/bar/$1.toml}" sh ./install.sh ) \
+        || { echo "$(t '%s: install.sh failed (run: fili-bar setup %s)' "$1" "$1")" >&2; return 1; }
+}
+
+cmd_setup() {
+    valid_name "${1:-}" && [ -d "$share/$1" ] || die "$(t 'No such plugin: %s' "${1:-}")"
+    [ -f "$share/$1/install.sh" ] || { echo "$(t '%s has no install.sh' "$1")"; return 0; }
+    run_setup "$1"
 }
 
 # Record NAME = "url@commit" in bar-plugins.toml
@@ -229,6 +249,7 @@ cmd_sync() {
             git -C "$share/$name" fetch -q 2> /dev/null; git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $rev" || echo "$name: $(t 'could not reach %s' "$rev")"
         else
             mkdir -p "$share" && git clone -q "$url" "$share/$name" 2> /dev/null && git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $(t 'installed')" || echo "$name: $(t 'failed')"
+            [ -d "$share/$name" ] && run_setup "$name"
         fi
         [ -d "$share/$name" ] && link "$name"
     done
@@ -272,6 +293,7 @@ case "${1:-list}" in
     new) cmd_new "${2:-}" "${3:-}" ;;
     check) cmd_check "${2:-}" ;;
     install) shift; cmd_install "$@" ;;
+    setup) cmd_setup "${2:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
     -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;

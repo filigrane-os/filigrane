@@ -91,6 +91,7 @@ fili-bar screens [all|NAME...]         screens that get a bar
 fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML module)
 fili-bar check DIR|NAME                check a manifest and its script
 fili-bar install URL [--commit REV]    clone a plugin (a repository `fili-bar-NAME` installs as `NAME`); shows its manifest, then --yes
+fili-bar setup NAME                    run the install.sh of a plugin again
 fili-bar remove NAME                   remove a plugin (to the trash)
 fili-bar sync                          clone the pinned plugins of bar-plugins.toml (new machine)
 ```
@@ -173,6 +174,15 @@ printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(up
 | `title`, `hint` | name and help line of the tooltip |
 
 The output protocol is the one of `BarScript` above (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
+
+### `install.sh`: first-run setup
+
+A plugin may ship an optional `install.sh` at its root: the steps that make it work (build a daemon, store a credential in the keyring, copy `config.example.toml` to the options file, run `rclone config`). `fili-bar install` shows it with the manifest, runs it with `--yes` once the plugin is in place, and `fili-bar sync` runs it for every plugin it clones on a new machine. `fili-bar setup NAME` runs it again.
+
+- It runs with `sh`, in the folder of the plugin, with `FILI_BAR_PLUGIN` (the name) and `FILI_BAR_OPTIONS` (the options file) in the environment.
+- It must be idempotent: running it twice changes nothing.
+- It never writes a secret in the plugin folder (credentials go to the keyring or to a file under `~/.config`), and never calls `sudo` without saying so on screen.
+- A failure is reported and the plugin stays installed; fix it, then `fili-bar setup NAME`.
 
 ### Translations and options of a plugin
 

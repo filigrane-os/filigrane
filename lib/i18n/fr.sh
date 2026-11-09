@@ -428,7 +428,12 @@ _t_lookup() {
     'failed') _t_fmt='échec' ;;
     'folder name %s: lowercase letters, digits and hyphens only') _t_fmt='nom de dossier %s: minuscules, chiffres et tirets seulement' ;;
     'installed') _t_fmt='installé' ;;
+    'No such plugin: %s') _t_fmt='Plugin inconnu: %s' ;;
     'Installed %s') _t_fmt='%s installé' ;;
+    'install.sh (runs once installed, with your rights):') _t_fmt='install.sh (lancé après l’installation, avec vos droits):' ;;
+    'Setting up %s') _t_fmt='Configuration de %s' ;;
+    '%s: install.sh failed (run: fili-bar setup %s)') _t_fmt='%s: install.sh a échoué (relancer: fili-bar setup %s)' ;;
+    '%s has no install.sh') _t_fmt='%s n’a pas d’install.sh' ;;
     'Invalid module name: %s') _t_fmt='Nom de module invalide: %s' ;;
     'It runs with your rights. Read it, then run again with --yes.') _t_fmt='Il s’exécute avec vos droits. Lisez-le, puis relancez avec --yes.' ;;
     'left or right') _t_fmt='left ou right' ;;
