@@ -153,6 +153,24 @@ EOF
 
 link() { mkdir -p "$mods" && ln -sfn "$share/$1" "$mods/$1"; }
 
+# Small files a plugin ships in extras/config/PATH (a fallback app menu, an icon, a menu entry in menu/entries.d/):
+# linked one by one to ~/.config/PATH, never over a file of the user
+link_extras() {
+    d="$share/$1/extras/config"; [ -d "$d" ] || return 0
+    ( cd "$d" && find . -type f ) | while IFS= read -r f; do
+        f="${f#./}"; dest="$cfg/$f"
+        if [ -e "$dest" ] && [ ! -L "$dest" ]; then echo "$(t '%s: %s exists, left alone' "$1" "$dest")" >&2; continue; fi
+        mkdir -p "$(dirname "$dest")" && ln -sfn "$d/$f" "$dest"
+    done
+}
+unlink_extras() {
+    d="$share/$1/extras/config"; [ -d "$d" ] || return 0
+    ( cd "$d" && find . -type f ) | while IFS= read -r f; do
+        f="${f#./}"; [ "$(readlink "$cfg/$f" 2> /dev/null)" = "$d/$f" ] && rm -f "$cfg/$f"
+    done
+    return 0
+}
+
 cmd_check() {
     target="${1:-}"
     [ -n "$target" ] || die "$(t 'Usage: fili-bar check DIR|NAME')"
@@ -193,6 +211,7 @@ cmd_check() {
 cmd_remove() {
     name="${1:-}"; valid_name "$name" || die "$(t 'Usage: fili-bar remove NAME')"
     [ -d "$share/$name" ] || die "$(t '%s is not a plugin of the home (see fili-bar list)' "$name")"
+    unlink_extras "$name"
     gio trash "$share/$name" 2> /dev/null || die "$(t 'Could not move %s to the trash' "$share/$name")"
     rm -f "$mods/$name"
     echo "$(t 'Removed %s (in the trash)' "$name")"
@@ -225,9 +244,13 @@ cmd_install() {
         echo "$(t 'install.sh (runs once installed, with your rights):')"
         sed 's/^/  | /' "$tmp/p/install.sh"
     fi
+    if [ -d "$tmp/p/extras/config" ]; then
+        echo "$(t 'extras (linked in ~/.config):')"
+        ( cd "$tmp/p/extras/config" && find . -type f | sed 's|^\./|  |' | sort )
+    fi
     [ "$yes" = 1 ] || { echo "$(t 'It runs with your rights. Read it, then run again with --yes.')"; exit 2; }
     [ -e "$share/$name" ] && die "$(t 'Already there: %s' "$share/$name")"
-    mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name"
+    mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name" && link_extras "$name"
     pin "$name" "$url@$rev"
     install_packages "$name"
     echo "$(t 'Installed %s' "$name")"
@@ -285,7 +308,7 @@ cmd_sync() {
             [ -d "$share/$name" ] && install_packages "$name"
             [ -d "$share/$name" ] && run_setup "$name"
         fi
-        [ -d "$share/$name" ] && link "$name"
+        [ -d "$share/$name" ] && link "$name" && link_extras "$name"
     done
 }
 

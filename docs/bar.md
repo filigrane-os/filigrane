@@ -186,6 +186,10 @@ packages = ["socat", "go"]
 
 `fili-bar install` shows them, with the ones that are missing; with `--yes` it installs the missing ones with `sudo xbps-install -y` before running `install.sh`. `fili-bar setup NAME` and `fili-bar sync` do the same on another machine. Name only what the plugin needs; the Filigrane rule applies: if a package is heavy, say so in the README of the plugin (the user sees the list before saying `--yes`).
 
+### `extras/`: small files shipped with the plugin
+
+A plugin may ship small configuration files in `extras/config/PATH`: a fallback app menu for a web app (`filigrane/appmenu/APP_ID.json`), an icon (`webapps/icons/NAME.png`), a launcher menu entry (`menu/entries.d/NAME`, same `Label | mode | command` format as `menu/entries`). `fili-bar install` lists them before you say `--yes`, then links each file to `~/.config/PATH` (`fili-bar sync` does the same on another machine). A file you already have at that place is never replaced, and `fili-bar remove` removes only the links it made.
+
 ### `install.sh`: first-run setup
 
 A plugin may ship an optional `install.sh` at its root: the steps that make it work (build a daemon, store a credential in the keyring, copy `config.example.toml` to the options file, run `rclone config`). `fili-bar install` shows it with the manifest, runs it with `--yes` once the plugin is in place, and `fili-bar sync` runs it for every plugin it clones on a new machine. `fili-bar setup NAME` runs it again.

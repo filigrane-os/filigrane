@@ -452,6 +452,8 @@ _t_lookup() {
     'Installing apps:%s') _t_fmt='Installation des applications:%s' ;;
     'packages: %s') _t_fmt='paquets: %s' ;;
     'to install with xbps (sudo): %s') _t_fmt='à installer avec xbps (sudo): %s' ;;
+    '%s: %s exists, left alone') _t_fmt='%s: %s existe déjà, laissé tel quel' ;;
+    'extras (linked in ~/.config):') _t_fmt='extras (liés dans ~/.config):' ;;
     'Installing packages: %s') _t_fmt='Installation des paquets: %s' ;;
     '%s: packages not installed (run: fili-bar setup %s)') _t_fmt='%s: paquets non installés (relancer: fili-bar setup %s)' ;;
     'install.sh (runs once installed, with your rights):') _t_fmt='install.sh (lancé après l’installation, avec vos droits):' ;;

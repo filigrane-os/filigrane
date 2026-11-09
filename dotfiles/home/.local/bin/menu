@@ -7,7 +7,7 @@
 # menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|language|custom
 # opens a section directly (keyboard shortcuts)
 #
-# Custom entries: ~/.config/menu/entries (Label | mode | command).
+# Custom entries: ~/.config/menu/entries (Label | mode | command), plus the files of ~/.config/menu/entries.d/ (shipped by bar plugins).
 
 # Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh). The labels stay in English in the
 # script (keys, actions, `menu system Lock`): translated at display time only (choose, localize)
@@ -189,19 +189,27 @@ run_app() { # run_app NOM : retourne 1 si aucune application de ce nom
 
 # ---------------------------------------------------------------- custom entries
 
-custom_labels() { # valid labels of the entries file
-    [ -f "$ENTRIES" ] || return 0
+all_entries() { # the entries file, then the drop-in files of entries.d/
+    [ -f "$ENTRIES" ] && cat "$ENTRIES"
+    for f in "$ENTRIES".d/*; do [ -f "$f" ] && cat "$f"; done
+    return 0
+}
+
+custom_labels() { # valid labels of the entries files
+    [ -n "$(all_entries)" ] || return 0
     while IFS='|' read -r label mode cmd; do
         trim_var "$label"; label="$TRIMMED"
         case "$label" in ''|'#'*) continue ;; esac
         trim_var "$mode"; mode="$TRIMMED"
         trim_var "$cmd"; cmd="$TRIMMED"
         [ -n "$mode" ] && [ -n "$cmd" ] && printf '%s\n' "$label"
-    done < "$ENTRIES"
+    done <<EOF
+$(all_entries)
+EOF
 }
 
 custom_run() { # custom_run LABEL : returns 1 if the label does not exist
-    [ -f "$ENTRIES" ] || return 1
+    [ -n "$(all_entries)" ] || return 1
     while IFS='|' read -r label mode cmd; do
         label="$(trim "$label")"
         case "$label" in ''|'#'*) continue ;; esac
@@ -214,7 +222,9 @@ custom_run() { # custom_run LABEL : returns 1 if the label does not exist
             run) setsid sh -c "$cmd" >/dev/null 2>&1 & exit 0 ;;
             *) notify -u critical "Menu" "$(t 'Unknown mode %s for %s' "$mode" "$label")"; exit 1 ;;
         esac
-    done < "$ENTRIES"
+    done <<EOF
+$(all_entries)
+EOF
     return 1
 }
 

@@ -76,5 +76,19 @@ PATH="$T/stub:$PATH" "$FB" install "$R5" --yes > /dev/null
 check "install --yes installs the missing packages with xbps" 'grep -qx "sudo xbps-install -y need-a need-b" "$T/sudo.log"'
 rm -f "$T/sudo.log"; PATH="$T/stub:$PATH" "$FB" setup pkgs > /dev/null
 check "setup installs the missing packages again" 'grep -qx "sudo xbps-install -y need-a need-b" "$T/sudo.log"'
+R6="$T/src/fili-bar-xtra"; mkdir -p "$R6/extras/config/menu/entries.d" "$R6/extras/config/filigrane/appmenu"
+printf 'Ext tool | run | true\n' > "$R6/extras/config/menu/entries.d/ext"; printf '{}\n' > "$R6/extras/config/filigrane/appmenu/ext.json"
+(cd "$R6" && git init -q && printf 'title = "Ext"\napi = 1\ncmd = "./e.sh"\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
+check "install lists the extras and installs nothing without --yes" 'out="$("$FB" install "$R6" 2> /dev/null)"; echo "$out" | grep -q "menu/entries.d/ext" && [ ! -e "$XDG_CONFIG_HOME/menu/entries.d/ext" ]'
+mkdir -p "$XDG_CONFIG_HOME/filigrane/appmenu"; echo mine > "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json"
+"$FB" install "$R6" --yes > /dev/null 2>&1
+check "install --yes links the extras into the config directory" '[ -L "$XDG_CONFIG_HOME/menu/entries.d/ext" ] && grep -q "Ext tool" "$XDG_CONFIG_HOME/menu/entries.d/ext"'
+check "an extra never replaces a file of the user" '[ ! -L "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json" ] && [ "$(cat "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json")" = mine ]'
+rm -f "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json"; rm -rf "$T/data/filigrane/bar/plugins/xtra" "$XDG_CONFIG_HOME/menu/entries.d/ext"
+"$FB" install "$R6" --yes > /dev/null 2>&1
+rm -rf "$XDG_CONFIG_HOME/menu/entries.d"; "$FB" sync > /dev/null 2>&1
+check "sync links the extras again" '[ -L "$XDG_CONFIG_HOME/menu/entries.d/ext" ]'
+"$FB" remove xtra > /dev/null 2>&1
+check "remove unlinks the extras and keeps the files of the user" '[ ! -e "$XDG_CONFIG_HOME/menu/entries.d/ext" ] && [ ! -e "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json" ]'
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"
