@@ -78,6 +78,9 @@ if want 'bin/fili$|index\.d/|check-fili\.sh'; then
 # The fili command (index of apps, plugins and web apps)
 "$ROOT/tests/fili-shell/check-fili.sh" || exit 1
 fi
+if want 'fili-internal-panel'; then
+"$ROOT/tests/fili-shell/check-fili-internal-panel.sh" || exit 1
+fi
 if want 'fili-app-output'; then
 "$ROOT/tests/fili-shell/check-fili-app-output.sh" || exit 1
 fi
