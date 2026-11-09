@@ -74,6 +74,7 @@ There is no cron daemon. `cron-watch`, started by niri, is a sleeping shell (~3 
 | Search | `xbps-query -Rs <word>` |
 | Details, files, reverse dependencies | `xbps-query -R <pkg>`, `xbps-query -f <pkg>`, `xbps-query -X <pkg>` |
 | Install | `sudo xbps-install <pkg>` |
+| Apps, bar plugins, web apps | `fili list`, `fili install NAME` (see [index.md](index.md)) |
 | Remove | `sudo xbps-remove <pkg>` |
 | Remove orphans, clean the cache | `sudo xbps-remove -o`, `sudo xbps-remove -O` |
 

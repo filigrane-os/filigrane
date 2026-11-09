@@ -1,0 +1,59 @@
+# Index of what `fili install` offers (distribution). Each [name] is an entry; docs/index.md describes the fields.
+# A layer adds its own file in ~/.config/filigrane/index.d/ (a later file does not override an earlier definition).
+
+# Applications: xbps packages of the Filigrane repository
+[fili-file]
+kind = "app"
+title = "Casier"
+description = "File manager (Qt Quick, Rust): grid and list, trash, archives, global menu"
+package = "fili-file"
+
+[fili-chat]
+kind = "app"
+title = "Rob"
+description = "Chat with the AI agent in a window of its own"
+package = "fili-chat"
+
+# Plugins of the bar: git repositories (module, scripts, packages, install.sh, tests)
+[whatsapp]
+kind = "plugin"
+title = "WhatsApp"
+description = "Unread counter without a browser (whatsapp-unreadd), click opens the web app"
+url = "https://github.com/filigrane-os/fili-bar-whatsapp"
+
+[proton-mail]
+kind = "plugin"
+title = "Proton Mail"
+description = "New mail notifications through the local Proton Bridge"
+url = "https://github.com/filigrane-os/fili-bar-proton-mail"
+
+[proton-calendar]
+kind = "plugin"
+title = "Proton Calendar"
+description = "Imminent event and agenda from a private ICS link"
+url = "https://github.com/filigrane-os/fili-bar-proton-calendar"
+
+[icloud]
+kind = "plugin"
+title = "iCloud Drive"
+description = "iCloud Drive mounted in ~/iCloud with rclone, session reminder"
+url = "https://github.com/filigrane-os/fili-bar-icloud"
+
+[vpn]
+kind = "plugin"
+title = "VPN"
+description = "WireGuard tunnel toggle, no daemon"
+url = "https://github.com/filigrane-os/fili-bar-vpn"
+
+# Web applications of the launcher
+[whatsapp-web]
+kind = "webapp"
+title = "WhatsApp Web"
+description = "WhatsApp in an application window"
+url = "https://web.whatsapp.com"
+
+[proton-mail-web]
+kind = "webapp"
+title = "Proton Mail Web"
+description = "Proton Mail in an application window"
+url = "https://mail.proton.me"

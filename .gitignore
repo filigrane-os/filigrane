@@ -10,3 +10,4 @@ dotfiles/config/htop/htop_history
 
 # Plugins of the fili-bar (~/.local/share/filigrane is linked to brand/): installed, never part of the repository
 /brand/bar/
+/brand/index/
