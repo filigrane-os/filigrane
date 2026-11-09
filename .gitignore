@@ -7,3 +7,6 @@ dotfiles/config/htop/htop_history
 
 # Personal layers live in their own private repositories (clone or link them as users/<login>)
 /users/*
+
+# Plugins of the fili-bar (~/.local/share/filigrane is linked to brand/): installed, never part of the repository
+/brand/bar/

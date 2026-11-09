@@ -39,5 +39,9 @@ check "edge refuses a bad value" '! "$FB" edge middle 2> /dev/null'
 "$FB" screens DP-6 HDMI-A-1 > /dev/null
 check "screens writes a list" '[ "$("$FB" screens)" = "[\"DP-6\", \"HDMI-A-1\"]" ]'
 check "screens refuses a bad name" '! "$FB" screens "a b" 2> /dev/null'
+R2="$T/src/fili-bar-pfx"; mkdir -p "$R2"
+(cd "$R2" && git init -q && printf 'title = "Pfx"\napi = 1\ncmd = "./e.sh"\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
+"$FB" install "$R2" --yes > /dev/null
+check "install strips the fili-bar- prefix of the repository name" '[ -L "$XDG_CONFIG_HOME/quickshell/bar/modules/pfx" ]'
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

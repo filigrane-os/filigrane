@@ -90,7 +90,7 @@ fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on
 fili-bar screens [all|NAME...]         screens that get a bar
 fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML module)
 fili-bar check DIR|NAME                check a manifest and its script
-fili-bar install URL [--commit REV]    clone a plugin; shows its manifest, then --yes to install
+fili-bar install URL [--commit REV]    clone a plugin (a repository `fili-bar-NAME` installs as `NAME`); shows its manifest, then --yes
 fili-bar remove NAME                   remove a plugin (to the trash)
 fili-bar sync                          clone the pinned plugins of bar-plugins.toml (new machine)
 ```
