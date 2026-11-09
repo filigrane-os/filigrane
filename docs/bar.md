@@ -92,6 +92,7 @@ fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML modu
 fili-bar check DIR|NAME                check a manifest and its script
 fili-bar install URL [--commit REV]    clone a plugin (a repository `fili-bar-NAME` installs as `NAME`); shows its manifest, then --yes
 fili-bar setup NAME                    run the install.sh of a plugin again
+fili-bar autostart [--force]           start the autostart commands of the enabled plugins (niri runs it at login)
 fili-bar remove NAME                   remove a plugin (to the trash)
 fili-bar sync                          clone the pinned plugins of bar-plugins.toml (new machine)
 ```
@@ -183,6 +184,16 @@ A plugin may ship an optional `install.sh` at its root: the steps that make it w
 - It must be idempotent: running it twice changes nothing.
 - It never writes a secret in the plugin folder (credentials go to the keyring or to a file under `~/.config`), and never calls `sudo` without saying so on screen.
 - A failure is reported and the plugin stays installed; fix it, then `fili-bar setup NAME`.
+
+### Starting a daemon at login
+
+A plugin that needs a background process lists its commands in the manifest:
+
+```toml
+autostart = ["./bin/my-daemon", "while :; do other-tool; sleep 30; done"]
+```
+
+niri runs `fili-bar autostart` at login (once per session; `--force` runs it again). Each command starts detached, in the folder of the plugin, through `sh -c`; a disabled plugin (`fili-bar disable NAME`) starts nothing. The commands must tolerate a second instance (a lock, as `flock -n` in a script) and restart themselves if they should survive a crash. The key is optional and ignored by a bar that does not know it.
 
 ### Translations and options of a plugin
 

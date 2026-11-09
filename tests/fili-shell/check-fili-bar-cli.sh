@@ -55,5 +55,18 @@ check "setup refuses an unknown plugin" '! "$FB" setup nope 2> /dev/null'
 rm -rf "$T/data/filigrane/bar/plugins/hook"; "$FB" sync > /dev/null
 check "sync runs install.sh of a plugin it clones" '[ "$(wc -l < "$T/hook.toml.ran")" = 3 ]'
 unset FILI_BAR_OPTIONS
+R4="$T/src/fili-bar-auto"; mkdir -p "$R4"
+(cd "$R4" && git init -q && printf 'title = "Auto"\napi = 1\ncmd = "./e.sh"\nautostart = ["echo a >> $T_AUTO", "echo \\"b\\" >> $T_AUTO"]\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
+"$FB" install "$R4" --yes > /dev/null
+export T_AUTO="$T/auto.out" XDG_RUNTIME_DIR="$T/run"; mkdir -p "$XDG_RUNTIME_DIR"
+"$FB" autostart > /dev/null; sleep 0.5
+check "autostart runs each command of an enabled plugin" '[ "$(sort "$T_AUTO" | tr -d "\n")" = ab ]'
+"$FB" autostart > /dev/null; sleep 0.3
+check "autostart runs once per session" '[ "$(wc -l < "$T_AUTO")" = 2 ]'
+"$FB" disable auto > /dev/null; rm -f "$XDG_RUNTIME_DIR/fili-bar-autostart.done"; "$FB" autostart > /dev/null; sleep 0.3
+check "autostart skips a disabled plugin" '[ "$(wc -l < "$T_AUTO")" = 2 ]'
+"$FB" enable auto > /dev/null; "$FB" autostart --force > /dev/null; sleep 0.5
+check "autostart --force runs again" '[ "$(wc -l < "$T_AUTO")" = 4 ]'
+unset T_AUTO
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

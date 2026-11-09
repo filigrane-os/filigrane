@@ -9,6 +9,7 @@
 # fili-bar check DIR|NAME             check the manifest and the script of a module
 # fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
 # fili-bar setup NAME                run the install.sh of a plugin again (idempotent: credentials, daemons, first-run steps)
+# fili-bar autostart [--force]        start the autostart commands of the enabled plugins (niri runs it at login, once per session)
 # fili-bar remove NAME                remove a plugin installed by `new` or `install`
 # fili-bar sync                       clone the plugins of bar-plugins.toml (pinned to a commit) on a new machine
 # A plugin is a folder with a module.toml and, optionally, an install.sh (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
@@ -36,6 +37,15 @@ mval() {
         /^[ \t]*\[/ { exit }
         { line = $0; sub(/[ \t]*#[^"]*$/, "", line) }
         match(line, "^[ \t]*" key "[ \t]*=[ \t]*") { v = substr(line, RLENGTH + 1); gsub(/^"|"[ \t]*$/, "", v); gsub(/[ \t]+$/, "", v); print v; exit }
+    ' "$1" 2>/dev/null
+}
+# Items of a top-level list of a manifest (autostart = ["cmd one", "cmd two"]), one per line
+mlist() {
+    awk -v key="$2" '
+        /^[ \t]*\[/ { exit }
+        { line = $0; sub(/[ \t]*#[^"]*$/, "", line) }
+        match(line, "^[ \t]*" key "[ \t]*=[ \t]*\\[") { v = substr(line, RLENGTH + 1); sub(/\][ \t]*$/, "", v); gsub(/^[ \t]*"|"[ \t]*$/, "", v)
+            n = split(v, a, /"[ \t]*,[ \t]*"/); for (i = 1; i <= n; i++) { gsub(/\\"/, "\"", a[i]); gsub(/\\\\/, "\\", a[i]); print a[i] } exit }
     ' "$1" 2>/dev/null
 }
 # Value of a key of [modules.NAME] in fili-bar.toml ("" if absent)
@@ -255,6 +265,23 @@ cmd_sync() {
     done
 }
 
+# Start, detached and from the folder of the plugin, the autostart commands of every enabled plugin. Once per session
+# (stamp in the runtime directory) unless --force; the commands must tolerate a second instance (a lock, a loop).
+cmd_autostart() {
+    stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-bar-autostart.done"
+    [ "${1:-}" = --force ] || [ ! -e "$stamp" ] || return 0
+    : > "$stamp"
+    for n in $(names); do
+        [ "$(val "$n" enabled true)" = false ] && continue
+        dir="$(readlink -f "$mods/$n")"
+        mlist "$dir/module.toml" autostart | while IFS= read -r c; do
+            [ -n "$c" ] || continue
+            ( cd "$dir" && setsid -f sh -c "$c" > /dev/null 2>&1 < /dev/null )
+            echo "$n: $c"
+        done
+    done
+}
+
 cmd_edge() {
     if [ -z "${1:-}" ]; then
         v="$(awk '/^[ \t]*\[/ { cur = ($0 ~ /^[ \t]*\[bar\]/); next } cur && /^[ \t]*edge[ \t]*=/ { sub(/[ \t]*#.*$/, ""); gsub(/^[^=]*=[ \t]*"?|"?[ \t]*$/, ""); print; exit }' "$conf" 2>/dev/null)"
@@ -293,6 +320,7 @@ case "${1:-list}" in
     new) cmd_new "${2:-}" "${3:-}" ;;
     check) cmd_check "${2:-}" ;;
     install) shift; cmd_install "$@" ;;
+    autostart) cmd_autostart "${2:-}" ;;
     setup) cmd_setup "${2:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
