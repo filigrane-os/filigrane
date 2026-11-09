@@ -19,9 +19,10 @@ APPLETB_VER="2"
 # applesmc with the T2 SMC (fans), see applesmc/: the one of the Void kernel blocks the boot
 APPLESMC_VER="1"
 # Trackpad multitouch (hid-apple + hid-magicmouse T2), voir trackpad/: sans lui, trackpad = simple souris
-TRACKPAD_VER="1"
-# Fn and left Ctrl swapped (internal keyboard)
-HID_APPLE_OPTS="swap_fn_leftctrl=1"
+TRACKPAD_VER="2"
+# Fn and left Ctrl swapped on the internal keyboard only (product 0x027e = 638; patch 9002 of trackpad/):
+# an external Apple keyboard keeps its own Fn and Ctrl
+HID_APPLE_OPTS="swap_fn_leftctrl=1 swap_fn_leftctrl_product=638"
 # Fan daemon (GPL-3.0), built with cargo
 FAN_REPO="https://github.com/GnomedDev/T2FanRD"
 FAN_REF="48baf962697ec3d4d969c74cf601ee8e15b7aeaa"

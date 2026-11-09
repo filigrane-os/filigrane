@@ -9,7 +9,7 @@ Omarchy utilise un noyau `linux-t2` patché (Arch). Void n'en a pas : on garde l
 | Fonction | Source |
 |---|---|
 | Clavier, trackpad (USB virtuel), audio | DKMS `t2bce` (`t2bce_core/dma/vhci/audio`, dépôt AdityaGarg8/t2bce, révision épinglée) |
-| Wi-Fi Broadcom, Bluetooth, NVMe, `hid-apple` | noyau Void 6.18 (déjà activés). Clavier : Fn et Ctrl gauche inversés (`HID_APPLE_OPTS` dans `setup.sh`) |
+| Wi-Fi Broadcom, Bluetooth, NVMe, `hid-apple` | noyau Void 6.18 (déjà activés). Clavier : Fn et Ctrl gauche inversés sur le clavier interne seulement (`HID_APPLE_OPTS` dans `setup.sh`, patch 9002 du DKMS `t2-trackpad`) |
 | Wi-Fi: firmware | script officiel t2linux, à lancer à la main (`t2-wifi-firmware`) |
 | Ventilateurs | DKMS `applesmc-t2` : `applesmc.c` de v6.18.7 + correctifs `30xx-applesmc` de t2linux (révision épinglée, vérifiés contre `applesmc/SHA256SUMS`, série 6.18 seulement). L'`applesmc` du noyau Void bloque le démarrage sur T2 : il est sur liste noire, et le service `t2fanrd` (Rust, valeurs Omarchy) charge la version DKMS après le démarrage, ou s'arrête si elle manque |
 | Audio: haut-parleurs / casque | profils ALSA UCM du dépôt t2bce ; sur MacBookPro16,2, DSP haut-parleurs façon macOS (`audio/`) : FIR asahi-audio du MacBook Pro 13" M1 (j293, même châssis) + bankstown + lsp-plugins, chargé par WirePlumber (~10 % d'un cœur pendant la lecture) |

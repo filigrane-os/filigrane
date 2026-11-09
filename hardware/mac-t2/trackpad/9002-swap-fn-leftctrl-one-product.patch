@@ -1,0 +1,26 @@
+diff --git a/drivers/hid/hid-apple.c b/drivers/hid/hid-apple.c
+index 4582cf9..936b917 100644
+--- a/drivers/hid/hid-apple.c
++++ b/drivers/hid/hid-apple.c
+@@ -76,6 +76,11 @@ MODULE_PARM_DESC(swap_ctrl_cmd, "Swap the Control (\"Ctrl\") and Command (\"Flag
+ 		"(For people who are used to Mac shortcuts involving Command instead of Control. "
+ 		"[0] = No change. 1 = Swapped.)");
+ 
++static unsigned int swap_fn_leftctrl_product;
++module_param(swap_fn_leftctrl_product, uint, 0644);
++MODULE_PARM_DESC(swap_fn_leftctrl_product, "Product ID of the only device where swap_fn_leftctrl applies "
++		"(0 = every Apple keyboard, e.g. 638 = 0x027e, the internal keyboard of the T2 Macs)");
++
+ static unsigned int swap_fn_leftctrl;
+ module_param(swap_fn_leftctrl, uint, 0644);
+ MODULE_PARM_DESC(swap_fn_leftctrl, "Swap the Fn and left Control keys. "
+@@ -444,7 +449,8 @@ static int hidinput_apple_event(struct hid_device *hid, struct input_dev *input,
+ 		real_fnmode = fnmode;
+ 	}
+ 
+-	if (swap_fn_leftctrl) {
++	if (swap_fn_leftctrl &&
++	    (!swap_fn_leftctrl_product || hid->product == swap_fn_leftctrl_product)) {
+ 		trans = apple_find_translation(swapped_fn_leftctrl_keys, code);
+ 
+ 		if (trans)
