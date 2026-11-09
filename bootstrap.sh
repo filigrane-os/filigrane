@@ -274,6 +274,14 @@ setup_system() {
         fi
     fi
 
+    # niri with the Filigrane patch (distro/niri/), until niri fixes niri-wm/niri#2691: once the distribution's
+    # repository is set, it replaces Void's niri (packages/desktop.txt, the fallback everywhere else: other
+    # architectures, repository unreachable). Its "replaces" removes niri, its "provides" keeps <distro>-desktop happy.
+    if ! xbps-query "$DISTRO-niri" >/dev/null 2>&1 && xbps-query -R "$DISTRO-niri" >/dev/null 2>&1; then
+        log 'niri with the Filigrane patch (%s-niri)' "$DISTRO"
+        $SUDO xbps-install -y "$DISTRO-niri" || warn '%s-niri not installed: Void niri kept' "$DISTRO"
+    fi
+
     log 'Cleaning the xbps cache (small disk)'
     $SUDO xbps-remove -yO >/dev/null || true
 

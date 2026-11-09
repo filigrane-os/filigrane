@@ -14,6 +14,10 @@ With the patch, the pipe of a display turned off is lent to the display that nee
 | `alert.sh` | GitHub issues of the workflow (build failed, niri fixed upstream) |
 | `.github/workflows/niri.yml` | Every day: builds when Void ships a new niri or the pin changes, publishes, alerts |
 
+Installation: `packages/desktop.txt` keeps Void's `niri` (the fallback on other architectures, or when the repository
+cannot be reached); once the distribution's repository is set, `bootstrap.sh` installs `fili-niri`, whose `replaces`
+removes `niri` (its `provides` satisfies `fili-desktop`).
+
 Package version: Void's niri version, revision = Void's revision × 100 + `patchrev` (`fili-niri-26.04_201`). A new
 niri in Void, or a new patch (`patchrev` bumped), is an update for `xbps-install -Su`. `repo.yml` keeps the package
 (`DISTRO_EXTERNAL_PACKAGES` in `distro.env`).
@@ -41,5 +45,5 @@ Then put the new commit in `ref=`, bump `patchrev`, push: the workflow publishes
 
 When the `fili-niri-upstream` issue says the fix is in Void's niri: `sudo xbps-remove -y fili-niri && sudo xbps-install -y niri`,
 log out and in, and try the dock with the internal panel turned off. If the third monitor gets its own picture:
-`fili-niri` back to `niri` in `packages/desktop.txt`, remove `distro/niri/`, `.github/workflows/niri.yml` and
-`fili-niri` from `DISTRO_EXTERNAL_PACKAGES`, and delete the package from the `repo` release.
+remove the `fili-niri` block of `bootstrap.sh`, `distro/niri/`, `.github/workflows/niri.yml` and `fili-niri` from
+`DISTRO_EXTERNAL_PACKAGES`, delete the package from the `repo` release, and run the first step on every machine.

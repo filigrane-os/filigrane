@@ -20,4 +20,6 @@ check "repo.yml keeps fili-niri (DISTRO_EXTERNAL_PACKAGES)" \
     '. "$ROOT/distro/distro.env" && case " $DISTRO_EXTERNAL_PACKAGES " in *" fili-niri "*) true ;; *) false ;; esac && grep -q DISTRO_EXTERNAL_PACKAGES "$ROOT/distro/build-repo.sh"'
 check "the workflow builds, publishes and alerts" \
     'for s in "build.sh --version" "build.sh --out" "publish.sh" "alert.sh failed" "alert.sh ok" "alert.sh upstream" "group: repo"; do grep -qF "$s" "$ROOT/.github/workflows/niri.yml" || exit 1; done'
+check "bootstrap.sh swaps niri for fili-niri after setting the distribution repository, niri stays the fallback" \
+    'grep -q "^niri\$" "$ROOT/packages/desktop.txt" && awk "/DISTRO-repo\" \"\\\$DISTRO-apps\"/ { r = NR } /xbps-install -y \"\\\$DISTRO-niri\"/ { n = NR } END { exit !(r && n > r) }" "$ROOT/bootstrap.sh"'
 exit "$fail"

@@ -82,7 +82,7 @@ is in the niri release Void ships, this issue says so, and plain niri can be tri
 
 $what
 
-To go back to plain niri (\`distro/niri/README.md\`): on the machine, \`sudo xbps-remove -y fili-niri && sudo xbps-install -y niri\`, log out and in, then try the three-monitor dock with the internal panel turned off. If it works: \`fili-niri\` back to \`niri\` in \`packages/desktop.txt\`, remove \`distro/niri/\` and \`.github/workflows/niri.yml\`."
+To go back to plain niri (\`distro/niri/README.md\`): on the machine, \`sudo xbps-remove -y fili-niri && sudo xbps-install -y niri\`, log out and in, then try the three-monitor dock with the internal panel turned off. If it works: remove the fili-niri block of \`bootstrap.sh\`, \`distro/niri/\` and \`.github/workflows/niri.yml\` (details in \`distro/niri/README.md\`)."
             exit 0
         fi
         [ -n "$commit" ] || exit 0
