@@ -59,14 +59,17 @@ R4="$T/src/fili-bar-auto"; mkdir -p "$R4"
 (cd "$R4" && git init -q && printf 'title = "Auto"\napi = 1\ncmd = "./e.sh"\nautostart = ["echo a >> $T_AUTO", "echo \\"b\\" >> $T_AUTO"]\n' > module.toml && printf '#!/bin/sh\necho "{}"\n' > e.sh && chmod +x e.sh && git add . && git -c user.name=t -c user.email=t@t commit -qm i)
 "$FB" install "$R4" --yes > /dev/null
 export T_AUTO="$T/auto.out" XDG_RUNTIME_DIR="$T/run"; mkdir -p "$XDG_RUNTIME_DIR"
+export NIRI_SOCKET="$XDG_RUNTIME_DIR/niri.wayland-1.100.sock"
 "$FB" autostart > /dev/null; sleep 0.5
 check "autostart runs each command of an enabled plugin" '[ "$(sort "$T_AUTO" | tr -d "\n")" = ab ]'
 "$FB" autostart > /dev/null; sleep 0.3
 check "autostart runs once per session" '[ "$(wc -l < "$T_AUTO")" = 2 ]'
-"$FB" disable auto > /dev/null; rm -f "$XDG_RUNTIME_DIR/fili-bar-autostart.done"; "$FB" autostart > /dev/null; sleep 0.3
+"$FB" disable auto > /dev/null; rm -f "$XDG_RUNTIME_DIR"/fili-bar-autostart*.done; "$FB" autostart > /dev/null; sleep 0.3
 check "autostart skips a disabled plugin" '[ "$(wc -l < "$T_AUTO")" = 2 ]'
 "$FB" enable auto > /dev/null; "$FB" autostart --force > /dev/null; sleep 0.5
 check "autostart --force runs again" '[ "$(wc -l < "$T_AUTO")" = 4 ]'
+NIRI_SOCKET="$XDG_RUNTIME_DIR/niri.wayland-1.200.sock" "$FB" autostart > /dev/null; sleep 0.5
+check "autostart runs again after a niri restart in the same session" '[ "$(wc -l < "$T_AUTO")" = 6 ]'
 unset T_AUTO
 R5="$T/src/fili-bar-pkgs"; mkdir -p "$R5" "$T/stub"
 printf '#!/bin/sh\n[ "$1" = have ]\n' > "$T/stub/xbps-query"; printf '#!/bin/sh\necho "sudo $*" >> %s\n' "$T/sudo.log" > "$T/stub/sudo"; chmod +x "$T/stub/xbps-query" "$T/stub/sudo"

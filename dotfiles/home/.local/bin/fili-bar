@@ -313,9 +313,11 @@ cmd_sync() {
 }
 
 # Start, detached and from the folder of the plugin, the autostart commands of every enabled plugin. Once per session
-# (stamp in the runtime directory) unless --force; the commands must tolerate a second instance (a lock, a loop).
+# (stamp in the runtime directory, per niri instance: a niri restart without logout keeps the runtime directory but
+# has killed the daemons) unless --force; the commands must tolerate a second instance (a lock, a loop).
 cmd_autostart() {
-    stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-bar-autostart.done"
+    niri_id="${NIRI_SOCKET##*/}"
+    stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-bar-autostart${niri_id:+.$niri_id}.done"
     [ "${1:-}" = --force ] || [ ! -e "$stamp" ] || return 0
     : > "$stamp"
     for n in $(names); do
