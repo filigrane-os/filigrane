@@ -152,6 +152,9 @@ echo "==> Index"
 # published forever and can conflict with the package that took over its files
 if [ -z "$ONLY" ] && [ -s "$WORK/made.txt" ]; then
     for f in "$OUT"/*.xbps; do
+        # Built elsewhere (DISTRO_EXTERNAL_PACKAGES in distro.env): kept as downloaded
+        pkgname="$(basename "$f" | sed -E 's/-[^-]+_[0-9]+\.[^.]+\.xbps$//')"
+        case " $DISTRO_EXTERNAL_PACKAGES " in *" $pkgname "*) continue ;; esac
         grep -qxF "$(basename "$f")" "$WORK/made.txt" || { echo "removed (not built any more): $(basename "$f")"; rm -f "$f" "$f.sig2"; }
     done
 fi

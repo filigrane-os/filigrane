@@ -1,0 +1,9 @@
+# fili-niri: niri with the Filigrane patch, until niri fixes the bug (see distro/niri/README.md).
+# Fork and pinned commit of its "filigrane" branch; at build time the patch commits are rebased on the niri release
+# Void ships. To change the patch: commit on that branch, push, put the new commit here and bump patchrev.
+url=https://github.com/filigrane-os/niri.git
+ref=ae8d12d666b763c4b7acc8c29cb92d834d91e25a
+# Package revision = Void's niri revision * 100 + patchrev (a new patch reaches the machines without a niri update)
+patchrev=1
+# Upstream issue of the bug: once closed, the CI opens an issue saying to try plain niri again
+issue=niri-wm/niri#2691

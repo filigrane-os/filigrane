@@ -1,0 +1,122 @@
+name: fili-niri
+
+# niri with the Filigrane patch (distro/niri/, fork filigrane-os/niri), until niri fixes the bug (niri-wm/niri#2691).
+# Every day: rebuilt when Void ships a new niri (or when the pin changes), with Void's niri template and xbps-src in a
+# Void container, signed and published in the "repo" release with the other packages.
+# Issues, so that a GitHub notification says what to do:
+# - fili-niri-build: the patch no longer applies or the build failed (machines keep the previous fili-niri); closed
+#   by the next successful build
+# - fili-niri-upstream: the niri issue was closed, then again when the niri release Void ships contains the fix
+# Required secret: XBPS_PRIVKEY (RSA PEM key), as for repo.yml.
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  push:
+    branches: [main, develop]
+    paths: ['distro/niri/**', '.github/workflows/niri.yml']
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Rebuild even if this version is already published
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+# Same group as repo.yml: one workflow at a time rewrites the repository index
+concurrency:
+  group: repo
+  cancel-in-progress: false
+
+env:
+  TAG: repo
+
+jobs:
+  niri:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    container:
+      image: ghcr.io/void-linux/void-glibc-full:latest
+      options: --privileged
+    steps:
+      - name: Container
+        run: |
+          xbps-install -Syu xbps || true
+          xbps-install -Syu
+          xbps-install -y bash git curl sudo github-cli
+          useradd -G xbuilder -M builder
+      - uses: actions/checkout@v4
+      - name: Version to build
+        id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config --global --add safe.directory "$PWD"
+          pkgver="$(bash distro/niri/build.sh --version)"
+          version="${pkgver#fili-niri-}"
+          version="${version%_*}"
+          echo "pkgver=$pkgver" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | grep -qxF "$pkgver.x86_64.xbps" \
+              && [ "${{ inputs.force }}" != true ]; then
+            echo "$pkgver is already published"
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Signing key present
+        if: steps.v.outputs.build == 'true'
+        env:
+          XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
+        run: test -n "$XBPS_PRIVKEY" || { echo '::error::XBPS_PRIVKEY secret missing, nothing is published unsigned'; exit 1; }
+      - name: Build (xbps-src)
+        id: build
+        if: steps.v.outputs.build == 'true'
+        run: |
+          set +e
+          git clone -q --depth 1 https://github.com/void-linux/void-packages /vp
+          printf 'XBPS_ALLOW_RESTRICTED=yes\nXBPS_CHROOT_CMD=uchroot\n' >> /vp/etc/conf
+          mkdir -p /out
+          chown -R builder /vp /out
+          sudo -Eu builder env HOME=/tmp FILI_VOID_PACKAGES=/vp FILI_VOID_PACKAGES_KEEP=1 \
+            bash distro/niri/build.sh --out /out
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          ls -la /out
+          exit "$status"
+      - name: Publish (package first, index next, old package removed last)
+        if: steps.v.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          XBPS_PRIVKEY: ${{ secrets.XBPS_PRIVKEY }}
+        run: |
+          mkdir -p /repo
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" --dir /repo --pattern '*'
+          ls /repo | sort > /tmp/remote.txt
+          printf '%s\n' "$XBPS_PRIVKEY" > /tmp/key.pem
+          XBPS_PRIVKEY=/tmp/key.pem bash distro/niri/publish.sh /repo /out/${{ steps.v.outputs.pkgver }}.x86_64.xbps
+          rm -f /tmp/key.pem
+          cd /repo
+          ls | sort > /tmp/local.txt
+          comm -13 /tmp/remote.txt /tmp/local.txt | grep -v repodata | xargs -r gh release upload "$TAG" -R "$GITHUB_REPOSITORY"
+          gh release upload "$TAG" -R "$GITHUB_REPOSITORY" --clobber ./*repodata*
+          comm -23 /tmp/remote.txt /tmp/local.txt | xargs -r -n1 gh release delete-asset "$TAG" -R "$GITHUB_REPOSITORY" --yes
+      - name: Alert (build failed)
+        if: failure() && steps.v.outputs.pkgver != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash distro/niri/alert.sh failed "${{ steps.v.outputs.pkgver }}" "${{ steps.build.outputs.status || 1 }}" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Alert (build back to normal)
+        if: success() && steps.v.outputs.build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash distro/niri/alert.sh ok "${{ steps.v.outputs.pkgver }}"
+      - name: Upstream (does niri still need the patch?)
+        if: always() && steps.v.outputs.version != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash distro/niri/alert.sh upstream "${{ steps.v.outputs.version }}"

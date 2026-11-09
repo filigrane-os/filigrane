@@ -78,6 +78,9 @@ if want 'bin/fili$|index\.d/|check-fili\.sh'; then
 # The fili command (index of apps, plugins and web apps)
 "$ROOT/tests/fili-shell/check-fili.sh" || exit 1
 fi
+if want '^distro/niri/|workflows/niri\.yml|build-repo\.sh|distro\.env|check-fili-niri'; then
+"$ROOT/tests/fili-shell/check-fili-niri.sh" || exit 1
+fi
 if want 'fili-internal-panel|internal-panel\.toml|\.zprofile|config/niri/config\.kdl'; then
 "$ROOT/tests/fili-shell/check-fili-internal-panel.sh" || exit 1
 fi
