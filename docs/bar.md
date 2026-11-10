@@ -6,7 +6,7 @@ Idle, a module shows little or nothing: indicators such as alerts, the timer or 
 
 ## Default layout
 
-Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `notifications`, `clock`, `power`.
+Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
 
 | Module | Shows | Click |
 |---|---|---|
@@ -23,6 +23,7 @@ Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `
 | `display` | screens | panel; wheel: brightness |
 | `bluetooth` | adapter and devices | panel |
 | `network` | Wi-Fi | panel; right: network menu |
+| `mail` | unread mail over every account (Facteur); hidden when there is none | open Facteur |
 | `notifications` | notification count | history; right: do not disturb |
 | `clock` | date and time | pinned calendar |
 | `power` | battery | panel; right: system menu |

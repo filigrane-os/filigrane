@@ -13,6 +13,7 @@ import qs
 import qs.bar
 import qs.bar.modules.alert
 import qs.bar.modules.appmenu
+import qs.bar.modules.mail
 
 ShellRoot {
     id: t
@@ -25,6 +26,7 @@ ShellRoot {
     property var refreshed: []
     readonly property var bar: bars.instances[0] ?? null
     Component { id: alertComp; AlertModule {} }
+    Component { id: mailComp; MailModule {} }
     readonly property string bin: FiliTheme.bin
 
     function ok(cond, name, detail) {
@@ -410,6 +412,14 @@ ShellRoot {
                 mail.hover.press(Qt.LeftButton);
                 ok(FiliTheme.ran.join("\n").indexOf("bar-alert open mail 'https://mail.example.org'") >= 0, "AlertModule: click -> bar-alert open mail URL", JSON.stringify(FiliTheme.ran));
                 mail.destroy();
+                // The Facteur mail module: an alert of kind "mail" fed by `fili-mail daemon`, click opens the application
+                const facteur = mailComp.createObject(null, {});
+                const fm = facteur.build("Alice\tBonjour\n", "4\n", now);
+                ok(facteur.objectName === "mail" && fm.text === "\uf0e0 4" && fm.tooltip.rows[1][0] === "Alice", "mail module: counter and recent messages", JSON.stringify(fm));
+                FiliTheme.ran = [];
+                facteur.hover.press(Qt.LeftButton);
+                ok(FiliTheme.ran.join("\n").indexOf("fili-mail") >= 0, "mail module: click -> fili-mail", JSON.stringify(FiliTheme.ran));
+                facteur.destroy();
                 cal.destroy();
                 wa.destroy();
                 ok(BarState.timerFor("S", now - 65, now).text === " 01:05", "BarState: stopwatch", BarState.timerFor("S", now - 65, now).text);
@@ -1376,8 +1386,8 @@ ShellRoot {
                 ok(BarLayout.left.join() === "clock,logo,workspaces,appmenu", "BarLayout: [modules.<name>] changes side and order", BarLayout.left.join());
                 ok(BarLayout.right.indexOf("clock") < 0 && BarLayout.right.indexOf("power") < 0, "BarLayout: enabled = false removes the module", BarLayout.right.join());
                 BarLayout.parsed = ({});
-                BarLayout.parsed = FiliTheme.parseToml('[modules]\nright = ["mail", "..."]\n');
-                ok(BarLayout.right.join() === "mail," + BarLayout.defaultRight.join(), "BarLayout: ... = the default modules", BarLayout.right.join());
+                BarLayout.parsed = FiliTheme.parseToml('[modules]\nright = ["my-thing", "..."]\n');
+                ok(BarLayout.right.join() === "my-thing," + BarLayout.defaultRight.join(), "BarLayout: ... = the default modules", BarLayout.right.join());
                 BarLayout.parsed = FiliTheme.parseToml('[modules]\nleft = ["logo", "logo"]\nright = ["power", "clock", "../etc", "Nope", "ghost"]\n');
                 ok(BarLayout.left.join() === "logo" && BarLayout.right.join() === "power,clock,ghost", "BarLayout: invalid names and duplicates ignored", BarLayout.right.join());
             },
