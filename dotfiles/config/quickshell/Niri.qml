@@ -27,6 +27,12 @@ Singleton {
             Quickshell.execDetached(["niri", "msg", "action", ...args]);
     }
 
+    // Niri action on a given display (connector): focus-monitor first, since focus-workspace N and
+    // focus-workspace-up/down act on the display that has the focus
+    function onOutput(output, act) {
+        FiliTheme.run("niri msg action focus-monitor '" + String(output).replace(/'/g, "") + "' && niri msg action " + act);
+    }
+
     // Window of an MPRIS player (niri id, or null): browsers publish "…instance<pid>" (the pid of the window),
     // the other players are found through their desktop entry (desktopEntry = app_id); if several windows remain
     // (tabs, PWAs), the one whose title contains the track; otherwise (the track plays in a background tab,

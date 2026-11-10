@@ -716,6 +716,20 @@ ShellRoot {
                 const pk = d.pickList("calc", ents);
                 ok(pk.map(x => x.app).join() === "org.gnome.Calculator,calc" && pk[1].typed, "fili-settings workspaces: search by name, typed app-id offered last", JSON.stringify(pk));
                 ok(d.pickList("zed", ents).length === 1, "fili-settings workspaces: no typed entry when the app-id exists");
+                // Bar: numbered workspaces show their name; the empty unnamed one niri adds on each display is hidden
+                // (its local index "2" clashed with workspace "2" of another display) unless active or holding a window;
+                // a click acts on the display of the bar
+                const so = t.bar.screen.name, wm = t.bar.contentItem;
+                Niri.setWindows({ 13: { id: 13, pid: 0, app_id: "foot", title: "x", workspace_id: 92 } });
+                Niri.workspaces = [{ id: 90, idx: 1, name: "2", output: so, is_active: true }, { id: 91, idx: 2, output: so, is_active: false },
+                    { id: 92, idx: 3, output: so, is_active: false }, { id: 93, idx: 1, name: "1", output: "Z-9", is_active: true }];
+                ok(t.find(wm, "ws-90").text === "2" && t.find(wm, "ws-91") === null && t.find(wm, "ws-92").text === "\u2022" && t.find(wm, "ws-93") === null,
+                    "workspaces: numbered -> names, empty unnamed hidden, unnamed with a window = dot", JSON.stringify(Niri.workspaces));
+                FiliTheme.ran = [];
+                t.find(wm, "ws-90").hover.press(Qt.LeftButton);
+                ok(FiliTheme.ran[0] === "niri msg action focus-monitor '" + so + "' && niri msg action focus-workspace 1", "workspaces: click -> focus the display of the bar, then its workspace", JSON.stringify(FiliTheme.ran));
+                Niri.workspaces = [{ id: 94, idx: 1, output: so, is_active: true }, { id: 95, idx: 2, output: so, is_active: false }];
+                ok(t.find(wm, "ws-94").text === "1" && t.find(wm, "ws-95").text === "2", "workspaces: without numbering -> index of the display, empty one shown");
                 Niri.setWindows({});
                 Niri.workspaces = [];
                 FiliSettings.close();
