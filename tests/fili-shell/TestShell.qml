@@ -679,14 +679,20 @@ ShellRoot {
                 // Applications: targets, change, removal, picker of the open windows
                 d.conf = { apps: [{ app: "foot", output: "T M z" }, { app: "it's", workspace: "4" }], workspaces: [{ name: "4", output: "T M a" }] };
                 const tg = d.targets(d.conf.apps[0]).map(x => x.value);
-                ok(tg.join() === "o:T M b,o:T M a,o:T M z,w:4" && d.targetOf(d.conf.apps[1]) === "w:4", "fili-settings workspaces: displays, a disconnected one and named workspaces as targets", tg.join());
+                ok(tg.join() === "w:4,o:T M z" && d.targetOf(d.conf.apps[1]) === "w:4", "fili-settings workspaces: displays, named workspaces first, then the display already chosen (numbering on)", tg.join());
+                // Numbering on: workspaces only (a display stays listed for an application still set on it); labels are models
+                const conf0 = d.conf;
+                d.conf = { apps: [{ app: "foot", output: "T M z" }, { app: "mpv", output: "T M a" }], workspaces: [{ name: "1", output: "T M b" }, { name: "2", output: "T M a" }] };
+                ok(d.targets(d.conf.apps[0]).map(x => x.value).join() === "w:1,w:2,o:T M z" && d.targets(d.conf.apps[1]).map(x => x.value).join() === "w:1,w:2,o:T M a" && d.targets({ app: "x" }).map(x => x.label).join() === "Workspace 1,Workspace 2", "fili-settings workspaces: numbering on lists workspaces, not displays", d.targets({ app: "x" }).map(x => x.label).join());
+                ok(d.modelLabel(d.active[0]) === "T M", "fili-settings workspaces: display labelled by its model, not the connector", d.modelLabel(d.active[0]));
+                d.conf = conf0;
                 // Target of an application: drop-down (PanelSelect), the current one shown, a choice applied
                 const sel = t.find(d, "target-foot");
                 ok(sel && sel.text === d.displayLabel("T M z") && !sel.opened, "fili-settings workspaces: target as a drop-down showing the current choice", sel ? sel.text : "none");
                 sel.open();
-                ok(sel.opened && sel.cursor === 2, "fili-settings workspaces: drop-down opens on the current choice", sel.cursor);
+                ok(sel.opened && sel.cursor === 1, "fili-settings workspaces: drop-down opens on the current choice", sel.cursor);
                 FiliTheme.ran = [];
-                sel.move(1);
+                sel.move(-1);
                 sel.pick(sel.cursor);
                 ok(!sel.opened && FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output set-workspace 'foot' '4'", "fili-settings workspaces: choice in the drop-down applied", JSON.stringify(FiliTheme.ran));
                 // Placement buttons next to the drop-down; a second click on the chosen one goes back to tiled

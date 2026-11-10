@@ -37,10 +37,13 @@ ColumnLayout {
     function outputOfMonitor(m) {
         return outputs.find(o => monitorId(o) === m) ?? null;
     }
-    // Label of a display: its connector, or its model when it is not connected
+    // Label of a display: its model (the connector, DP-6, changes with the port), or "make model" when it is not connected
+    function modelLabel(o) {
+        return ((o.make ?? "") + " " + (o.model ?? "")).trim() || o.name;
+    }
     function displayLabel(m) {
         const o = outputOfMonitor(m);
-        return o ? o.name : FiliI18n.tr("%1 (not connected)", m);
+        return o ? modelLabel(o) : FiliI18n.tr("%1 (not connected)", m.replace(/ [^ ]*$/, ""));
     }
 
     function read() {
@@ -133,13 +136,19 @@ ColumnLayout {
         run(cli + " layout " + quote(app) + " " + (mode || "none"));
     }
     function targets(a) {
-        const t = active.map(o => ({ label: o.name, value: "o:" + monitorId(o) }));
-        if (a && a.output !== undefined && !t.some(x => x.value === "o:" + a.output))
-            t.push({ label: displayLabel(a.output), value: "o:" + a.output });
+        // Workspaces first (they do not depend on the hardware); with numbering on, a number already designates a
+        // display, so the displays are only listed when this application is still set on one
+        const t = [];
         for (const w of conf.workspaces)
             t.push({ label: FiliI18n.tr("Workspace %1", w.name), value: "w:" + w.name });
         if (a && a.workspace !== undefined && !conf.workspaces.some(w => w.name === a.workspace))
             t.push({ label: FiliI18n.tr("Workspace %1", a.workspace), value: "w:" + a.workspace });
+        const keep = a && a.output !== undefined ? "o:" + a.output : "";
+        for (const o of active)
+            if (!numberedOn || keep === "o:" + monitorId(o))
+                t.push({ label: modelLabel(o), value: "o:" + monitorId(o) });
+        if (keep !== "" && !t.some(x => x.value === keep))
+            t.push({ label: displayLabel(a.output), value: keep });
         return t;
     }
     function setTarget(app, v) {
@@ -157,17 +166,25 @@ ColumnLayout {
                 continue;
             seen[a] = true;
             const ws = Niri.workspaces.find(x => x.id === w.workspace_id);
-            out.push({ app: a, title: w.title ?? "", output: ws ? ws.output : "" });
+            out.push({ app: a, title: w.title ?? "", output: ws ? ws.output : "", workspace: ws && ws.name ? ws.name : "" });
         }
         return out.sort((a, b) => a.app.localeCompare(b.app));
     }
-    // Added on the display where its window is now (else the first one)
-    function add(app, connector) {
+    // Added on the display (or numbered workspace) where its window is now (else the first one)
+    function add(app, connector, wsName) {
         app = app.trim();
         if (app === "")
             return;
         const o = active.find(x => x.name === connector) ?? active[0];
         adding = false;
+        // Numbering on: a numbered workspace (that of its window, else the first one) rather than a display
+        if (numberedOn) {
+            const w = numbered.find(x => x.name === wsName) ?? numbered.find(x => o && x.output === monitorId(o)) ?? numbered[0];
+            if (w) {
+                setTarget(app, "w:" + w.name);
+                return;
+            }
+        }
         if (o)
             setTarget(app, "o:" + monitorId(o));
     }
@@ -386,7 +403,7 @@ ColumnLayout {
         for (const c of candidates)
             if (hit(c.app, c.title)) {
                 seen[c.app] = true;
-                out.push({ app: c.app, name: c.app, detail: c.title, icon: "", output: c.output, open: true });
+                out.push({ app: c.app, name: c.app, detail: c.title, icon: "", output: c.output, workspace: c.workspace, open: true });
             }
         const inst = [];
         for (const e of entries ?? []) {
@@ -475,7 +492,7 @@ ColumnLayout {
                             onAccepted: {
                                 const p = view.picks[view.pickIndex];
                                 if (p)
-                                    view.add(p.app, p.output);
+                                    view.add(p.app, p.output, p.workspace);
                             }
                             Text {
                                 visible: !search.text
@@ -562,7 +579,7 @@ ColumnLayout {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: view.add(pick.modelData.app, pick.modelData.output)
+                                onClicked: view.add(pick.modelData.app, pick.modelData.output, pick.modelData.workspace)
                             }
                         }
                         }
