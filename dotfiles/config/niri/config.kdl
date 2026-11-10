@@ -317,6 +317,8 @@ spawn-at-startup "sh" "-c" "exec $HOME/.local/bin/fili-internal-panel watch"
 spawn-at-startup "sh" "-c" "/usr/bin/fili-automount"
 // Resident Casier (Settings > Casier > Open instantly): loads a hidden copy so that Casier opens at once; does nothing when the setting is off
 spawn-at-startup "sh" "-c" "/usr/bin/fili-file spare auto"
+// Facteur: watches every mail account, notifies of new mail and feeds the bar's mail module (idle without an account; skipped if fili-mail is not installed)
+spawn-sh-at-startup "command -v fili-mail >/dev/null && exec fili-mail daemon"
 spawn-sh-at-startup "$HOME/.local/bin/wallpaper"
 // Notifications of the webapps listed in ~/.config/webapps/notify (WhatsApp...): bar indicator, see ~/.local/bin/webapp-notify
 spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
