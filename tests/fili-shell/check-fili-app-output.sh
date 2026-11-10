@@ -37,7 +37,7 @@ check "forget also removes the workspace of the application" '[ ! -s "$S/app-wor
 "$FA" set zed "A 1 2"; "$FA" layout zed left; "$FA" layout mpv float; "$FA" layout foot full
 check "layout left: floating half against the left edge" 'grep -q "relative-to=\"left\"" "$O" && grep -q "proportion 0.5" "$O"'
 check "layout full and float" 'grep -q "open-maximized-to-edges true" "$O" && grep -q "^    open-floating true$" "$O"'
-check "layout rejects an unknown mode" '! "$FA" layout zed sideways 2>/dev/null'
+check "layout rejects an unknown mode (top and bottom are not offered)" '! "$FA" layout zed sideways 2>/dev/null && ! "$FA" layout zed top 2>/dev/null'
 check "json: layout next to the monitor, an application with only a layout listed" '[ "$("$FA" json | jq -r "[(.apps[] | select(.app == \"zed\") | .output + \"/\" + .layout), (.apps[] | select(.app == \"mpv\") | .layout)] | join(\",\")")" = "A 1 2/left,float" ]'
 if command -v niri > /dev/null; then
     printf 'include "app-outputs.kdl"\n' > "$T/cfg/niri/check.kdl"

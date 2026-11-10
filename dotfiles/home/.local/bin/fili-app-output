@@ -12,8 +12,8 @@
 #                                  "1", "2"... on each MONITOR, in the order given (left to right); the bindings of
 #                                  the niri config that go to workspace N by index then go to the workspace named N.
 #                                  Without arguments: numbering off.
-# fili-app-output layout APP_ID MODE  how its new windows are placed: left, right, top, bottom (floating half of the
-#                                  monitor against that edge), full (maximized to the edges), float (floating, centred);
+# fili-app-output layout APP_ID MODE  how its new windows are placed: left, right (floating half of the monitor
+#                                  against that edge), full (maximized to the edges), float (floating, centred);
 #                                  none (or empty) = tiled as niri decides
 # fili-app-output json             saved choices: {"apps":[{"app","output"|"workspace","layout"?}],"workspaces":[{"name","output"}]}
 #                                  (an application with only a layout has neither output nor workspace)
@@ -98,7 +98,6 @@ layout_rule() {
     }
     case "$1" in
     left | right) half 0.5 1.0 "$1" ;;
-    top | bottom) half 1.0 0.5 "$1" ;;
     full) printf '    open-maximized-to-edges true' ;;
     float) printf '    open-floating true' ;;
     *) return 1 ;;
@@ -211,10 +210,10 @@ set | set-workspace)
     write_rules
     ;;
 layout)
-    [ -n "$app" ] || { echo "usage: fili-app-output layout APP_ID left|right|top|bottom|full|float|none" >&2; exit 2; }
+    [ -n "$app" ] || { echo "usage: fili-app-output layout APP_ID left|right|full|float|none" >&2; exit 2; }
     case "$app" in *"$tab"* | *'"'* | *'#'* | *'\'*) t 'Invalid name.' >&2; echo >&2; exit 2 ;; esac
     mode="${3:-none}"
-    case "$mode" in left | right | top | bottom | full | float | none) ;; *) echo "fili-app-output layout: invalid mode: $mode" >&2; exit 2 ;; esac
+    case "$mode" in left | right | full | float | none) ;; *) echo "fili-app-output layout: invalid mode: $mode" >&2; exit 2 ;; esac
     mkdir -p "$dir"; touch "$layouts"
     without "$layouts" "$app"
     [ "$mode" = none ] || printf '%s\t%s\n' "$app" "$mode" >> "$layouts"
