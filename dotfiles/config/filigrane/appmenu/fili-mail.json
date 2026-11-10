@@ -18,7 +18,11 @@
     {
       "label": "Message",
       "children": [
+        { "label": "Next Message", "exec": "fili-mail ctl --pid %pid action next-message" },
+        { "label": "Previous Message", "exec": "fili-mail ctl --pid %pid action previous-message" },
+        { "sep": true },
         { "label": "Reply", "keys": "Ctrl+Shift+R", "exec": "fili-mail ctl --pid %pid action reply" },
+        { "label": "Reply All", "keys": "Ctrl+Alt+R", "exec": "fili-mail ctl --pid %pid action reply-all" },
         { "label": "Forward", "keys": "Ctrl+Shift+F", "exec": "fili-mail ctl --pid %pid action forward" },
         { "sep": true },
         { "label": "Archive", "keys": "E", "exec": "fili-mail ctl --pid %pid action archive" },
