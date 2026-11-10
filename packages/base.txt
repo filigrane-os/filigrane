@@ -13,6 +13,8 @@ socklog-void
 
 # JSON processing on the command line (553 KB)
 jq
+# Requests on the niri socket that its CLI cannot make, e.g. a workspace by id (fili-app-output) (883 KB)
+socat
 
 # Kills the hungry process before memory freezes (settings: system/earlyoom.conf)
 earlyoom

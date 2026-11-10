@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FA="$ROOT/dotfiles/home/.local/bin/fili-app-output"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 export XDG_STATE_HOME="$T/state" XDG_CONFIG_HOME="$T/cfg"
-unset WAYLAND_DISPLAY
+unset WAYLAND_DISPLAY NIRI_SOCKET
 mkdir -p "$XDG_STATE_HOME/filigrane"
 S="$XDG_STATE_HOME/filigrane"; O="$XDG_CONFIG_HOME/niri/app-outputs.kdl"
 tab="$(printf '\t')"
@@ -29,6 +29,15 @@ check "set-workspace replaces the monitor of the application" '! grep -q "^foot"
 check "numbered names 1..N in the given order, keeps the other pinned workspaces" '[ "$(cut -f1 "$S/workspace-outputs" | tr "\n" " ")" = "ws-a bad\\name ws-b 1 2 3 " ] && grep -q "^3${tab}B 3 4$" "$S/workspace-outputs"'
 check "bindings by index up to N repeated by name, comments and higher numbers skipped" '[ "$(grep -c "workspace \"[0-9]" "$B")" = 2 ] && grep -q "Mod+1 hotkey-overlay-title=\"One\" { focus-workspace \"1\"; }" "$B" && grep -q "Mod+Ctrl+3 { move-column-to-workspace \"3\"; }$" "$B"'
 check "json lists applications and workspaces" '[ "$("$FA" json | jq -r "[(.apps[] | select(.app == \"foot\") | .workspace), ([.workspaces[] | select(.output == \"B 3 4\")] | length)] | join(\",\")")" = "2,1" ]'
+# Workspaces already open are moved to their monitor and put in order (fake niri: requests by id logged)
+F="$T/fake"; mkdir -p "$F"
+printf '{"A-1":{"name":"A-1","make":"A","model":"1","serial":"2"},"B-1":{"name":"B-1","make":"B","model":"3","serial":"4"}}' > "$T/outs.json"
+printf '[{"id":11,"idx":1,"name":"1","output":"A-1","is_active":true,"is_focused":false},{"id":12,"idx":1,"name":"2","output":"B-1","is_active":true,"is_focused":true},{"id":13,"idx":2,"name":"3","output":"A-1","is_active":false,"is_focused":false}]' > "$T/ws.json"
+printf '#!/bin/sh\ncase "$*" in "msg --json outputs") cat "%s/outs.json" ;; "msg --json workspaces") cat "%s/ws.json" ;; esac\n' "$T" "$T" > "$F/niri"
+printf '#!/bin/sh\ncat >> "%s/ipc.log"\n' "$T" > "$F/ipc"
+chmod +x "$F/niri" "$F/ipc"
+PATH="$F:$PATH" NIRI_SOCKET=fake FILI_NIRI_IPC="$F/ipc" "$FA" numbered 2 "A 1 2" 1 "B 3 4"
+check "numbered moves the open workspaces to their monitor by id, puts them in order, gives the focus back" '[ "$(tr -d " " < "$T/ipc.log" | tr "\n" "|")" = "{\"Action\":{\"MoveWorkspaceToMonitor\":{\"output\":\"A-1\",\"reference\":{\"Id\":12}}}}|{\"Action\":{\"MoveWorkspaceToMonitor\":{\"output\":\"B-1\",\"reference\":{\"Id\":13}}}}|{\"Action\":{\"MoveWorkspaceToIndex\":{\"index\":2,\"reference\":{\"Id\":12}}}}|{\"Action\":{\"MoveWorkspaceToIndex\":{\"index\":1,\"reference\":{\"Id\":13}}}}|{\"Action\":{\"FocusWorkspace\":{\"reference\":{\"Id\":11}}}}|{\"Action\":{\"FocusWorkspace\":{\"reference\":{\"Id\":12}}}}|" ]'
 "$FA" numbered
 check "numbering off: no numbered workspace, no binding" '! grep -q "^[0-9]" "$S/workspace-outputs" && ! grep -q binds "$B"'
 "$FA" forget foot > /dev/null

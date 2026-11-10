@@ -133,6 +133,50 @@ write_binds() {
     mv "$binds.new" "$binds"
 }
 
+# Pinned workspaces already open stay where they are when niri re-reads open-on-output: each one is moved to the
+# display of its monitor, and the numbered ones put in order on it (1, 2... at the top). The niri CLI reads "2" as an
+# index, never as a name, hence requests by id on the niri socket (socat; $FILI_NIRI_IPC replaces it in the tests).
+# The active workspace of each display and the focus are given back afterwards.
+niri_ipc() {
+    if [ -n "${FILI_NIRI_IPC:-}" ]; then $FILI_NIRI_IPC; else socat - "UNIX-CONNECT:$NIRI_SOCKET" > /dev/null; fi
+}
+place_workspaces() {
+    [ -n "${NIRI_SOCKET:-}" ] && [ -r "$wsstate" ] || return 0
+    [ -n "${FILI_NIRI_IPC:-}" ] || command -v socat > /dev/null || return 0
+    outs="$(niri msg --json outputs)" || return 0
+    # Wanted: [{name, conn}] for the monitors that are connected
+    want="$(jq -Rn --argjson outs "$outs" '
+        ([$outs[] | { key: "\(.make) \(.model) \(.serial // "Unknown")", value: .name }] | from_entries) as $conn
+        | [inputs | split("\t") | select(.[0] != "" and (.[1] // "") != "") | { name: .[0], conn: $conn[.[1]] } | select(.conn)]' < "$wsstate")"
+    # niri creates the new named workspaces when it re-reads the config: wait for them (at most 3 s)
+    i=0
+    while ws="$(niri msg --json workspaces)" && [ "$i" -lt 30 ] \
+        && ! jq -e --argjson want "$want" '[.[].name] as $n | $want | all(.name as $w | $n | index($w))' > /dev/null <<EOT
+$ws
+EOT
+    do i=$((i + 1)); sleep 0.1; done
+    before="$ws"
+    moves="$(jq -c --argjson want "$want" '. as $ws | $want[] as $w | $ws[] | select(.name == $w.name and .output != $w.conn)
+        | { Action: { MoveWorkspaceToMonitor: { output: $w.conn, reference: { Id: .id } } } }' <<EOT
+$ws
+EOT
+)"
+    [ -z "$moves" ] || { printf '%s\n' "$moves" | while IFS= read -r m; do printf '%s\n' "$m" | niri_ipc; done; ws="$(niri msg --json workspaces)"; }
+    order="$(jq -c --argjson want "$want" '. as $ws | $want | map(select(.name | test("^[0-9]+$"))) | group_by(.conn)[]
+        | sort_by(.name | tonumber) | to_entries[] | (.key + 1) as $i | .value as $w | $ws[]
+        | select(.name == $w.name and .idx != $i) | { Action: { MoveWorkspaceToIndex: { index: $i, reference: { Id: .id } } } }' <<EOT
+$ws
+EOT
+)"
+    [ -n "$order" ] && printf '%s\n' "$order" | while IFS= read -r m; do printf '%s\n' "$m" | niri_ipc; done
+    [ -n "$moves$order" ] || return 0
+    # Active workspace of each display back, the focused one last (FocusWorkspace also focuses its display)
+    jq -c '(map(select(.is_active and (.is_focused | not))) + map(select(.is_focused)))[]
+        | { Action: { FocusWorkspace: { reference: { Id: .id } } } }' <<EOT | while IFS= read -r m; do printf '%s\n' "$m" | niri_ipc; done
+$before
+EOT
+}
+
 # without FILE KEY: FILE minus the line whose first field is exactly KEY (a plain comparison: no regex, no escapes)
 without() {
     [ -r "$1" ] || return 0
@@ -231,6 +275,7 @@ numbered)
     done
     mv "$wsstate.new" "$wsstate"
     write_rules
+    place_workspaces
     ;;
 json)
     {
