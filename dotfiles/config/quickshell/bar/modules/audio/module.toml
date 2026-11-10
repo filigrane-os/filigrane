@@ -3,3 +3,4 @@ title = "Audio"
 description = "Volume and outputs"
 side = "right"
 order = 60
+compact_at = 4

@@ -17,6 +17,9 @@ pragma Singleton
 //   display = "icon"       # "both" (default) | "icon" | "value"
 //   tray = "idle"          # drawer: "never" (default) | "idle" (in the drawer at rest) | "always" (only in the open drawer)
 //   show = "always"        # "active" (default: hidden while it has nothing to show) | "always"
+// A manifest can also give compact_at = N (squeeze level at which the module shows its compact form: icon alone, clock
+// without the date) and drawer_at = N (level at which it moves into the drawer). The bar raises its squeeze level one
+// step at a time while the modules of the right row no longer fit next to the left row (see nextLevel).
 // A name is a folder of bar/modules/ (<name>/<Name>Module.qml, hyphens make camel case: "my-thing" -> MyThingModule),
 // from the distribution or from a user layer. An explicit left / right list gives the exact order of the row; "..."
 // stands for the default modules of the row (the ones not listed yet), so a user layer can add its own without restating
@@ -98,6 +101,24 @@ Singleton {
     function choice(name, key, values, fallback) {
         const v = setting(name, key, fallback);
         return values.indexOf(v) >= 0 ? v : fallback;
+    }
+    // Squeeze levels: 0 = everything shown; the bar goes up while the right row does not fit (FiliBar), down again when
+    // it fits with room to spare. Minimum width kept for the application menu (the left row never gives up its last titles).
+    readonly property int maxLevel: 4
+    readonly property real menuMin: 200
+    // Level at which a module compacts (compactAt) or goes into the drawer (drawerAt): manifest or fili-bar.toml, 0 = never
+    function level(name, key) {
+        const v = parseInt(String(setting(name, key, "0")));
+        return isNaN(v) || v < 0 ? 0 : v;
+    }
+    // Next level of a bar: `right` = width of its right row at the current level, `avail` = width the row may use,
+    // `seen[l]` = width of the right row last measured at level l (to know what a lower level needs before going back)
+    function nextLevel(level, avail, right, seen) {
+        if (right > avail && level < maxLevel)
+            return level + 1;
+        if (level > 0 && seen[level - 1] !== undefined && seen[level - 1] + 16 <= avail)
+            return level - 1;
+        return level;
     }
     function enabled(name) {
         return setting(name, "enabled", "true") !== "false";

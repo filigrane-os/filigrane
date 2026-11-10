@@ -34,6 +34,21 @@ A click that opens a panel opens a **fili-panel** under the item. `Esc`, a click
 
 The `tray` module folds the indicators that are not in use. Folded, only the ones that have something to show stay visible; the chevron unfolds all of them. `bar-tray toggle` does the same from a script.
 
+### A bar that adapts to its screen
+
+When the right row no longer fits next to the left one, the bar **squeezes** itself one level at a time, per screen, and goes back as soon as there is room again (a column never squeezes). Each module says in its `module.toml` what it gives up and at which level:
+
+| Level | What happens |
+|---|---|
+| 1 | `media`: the title goes, the icon stays (title and artist stay in the card) |
+| 2 | `clock`: the time alone, the date stays in the card and the calendar |
+| 3 | `resources`, `keyboard`, `display` move into the drawer |
+| 4 | `audio`, `network`, `bluetooth`, `power`: icon alone |
+
+`compact_at = N` is the level from which a module shows its compact form (`display = "icon"` for `BarItem` and `BarScript`; a module with its own layout reads `compact`), `drawer_at = N` the level from which it goes into the drawer. Both work in a `module.toml` and in `[modules.<name>]`; a module without them never changes. What you set yourself (`display = "value"`, `tray = "idle"`) wins over the squeeze. The application menu is the last to give way: it keeps at least 200 px and truncates its titles with `…`.
+
+The `status` module is a single icon for the indicators (recording, SSH, airplane mode, VPN, updates): it shows the most urgent one, with a count when several are active, and nothing while none is. A click opens a panel with one row per indicator and its action.
+
 ### The application menu
 
 `appmenu` is the global menu: the name of the active application in bold, then its menus, like the classic Mac OS X menu bar. It reads the application's menu bar through AT-SPI (GTK, Qt) or, for applications that export none, a hand-written fallback in `dotfiles/config/filigrane/appmenu/<app_id>.json` (personal ones in `users/<login>/dotfiles/config/filigrane/appmenu/`). Menus that do not fit move into a `…` title. `Mod+F10` gives the menu the keyboard focus.

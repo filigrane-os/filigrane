@@ -68,7 +68,8 @@ Singleton {
         const path = {};
         for (const n in m)
             path[n] = treePath(m[n].item);
-        return Object.keys(m).sort((a, b) => compareTree(path[a], path[b]));
+        // A panel whose item is hidden (the status icon with no active indicator) is not in the ring
+        return Object.keys(m).filter(n => !m[n].item.panelNeedsVisible || m[n].item.visible).sort((a, b) => compareTree(path[a], path[b]));
     }
 
     function toggle(item, name, win) {

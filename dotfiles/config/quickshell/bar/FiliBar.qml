@@ -26,6 +26,57 @@ PanelWindow {
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
 
+    // Squeeze level (BarLayout.nextLevel): raised one step at a time while the right row does not fit next to the left
+    // row, lowered when it fits again. seen[l] = width of the right row measured at level l. A column never squeezes.
+    property int level: 0
+    property var seen: []
+    // Tests drive the level by hand unless they ask for the measure
+    property bool measure: !FiliTheme.testing
+    // Width the left row keeps: its modules, the application menu at its minimum, the gaps
+    function leftNeed() {
+        let w = 0;
+        for (let i = 0; i < leftRep.count; i++) {
+            const slot = leftRep.itemAt(i);
+            if (!slot || !slot.item)
+                continue;
+            w += slot.modelData === "appmenu" ? (slot.item.shown ? BarLayout.menuMin : 0) : slot.implicitWidth;
+        }
+        return w;
+    }
+    function fit() {
+        if (!measure || vertical || width <= 0) {
+            if (level !== 0)
+                level = 0;
+            return;
+        }
+        const right = rightRow.implicitWidth;
+        const s = seen.slice();
+        s[level] = right;
+        seen = s;
+        const avail = width - leftNeed() - rightRow.anchors.rightMargin - FiliTheme.space3;
+        const next = BarLayout.nextLevel(level, avail, right, s);
+        if (next !== level) {
+            level = next;
+            settle.restart();
+        }
+    }
+    // Measured after the layout settled (a level change moves the widths), not on every width signal
+    Timer {
+        id: settle
+        interval: 150
+        onTriggered: barWin.fit()
+    }
+    onWidthChanged: settle.restart()
+    onVerticalChanged: settle.restart()
+    Connections {
+        target: rightRow
+        function onImplicitWidthChanged() { settle.restart(); }
+    }
+    Connections {
+        target: leftRow
+        function onImplicitWidthChanged() { settle.restart(); }
+    }
+
     // Click on the bar background (outside the modules): closes fili-panel, the pinned calendar and the notification center;
     // right click: the position of the bar and its settings
     MouseArea {
@@ -57,6 +108,7 @@ PanelWindow {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
         Repeater {
+            id: leftRep
             model: BarLayout.ready && !barWin.vertical ? BarLayout.left : []
             BarSlot { bar: barWin; free: rightRow.x - leftRow.x }
         }

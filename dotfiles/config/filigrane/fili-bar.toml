@@ -31,3 +31,5 @@
 # tray = "idle"       # drawer: "never" (default, always in the bar), "idle" (in the bar only while it has something to
 #                     # say, in the drawer at rest) or "always" (only in the open drawer)
 # show = "always"     # "active" (default, hidden while empty) or "always"
+# compact_at = 2      # squeeze level (1-4) from which the module shows its compact form (icon alone, clock without the date)
+# drawer_at = 3       # squeeze level from which the module moves into the drawer (0 = never)

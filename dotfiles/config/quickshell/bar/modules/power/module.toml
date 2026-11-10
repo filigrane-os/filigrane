@@ -3,3 +3,4 @@ title = "Power"
 description = "Battery and power actions"
 side = "right"
 order = 130
+compact_at = 4

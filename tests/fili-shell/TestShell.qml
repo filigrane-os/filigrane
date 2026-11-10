@@ -1404,7 +1404,7 @@ ShellRoot {
                 BarLayout.parsed = ({});
             },
             wait(() => {}, () => t.find(t.bar.contentItem, "network") !== null && t.find(t.bar.contentItem, "appmenu") !== null, 5000),
-            () => ok(FiliPanel.ring().length === 9, "fili-bar: default modules back, panels registered again", FiliPanel.ring().join()),
+            () => ok(FiliPanel.ring().length === 9 && FiliPanel.ring().indexOf("status") < 0, "fili-bar: default modules back, panels registered again (status panel only while an indicator is active)", FiliPanel.ring().join()),
             () => {
                 const r = t.find(t.bar.contentItem, "rec");
                 ok(r && r.display === "both" && r.trayMode === "never" && r.inDrawer, "fili-bar: default display/tray (both, never)", r ? r.display + "/" + r.trayMode : "absent");
@@ -1416,6 +1416,63 @@ ShellRoot {
                 ok(r && r.display === "icon" && r.trayMode === "always" && !r.inDrawer, "fili-bar: display and tray of a module followed by its items (collapsed drawer = hidden)", r ? r.display + "/" + r.trayMode + "/" + r.inDrawer : "absent");
                 ok(BarLayout.choice("bogus", "display", ["both", "icon", "value"], "both") === "both", "BarLayout.choice: invalid value = fallback");
                 BarLayout.parsed = ({});
+            },
+            // Squeezed bar: levels go up one step at a time while the right row does not fit, and come back with room to spare
+            () => {
+                const seen = [];
+                ok(BarLayout.nextLevel(0, 800, 700, seen) === 0, "bar squeeze: fits -> level unchanged");
+                ok(BarLayout.nextLevel(0, 600, 700, seen) === 1 && BarLayout.nextLevel(3, 600, 700, seen) === 4, "bar squeeze: overflow -> next level");
+                ok(BarLayout.nextLevel(4, 100, 700, seen) === 4, "bar squeeze: last level holds");
+                ok(BarLayout.nextLevel(2, 650, 560, [700, 640]) === 2 && BarLayout.nextLevel(2, 660, 560, [700, 640]) === 1, "bar squeeze: back down only when the lower level fits with room to spare");
+                ok(BarLayout.nextLevel(1, 900, 500, []) === 1, "bar squeeze: unknown lower width = no step down");
+                ok(BarLayout.level("media", "compact_at") === 1 && BarLayout.level("clock", "compact_at") === 2 && BarLayout.level("resources", "drawer_at") === 3 && BarLayout.level("logo", "compact_at") === 0, "bar squeeze: levels of the manifests (media 1, clock 2, resources drawer 3)");
+                t.bar.level = 1;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "media")?.display === "icon", 3000),
+            () => {
+                const clk = t.find(t.bar.contentItem, "clock").parent;
+                ok(!clk.compact && t.find(t.bar.contentItem, "cpu").trayMode === "never", "bar squeeze 1: media icon alone, clock and resources untouched");
+                t.bar.level = 2;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "clock")?.parent.compact === true, 3000),
+            () => {
+                ok(t.find(t.bar.contentItem, "clock").parent.compact, "bar squeeze 2: clock without the date");
+                t.bar.level = 3;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "cpu")?.trayMode === "always", 3000),
+            () => {
+                ok(t.find(t.bar.contentItem, "cpu").trayMode === "always" && !t.find(t.bar.contentItem, "cpu").inDrawer, "bar squeeze 3: resources go into the drawer (hidden while it is folded)");
+                BarLayout.parsed = FiliTheme.parseToml('[modules.media]\ndisplay = "value"\n[modules.resources]\ntray = "idle"\n');
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "cpu")?.trayMode === "idle", 3000),
+            () => {
+                ok(t.find(t.bar.contentItem, "media").display === "value", "bar squeeze: what the user chose (display, tray) wins over the squeeze");
+                BarLayout.parsed = ({});
+                t.bar.level = 0;
+            },
+            wait(() => {}, () => t.find(t.bar.contentItem, "cpu")?.trayMode === "never" && t.find(t.bar.contentItem, "media")?.display === "both", 3000),
+            // Status indicators merged into one icon: one row per active indicator in the panel
+            () => {
+                const st = t.find(t.bar.contentItem, "status");
+                ok(st && !st.visible, "bar status: nothing active, no icon");
+                const rec = t.find(t.bar.contentItem, "rec"), air = t.find(t.bar.contentItem, "air");
+                rec.apply({ text: String.fromCodePoint(0xf111) + " REC", "class": "recording" });
+                air.apply({ text: String.fromCodePoint(0xf072), "class": "" });
+            },
+            wait(() => {}, () => BarState.statusRows.length === 2, 3000),
+            () => {
+                const st = t.find(t.bar.contentItem, "status");
+                ok(FiliPanel.ring().indexOf("status") >= 0, "bar status: panel in the keyboard ring while an indicator is active");
+                ok(st.visible && FiliTheme.value(st.text) === "2" && st.cls === "rec", "bar status: two indicators = one icon with the count, the recording first", st.text + "/" + st.cls);
+                act("status", L);
+                ok(FiliPanel.view === "status", "bar status: click -> status panel", FiliPanel.view);
+                const rows = t.findAll(FiliPanel.loaded, "status-rec").concat(t.findAll(FiliPanel.loaded, "status-air"));
+                ok(rows.length === 2, "fili-panel status: a row per active indicator", rows.length);
+                FiliTheme.ran = [];
+                rows[0].press(L);
+                ok(FiliTheme.ran.join("\n").indexOf("bar-toggle rec") >= 0 && FiliPanel.view === "", "fili-panel status: click on a row runs its action and closes the panel", JSON.stringify(FiliTheme.ran));
+                t.find(t.bar.contentItem, "rec").apply({ text: "" });
+                t.find(t.bar.contentItem, "air").apply({ text: "" });
             },
             // Edge of the bar: [bar] edge, a column on the left and the right
             () => {

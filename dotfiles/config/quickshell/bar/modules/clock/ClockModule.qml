@@ -1,4 +1,4 @@
-// Date and clock. Hover = card (date, time zone, next events), click (left or right) = calendar pinned as a panel
+// Date and clock (time alone when the bar is squeezed, compact_at in module.toml; the date stays in the card). Hover = card (date, time zone, next events), click (left or right) = calendar pinned as a panel
 // (wheel: previous/next month, middle click: current month)
 import QtQuick
 import Quickshell
@@ -51,7 +51,7 @@ BarModule {
     // Calendar icon before the date, like the other modules (the timer carries its own)
     BarLabel {
         id: clockIcon
-        visible: !clockItem.timing && !clockItem.vertical
+        visible: !clockItem.timing && !clockItem.vertical && !clockItem.compact
         anchors { verticalCenter: parent.verticalCenter; right: clockText.left; rightMargin: FiliTheme.labelGap }
         text: String.fromCodePoint(0xf073)
         color: FiliTheme.ardoise
@@ -61,7 +61,7 @@ BarModule {
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: clockIcon.visible ? (clockIcon.implicitWidth + FiliTheme.labelGap) / 2 : 0
         horizontalAlignment: Text.AlignHCenter
-        text: clockItem.timing ? (clockItem.vertical ? clockItem.timerState.text.trim() : clockItem.timerState.text) : clockItem.vertical ? FiliI18n.locale.toString(clock.date, "HH:mm") + "\n" + FiliI18n.locale.toString(clock.date, "dd MMM") : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
+        text: clockItem.timing ? (clockItem.vertical ? clockItem.timerState.text.trim() : clockItem.timerState.text) : clockItem.vertical ? FiliI18n.locale.toString(clock.date, "HH:mm") + "\n" + FiliI18n.locale.toString(clock.date, "dd MMM") : clockItem.compact ? FiliI18n.locale.toString(clock.date, "HH:mm") : FiliI18n.locale.toString(clock.date, "ddd dd MMM  HH:mm")
         color: !clockItem.timing ? FiliTheme.brume : clockItem.timerState["class"] === "done" ? FiliTheme.cendre : FiliTheme.sable
         // Fixed-width digits: the clock does not shift every second
         font.family: clockItem.timing ? FiliTheme.mono : FiliTheme.font

@@ -16,12 +16,17 @@ Item {
     // QML file of the panel view (next to the module); loaded by FiliPanel when the panel opens
     property url panelSource
     property Item anchorItem: mod
+    // The panel is only reachable from the keyboard (fili-panel ring) while the anchor item is shown
+    property bool panelNeedsVisible: false
     // How the module shows, from its manifest / fili-bar.toml (BarSlot sets them on the module of a row; the items nested
     // in a module follow the nearest module above them). display: "both" | "icon" | "value" (the icon alone, the value
     // alone; a module without icon always shows its value). trayMode: "never" (always in the bar) | "idle" (in the drawer
     // at rest, in the bar while it has something to say) | "always" (only in the open drawer)
     property string display: inherited("display", "both")
     property string trayMode: inherited("trayMode", "never")
+    // Squeezed bar (compact_at of the manifest, set by BarSlot): the module shows its compact form. BarItem and BarScript
+    // already follow it through display (icon alone); a module with its own layout reads it (the clock drops the date).
+    property bool compact: false
     function inherited(key, def) {
         for (let p = parent; p; p = p.parent)
             if (p[key] !== undefined)

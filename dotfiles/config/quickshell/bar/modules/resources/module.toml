@@ -3,3 +3,4 @@ title = "Resources"
 description = "CPU, memory and temperature"
 side = "right"
 order = 40
+drawer_at = 3
