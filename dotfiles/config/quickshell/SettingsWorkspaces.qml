@@ -4,7 +4,7 @@
 //   as named workspaces pinned to their display; the number keys of the niri config then go to them (fili-app-output
 //   numbered writes the rules and the bindings).
 // - Applications: the display or the workspace on which each one opens its new windows (drop-down) and how they are
-//   placed (icon buttons: left or right half, maximized, floating); "Add an application" opens a
+//   placed (icon buttons: first column on the left, last column on the right, maximized, floating); "Add an application" opens a
 //   dialog with a search over the open windows and the installed applications (or an app-id typed in).
 // Everything goes through fili-app-output (state in ~/.local/state/filigrane, rules in ~/.config/niri/app-outputs.kdl,
 // re-read by niri by itself). Displays are stored by "make model serial", not by connector (DP-6 changes with the port).
@@ -124,8 +124,8 @@ ColumnLayout {
     // Placement of the new windows (fili-app-output layout): "" = tiled as niri decides; a second click on the
     // chosen one goes back to that
     readonly property var layouts: [
-        { id: "left", glyph: "half-left", label: FiliI18n.tr("Left half") },
-        { id: "right", glyph: "half-right", label: FiliI18n.tr("Right half") },
+        { id: "left", glyph: "column-left", label: FiliI18n.tr("First column on the left") },
+        { id: "right", glyph: "column-right", label: FiliI18n.tr("Last column on the right") },
         { id: "full", glyph: "maximize-edges", label: FiliI18n.tr("Maximized") },
         { id: "float", glyph: "float", label: FiliI18n.tr("Floating") }
     ]

@@ -699,6 +699,15 @@ ShellRoot {
                 d.adding = true;
                 d.add("zed", "A-1");
                 ok(!d.adding && FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output set 'zed' 'T M a'", "fili-settings workspaces: added on the display of its window", JSON.stringify(FiliTheme.ran));
+                // Left / right: the shell moves the column of a new focused window to the first or last place
+                FiliPlacement.columns = FiliPlacement.parse("zed\tleft\nfoot\tright\nmpv\tfloat\n");
+                FiliTheme.ran = [];
+                FiliPlacement.place({ id: 50, app_id: "zed", is_focused: true, is_floating: false });
+                FiliPlacement.place({ id: 51, app_id: "foot", is_focused: true, is_floating: false });
+                FiliPlacement.place({ id: 52, app_id: "zed", is_focused: false, is_floating: false });
+                FiliPlacement.place({ id: 53, app_id: "mpv", is_focused: true, is_floating: true });
+                ok(FiliTheme.ran.join("|") === "niri msg action move-column-to-first|niri msg action move-column-to-last", "fili-placement: new window to the first or last column (focused, tiled only)", JSON.stringify(FiliTheme.ran));
+                FiliPlacement.columns = {};
                 // Add dialog: open windows first, then installed applications (hidden and saved ones left out), typed app-id last
                 d.conf = { apps: [{ app: "foot", output: "T M a" }], workspaces: [] };
                 const ents = [{ id: "org.gnome.Calculator", name: "Calculator", startupClass: "", noDisplay: false }, { id: "zed", name: "Zed", noDisplay: false },

@@ -16,6 +16,9 @@ Singleton {
     property int previousLayout: -1
 
     readonly property var focused: focusedId !== null ? windows[focusedId] ?? null : null
+    // A window opened after the start of the stream (not one of the windows already there)
+    signal windowOpened(var window)
+    property bool seeded: false
 
     function action(...args) {
         if (FiliTheme.testing)
@@ -102,8 +105,10 @@ Singleton {
                             niri.focusedId = w.id;
                     }
                     niri.setWindows(m);
+                    niri.seeded = true;
                 } else if (ev.WindowOpenedOrChanged) {
                     const w = ev.WindowOpenedOrChanged.window;
+                    const opened = niri.seeded && niri.windows[w.id] === undefined;
                     if (niri.same(niri.windows[w.id], w)) {
                         niri.windows[w.id] = w;
                     } else {
@@ -113,6 +118,8 @@ Singleton {
                     }
                     if (w.is_focused)
                         niri.focusedId = w.id;
+                    if (opened)
+                        niri.windowOpened(w);
                 } else if (ev.WindowClosed) {
                     const m = Object.assign({}, niri.windows);
                     delete m[ev.WindowClosed.id];

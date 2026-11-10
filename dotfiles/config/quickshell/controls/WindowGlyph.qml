@@ -1,6 +1,6 @@
 // Pictogram of a window action, drawn on a 16x16 grid in the current text color (no icon font needed, so it follows
-// the theme). `kind` names the picture; unknown kinds draw nothing. Same drawings as Casier (fili-file,
-// qml/WindowGlyph.qml), plus the halves of the screen (half-left, half-right).
+// the theme). `kind` names the picture; unknown kinds draw nothing. Copy of the one of Casier (fili-file,
+// qml/WindowGlyph.qml): keep the two identical.
 import QtQuick
 import qs
 
@@ -61,16 +61,6 @@ Canvas {
             fill(5, 2.5, 6, 11, 0.5);
             line(5, 2.5, 5, 13.5);
             line(11, 2.5, 11, 13.5);
-            break;
-        case "half-left":
-            box(1.5, 2.5, 13, 11);
-            fill(1.5, 2.5, 6.5, 11, 0.5);
-            line(8, 2.5, 8, 13.5);
-            break;
-        case "half-right":
-            box(1.5, 2.5, 13, 11);
-            fill(8, 2.5, 6.5, 11, 0.5);
-            line(8, 2.5, 8, 13.5);
             break;
         case "maximize-edges":
             box(1.5, 2.5, 13, 11);

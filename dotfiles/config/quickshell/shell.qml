@@ -23,6 +23,7 @@ ShellRoot {
         FiliLauncher.open;
         FiliChat.open;
         FiliChatAbout.open;
+        FiliPlacement.columns;
         FiliAudioSwitch.open;
         FiliShell.fifo;
         FiliHotkeys.startup();

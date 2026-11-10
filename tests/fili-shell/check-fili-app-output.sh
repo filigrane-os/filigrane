@@ -35,7 +35,7 @@ check "numbering off: no numbered workspace, no binding" '! grep -q "^[0-9]" "$S
 check "forget also removes the workspace of the application" '[ ! -s "$S/app-workspaces" ]'
 # Placement of the windows: one rule per application, valid for niri, kept apart from the monitor, cleared by none/forget
 "$FA" set zed "A 1 2"; "$FA" layout zed left; "$FA" layout mpv float; "$FA" layout foot full
-check "layout left: floating half against the left edge" 'grep -q "relative-to=\"left\"" "$O" && grep -q "proportion 0.5" "$O"'
+check "layout left: no niri rule (fili-shell moves the column), kept in the state" '[ "$(grep -c "\^zed\\$" "$O")" = 1 ] && ! grep -q "relative-to" "$O" && grep -q "^zed${tab}left$" "$S/app-layouts"'
 check "layout full and float" 'grep -q "open-maximized-to-edges true" "$O" && grep -q "^    open-floating true$" "$O"'
 check "layout rejects an unknown mode (top and bottom are not offered)" '! "$FA" layout zed sideways 2>/dev/null && ! "$FA" layout zed top 2>/dev/null'
 check "json: layout next to the monitor, an application with only a layout listed" '[ "$("$FA" json | jq -r "[(.apps[] | select(.app == \"zed\") | .output + \"/\" + .layout), (.apps[] | select(.app == \"mpv\") | .layout)] | join(\",\")")" = "A 1 2/left,float" ]'

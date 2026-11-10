@@ -12,8 +12,9 @@
 #                                  "1", "2"... on each MONITOR, in the order given (left to right); the bindings of
 #                                  the niri config that go to workspace N by index then go to the workspace named N.
 #                                  Without arguments: numbering off.
-# fili-app-output layout APP_ID MODE  how its new windows are placed: left, right (floating half of the monitor
-#                                  against that edge), full (maximized to the edges), float (floating, centred);
+# fili-app-output layout APP_ID MODE  how its new windows are placed: left, right (tiled, first or last column of the
+#                                  workspace: moved there by fili-shell, FiliPlacement.qml, niri has no such rule),
+#                                  full (maximized to the edges), float (floating, centred);
 #                                  none (or empty) = tiled as niri decides
 # fili-app-output json             saved choices: {"apps":[{"app","output"|"workspace","layout"?}],"workspaces":[{"name","output"}]}
 #                                  (an application with only a layout has neither output nor workspace)
@@ -91,13 +92,9 @@ write_rules() {
     write_binds
 }
 
-# Body of the window rule of a placement (fails for an unknown one)
+# Body of the window rule of a placement (fails for an unknown one, and for left / right, which are not niri rules)
 layout_rule() {
-    half() { # WIDTH HEIGHT EDGE: floating, sized in proportions of the monitor, against EDGE
-        printf '    open-floating true\n    default-column-width { proportion %s; }\n    default-window-height { proportion %s; }\n    default-floating-position x=0 y=0 relative-to="%s"' "$1" "$2" "$3"
-    }
     case "$1" in
-    left | right) half 0.5 1.0 "$1" ;;
     full) printf '    open-maximized-to-edges true' ;;
     float) printf '    open-floating true' ;;
     *) return 1 ;;
