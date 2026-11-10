@@ -369,21 +369,7 @@ EOF
         chmod 755 "/etc/zzz.d/$ev/10-sleeplog"
     done
 
-    log "Hooks zzz.d aussi pour la veille d'elogind (capot, menu)"
-    # elogind suspends without going through zzz: its system-sleep hooks relay to /etc/zzz.d
-    mkdir -p /usr/libexec/elogind/system-sleep
-    cat > /usr/libexec/elogind/system-sleep/50-zzz.d <<'EOF'
-#!/bin/sh
-# filigrane: elogind calls this hook with pre|post; we run the matching zzz.d hooks
-case "$1" in
-    pre) d=/etc/zzz.d/suspend ;;
-    post) d=/etc/zzz.d/resume ;;
-    *) exit 0 ;;
-esac
-for h in "$d"/*; do [ -x "$h" ] && "$h"; done
-exit 0
-EOF
-    chmod 755 /usr/libexec/elogind/system-sleep/50-zzz.d
+    # The elogind relay to /etc/zzz.d is installed by bootstrap.sh (system/elogind/system-sleep)
 
     log "Cœurs secondaires arrêtés pendant la veille"
     # On S3 wake, the kernel turns cores 1-7 back on in 10 to 35 s (Apple firmware): black screen,

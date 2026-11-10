@@ -93,9 +93,10 @@ fi
 if want 'FiliNotification|check-notification-buttons'; then
 python3 -I "$ROOT/tests/fili-shell/check-notification-buttons.py" "$ROOT" || exit 1
 fi
-if want 'fili-bt-pair|fili-bt-autoconnect|bluetooth'; then
+if want 'fili-bt-pair|fili-bt-autoconnect|bluetooth|zzz.d'; then
 "$ROOT/tests/fili-shell/check-fili-bt-pair.sh" || exit 1
 "$ROOT/tests/fili-shell/check-fili-bt-autoconnect.sh" || exit 1
+"$ROOT/tests/fili-shell/check-bt-sleep-hooks.sh" || exit 1
 fi
 # Live config: every QML file of the repository must be linked in ~/.config/quickshell (bootstrap.sh), otherwise the session
 # no longer loads the shell (type not found) while these tests, on a copy of the repository, pass

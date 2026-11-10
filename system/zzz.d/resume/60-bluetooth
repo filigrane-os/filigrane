@@ -1,0 +1,12 @@
+#!/bin/sh
+# Filigrane: on wake, reconnect the paired and trusted Bluetooth devices if the adapter was on
+# before sleep. Most devices (headsets) wait for the computer to call them back.
+# Detached: zzz and elogind wait for their resume hooks, and the retries take up to a minute.
+# $FILI_BT_STATE and $FILI_BT_AUTOCONNECT override the state file and the script (tests).
+state="${FILI_BT_STATE:-/run/filigrane/bt-powered}"
+run="${FILI_BT_AUTOCONNECT:-/usr/local/libexec/filigrane/fili-bt-autoconnect}"
+[ -e "$state" ] || exit 0
+rm -f "$state"
+[ -x "$run" ] || exit 0
+setsid -f "$run" </dev/null >/dev/null 2>&1
+exit 0

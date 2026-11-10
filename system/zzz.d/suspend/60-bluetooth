@@ -1,0 +1,13 @@
+#!/bin/sh
+# Filigrane: remember whether the Bluetooth adapter was on before sleep, so that the resume hook
+# reconnects the paired devices only in that case (never turns Bluetooth on by itself).
+# $FILI_BTCTL and $FILI_BT_STATE override bluetoothctl and the state file (tests).
+BTCTL="${FILI_BTCTL:-bluetoothctl}"
+state="${FILI_BT_STATE:-/run/filigrane/bt-powered}"
+mkdir -p "$(dirname "$state")"
+if timeout 3 $BTCTL show 2>/dev/null | grep -q 'Powered: yes'; then
+    : > "$state"
+else
+    rm -f "$state"
+fi
+exit 0

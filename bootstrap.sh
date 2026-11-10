@@ -337,6 +337,15 @@ setup_system() {
     $SUDO install -d /etc/elogind/logind.conf.d
     $SUDO install -m 644 "$ROOT/system/elogind/10-lid.conf" /etc/elogind/logind.conf.d/
 
+    log 'Sleep hooks (/etc/zzz.d, also run when elogind suspends)'
+    $SUDO install -Dm755 "$ROOT/system/elogind/system-sleep/50-zzz.d" /usr/libexec/elogind/system-sleep/50-zzz.d
+    local ev
+    for ev in suspend resume; do
+        $SUDO install -Dm755 "$ROOT/system/zzz.d/$ev/60-bluetooth" "/etc/zzz.d/$ev/60-bluetooth"
+    done
+    # Run as root by the resume hook: a copy outside the home directory
+    $SUDO install -Dm755 "$ROOT/dotfiles/home/.local/bin/fili-bt-autoconnect" /usr/local/libexec/filigrane/fili-bt-autoconnect
+
     log 'Auto-login on tty1'
     local conf=/etc/sv/agetty-tty1/conf autologin="$AUTOLOGIN"
     [ "$autologin" = auto ] && { [ "$PROFILE" = vm ] && autologin=1 || autologin=0; }
