@@ -15,7 +15,8 @@ BarModule {
                 BarLabel {
                     id: ws
                     anchors.centerIn: parent
-                    text: parent.modelData.idx
+                    // A named workspace shows its name (numbered across the displays: Settings > Workspaces)
+                    text: parent.modelData.name ?? parent.modelData.idx
                     color: parent.modelData.is_active || wsHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
                 }
                 Rectangle {
@@ -32,7 +33,7 @@ BarModule {
                         const id = parent.modelData.id;
                         const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
                         return {
-                            title: FiliI18n.tr("Workspace %1", parent.modelData.idx),
+                            title: FiliI18n.tr("Workspace %1", parent.modelData.name ?? parent.modelData.idx),
                             rows: wins.length ? wins.map(w => [w.app_id ?? "", w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
                             hint: FiliI18n.tr("click: go there · wheel: previous / next")
                         };

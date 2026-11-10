@@ -13,7 +13,10 @@ pragma Singleton
 // the input, attached to the next message). AI dot of the fili-bar: ASK (permission), DONE (unread answer).
 // Two layouts: "dock" (default: to the right of every window, the drawer reserves its place and niri shrinks the
 // windows) or "float" (above the windows, without touching them). Chosen from the View menu (state ~/.local/state/filigrane/
-// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width).
+// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width). The left edge of the drawer
+// is a resize handle (drag: free width, kept like the View menu widths; double click: back to 440).
+// Permission asked out of sight of the drawer: notification with Allow / Deny (answered here, like the card) and a click
+// that opens the session; the bubble closes once the request is settled, wherever it was answered.
 // fili-bar menu: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml shows it when the drawer has the keyboard
 // focus); its commands are `fili-shell chat ACTION` (act() below), tests/fili-shell/check-fili-chat-menu.py
 // keeps the menu and act() in agreement.
@@ -235,9 +238,14 @@ Singleton {
         stWidth = viewWidth;
         saveView();
     }
+    readonly property int minWidth: 300
+    readonly property int maxWidth: 900
+    function clampWidth(w) {
+        return Math.round(Math.min(maxWidth, Math.max(minWidth, w)));
+    }
     function setWidth(w) {
         stMode = mode;
-        stWidth = w;
+        stWidth = clampWidth(w);
         saveView();
     }
     function startRename() {
@@ -276,6 +284,8 @@ Singleton {
         case "width-narrow": setWidth(360); break;
         case "width-medium": setWidth(440); break;
         case "width-wide": setWidth(560); break;
+        // Answer from the permission notification: "RID:yes" or "RID:no"
+        case "answer": if (args && args[0]) answerArg(String(args[0])); break;
         }
     }
     onWorkingChanged: if (!working) focusInput()
@@ -443,6 +453,11 @@ Singleton {
     function answer(rid, allow) {
         send_({ op: "answer", rid, allow });
     }
+    function answerArg(a) {
+        const i = a.lastIndexOf(":");
+        if (i > 0)
+            answer(a.slice(0, i), a.slice(i + 1) === "yes");
+    }
     function answerFirst(allow) {
         const a = log.find(i => i.kind === "ask" && i.status === "pending");
         if (a)
@@ -474,9 +489,30 @@ Singleton {
             u[id] = true;
             unread = u;
             notify(id, FiliI18n.tr("Rob has finished"), "normal");
-        } else if (st === "waiting" && was !== "waiting" && !(open && id === current)) {
-            notify(id, FiliI18n.tr("Rob needs you"), "critical");
         }
+    }
+    // Permission notification: Allow / Deny answer through the drawer (`fili-shell chat answer RID:yes`), the
+    // default action (click) opens the session; the rid travels as a hint so the bubble closes once settled
+    function notifyAsk(id, rid, tool, summary) {
+        const title = sessions.find(s => s.id === id)?.title || "Rob";
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["notify-ask " + id + " " + rid]);
+            return;
+        }
+        Quickshell.execDetached(["setsid", "-f", "sh", "-c",
+            'r="$(notify-send -a fili-chat -i fili-chat -u critical -t 120000 -h "string:x-fili-chat-rid:$2" -A allow="$5" -A deny="$6" -A default="$7" "$3" "$4")"\n'
+            + 'case "$r" in allow) exec "$0" chat answer "$2:yes" ;; deny) exec "$0" chat answer "$2:no" ;; default) exec "$0" chat open "$1" ;; esac',
+            FiliTheme.bin + "/fili-shell", id, rid, FiliI18n.tr("Rob needs you") + " · " + title, (tool ? tool + ": " : "") + summary,
+            FiliI18n.tr("Allow"), FiliI18n.tr("Deny"), FiliI18n.tr("Open")]);
+    }
+    function closeAskNotification(rid) {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["notify-close " + rid]);
+            return;
+        }
+        for (const p of FiliNotification.popups.slice())
+            if (p.n.appName === "fili-chat" && p.n.hints && p.n.hints["x-fili-chat-rid"] === rid)
+                FiliNotification.close(p.n, "dismiss");
     }
     // Notification of a session out of sight of the drawer; its "Open" button (or a click) shows the drawer on it
     function notify(id, summary, urgency) {
@@ -554,6 +590,10 @@ Singleton {
                 return;
             const a = items[ev.id].slice();
             const i = a.findIndex(x => x.kind === "ask" && x.rid === ev.rid);
+            if (ev.status === "pending" && i < 0 && !(open && ev.id === current))
+                notifyAsk(ev.id, ev.rid, ev.tool, ev.summary);
+            else if (ev.status !== "pending")
+                closeAskNotification(ev.rid);
             if (i >= 0)
                 a[i] = askItem(ev);
             else
@@ -1218,12 +1258,29 @@ Singleton {
                             }
                         }
                     }
+                    // Input: grows with the text up to 40% of the drawer, then scrolls (follows the cursor)
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(140, Math.max(44, input.implicitHeight + 2 * FiliTheme.space3))
+                        Layout.preferredHeight: Math.min(Math.max(140, drawer.height * 0.4), Math.max(44, input.implicitHeight + 2 * FiliTheme.space3))
+                        Flickable {
+                            id: inputFlick
+                            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: FiliTheme.space3 + 32 }
+                            clip: true
+                            contentWidth: width
+                            contentHeight: input.implicitHeight
+                            boundsBehavior: Flickable.StopAtBounds
+                            interactive: contentHeight > height
+                            function follow(r) {
+                                if (r.y < contentY)
+                                    contentY = r.y;
+                                else if (r.y + r.height > contentY + height)
+                                    contentY = r.y + r.height - height;
+                            }
                         TextEdit {
                             id: input
-                            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: FiliTheme.space3 + 32 }
+                            width: inputFlick.width
+                            height: Math.max(implicitHeight, inputFlick.height)
+                            onCursorRectangleChanged: inputFlick.follow(cursorRectangle)
                             wrapMode: TextEdit.Wrap
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.voile
@@ -1249,6 +1306,7 @@ Singleton {
                                 color: FiliTheme.ardoise
                                 font: input.font
                             }
+                        }
                         }
                         // Send (like Enter); greyed out while there is nothing to send
                         Rectangle {
@@ -1429,6 +1487,24 @@ Singleton {
                         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                     }
                 }
+            }
+
+            // Resize handle on the left edge: the right edge stays put, the width follows the pointer
+            MouseArea {
+                anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                width: FiliTheme.space1 + 4
+                cursorShape: Qt.SizeHorCursor
+                hoverEnabled: true
+                property real pressX: 0
+                onPressed: m => pressX = m.x
+                onPositionChanged: m => {
+                    if (pressed) {
+                        chat.stMode = chat.mode;
+                        chat.stWidth = chat.clampWidth(chat.viewWidth - (m.x - pressX));
+                    }
+                }
+                onReleased: chat.saveView()
+                onDoubleClicked: chat.setWidth(440)
             }
         }
     }

@@ -8,6 +8,8 @@
 # multiple selection, free text), the hook decides nothing and the terminal prompt appears as usual.
 # Input: hook JSON on stdin. Output: decision JSON, or nothing.
 # Setting (settings.json, hooks.PermissionRequest): "command": "fili-ai-ask".
+# Sessions of the fili-chat drawer (FILI_CHAT): the drawer asks itself (card and notification), nothing here.
+[ -n "$FILI_CHAT" ] && exit 0
 command -v notify-send >/dev/null && command -v jq >/dev/null || exit 0
 in=$(cat)
 tool=$(printf '%s' "$in" | jq -r '.tool_name // "tool"')

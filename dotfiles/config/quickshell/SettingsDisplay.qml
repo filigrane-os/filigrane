@@ -8,7 +8,8 @@
 // it by itself when a screen appears or goes away). All connected outputs are listed, on or off, including those niri
 // has no output for (no graphics pipe left): they can be turned on too; turning one on beyond what the graphics card
 // drives shows a message (turn another one off first). "Save" writes the kanshi
-// profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
+// profile (display-save), re-applied whenever a display is plugged in. Workspaces and applications per display have
+// their own page (SettingsWorkspaces). Brightness, appearance and night light stay in
 // the fili-panel (DisplayPanel): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
@@ -278,26 +279,6 @@ ColumnLayout {
             FiliTheme.run(c.join("; "));
         reread.restart();
     }
-    // Workspaces of an output (niri: each output has its own stack), with their windows
-    function workspacesOf(name) {
-        return Niri.workspaces.filter(w => w.output === name);
-    }
-    function wsLabel(w) {
-        const apps = Object.values(Niri.windows).filter(x => x.workspace_id === w.id).map(x => x.app_id ?? x.title ?? "");
-        return FiliI18n.tr("Workspace %1", w.idx) + " · " + (apps.length ? apps.join(", ") : FiliI18n.tr("no window"));
-    }
-    // Brings the active workspace of another output here (niri has no workspace-by-id action: focus its output, then move
-    // the focused workspace)
-    function bringHere(from) {
-        if (cur)
-            FiliTheme.run("niri msg action focus-monitor '" + from + "'; niri msg action move-workspace-to-monitor '" + cur.name + "'");
-    }
-    // Pins the active workspace of this output to it (named workspace, open-on-output): it stays there and comes back when the
-    // display is plugged in again
-    function pinHere() {
-        if (cur)
-            FiliTheme.run("niri msg action focus-monitor '" + cur.name + "'; fili-app-output pin");
-    }
     // Re-reads the connected outputs (a display plugged in or woken up after the page opened)
     function rescan() {
         notice = "";
@@ -523,35 +504,6 @@ ColumnLayout {
         }
     }
 
-    // Workspaces of the chosen output; those of the other outputs can be brought here
-    PanelSection { visible: view.cur !== null && view.cur.logical !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("WORKSPACES") }
-    Repeater {
-        model: view.cur && view.cur.logical ? view.workspacesOf(view.cur.name) : []
-        Text {
-            required property var modelData
-            objectName: "workspace-row"
-            Layout.fillWidth: true
-            elide: Text.ElideRight
-            text: view.wsLabel(modelData)
-            color: modelData.is_active ? FiliTheme.brume : FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
-        }
-    }
-    PanelChips {
-        objectName: "pin-workspace"
-        visible: view.cur !== null && view.cur.logical !== null
-        model: [{ label: FiliI18n.tr("Keep the active workspace on this display"), value: "pin" }]
-        current: ""
-        onPicked: view.pinHere()
-    }
-    PanelChips {
-        objectName: "bring-workspace"
-        readonly property var others: view.cur && view.cur.logical ? Niri.workspaces.filter(w => w.output !== view.cur.name && w.is_active) : []
-        visible: others.length > 0
-        model: others.map(w => ({ label: FiliI18n.tr("Bring %1 here", w.output), value: w.output }))
-        current: ""
-        onPicked: v => view.bringHere(v)
-    }
     PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
@@ -633,6 +585,13 @@ ColumnLayout {
         label: FiliI18n.tr("Save for these displays")
         detail: "kanshi"
         onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
+    }
+    // Workspaces and applications per display: their own page
+    PanelButton {
+        objectName: "workspaces-page"
+        glyph: "→"
+        label: FiliI18n.tr("Workspaces and applications per display…")
+        onClicked: FiliSettings.page = "workspaces"
     }
     // Accent colour (fili-theme accent): niri window focus, selections in the shell and fili-file
     PanelSection { text: FiliI18n.tr("ACCENT COLOR") }

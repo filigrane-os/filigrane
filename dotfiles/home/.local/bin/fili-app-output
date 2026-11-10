@@ -6,8 +6,20 @@
 # fili-app-output pin              the focused workspace gets a name and stays on the monitor it is on (named workspace
 #                                  with open-on-output: it survives being empty and returns there when the monitor is plugged in)
 # fili-app-output unpin            the focused workspace is unpinned (its name stays until niri restarts)
+# fili-app-output set APP_ID MONITOR      the application opens on MONITOR ("make model serial")
+# fili-app-output set-workspace APP_ID NAME  the application opens on the named workspace NAME
+# fili-app-output numbered [COUNT MONITOR]...  workspaces numbered across the monitors: COUNT named workspaces
+#                                  "1", "2"... on each MONITOR, in the order given (left to right); the bindings of
+#                                  the niri config that go to workspace N by index then go to the workspace named N.
+#                                  Without arguments: numbering off.
+# fili-app-output layout APP_ID MODE  how its new windows are placed: left, right, top, bottom (floating half of the
+#                                  monitor against that edge), full (maximized to the edges), float (floating, centred);
+#                                  none (or empty) = tiled as niri decides
+# fili-app-output json             saved choices: {"apps":[{"app","output"|"workspace","layout"?}],"workspaces":[{"name","output"}]}
+#                                  (an application with only a layout has neither output nor workspace)
 # fili-app-output apply            rewrites ~/.config/niri/app-outputs.kdl from the saved choices (bootstrap.sh)
-# Choices: $XDG_STATE_HOME/filigrane/app-outputs (applications) and workspace-outputs (pinned workspaces). The monitor is stored by "make model serial" (as niri names it),
+# Choices: $XDG_STATE_HOME/filigrane/app-outputs (applications on a monitor), app-workspaces (applications on a named
+# workspace), app-layouts (placement of the windows) and workspace-outputs (pinned and numbered workspaces). The monitor is stored by "make model serial" (as niri names it),
 # not by connector (DP-6), which changes with the port. niri re-reads the generated file by itself: windows opened
 # afterwards follow the rule, open windows stay where they are.
 # Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
@@ -18,7 +30,11 @@ set -u
 dir="${XDG_STATE_HOME:-$HOME/.local/state}/filigrane"
 state="$dir/app-outputs"
 wsstate="$dir/workspace-outputs"
-out="${XDG_CONFIG_HOME:-$HOME/.config}/niri/app-outputs.kdl"
+appws="$dir/app-workspaces"
+layouts="$dir/app-layouts"
+niridir="${XDG_CONFIG_HOME:-$HOME/.config}/niri"
+out="$niridir/app-outputs.kdl"
+binds="$niridir/workspace-binds.kdl"
 tab="$(printf '\t')"
 
 notify() { [ -z "${WAYLAND_DISPLAY:-}" ] || notify-send -a fili-app-output "$1" "$2" 2>/dev/null; }
@@ -52,6 +68,19 @@ write_rules() {
             re="$(printf '%s' "$wapp" | sed 's/[][\.^$*+?(){}|]/\\&/g')"
             printf 'window-rule {\n    match app-id=r#"^%s$"#\n    open-on-output "%s"\n}\n' "$re" "$wmon"
         done < "$state"
+        [ -r "$appws" ] && while IFS="$tab" read -r wapp wname; do
+            [ -n "$wapp" ] && [ -n "$wname" ] || continue
+            case "$wapp$wname" in *'"'* | *'#'* | *'\'*) continue ;; esac
+            re="$(printf '%s' "$wapp" | sed 's/[][\.^$*+?(){}|]/\\&/g')"
+            printf 'window-rule {\n    match app-id=r#"^%s$"#\n    open-on-workspace "%s"\n}\n' "$re" "$wname"
+        done < "$appws"
+        [ -r "$layouts" ] && while IFS="$tab" read -r wapp wmode; do
+            [ -n "$wapp" ] || continue
+            case "$wapp" in *'"'* | *'#'*) continue ;; esac
+            re="$(printf '%s' "$wapp" | sed 's/[][\.^$*+?(){}|]/\\&/g')"
+            body="$(layout_rule "$wmode")" || continue
+            printf 'window-rule {\n    match app-id=r#"^%s$"#\n%s\n}\n' "$re" "$body"
+        done < "$layouts"
         [ -r "$wsstate" ] && while IFS="$tab" read -r wname wmon; do
             [ -n "$wname" ] && [ -n "$wmon" ] || continue
             case "$wname$wmon" in *'"'* | *'\'*) continue ;; esac
@@ -59,6 +88,53 @@ write_rules() {
         done < "$wsstate"
     } > "$out.new"
     mv "$out.new" "$out" # atomic: niri watches this file and must never see it half written
+    write_binds
+}
+
+# Body of the window rule of a placement (fails for an unknown one)
+layout_rule() {
+    half() { # WIDTH HEIGHT EDGE: floating, sized in proportions of the monitor, against EDGE
+        printf '    open-floating true\n    default-column-width { proportion %s; }\n    default-window-height { proportion %s; }\n    default-floating-position x=0 y=0 relative-to="%s"' "$1" "$2" "$3"
+    }
+    case "$1" in
+    left | right) half 0.5 1.0 "$1" ;;
+    top | bottom) half 1.0 0.5 "$1" ;;
+    full) printf '    open-maximized-to-edges true' ;;
+    float) printf '    open-floating true' ;;
+    *) return 1 ;;
+    esac
+}
+
+# Highest numbered workspace (names that are numbers), 0 when the numbering is off
+numbered_max() {
+    [ -r "$wsstate" ] || { echo 0; return; }
+    awk -F '\t' '$1 ~ /^[0-9]+$/ && $2 != "" && $1 + 0 > m { m = $1 + 0 } END { print m + 0 }' "$wsstate"
+}
+
+# ~/.config/niri/workspace-binds.kdl (included after local.kdl): with numbered workspaces, every binding of the niri
+# config that goes to workspace N by index (focus-workspace 3) is repeated with the name ("3"), which wins (a later
+# binding of the same key replaces the earlier one). Empty without numbering: the bindings by index apply again.
+write_binds() {
+    mkdir -p "$niridir"
+    max="$(numbered_max)"
+    {
+        echo "// Generated by fili-app-output (numbered workspaces), do not edit here"
+        if [ "$max" -gt 0 ]; then
+            echo "binds {"
+            for f in "$niridir/config.kdl" "$niridir/local.kdl"; do
+                [ -r "$f" ] && cat "$f"
+            done | MAX="$max" awk '
+                $0 !~ /^[ \t]*\/\// && match($0, /\{ *(focus-workspace|move-column-to-workspace|move-window-to-workspace) +[0-9]+; *\}/) {
+                    n = $0; sub(/^.*-workspace +/, "", n); sub(/;.*$/, "", n)
+                    if (n + 0 < 1 || n + 0 > ENVIRON["MAX"] + 0) next
+                    line = $0; sub(/^[ \t]+/, "", line); sub(/ *\/\/.*$/, "", line)
+                    sub(/-workspace +[0-9]+;/, "-workspace \"" n "\";", line)
+                    print "    " line
+                }'
+            echo "}"
+        fi
+    } > "$binds.new"
+    mv "$binds.new" "$binds"
 }
 
 # without FILE KEY: FILE minus the line whose first field is exactly KEY (a plain comparison: no regex, no escapes)
@@ -80,7 +156,8 @@ here | forget)
     fi
     mkdir -p "$dir"
     touch "$state"
-    drop "$app"
+    drop "$app"; without "$appws" "$app"
+    [ "$1" = forget ] && without "$layouts" "$app"
     if [ "$1" = here ]; then
         mon="$(focused_monitor)" || { t 'Monitor of the window not found.' >&2; echo >&2; exit 1; }
         printf '%s\t%s\n' "$app" "$mon" >> "$state"
@@ -125,7 +202,54 @@ EOT
     notify "$(t 'Monitor of the workspace')" "$msg"
     printf '%s\n' "$msg"
     ;;
+set | set-workspace)
+    [ -n "$app" ] && [ -n "${3:-}" ] || { echo "usage: fili-app-output $1 APP_ID ${1#set-}" >&2; exit 2; }
+    case "$app${3}" in *"$tab"* | *'"'* | *'#'* | *'\'*) t 'Invalid name.' >&2; echo >&2; exit 2 ;; esac
+    mkdir -p "$dir"; touch "$state" "$appws"
+    drop "$app"; without "$appws" "$app"
+    if [ "$1" = set ]; then printf '%s\t%s\n' "$app" "$3" >> "$state"; else printf '%s\t%s\n' "$app" "$3" >> "$appws"; fi
+    write_rules
+    ;;
+layout)
+    [ -n "$app" ] || { echo "usage: fili-app-output layout APP_ID left|right|top|bottom|full|float|none" >&2; exit 2; }
+    case "$app" in *"$tab"* | *'"'* | *'#'* | *'\'*) t 'Invalid name.' >&2; echo >&2; exit 2 ;; esac
+    mode="${3:-none}"
+    case "$mode" in left | right | top | bottom | full | float | none) ;; *) echo "fili-app-output layout: invalid mode: $mode" >&2; exit 2 ;; esac
+    mkdir -p "$dir"; touch "$layouts"
+    without "$layouts" "$app"
+    [ "$mode" = none ] || printf '%s\t%s\n' "$app" "$mode" >> "$layouts"
+    write_rules
+    ;;
+numbered)
+    shift
+    mkdir -p "$dir"; touch "$wsstate"
+    # The numbered entries are replaced; the other pinned workspaces stay
+    awk -F '\t' '$1 !~ /^[0-9]+$/' "$wsstate" > "$wsstate.new"
+    n=0
+    while [ $# -ge 2 ]; do
+        case "$1" in '' | *[!0-9]*) echo "fili-app-output numbered: invalid count: $1" >&2; rm -f "$wsstate.new"; exit 2 ;; esac
+        case "$2" in '' | *'"'* | *'\'* | *"$tab"*) echo "fili-app-output numbered: invalid monitor: $2" >&2; rm -f "$wsstate.new"; exit 2 ;; esac
+        i=0
+        while [ "$i" -lt "$1" ]; do i=$((i + 1)); n=$((n + 1)); printf '%s\t%s\n' "$n" "$2" >> "$wsstate.new"; done
+        shift 2
+    done
+    mv "$wsstate.new" "$wsstate"
+    write_rules
+    ;;
+json)
+    {
+        [ -r "$state" ] && awk -F '\t' '$1 != "" && $2 != "" { print "o\t" $0 }' "$state"
+        [ -r "$appws" ] && awk -F '\t' '$1 != "" && $2 != "" { print "w\t" $0 }' "$appws"
+        [ -r "$wsstate" ] && awk -F '\t' '$1 != "" && $2 != "" { print "p\t" $0 }' "$wsstate"
+        [ -r "$layouts" ] && awk -F '\t' '$1 != "" && $2 != "" { print "l\t" $0 }' "$layouts"
+    } | jq -Rn '[inputs | split("\t")] as $l
+        | ([$l[] | select(.[0] == "l") | { key: .[1], value: .[2] }] | from_entries) as $lay
+        | ([$l[] | select(.[0] == "o") | { app: .[1], output: .[2] }] + [$l[] | select(.[0] == "w") | { app: .[1], workspace: .[2] }]) as $a
+        | { apps: ($a + [$lay | keys[] | select(. as $k | $a | all(.app != $k)) | { app: . }]
+                | map(if $lay[.app] then . + { layout: $lay[.app] } else . end)),
+            workspaces: [$l[] | select(.[0] == "p") | { name: .[1], output: .[2] }] }'
+    ;;
 list) cat "$state" 2>/dev/null ;;
 apply) write_rules ;;
-*) echo "usage: fili-app-output [here [APP_ID]|forget [APP_ID]|pin|unpin|list|apply]" >&2; exit 2 ;;
+*) echo "usage: fili-app-output [here [APP_ID]|forget [APP_ID]|set APP_ID MONITOR|set-workspace APP_ID NAME|layout APP_ID MODE|numbered [COUNT MONITOR]...|pin|unpin|list|json|apply]" >&2; exit 2 ;;
 esac

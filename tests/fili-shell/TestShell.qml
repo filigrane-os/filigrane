@@ -636,16 +636,6 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === "niri msg output 'A-1' scale 1.5" && d.snap === null, "fili-settings display: scale without confirmation", JSON.stringify(FiliTheme.ran));
                 d.keep();
                 ok(d.snap === null, "fili-settings display: keep");
-                // Workspaces: those of the chosen output are listed, the active one of another output can be brought here
-                Niri.workspaces = [{ id: 1, idx: 1, output: "A-1", is_active: true }, { id: 2, idx: 1, output: "B-1", is_active: true }];
-                d.sel = "A-1";
-                ok(d.workspacesOf("A-1").length === 1 && d.workspacesOf("B-1")[0].id === 2, "fili-settings display: workspaces per output");
-                FiliTheme.ran = [];
-                d.bringHere("B-1");
-                ok(FiliTheme.ran[0] === "niri msg action focus-monitor 'B-1'; niri msg action move-workspace-to-monitor 'A-1'", "fili-settings display: bring a workspace from another output", JSON.stringify(FiliTheme.ran));
-                FiliTheme.ran = [];
-                d.pinHere();
-                ok(FiliTheme.ran[0] === "niri msg action focus-monitor 'A-1'; fili-app-output pin", "fili-settings display: keep the active workspace on this output", JSON.stringify(FiliTheme.ran));
                 // Connected without a niri output (no graphics pipe left): listed, and it can be turned on
                 d.undetected = ["A-1", "C-9"];
                 d.sel = "C-9";
@@ -655,6 +645,70 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === "niri msg output 'C-9' on" && d.enabling === "C-9", "fili-settings display: an output without niri output can be turned on", JSON.stringify(FiliTheme.ran));
                 d.undetected = [];
                 d.enabling = "";
+                FiliSettings.close();
+            },
+            // fili-settings workspaces: numbering across the displays (left to right), open workspaces, applications
+            () => {
+                FiliSettings.show("workspaces");
+                const d = FiliSettings.loaded;
+                const out = (name, x, serial) => ({ name, make: "T", model: "M", serial, logical: { x, y: 0, width: 1920, height: 1080, scale: 1, transform: "Normal" } });
+                // B-1 is on the left: it comes first
+                d.outputs = [out("A-1", 1920, "a"), out("B-1", 0, "b"), Object.assign(out("C-1", 0, "c"), { logical: null })];
+                ok(d.active.map(o => o.name).join() === "B-1,A-1", "fili-settings workspaces: displays that are on, left to right", d.active.map(o => o.name).join());
+                FiliTheme.ran = [];
+                d.setNumbering(true);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output numbered 3 'T M b' 3 'T M a'", "fili-settings workspaces: numbering on, 3 per display from the left", JSON.stringify(FiliTheme.ran));
+                d.conf = { apps: [], workspaces: [1, 2, 3].map(n => ({ name: String(n), output: "T M b" })).concat([4, 5, 6].map(n => ({ name: String(n), output: "T M a" }))) };
+                ok(d.numberedOn && d.countOf(d.active[1]) === 3 && d.rangeOf(d.active[1]) === "4–6", "fili-settings workspaces: counts and range of a display", d.rangeOf(d.active[1]));
+                FiliTheme.ran = [];
+                d.setCount(d.active[0], 2);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output numbered 2 'T M b' 3 'T M a'", "fili-settings workspaces: count of one display", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.setNumbering(false);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output numbered", "fili-settings workspaces: numbering off", JSON.stringify(FiliTheme.ran));
+                // Applications: targets, change, removal, picker of the open windows
+                d.conf = { apps: [{ app: "foot", output: "T M z" }, { app: "it's", workspace: "4" }], workspaces: [{ name: "4", output: "T M a" }] };
+                const tg = d.targets(d.conf.apps[0]).map(x => x.value);
+                ok(tg.join() === "o:T M b,o:T M a,o:T M z,w:4" && d.targetOf(d.conf.apps[1]) === "w:4", "fili-settings workspaces: displays, a disconnected one and named workspaces as targets", tg.join());
+                // Target of an application: drop-down (PanelSelect), the current one shown, a choice applied
+                const sel = t.find(d, "target-foot");
+                ok(sel && sel.text === d.displayLabel("T M z") && !sel.opened, "fili-settings workspaces: target as a drop-down showing the current choice", sel ? sel.text : "none");
+                sel.open();
+                ok(sel.opened && sel.cursor === 2, "fili-settings workspaces: drop-down opens on the current choice", sel.cursor);
+                FiliTheme.ran = [];
+                sel.move(1);
+                sel.pick(sel.cursor);
+                ok(!sel.opened && FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output set-workspace 'foot' '4'", "fili-settings workspaces: choice in the drop-down applied", JSON.stringify(FiliTheme.ran));
+                // Placement buttons next to the drop-down; a second click on the chosen one goes back to tiled
+                FiliTheme.ran = [];
+                t.find(d, "layout-foot-left").click();
+                d.conf = { apps: [{ app: "foot", output: "T M z", layout: "left" }, { app: "mpv", layout: "float" }], workspaces: [] };
+                const lf = t.find(d, "layout-foot-left");
+                lf.click();
+                ok(FiliTheme.ran.join("|") === FiliTheme.bin + "/fili-app-output layout 'foot' left|" + FiliTheme.bin + "/fili-app-output layout 'foot' none" && lf.on, "fili-settings workspaces: placement buttons (left, then back to tiled)", JSON.stringify(FiliTheme.ran));
+                ok(t.find(d, "target-mpv").current === "" && t.find(d, "target-mpv").text === FiliI18n.tr("Display that has the focus") && t.find(d, "layout-mpv-float").on, "fili-settings workspaces: an application with only a placement", t.find(d, "target-mpv").text);
+                FiliTheme.ran = [];
+                d.setTarget("it's", "o:T M a");
+                d.setTarget("foot", "w:4");
+                d.forget("foot");
+                ok(FiliTheme.ran.join("|") === FiliTheme.bin + "/fili-app-output set 'it'\\''s' 'T M a'|" + FiliTheme.bin + "/fili-app-output set-workspace 'foot' '4'|" + FiliTheme.bin + "/fili-app-output forget 'foot'", "fili-settings workspaces: set, set-workspace, forget (quoted)", JSON.stringify(FiliTheme.ran));
+                Niri.workspaces = [{ id: 1, idx: 1, name: "1", output: "B-1", is_active: true }, { id: 2, idx: 1, output: "A-1", is_active: true }];
+                Niri.setWindows({ 11: { id: 11, pid: 0, app_id: "foot", title: "x", workspace_id: 2 }, 12: { id: 12, pid: 0, app_id: "zed", title: "y", workspace_id: 2 } });
+                ok(d.candidates.length === 1 && d.candidates[0].app === "zed" && d.candidates[0].output === "A-1", "fili-settings workspaces: picker lists the open windows not saved yet", JSON.stringify(d.candidates));
+                FiliTheme.ran = [];
+                d.adding = true;
+                d.add("zed", "A-1");
+                ok(!d.adding && FiliTheme.ran[0] === FiliTheme.bin + "/fili-app-output set 'zed' 'T M a'", "fili-settings workspaces: added on the display of its window", JSON.stringify(FiliTheme.ran));
+                // Add dialog: open windows first, then installed applications (hidden and saved ones left out), typed app-id last
+                d.conf = { apps: [{ app: "foot", output: "T M a" }], workspaces: [] };
+                const ents = [{ id: "org.gnome.Calculator", name: "Calculator", startupClass: "", noDisplay: false }, { id: "zed", name: "Zed", noDisplay: false },
+                    { id: "hidden", name: "Hidden", noDisplay: true }, { id: "foot", name: "Foot", noDisplay: false }];
+                ok(d.pickList("", ents).map(x => x.app).join() === "zed,org.gnome.Calculator", "fili-settings workspaces: dialog lists open windows then installed applications", JSON.stringify(d.pickList("", ents)));
+                const pk = d.pickList("calc", ents);
+                ok(pk.map(x => x.app).join() === "org.gnome.Calculator,calc" && pk[1].typed, "fili-settings workspaces: search by name, typed app-id offered last", JSON.stringify(pk));
+                ok(d.pickList("zed", ents).length === 1, "fili-settings workspaces: no typed entry when the app-id exists");
+                Niri.setWindows({});
+                Niri.workspaces = [];
                 FiliSettings.close();
             },
             // fili-settings language: the choices of fili-lang list, a choice runs fili-lang set
@@ -1069,6 +1123,17 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === 'chat {"op":"answer","rid":"r1","allow":true}', "fili-chat: Ctrl+Enter allows the first request", JSON.stringify(FiliTheme.ran));
                 FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "allowed" });
                 ok(FiliChat.log.filter(i => i.kind === "ask").length === 1 && FiliChat.log[FiliChat.log.length - 1].status === "allowed", "fili-chat: the decided request replaces the card");
+                // Permission asked while the drawer is hidden: notification with Allow / Deny answered through the drawer
+                FiliChat.hide();
+                FiliTheme.ran = [];
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r2", tool: "Bash", summary: "ls", status: "pending" });
+                ok(FiliTheme.ran[0] === "notify-ask s1 r2", "fili-chat: permission out of sight: notification with buttons", JSON.stringify(FiliTheme.ran));
+                FiliChat.act("answer", ["r2:no"]);
+                ok(FiliTheme.ran[1] === 'chat {"op":"answer","rid":"r2","allow":false}', "fili-chat: Deny of the notification answers the request", JSON.stringify(FiliTheme.ran));
+                FiliChat.receive({ ev: "ask", id: "s1", rid: "r2", tool: "Bash", summary: "ls", status: "denied" });
+                ok(FiliTheme.ran[2] === "notify-close r2", "fili-chat: settled request closes its notification", JSON.stringify(FiliTheme.ran));
+                FiliChat.show();
+                FiliChat.openSession("s1");
                 // Answer finished while the drawer is hidden: DONE until it opens
                 FiliChat.hide();
                 FiliChat.receive({ ev: "state", id: "s1", state: "working" });
@@ -1127,6 +1192,10 @@ ShellRoot {
                 ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
                 FiliChat.act("float");
                 ok(!FiliChat.dock && FiliChat.viewWidth === 560 && FiliTheme.ran[1] === "chat-view float 560", "fili-chat: View menu > floating, choice kept", JSON.stringify(FiliTheme.ran));
+                FiliChat.setWidth(5000);
+                ok(FiliChat.viewWidth === 900, "fili-chat: dragged width clamped to 900", FiliChat.viewWidth);
+                FiliChat.setWidth(100);
+                ok(FiliChat.viewWidth === 300, "fili-chat: dragged width clamped to 300", FiliChat.viewWidth);
                 FiliChat.act("width-medium");
                 FiliShell.popupOpened("panel");
                 ok(!FiliChat.open, "fili-chat: floating, a bar panel closes it");
