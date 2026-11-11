@@ -741,6 +741,17 @@ ShellRoot {
                     { id: 92, idx: 3, output: so, is_active: false }, { id: 93, idx: 1, name: "1", output: "Z-9", is_active: true }];
                 ok(t.find(wm, "ws-90").text === "2" && t.find(wm, "ws-91") === null && t.find(wm, "ws-92").text === "\u2022" && t.find(wm, "ws-93") === null,
                     "workspaces: numbered -> names, empty unnamed hidden, unnamed with a window = dot", JSON.stringify(Niri.workspaces));
+                Niri.pinnedMax = 2;
+                Niri.tempNumbering();
+                // Temporary number: the unnamed workspace with a window gets the lowest free number (3), sent once
+                ok(FiliTheme.ran.filter(r => r.indexOf('"SetWorkspaceName":{"name":"3","workspace":{"Id":92}}') >= 0).length === 1,
+                    "workspaces: numbered -> unnamed workspace with a window gets a temporary number above the pinned ones", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                Niri.workspaces = Niri.workspaces.map(w => w.id === 92 ? Object.assign({}, w, { name: "3" }) : w);
+                ok(FiliTheme.ran.length === 0, "workspaces: temporary number confirmed by niri -> nothing more sent", JSON.stringify(FiliTheme.ran));
+                Niri.setWindows({});
+                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0].indexOf('"UnsetWorkspaceName":{"reference":{"Id":92}}') >= 0,
+                    "workspaces: temporary number removed when the workspace empties", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 t.find(wm, "ws-90").hover.press(Qt.LeftButton);
                 ok(FiliTheme.ran[0] === "niri msg action focus-monitor '" + so + "' && niri msg action focus-workspace 1", "workspaces: click -> focus the display of the bar, then its workspace", JSON.stringify(FiliTheme.ran));
@@ -748,6 +759,7 @@ ShellRoot {
                 ok(t.find(wm, "ws-94").text === "1" && t.find(wm, "ws-95").text === "2", "workspaces: without numbering -> index of the display, empty one shown");
                 Niri.setWindows({});
                 Niri.workspaces = [];
+                Niri.pinnedMax = 0;
                 FiliSettings.close();
             },
             // fili-settings language: the choices of fili-lang list, a choice runs fili-lang set

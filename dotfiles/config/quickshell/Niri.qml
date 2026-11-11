@@ -66,6 +66,64 @@ Singleton {
         action("switch-layout", String(i));
     }
 
+    // Temporary numbers (numbered workspaces, Settings > Workspaces): the pinned workspaces are 1..pinnedMax (written
+    // by fili-app-output, 0 = numbering off: nothing is touched). Any other workspace with a window gets the lowest free number above
+    // them (up to 9) as its niri name, so that its key (Mod+N) reaches it; a name above pinnedMax goes away when the
+    // workspace empties. fili-app-output move-to creates such a workspace by name.
+    property int pinnedMax: 0
+    // ids whose name was just set or removed and not yet confirmed by niri: id -> sent action
+    property var tempSent: ({})
+    FileView {
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/numbered-max"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: niri.pinnedMax = parseInt(text()) || 0
+        onLoadFailed: niri.pinnedMax = 0
+    }
+    function ipc(actions) {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(actions.map(a => "niri ipc " + JSON.stringify(a)));
+            return;
+        }
+        Quickshell.execDetached(["sh", "-c", "for a; do printf '%s\\n' \"$a\"; done | socat - \"UNIX-CONNECT:$NIRI_SOCKET\" > /dev/null", "sh"].concat(actions.map(a => JSON.stringify({ Action: a }))));
+    }
+    function tempNumbering() {
+        const ws = workspaces, sent = {};
+        const hasWin = id => Object.values(windows).some(x => x.workspace_id === id);
+        const max = pinnedMax;
+        if (max === 0)
+            return; // numbering off: names are the user's
+        const acts = [], used = new Set(ws.filter(w => w.name).map(w => w.name));
+        for (const w of ws) {
+            const n = /^[0-9]+$/.test(w.name ?? "") ? parseInt(w.name) : 0;
+            if (n > max) {
+                if ((!hasWin(w.id) && !w.is_active) && tempSent[w.id] !== "unset") {
+                    sent[w.id] = "unset";
+                    acts.push({ UnsetWorkspaceName: { reference: { Id: w.id } } });
+                }
+            } else if (max > 0 && !w.name && hasWin(w.id)) {
+                if (tempSent[w.id] !== undefined && tempSent[w.id] !== "unset") {
+                    sent[w.id] = tempSent[w.id];
+                    continue;
+                }
+                let k = max + 1;
+                while (k <= 9 && used.has(String(k)))
+                    k++;
+                if (k > 9)
+                    continue;
+                used.add(String(k));
+                sent[w.id] = String(k);
+                acts.push({ SetWorkspaceName: { name: String(k), workspace: { Id: w.id } } });
+            }
+        }
+        if (JSON.stringify(sent) !== JSON.stringify(tempSent))
+            tempSent = sent;
+        if (acts.length > 0)
+            ipc(acts);
+    }
+    onWorkspacesChanged: tempNumbering()
+    onWindowsChanged: tempNumbering()
+
     function setWindows(m) {
         windows = m;
     }

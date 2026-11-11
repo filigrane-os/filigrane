@@ -27,7 +27,8 @@ printf 'binds {\n    Mod+1 hotkey-overlay-title="One" { focus-workspace 1; }\n  
 check "set-workspace replaces the monitor of the application" '! grep -q "^foot" "$S/app-outputs" && grep -q "open-on-workspace \"2\"" "$O"'
 "$FA" numbered 2 "A 1 2" 1 "B 3 4"
 check "numbered names 1..N in the given order, keeps the other pinned workspaces" '[ "$(cut -f1 "$S/workspace-outputs" | tr "\n" " ")" = "ws-a bad\\name ws-b 1 2 3 " ] && grep -q "^3${tab}B 3 4$" "$S/workspace-outputs"'
-check "bindings by index up to N repeated by name, comments and higher numbers skipped" '[ "$(grep -c "workspace \"[0-9]" "$B")" = 2 ] && grep -q "Mod+1 hotkey-overlay-title=\"One\" { focus-workspace \"1\"; }" "$B" && grep -q "Mod+Ctrl+3 { move-column-to-workspace \"3\"; }$" "$B"'
+check "moves go through move-to, numbered-max is written" 'grep -q "Mod+Ctrl+3 { spawn \"fili-app-output\" \"move-to\" \"column\" \"3\"; }" "$B" && [ "$(cat "$S/numbered-max")" = 3 ]'
+check "bindings by index up to 9 repeated by name (temporary numbers), comments skipped" '[ "$(grep -c "workspace \"[0-9]" "$B")" = 2 ] && grep -q "Mod+1 hotkey-overlay-title=\"One\" { focus-workspace \"1\"; }" "$B"'
 check "json lists applications and workspaces" '[ "$("$FA" json | jq -r "[(.apps[] | select(.app == \"foot\") | .workspace), ([.workspaces[] | select(.output == \"B 3 4\")] | length)] | join(\",\")")" = "2,1" ]'
 # Workspaces already open are moved to their monitor and put in order (fake niri: requests by id logged)
 F="$T/fake"; mkdir -p "$F"
@@ -38,6 +39,12 @@ printf '#!/bin/sh\ncat >> "%s/ipc.log"\n' "$T" > "$F/ipc"
 chmod +x "$F/niri" "$F/ipc"
 PATH="$F:$PATH" NIRI_SOCKET=fake FILI_NIRI_IPC="$F/ipc" "$FA" numbered 2 "A 1 2" 1 "B 3 4"
 check "numbered moves the open workspaces to their monitor by id, puts them in order, gives the focus back" '[ "$(tr -d " " < "$T/ipc.log" | tr "\n" "|")" = "{\"Action\":{\"MoveWorkspaceToMonitor\":{\"output\":\"A-1\",\"reference\":{\"Id\":12}}}}|{\"Action\":{\"MoveWorkspaceToMonitor\":{\"output\":\"B-1\",\"reference\":{\"Id\":13}}}}|{\"Action\":{\"MoveWorkspaceToIndex\":{\"index\":2,\"reference\":{\"Id\":12}}}}|{\"Action\":{\"MoveWorkspaceToIndex\":{\"index\":1,\"reference\":{\"Id\":13}}}}|{\"Action\":{\"FocusWorkspace\":{\"reference\":{\"Id\":11}}}}|{\"Action\":{\"FocusWorkspace\":{\"reference\":{\"Id\":12}}}}|" ]'
+# move-to: creates the workspace (names the empty one of the focused display) and moves, in one request
+printf '[{"id":11,"idx":1,"name":"1","output":"A-1","is_active":true,"is_focused":true},{"id":14,"idx":2,"output":"A-1","is_active":false,"is_focused":false}]' > "$T/ws.json"
+: > "$T/ipc.log"; PATH="$F:$PATH" NIRI_SOCKET=fake FILI_NIRI_IPC="$F/ipc" "$FA" move-to column 6
+check "move-to a missing number names the empty workspace, then moves the column" '[ "$(tr -d " " < "$T/ipc.log" | tr "\n" "|")" = "{\"Action\":{\"SetWorkspaceName\":{\"name\":\"6\",\"workspace\":{\"Id\":14}}}}|{\"Action\":{\"MoveColumnToWorkspace\":{\"reference\":{\"Name\":\"6\"},\"focus\":true}}}|" ]'
+: > "$T/ipc.log"; PATH="$F:$PATH" NIRI_SOCKET=fake FILI_NIRI_IPC="$F/ipc" "$FA" move-to window 1
+check "move-to an existing number only moves" '[ "$(wc -l < "$T/ipc.log")" = 1 ] && grep -q MoveWindowToWorkspace "$T/ipc.log"'
 "$FA" numbered
 check "numbering off: no numbered workspace, no binding" '! grep -q "^[0-9]" "$S/workspace-outputs" && ! grep -q binds "$B"'
 "$FA" forget foot > /dev/null
