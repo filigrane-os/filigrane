@@ -10,6 +10,7 @@ brightnessctl
 playerctl
 mpv
 pipewire
+alsa-pipewire  # ALSA default device routed to PipeWire (cpal/ALSA apps such as tornade-tui)
 wireplumber
 xdg-desktop-portal-gnome
 xdg-desktop-portal-gtk

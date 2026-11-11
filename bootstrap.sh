@@ -364,6 +364,14 @@ setup_system() {
     $SUDO ln -sfn /usr/share/examples/wireplumber/10-wireplumber.conf /etc/pipewire/pipewire.conf.d/10-wireplumber.conf
     $SUDO ln -sfn /usr/share/examples/pipewire/20-pipewire-pulse.conf /etc/pipewire/pipewire.conf.d/20-pipewire-pulse.conf
 
+    log 'ALSA: default device routed to PipeWire (cpal/ALSA apps)'
+    $SUDO mkdir -p /etc/alsa/conf.d
+    for f in 50-pipewire.conf 99-pipewire-default.conf; do
+        # A dangling link would make every ALSA client print errors: only link what the package installed
+        [ -e "/usr/share/alsa/alsa.conf.d/$f" ] || continue
+        $SUDO ln -sfn "/usr/share/alsa/alsa.conf.d/$f" "/etc/alsa/conf.d/$f"
+    done
+
     if [ -d /etc/sv/iwd ]; then
         log 'Wi-Fi: IP configured by iwd, dhcpcd kept for wired'
         # dhcpcd missed the disconnection when iwd reconnects quickly (wake from sleep) and kept

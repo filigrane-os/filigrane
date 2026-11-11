@@ -10,6 +10,9 @@ ripgrep
 zoxide
 mise  # Ruby/Rust/Node versions per project; single binary, no daemon (118 MB disk)
 cargo  # builds the in-house tools in apps/ (bootstrap.sh, setup_apps)
+pkg-config  # lets -sys crates (openssl-sys...) find system libraries
+openssl-devel  # headers for crates linking OpenSSL (build only)
+alsa-lib-devel  # headers for crates linking ALSA (alsa-sys), build only
 qt6-base-devel  # fili-file (Rust + QML via cxx-qt): Qt 6 headers and qmake, build only (nothing resident)
 qt6-declarative-devel
 fonttools  # generates the Fili Icons font (scripts/fili-icons.py), 4 MB, Python library without a daemon
