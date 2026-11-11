@@ -3,6 +3,10 @@
   "app": [
     { "label": "About Facteur", "exec": "fili-mail ctl --pid %pid action about" }
   ],
+  "window": [
+    { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-mail ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-mail ctl --pid %pid action toggle-window-buttons" }
+  ],
   "menus": [
     {
       "label": "File",

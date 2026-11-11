@@ -12,7 +12,7 @@ An application uses only the parts it needs (no empty header, sidebar or footer 
 │ 200          │ rows 24                                    scrollbar┃ │
 │ rows 28      │                                                      │
 ├──────────────┴──────────────────────────────────────────────────────┤ 1 px line
-│ footer 36: status left, actions or progress right                  │
+│ footer 28: place left, counts, selection or progress right         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -24,7 +24,7 @@ An application uses only the parts it needs (no empty header, sidebar or footer 
 | Sidebar width | `sidebar_width` / `sidebarWidth` | 200 | Casier |
 | Sidebar row | `side_row_height` / `sideRowHeight` | 28 | Casier |
 | List row | `row_height` / `rowHeight` | 24 | Casier |
-| Footer (status bar) | `status_height` / `statusHeight` | 36 | Facteur (`statusHeight + space2`) |
+| Footer (status bar) | `status_height` / `statusHeight` | 28 | Facteur |
 | Separators (header, sidebar, footer) | `border_width` / `borderWidth` | 1 | Casier |
 | Window margin (left of the header, sides) | `margin` | 24 | Casier |
 | Sidebar section header | `side_row_height` + `space_4` | 44 | Facteur |
@@ -36,14 +36,14 @@ Other values of the header, taken from Casier: back/forward capsule 30 high, rad
 
 - Background `background`, 1 px `border` line below. Left to right: back/forward capsule (when the application has a history), title, tools of the view, search, then the window buttons.
 - **Window buttons at the far right of the header**: close (`WindowGlyph` `close`, red `danger` on hover, white glyph) at `(toolbarHeight - 24) / 2` from the right edge, the window button (`WindowGlyph` `window`, opens `WindowPanel`: niri actions, or fullscreen/maximize/minimize outside niri) `space1` to its left. Names for accessibility: "Close window", "Window".
-- They can be hidden: setting `window_buttons = false` in `<app>.toml` and the checkable entry "Show Window Buttons" of the bar menu; the search field then takes `margin` from the edge. "Window Actions…" (Ctrl+Shift+W) and "Close" (Ctrl+W) stay in the menu either way.
+- They can be hidden: entry "Show Window Buttons" of the bar menu (`ctl action toggle-window-buttons`), choice kept in the state file (`window_buttons=0|1`, `~/.local/state/filigrane/`); Casier also reads a default `window_buttons = false` in `fili-file.toml`. The search field then takes `margin` from the edge. "Window Actions…" (Ctrl+Shift+W) and "Close" (Ctrl+W) stay in the menu either way.
 - No title bar, no menu bar drawn in the window: the window title lives in the fili-bar.
 
 ## Sidebar
 
-- Width `sidebarWidth`, background `background`, 1 px `border` line on its right, top padding `space3`.
-- Rows `sideRowHeight`, text `size`, inset `margin / 2 + space2`; selected row `surfaceHover` with its text in `weightAccent`, hover `alpha(surfaceHover, 0.5)`; a count (unread, items) on the right in `sizeSmall` + `muted`.
-- An action tied to the sidebar (add an account, connect a server) sits at its bottom, in the footer band (same height as the footer).
+- Width `sidebarWidth`, recessed background `backgroundDeep` (like the footer), 1 px `border` line on its right, top padding `space3`.
+- Rows `sideRowHeight`, text `size`; selected row on `surfaceHover`, a lighter hover; a count (unread, items) on the right in `sizeSmall` + `muted`.
+- An action tied to the sidebar (add an account, connect a server) sits at its bottom, just above the footer.
 
 ### Section headers (foldable)
 
@@ -71,7 +71,7 @@ Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row 
 
 ## Footer
 
-- Height `statusHeight` (36), full width, 1 px `border` line above, background `background`. Left: what the view shows (count, path, selection); right: progress or a short action. Text `sizeSmall`/`sizeList`.
+- Reference: Facteur's footer. Height `statusHeight` (28), full width, recessed background `backgroundDeep`, 1 px `border` line above. Left, from `margin`: where we are (place, path, search); right, `margin` from the edge: counts, selection, "Loading more…", in `sizeSmall` + `textSecondary`, elided; an error or notice there in `danger`.
 - An error, a notice or an operation in progress takes the whole footer for its duration (Casier); an inline confirmation ("Delete the label…?") uses the same band, with the action as the default button on the right and Cancel to its left.
 
 ## Scrolling

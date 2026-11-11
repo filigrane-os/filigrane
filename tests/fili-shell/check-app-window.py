@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 # Sizes of app-window.md: header and sidebar from Casier, footer from Facteur
-SIZES = {"toolbar_height": 44, "sidebar_width": 200, "side_row_height": 28, "row_height": 24, "status_height": 36, "border_width": 1}
+SIZES = {"toolbar_height": 44, "sidebar_width": 200, "side_row_height": 28, "row_height": 24, "status_height": 28, "border_width": 1}
 # Tabs (Facteur): only for applications that have a tab row
 TABS = {"tab_bar_height": 40, "tab_height": 28}
 SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml"]
@@ -89,9 +89,21 @@ def check(ref, src, name):
     for f in sorted(qml.glob("*.qml")):
         for line, kind in bare_views(f.read_text()):
             problems.append(f"qml/{f.name}:{line}: {kind} without KineticScroll + FiliScrollBar")
+    mlines = main.splitlines()
+    foot = [i for i, l in enumerate(mlines) if re.search(r"height: FiliTheme\.statusHeight\b", l)]
+    if foot:
+        # An overlay bar (border.width right below its colour) may stay on `surface`; every other status bar is recessed
+        def recessed(i):
+            win = "\n".join(mlines[i:i + 5])
+            return "FiliTheme.backgroundDeep" in win or "border.width" in win
+        for i in foot:
+            if not recessed(i):
+                problems.append(f"Main.qml:{i + 1}: the footer is not on backgroundDeep")
     side = qml / "Sidebar.qml"
     if side.is_file() and "▸" not in side.read_text():
         problems.append("qml/Sidebar.qml: section headers cannot be folded (▾/▸ arrow)")
+    if side.is_file() and not re.search(r"^\s*color: FiliTheme\.backgroundDeep", side.read_text(), re.M):
+        problems.append("qml/Sidebar.qml: the sidebar is not on backgroundDeep")
     if re.search(r"property (var|int) tabs\b|win\.tabs\b", every):
         values = theme_values(theme) if theme.is_file() else {}
         for key, want in TABS.items():
