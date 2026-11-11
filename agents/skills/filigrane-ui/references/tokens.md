@@ -43,7 +43,7 @@ Jetons `FiliTheme.space1` à `space6` (valeurs ci-dessous) ; rayons `radiusMark`
 
 - Haut d'une fenêtre : premiers contrôles 14 px sous la barre de titre (10 px en contrôles mini). **[Apple]**
 - Barre inférieure : 32 px en contrôles normaux, 22 px en petits ; 8 px entre contrôles et depuis le bord gauche. **[Apple]**
-- Fenêtre d'application `fili-*` : en-tête `toolbar_height` 44, barre latérale `sidebar_width` 200 (lignes `side_row_height` 28), lignes de liste `row_height` 24, pied `status_height` 36, boutons de fenêtre 28 × 24 (glyphe 16), champ de recherche 180 × 26 ; détail `app-window.md`. **[Filigrane]**
+- Fenêtre d'application `fili-*` : en-tête `toolbar_height` 44, barre latérale `sidebar_width` 200 (lignes `side_row_height` 28), en-têtes de section repliables 44 (`side_row_height` + `space_4`), lignes de liste `row_height` 24, pied `status_height` 36, bande d'onglets `tab_bar_height` 40 et onglets `tab_height` 28, boutons de fenêtre 28 × 24 (glyphe 16), champ de recherche 180 × 26 ; détail `app-window.md`. **[Filigrane]**
 - fili-bar : hauteur 24, marge par module `pad` 7 (écart entre deux textes 14), cellule d'icône seule 24, étiquette → valeur 5 (`FiliTheme.qml`). **[Filigrane]**
 - La cohérence prime sur la valeur exacte : un écart régulier se remarque moins qu'un écart irrégulier. **[Apple]**
 
