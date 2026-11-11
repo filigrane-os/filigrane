@@ -297,6 +297,8 @@ environment {
     // (which does not read CHROME_FLAGS) would pick X11 with XDG_SESSION_TYPE=tty, then quit.
     XDG_CURRENT_DESKTOP "niri"
     XDG_SESSION_TYPE "wayland"
+    // Qt apps ask the portal for file dialogs (Casier answers them) instead of drawing their own
+    QT_QPA_PLATFORMTHEME "xdgdesktopportal"
 }
 
 // Programs started on demand by D-Bus (keyring, portals, password prompts)
