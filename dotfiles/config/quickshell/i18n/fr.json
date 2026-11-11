@@ -391,5 +391,15 @@
  "Display that has the focus": "Écran actif",
  "Remove": "Retirer",
  "%1 (not connected)": "%1 (non branché)",
- "Workspaces and applications per display…": "Espaces et applications par écran…"
+ "Workspaces and applications per display…": "Espaces et applications par écran…",
+ "Login": "Ouverture de session",
+ "Programs and services started when you log in. The system services and the plugins of the bar start by themselves and are not listed. A change applies at the next login.": "Programmes et services lancés à l'ouverture de session. Les services du système et les plugins de la barre démarrent seuls et ne sont pas listés. Un changement s'applique à la prochaine ouverture de session.",
+ "STARTED AT LOGIN": "LANCÉS À L'OUVERTURE DE SESSION",
+ "Nothing yet. Add a program below.": "Rien pour l'instant. Ajoutez un programme ci-dessous.",
+ "ADD": "AJOUTER",
+ "Name": "Nom",
+ "Command": "Commande",
+ "Add": "Ajouter",
+ "A double quote or a backslash cannot be used here: use single quotes, or a script.": "Un guillemet double ou une barre oblique inverse ne peut pas être utilisé ici: utilisez des guillemets simples, ou un script.",
+ "The command runs once per session, from your home folder. If it must survive a crash, wrap it in a loop; it must tolerate a second copy of itself.": "La commande se lance une fois par session, depuis votre dossier personnel. Si elle doit survivre à un plantage, enveloppez-la dans une boucle; elle doit tolérer une seconde copie d'elle-même."
 }

@@ -74,6 +74,10 @@ if want 'fili-bar|bar/modules/'; then
 # The fili-bar command (modules, plugins)
 "$ROOT/tests/fili-shell/check-fili-bar-cli.sh" || exit 1
 fi
+if want 'fili-login|SettingsLogin'; then
+# The fili-login command (programs started at login)
+"$ROOT/tests/fili-shell/check-fili-login.sh" || exit 1
+fi
 if want 'bin/fili$|index\.d/|check-fili\.sh'; then
 # The fili command (index of apps, plugins and web apps)
 "$ROOT/tests/fili-shell/check-fili.sh" || exit 1

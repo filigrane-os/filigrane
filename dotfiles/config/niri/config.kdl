@@ -326,6 +326,8 @@ spawn-sh-at-startup "while :; do $HOME/.local/bin/webapp-notify; sleep 30; done"
 spawn-sh-at-startup "$HOME/.local/bin/cron-watch"
 // Autostart commands of the fili-bar plugins (module.toml, `autostart = [...]`), once per session
 spawn-sh-at-startup "$HOME/.local/bin/fili-bar autostart"
+// Programs of the "Login" page of Settings (~/.config/filigrane/login.toml), once per session
+spawn-sh-at-startup "$HOME/.local/bin/fili-login start"
 // Reconnect the paired Bluetooth devices (keyboard, mouse, headset) that were already on before the login
 spawn-sh-at-startup "$HOME/.local/bin/fili-bt-autoconnect"
 // Auto lock (swayidle): delays in ~/.config/filigrane/power.toml, set in Settings > Power (default: lock after 5 min, screen off after 10 min, no auto suspend: a long S3 suspend on battery can lose the session, see hardware/mac-t2/README.md); caffeine in the bar

@@ -225,6 +225,8 @@ autostart = ["./bin/my-daemon", "while :; do other-tool; sleep 30; done"]
 
 niri runs `fili-bar autostart` at login (once per session; `--force` runs it again). Each command starts detached, in the folder of the plugin, through `sh -c`; a disabled plugin (`fili-bar disable NAME`) starts nothing. The commands must tolerate a second instance (a lock, as `flock -n` in a script) and restart themselves if they should survive a crash. The key is optional and ignored by a bar that does not know it.
 
+A program that is not tied to a bar module (a daemon you want at every login, such as the headless Proton Bridge) does not need a plugin: add it on the **Login** page of Settings, or with `fili-login add NAME COMMAND` (also `list`, `remove`, `enable`, `disable`, `run`). The items live in `~/.config/filigrane/login.toml` (personal ones in `users/<login>/dotfiles/config/filigrane/`), and niri runs `fili-login start` at login, once per session. The same rules apply: the command must tolerate a second instance and restart itself if it should survive a crash; it cannot contain a double quote or a backslash.
+
 ### Translations and options of a plugin
 
 - **Translations**: write the plugin in English. To translate it, add `i18n/<language>.json` in its folder (`{"English text": "translation"}`, `%1`, `%2` for arguments, same format as the catalogs of the shell). The shell merges them with its own catalog, which wins on a clash; the bar reads them when it starts and when the language changes. In a QML module, texts go through `FiliI18n.tr("...")`.

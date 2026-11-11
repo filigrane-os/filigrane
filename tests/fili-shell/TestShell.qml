@@ -810,6 +810,34 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set 300 120 1800" && d.screenOff === 120 && d.sleep === 1800, "fili-settings power: bar-toggle idle set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings login: items read from login.toml, switch, remove and add go through fili-login
+            () => {
+                FiliSettings.show("login");
+                const d = FiliSettings.loaded;
+                d.load('[items.proton-bridge]\nname = "Proton Bridge"\ncommand = "protonmail-bridge --noninteractive"\nenabled = true\n\n[items.sync]\nname = "Sync"\ncommand = "rclone mount x y"\nenabled = false\n');
+                ok(d.items.length === 2 && d.items[0].id === "proton-bridge" && d.items[0].enabled && !d.items[1].enabled, "fili-settings login: items read from login.toml", JSON.stringify(d.items));
+                FiliTheme.ran = [];
+                d.toggle(d.items[0]);
+                d.toggle(d.items[1]);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-login disable proton-bridge" && FiliTheme.ran[1] === FiliTheme.bin + "/fili-login enable sync", "fili-settings login: the switch enables or disables", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.remove(d.items[1]);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-login remove sync", "fili-settings login: remove", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.newName = "It's mine";
+                d.newCommand = "";
+                d.add();
+                ok(FiliTheme.ran.length === 0 && !d.canAdd, "fili-settings login: no add without a command", JSON.stringify(FiliTheme.ran));
+                d.newCommand = "echo 'a b'";
+                d.add();
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-login add 'It'\\''s mine' 'echo '\\''a b'\\'''" && d.newName === "" && d.newCommand === "", "fili-settings login: add quotes the name and the command, form cleared", JSON.stringify(FiliTheme.ran));
+                d.newName = "x";
+                d.newCommand = 'echo "hi"';
+                ok(d.badChars && !d.canAdd, "fili-settings login: a double quote is refused", String(d.badChars));
+                d.load("");
+                ok(d.items.length === 0, "fili-settings login: empty file, no item", JSON.stringify(d.items));
+                FiliSettings.close();
+            },
             // fili-settings: page list, page loaded on opening and freed on closing, foot of the display panel
             () => {
                 FiliPanel.view = "display";

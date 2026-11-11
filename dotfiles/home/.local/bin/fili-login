@@ -1,0 +1,135 @@
+#!/bin/sh
+# Programs started at login (the "Login" page of Settings). Usage:
+# fili-login list                     the items: id, state, name, command
+# fili-login add NAME COMMAND         add an item (enabled); prints its id
+# fili-login remove ID                remove an item
+# fili-login enable ID | disable ID   switch an item on or off
+# fili-login run ID                   start an item now, detached
+# fili-login start [--force]          start the enabled items (niri runs it at login, once per session)
+# The items live in ~/.config/filigrane/login.toml, one section each (when that file is a link to a user layer, the
+# file of the layer is edited); Settings re-reads it as soon as it changes:
+#   [items.proton-bridge]
+#   name = "Proton Bridge"
+#   command = "protonmail-bridge --noninteractive"
+#   enabled = true
+# A command runs through `sh -c`, detached, from the home folder, once per session. It must tolerate a second instance
+# (a lock, a loop) and restart itself if it should survive a crash. It cannot contain a double quote or a backslash (use
+# single quotes, or a script). The services of the distribution and the plugins of the fili-bar start by their own means
+# (niri configuration, `fili-bar autostart`) and are not listed here.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/login.toml"
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+valid_id() { printf '%s' "$1" | grep -Eq '^[a-z][a-z0-9-]*$'; }
+
+# Ids of the items, one per line
+ids() { [ -r "$conf" ] && sed -n 's/^[ \t]*\[items\.\([a-z][a-z0-9-]*\)\][ \t]*\(#.*\)\{0,1\}$/\1/p' "$conf"; }
+has() { ids | grep -qx "$1"; }
+# Value of a key of an item ("" if absent), without quotes
+val() {
+    [ -r "$conf" ] || return 0
+    awk -v sec="[items.$1]" -v key="$2" '
+        /^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); next }
+        cur && match($0, "^[ \t]*" key "[ \t]*=[ \t]*") { v = substr($0, RLENGTH + 1)
+            if (v ~ /^"/) { sub(/^"/, "", v); sub(/".*$/, "", v) } else { sub(/[ \t]*#.*$/, "", v); sub(/[ \t]+$/, "", v) }
+            print v; exit }
+    ' "$conf"
+}
+# Rewrite the file from a temporary one (keeps it a link when it is one)
+commit() { cat "$1" > "$conf"; rm -f "$1"; }
+
+need_item() { valid_id "$1" || die "$(t 'Invalid id: %s' "$1")"; has "$1" || die "$(t 'No such item: %s (fili-login list)' "$1")"; }
+
+cmd_list() {
+    printf '%-18s %-5s %-22s %s\n' ID STATE NAME COMMAND
+    for i in $(ids); do
+        state=on; [ "$(val "$i" enabled)" = false ] && state=off
+        printf '%-18s %-5s %-22s %s\n' "$i" "$state" "$(val "$i" name)" "$(val "$i" command)"
+    done
+}
+
+cmd_add() {
+    name="${1:-}"; command="${2:-}"
+    [ -n "$name" ] && [ -n "$command" ] || die "$(t 'Usage: fili-login add NAME COMMAND')"
+    case "$name$command" in *'"'* | *'\'*) die "$(t 'The name and the command cannot contain a double quote or a backslash (use single quotes)')" ;; esac
+    case "$name" in *'
+'*) die "$(t 'The name and the command are on one line')" ;; esac
+    case "$command" in *'
+'*) die "$(t 'The name and the command are on one line')" ;; esac
+    id="$(printf '%s' "$name" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]\{1,\}/-/g; s/^-*//; s/-*$//')"
+    printf '%s' "$id" | grep -Eq '^[a-z]' || id="item-$id"
+    id="${id%-}"
+    base="$id"; n=2
+    while has "$id"; do id="$base-$n"; n=$((n + 1)); done
+    mkdir -p "$(dirname "$conf")"
+    [ -e "$conf" ] || : > "$conf"
+    {
+        [ -s "$conf" ] && printf '\n'
+        printf '[items.%s]\nname = "%s"\ncommand = "%s"\nenabled = true\n' "$id" "$name" "$command"
+    } >> "$conf"
+    echo "$id"
+}
+
+cmd_remove() {
+    need_item "$1"
+    tmp="$(mktemp)"
+    # Drops the section (up to the next header); cat -s squeezes the blank line it leaves
+    awk -v sec="[items.$1]" '
+        /^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); skip = (h == sec) }
+        !skip { print }
+    ' "$conf" | cat -s > "$tmp"
+    commit "$tmp"
+    echo "$1: $(t 'removed')"
+}
+
+cmd_enable() {
+    need_item "$1"
+    tmp="$(mktemp)"
+    awk -v sec="[items.$1]" -v val="$2" '
+        function put() { if (!done) { print "enabled = " val; done = 1 } }
+        /^[ \t]*\[/ { if (cur) put(); h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec) }
+        cur && /^[ \t]*enabled[ \t]*=/ { put(); next }
+        { print }
+        END { if (cur) put() }
+    ' "$conf" > "$tmp"
+    commit "$tmp"
+    echo "$1: $([ "$2" = true ] && t 'enabled' || t 'disabled')"
+}
+
+# Start an item: detached, from the home folder, no output
+launch() {
+    c="$(val "$1" command)"
+    [ -n "$c" ] || return 0
+    ( cd "$HOME" && setsid -f sh -c "$c" > /dev/null 2>&1 < /dev/null )
+}
+cmd_run() { need_item "$1"; launch "$1"; echo "$1: $(t 'started')"; }
+
+# Once per session (stamp in the runtime directory, per niri instance: a niri restart without logout keeps the runtime
+# directory but has killed the programs), unless --force
+cmd_start() {
+    niri_id="${NIRI_SOCKET##*/}"
+    stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-login${niri_id:+.$niri_id}.done"
+    [ "${1:-}" = --force ] || [ ! -e "$stamp" ] || return 0
+    : > "$stamp"
+    for i in $(ids); do
+        [ "$(val "$i" enabled)" = false ] && continue
+        launch "$i"
+        echo "$i: $(val "$i" command)"
+    done
+}
+
+case "${1:-list}" in
+    list) cmd_list ;;
+    add) cmd_add "${2:-}" "${3:-}" ;;
+    remove) cmd_remove "${2:-}" ;;
+    enable) cmd_enable "${2:-}" true ;;
+    disable) cmd_enable "${2:-}" false ;;
+    run) cmd_run "${2:-}" ;;
+    start) cmd_start "${2:-}" ;;
+    -h | --help | help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+esac
