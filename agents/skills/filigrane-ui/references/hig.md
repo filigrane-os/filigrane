@@ -21,7 +21,7 @@ Les questions de la section 23 de la source ont leur réponse :
 | Toolkit du shell | Quickshell (QML, Qt Quick en rendu logiciel) : fili-bar, fili-tooltip, fili-panel, fili-launcher, notifications, fili-about |
 | Outils maison | binaires natifs (Rust, `apps/`) ; une interface graphique éventuelle passe par le fili-shell |
 | Applications tierces | gardent leur interface ; Filigrane fournit le thème (GTK3/4, foot, nvim, niri) |
-| Fenêtres | niri, colonnes défilantes en mosaïque, pas de barres de titre ni de boutons de fenêtre |
+| Fenêtres | niri, colonnes défilantes en mosaïque, pas de barres de titre ; les applications `fili-*` ont les boutons Fenêtre et Fermer à droite de leur en-tête (`app-window.md`) |
 | Police | Jost (interface), JetBrains Mono (code, terminaux) ; échelle d'Apple (`tokens.md`) |
 | Échelle | échelle de sortie de niri (HiDPI, fractionnaire) ; le shell travaille en pixels logiques |
 | Thèmes | sombre par défaut, clair optionnel (`fili-theme`), même sémantique |
@@ -46,7 +46,8 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 
 ## 4. Fenêtres, panneaux et dialogues
 
-- niri place les fenêtres : pas de déplacement libre, de minimisation ni de boutons de fenêtre ; la fenêtre active se reconnaît au contour de focus de niri (1 px). **[Filigrane]**
+- niri place les fenêtres : pas de déplacement libre ni de barre de titre ; la fenêtre active se reconnaît au contour de focus de niri (1 px). **[Filigrane]**
+- Fenêtre d'une application `fili-*` : même anatomie partout (`app-window.md`) : en-tête 44 avec les boutons Fenêtre et Fermer tout à droite (masquables par `window_buttons = false`), barre latérale 200, pied 36, `KineticScroll` + `FiliScrollBar` sur toute vue défilante, menu complet dans la fili-bar. Tailles de Casier, pied de Facteur. **[Filigrane]**
 - Le shell ne crée que des fenêtres de couche à la taille de leur contenu (moins de mémoire) : fili-panel sous son module, fili-tooltip au survol, fili-about centré, notifications en haut à droite. Seule exception : le fili-launcher, plein écran pour son fond flou, sa boîte centrée. **[Filigrane]**
 - Fermeture : Esc, un clic hors du panneau (perte de focus) ou sur la barre. Un panneau ne vole pas le focus d'une application sans action de l'utilisateur. **[Filigrane]**
 - Dialogue : pour une décision ou une saisie liée au contexte, proportionné à son contenu, jamais empilé sur un autre. **[Apple]**
@@ -147,6 +148,8 @@ Sauf demande explicite ou nécessité démontrée : grandes cartes par groupe, r
 ## 19. Checklist de revue
 
 **Fonction et structure** : la fonction de la vue se comprend tout de suite ; le contenu important domine ; contrôles groupés par fonction ; aucun décor qui prend de la place ; même structure que les autres vues (fiche titre à gauche / contenu à droite, intertitres de panneau).
+
+**Fenêtre d'application** : en-tête, barre latérale, pied, défilement et boutons de fenêtre conformes à `app-window.md` ; `tests/fili-shell/check-app-window.py` passe.
 
 **Densité et alignement** : espacements de `tokens.md` et réguliers ; libellés près des contrôles ; tailles justifiées ; aucun contrôle minuscule.
 
