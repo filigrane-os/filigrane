@@ -38,6 +38,10 @@ check "run starts one item now, even a disabled one" '[ "$(wc -l < "$T_OUT")" = 
 "$FL" remove proton-bridge-2 > /dev/null
 check "remove drops the section and keeps the others" '! "$FL" list | grep -q "^proton-bridge-2" && "$FL" list | grep -q "^proton-bridge "'
 check "remove leaves no doubled blank line" '[ "$(cat -s "$CONF" | wc -l)" = "$(wc -l < "$CONF")" ]'
+"$FL" edit proton-bridge "Bridge (edited)" "echo edited >> \$T_OUT" > /dev/null
+check "edit changes the name and the command and keeps the state" '"$FL" list | grep "^proton-bridge" | grep -q "Bridge (edited) *echo edited" && grep -q "^enabled = true" "$CONF"'
+check "edit leaves the other items alone" '"$FL" list | grep -c "^proton-bridge" | grep -q "^1$"'
+check "edit refuses a double quote and an unknown id" '! "$FL" edit proton-bridge x "echo \"a\"" 2> /dev/null && ! "$FL" edit nope x y 2> /dev/null'
 check "an unknown id is refused" '! "$FL" remove nope 2> /dev/null && ! "$FL" enable "../x" 2> /dev/null'
 mkdir -p "$T/layer"; mv "$CONF" "$T/layer/login.toml"; ln -s "$T/layer/login.toml" "$CONF"
 "$FL" disable proton-bridge > /dev/null

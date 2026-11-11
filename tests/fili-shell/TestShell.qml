@@ -834,6 +834,33 @@ ShellRoot {
                 d.newName = "x";
                 d.newCommand = 'echo "hi"';
                 ok(d.badChars && !d.canAdd, "fili-settings login: a double quote is refused", String(d.badChars));
+                // Edit: the form takes the item, Save runs fili-login edit with the quoted name and command, then closes
+                d.load('[items.sync]\nname = "Sync"\ncommand = "rclone mount x y"\nenabled = true\n');
+                d.startEdit(d.items[0]);
+                ok(d.editId === "sync" && d.editName === "Sync" && d.editCommand === "rclone mount x y" && d.canSave, "fili-settings login: edit starts from the item", d.editId);
+                d.editCommand = "rclone mount 'a b' y";
+                FiliTheme.ran = [];
+                d.save();
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-login edit sync 'Sync' 'rclone mount '\\''a b'\\'' y'" && d.editId === "", "fili-settings login: save runs fili-login edit", JSON.stringify(FiliTheme.ran));
+                d.startEdit(d.items[0]);
+                d.editCommand = 'echo "x"';
+                FiliTheme.ran = [];
+                d.save();
+                ok(FiliTheme.ran.length === 0 && d.editBad && !d.canSave && d.editId === "sync", "fili-settings login: a double quote cannot be saved", JSON.stringify(FiliTheme.ran));
+                d.load("");
+                ok(d.editId === "", "fili-settings login: the item edited is gone, form closed", d.editId);
+                // Applications: command of a desktop entry, entries that cannot start by themselves, already added ones left out
+                const app = (id, name, command, extra) => Object.assign({ id, name, command, icon: "", noDisplay: false, runInTerminal: false }, extra || {});
+                ok(d.appCommand(app("a", "A", ["mpv", "--player-operation-mode=pseudo-gui"])) === "mpv --player-operation-mode=pseudo-gui", "fili-settings login: command of an application", d.appCommand(app("a", "A", ["mpv", "--player-operation-mode=pseudo-gui"])));
+                ok(d.appCommand(app("b", "B", ["sh", "-c", "run it"])) === "sh -c 'run it'", "fili-settings login: an argument with a space is quoted", d.appCommand(app("b", "B", ["sh", "-c", "run it"])));
+                ok(d.appCommand(app("c", "C", ["htop"], { runInTerminal: true })) === "" && d.appCommand(app("d", "D", ["x"], { noDisplay: true })) === "" && d.appCommand(app("e", "E", [])) === "", "fili-settings login: no command for a terminal, hidden or empty entry");
+                ok(d.appCommand(app("f", "F", ["sh", "-c", 'echo "q"'])) === "", "fili-settings login: no command with a double quote");
+                d.load('[items.mpv]\nname = "mpv"\ncommand = "mpv"\nenabled = true\n');
+                const list = d.appList([app("z", "Zed", ["zed"]), app("m", "mpv", ["mpv"]), app("a", "Alpha", ["/usr/bin/alpha", "--x"])], d.items);
+                ok(list.map(e => e.name).join() === "Alpha,Zed" && list[0].detail === "alpha", "fili-settings login: applications by name, the ones already added left out", JSON.stringify(list.map(e => e.name)));
+                FiliTheme.ran = [];
+                d.addApp(list[1]);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-login add 'Zed' 'zed'" && !d.adding, "fili-settings login: picking an application adds it", JSON.stringify(FiliTheme.ran));
                 d.load("");
                 ok(d.items.length === 0, "fili-settings login: empty file, no item", JSON.stringify(d.items));
                 FiliSettings.close();

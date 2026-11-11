@@ -2,6 +2,7 @@
 # Programs started at login (the "Login" page of Settings). Usage:
 # fili-login list                     the items: id, state, name, command
 # fili-login add NAME COMMAND         add an item (enabled); prints its id
+# fili-login edit ID NAME COMMAND     change the name and the command of an item
 # fili-login remove ID                remove an item
 # fili-login enable ID | disable ID   switch an item on or off
 # fili-login run ID                   start an item now, detached
@@ -52,14 +53,17 @@ cmd_list() {
     done
 }
 
+# The name and the command: not empty, on one line, no double quote and no backslash (the file is read by simple parsers)
+check_text() {
+    [ -n "$1" ] && [ -n "$2" ] || return 1
+    case "$1$2" in *'"'* | *'\'*) die "$(t 'The name and the command cannot contain a double quote or a backslash (use single quotes)')" ;; esac
+    case "$1$2" in *'
+'*) die "$(t 'The name and the command are on one line')" ;; esac
+}
+
 cmd_add() {
     name="${1:-}"; command="${2:-}"
-    [ -n "$name" ] && [ -n "$command" ] || die "$(t 'Usage: fili-login add NAME COMMAND')"
-    case "$name$command" in *'"'* | *'\'*) die "$(t 'The name and the command cannot contain a double quote or a backslash (use single quotes)')" ;; esac
-    case "$name" in *'
-'*) die "$(t 'The name and the command are on one line')" ;; esac
-    case "$command" in *'
-'*) die "$(t 'The name and the command are on one line')" ;; esac
+    check_text "$name" "$command" || die "$(t 'Usage: fili-login add NAME COMMAND')"
     id="$(printf '%s' "$name" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9]\{1,\}/-/g; s/^-*//; s/-*$//')"
     printf '%s' "$id" | grep -Eq '^[a-z]' || id="item-$id"
     id="${id%-}"
@@ -72,6 +76,22 @@ cmd_add() {
         printf '[items.%s]\nname = "%s"\ncommand = "%s"\nenabled = true\n' "$id" "$name" "$command"
     } >> "$conf"
     echo "$id"
+}
+
+cmd_edit() {
+    need_item "$1"
+    check_text "${2:-}" "${3:-}" || die "$(t 'Usage: fili-login edit ID NAME COMMAND')"
+    tmp="$(mktemp)"
+    awk -v sec="[items.$1]" -v name="$2" -v command="$3" '
+        function put() { if (!n) print "name = \"" name "\""; if (!c) print "command = \"" command "\"" }
+        /^[ \t]*\[/ { if (cur) put(); h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); n = c = 0 }
+        cur && /^[ \t]*name[ \t]*=/ { print "name = \"" name "\""; n = 1; next }
+        cur && /^[ \t]*command[ \t]*=/ { print "command = \"" command "\""; c = 1; next }
+        { print }
+        END { if (cur) put() }
+    ' "$conf" > "$tmp"
+    commit "$tmp"
+    echo "$1: $(t 'updated')"
 }
 
 cmd_remove() {
@@ -125,11 +145,12 @@ cmd_start() {
 case "${1:-list}" in
     list) cmd_list ;;
     add) cmd_add "${2:-}" "${3:-}" ;;
+    edit) cmd_edit "${2:-}" "${3:-}" "${4:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     enable) cmd_enable "${2:-}" true ;;
     disable) cmd_enable "${2:-}" false ;;
     run) cmd_run "${2:-}" ;;
     start) cmd_start "${2:-}" ;;
-    -h | --help | help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' ;;
-    *) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+    -h | --help | help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

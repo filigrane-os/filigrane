@@ -401,5 +401,9 @@
  "Command": "Commande",
  "Add": "Ajouter",
  "A double quote or a backslash cannot be used here: use single quotes, or a script.": "Un guillemet double ou une barre oblique inverse ne peut pas être utilisé ici: utilisez des guillemets simples, ou un script.",
- "The command runs once per session, from your home folder. If it must survive a crash, wrap it in a loop; it must tolerate a second copy of itself.": "La commande se lance une fois par session, depuis votre dossier personnel. Si elle doit survivre à un plantage, enveloppez-la dans une boucle; elle doit tolérer une seconde copie d'elle-même."
+ "The command runs once per session, from your home folder. If it must survive a crash, wrap it in a loop; it must tolerate a second copy of itself.": "La commande se lance une fois par session, depuis votre dossier personnel. Si elle doit survivre à un plantage, enveloppez-la dans une boucle; elle doit tolérer une seconde copie d'elle-même.",
+ "Edit": "Modifier",
+ "Save": "Enregistrer",
+ "Or a command": "Ou une commande",
+ "Search applications": "Rechercher une application"
 }
