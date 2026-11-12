@@ -471,7 +471,7 @@ run_as_user() {
 # only when the sources change. The build folder (target/) stays outside the repository, in ~/.cache.
 # With the <distro>-apps package (xbps repository of the distribution, see distro/), the binaries are already in /usr/bin.
 setup_apps() {
-    local app name src sum dir alias
+    local app name src sum dir alias bin bins
     if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"; return 0; fi
     for app in "$ROOT"/apps/*/; do
         app="${app%/}"; name="$(basename "$app")"
@@ -485,16 +485,18 @@ setup_apps() {
             continue
         fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
-        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary)
-        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
-        if [ ! -x "$dir/$name" ]; then
+        # Programs of the tool (BINS in package.env, e.g. fili-term and its session daemon), default: the one named like it
+        bins="$(BINS="" && . "$src/package.env" 2>/dev/null && echo "$BINS")"; bins="${bins:-$name}"
+        if ! (for bin in $bins; do [ -x "$dir/$bin" ] || exit 1; done); then
             log 'Building %s (%s)' "$name" "$sum"
             # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
             if (cd "$src" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
-                    cargo build -q --release --locked --manifest-path "$src/Cargo.toml") \
+                    cargo build -q --release --locked --workspace --manifest-path "$src/Cargo.toml") \
                 && run_as_user mkdir -p "$dir" \
-                && run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$name" "$dir/$name"; then
+                && (for bin in $bins; do run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$bin" "$dir/$bin" || exit 1; done); then
                 # old versions
                 find "$TARGET_HOME/.local/opt" -maxdepth 1 -name "$name-*" ! -name "$name-$sum" -exec rm -rf {} +
             else
@@ -502,7 +504,7 @@ setup_apps() {
             fi
         fi
         run_as_user mkdir -p "$TARGET_HOME/.local/bin"
-        run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$name"
+        for bin in $bins; do run_as_user ln -sfn "$dir/$bin" "$TARGET_HOME/.local/bin/$bin"; done
         # Other command names of the same program (ALIASES in package.env, e.g. casier -> fili-file)
         for alias in $(ALIASES="" && . "$src/package.env" 2>/dev/null && echo "$ALIASES"); do
             run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$alias"

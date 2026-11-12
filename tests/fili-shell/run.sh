@@ -66,6 +66,16 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
     && echo "ok - Casier follows the shell (theme defaults, kinetic scroll)" || { echo "not ok - Casier no longer matches the shell: cd $FILI_FILE_SRC && FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell make test"; exit 1; }
 "$FILI_FILE_SRC/tests/run.sh" || exit 1
 fi
+if want '^apps/fili-term/|^apps/fili-file/|appmenu/fili-term.json|^dotfiles/config/filigrane/fili-term|^tests/fili-shell/check-app-window.py'; then
+# Aéroport (fili-term) lives in its own repository too: the pinned version (apps/fili-term/upstream, or FILI_SRC_FILI_TERM)
+# is built, passes its unit tests and keeps the window anatomy of Casier (shared QML files identical, header, footer).
+FILI_TERM_SRC="$("$ROOT/scripts/upstream-dir" fili-term)" || { echo "not ok - source of fili-term not available"; exit 1; }
+FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
+(cd "$FILI_TERM_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make test >/dev/null 2>&1) \
+    && echo "ok - fili-term builds and passes its unit tests" || { echo "not ok - fili-term: cd $FILI_TERM_SRC && make test"; exit 1; }
+python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_TERM_SRC" || exit 1
+fi
 if want 'fili-chat|chat'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
