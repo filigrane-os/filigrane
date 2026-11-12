@@ -1,0 +1,20 @@
+# Settings of fili-term (Aéroport, the terminal). Everything is optional: commented lines show the defaults.
+# Read each time a window opens. What you change by hand in the application (window buttons from the menu)
+# is kept in ~/.local/state/filigrane/term/ and takes precedence over this file.
+
+# Font size of the terminal, in pixels (Ctrl+0 comes back to it after zooming)
+# font_size = 12
+
+# Space between the edge of the window and the text, in pixels
+# padding = 10
+
+# Close and Window buttons (niri window actions) at the right of the header. Window > Show Window Buttons
+# in the menu takes precedence over this setting
+# window_buttons = true
+
+# Theme: same sections and keys as ~/.config/filigrane/theme.toml (see theme.toml in the fili-term repository).
+# The font of the terminal is `mono`; its 16 colours are `palette`, one list per mode, for example:
+# [theme]
+# mono = "JetBrains Mono"
+# [theme.dark]
+# palette = ["#2d3744", "#c98f93", "#a3bfa8", "#d2bf92", "#9dbbd6", "#b3a8c9", "#95c0c6", "#a9b8c8", "#5f7894", "#d9a5a9", "#b8d0bc", "#e0d0a8", "#b9d0e4", "#c6bdd8", "#add2d7", "#dbe7f4"]

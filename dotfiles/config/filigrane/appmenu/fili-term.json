@@ -1,0 +1,51 @@
+{
+  "name": "Aéroport",
+  "app": [
+    { "label": "About Aéroport", "exec": "fili-term ctl --pid %pid action about" }
+  ],
+  "window": [
+    { "label": "Window Actions…", "exec": "fili-term ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-term ctl --pid %pid action toggle-window-buttons" }
+  ],
+  "menus": [
+    {
+      "label": "Shell",
+      "children": [
+        { "label": "New Tab", "keys": "Ctrl+Shift+T", "exec": "fili-term ctl --pid %pid action new-tab" },
+        { "label": "New Window", "keys": "Ctrl+Shift+N", "exec": "fili-term ctl --pid %pid action new-window" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-term.toml" },
+        { "sep": true },
+        { "label": "Close Tab", "keys": "Ctrl+Shift+W", "exec": "fili-term ctl --pid %pid action close-tab" },
+        { "label": "Close Window", "keys": "Ctrl+Shift+Q", "exec": "fili-term ctl --pid %pid action close-window" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "children": [
+        { "label": "Copy", "keys": "Ctrl+Shift+C", "exec": "fili-term ctl --pid %pid action copy" },
+        { "label": "Paste", "keys": "Ctrl+Shift+V", "exec": "fili-term ctl --pid %pid action paste" }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        { "label": "Zoom In", "keys": "Ctrl++", "exec": "fili-term ctl --pid %pid action zoom-in" },
+        { "label": "Zoom Out", "keys": "Ctrl+-", "exec": "fili-term ctl --pid %pid action zoom-out" },
+        { "label": "Actual Size", "keys": "Ctrl+0", "exec": "fili-term ctl --pid %pid action zoom-reset" },
+        { "sep": true },
+        { "label": "Page Up", "keys": "Shift+PgUp", "exec": "fili-term ctl --pid %pid action page-up" },
+        { "label": "Page Down", "keys": "Shift+PgDown", "exec": "fili-term ctl --pid %pid action page-down" },
+        { "label": "Top of History", "exec": "fili-term ctl --pid %pid action scroll-top" },
+        { "label": "Back to Prompt", "exec": "fili-term ctl --pid %pid action scroll-bottom" }
+      ]
+    },
+    {
+      "label": "Tabs",
+      "children": [
+        { "label": "Next Tab", "keys": "Ctrl+PgDown", "exec": "fili-term ctl --pid %pid action next-tab" },
+        { "label": "Previous Tab", "keys": "Ctrl+PgUp", "exec": "fili-term ctl --pid %pid action previous-tab" }
+      ]
+    }
+  ]
+}
