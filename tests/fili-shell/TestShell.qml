@@ -667,6 +667,9 @@ ShellRoot {
                 d.enabling = "";
                 FiliSettings.close();
             },
+            // The workspaces module is off by default (the strip of the tasks bar replaces it): the tests of the module turn it on
+            () => { BarLayout.parsed = FiliTheme.parseToml('[modules.workspaces]\nenabled = true\n'); },
+            wait(() => {}, () => BarLayout.left.indexOf("workspaces") >= 0, 5000),
             // fili-settings workspaces: numbering across the displays (left to right), open workspaces, applications
             () => {
                 FiliSettings.show("workspaces");
@@ -770,6 +773,7 @@ ShellRoot {
                 Niri.setWindows({});
                 Niri.workspaces = [];
                 Niri.pinnedMax = 0;
+                BarLayout.parsed = ({});
                 FiliSettings.close();
             },
             // fili-tasks: the windows of a screen by workspace, in niri's order, and the squeeze levels
@@ -1617,9 +1621,9 @@ ShellRoot {
             () => {
                 const p = FiliTheme.parseToml('[modules]\nleft = ["logo",\n    "workspaces", # comment\n]\nright = ["power", "clock"]\n');
                 ok(JSON.stringify(p.modules.left) === '["logo","workspaces"]' && JSON.stringify(p.modules.right) === '["power","clock"]', "FiliTheme.parseToml: array over several lines", JSON.stringify(p));
-                ok(BarLayout.ready && BarLayout.left.join() === "logo,workspaces,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: without a file, default modules (manifests)", BarLayout.left.join());
+                ok(BarLayout.ready && BarLayout.left.join() === "logo,appmenu" && BarLayout.right.indexOf("clock") > 0, "BarLayout: without a file, default modules (manifests)", BarLayout.left.join());
                 BarLayout.parsed = FiliTheme.parseToml('[modules.clock]\nside = "left"\norder = 5\n[modules.power]\nenabled = false\n');
-                ok(BarLayout.left.join() === "clock,logo,workspaces,appmenu", "BarLayout: [modules.<name>] changes side and order", BarLayout.left.join());
+                ok(BarLayout.left.join() === "clock,logo,appmenu", "BarLayout: [modules.<name>] changes side and order", BarLayout.left.join());
                 ok(BarLayout.right.indexOf("clock") < 0 && BarLayout.right.indexOf("power") < 0, "BarLayout: enabled = false removes the module", BarLayout.right.join());
                 BarLayout.parsed = ({});
                 BarLayout.parsed = FiliTheme.parseToml('[modules]\nright = ["my-thing", "..."]\n');

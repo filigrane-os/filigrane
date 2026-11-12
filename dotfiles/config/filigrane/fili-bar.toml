@@ -15,7 +15,7 @@
 # screens = "all"
 
 # The modules. A module is a folder of bar/modules/ (<name>/<Name>Module.qml); its module.toml gives its default side
-# and order. Default rows: the manifests sorted by order, left = logo, workspaces, appmenu; right = the others.
+# and order. Default rows: the manifests sorted by order, left = logo, appmenu (workspaces is off, see the tasks bar); right = the others.
 # An explicit list is the exact order of the row, left to right, and wins over `order`. "..." stands for the default
 # modules of the row that are not listed yet, so a module of yours can join without restating the rest.
 # [modules]

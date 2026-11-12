@@ -6,7 +6,7 @@ Idle, a module shows little or nothing: indicators such as alerts, the timer or 
 
 ## Default layout
 
-Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
+Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the tasks bar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
 
 | Module | Shows | Click |
 |---|---|---|
