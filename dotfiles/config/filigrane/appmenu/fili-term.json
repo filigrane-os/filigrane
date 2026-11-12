@@ -14,6 +14,8 @@
         { "label": "New Tab", "keys": "Ctrl+Shift+T", "exec": "fili-term ctl --pid %pid action new-tab" },
         { "label": "New Window", "keys": "Ctrl+Shift+N", "exec": "fili-term ctl --pid %pid action new-window" },
         { "sep": true },
+        { "label": "Ask Rob About Last Command", "exec": "fili-term ctl --pid %pid action ask-rob" },
+        { "sep": true },
         { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-term.toml" },
         { "sep": true },
         { "label": "Close Tab", "keys": "Ctrl+Shift+W", "exec": "fili-term ctl --pid %pid action close-tab" },
@@ -24,7 +26,10 @@
       "label": "Edit",
       "children": [
         { "label": "Copy", "keys": "Ctrl+Shift+C", "exec": "fili-term ctl --pid %pid action copy" },
-        { "label": "Paste", "keys": "Ctrl+Shift+V", "exec": "fili-term ctl --pid %pid action paste" }
+        { "label": "Paste", "keys": "Ctrl+Shift+V", "exec": "fili-term ctl --pid %pid action paste" },
+        { "sep": true },
+        { "label": "Copy Last Output", "keys": "Ctrl+Shift+O", "exec": "fili-term ctl --pid %pid action copy-last-output" },
+        { "label": "Copy Last Command", "exec": "fili-term ctl --pid %pid action copy-last-command" }
       ]
     },
     {
@@ -37,7 +42,10 @@
         { "label": "Page Up", "keys": "Shift+PgUp", "exec": "fili-term ctl --pid %pid action page-up" },
         { "label": "Page Down", "keys": "Shift+PgDown", "exec": "fili-term ctl --pid %pid action page-down" },
         { "label": "Top of History", "exec": "fili-term ctl --pid %pid action scroll-top" },
-        { "label": "Back to Prompt", "exec": "fili-term ctl --pid %pid action scroll-bottom" }
+        { "label": "Back to Prompt", "exec": "fili-term ctl --pid %pid action scroll-bottom" },
+        { "sep": true },
+        { "label": "Previous Command", "keys": "Ctrl+Shift+Up", "exec": "fili-term ctl --pid %pid action previous-command" },
+        { "label": "Next Command", "keys": "Ctrl+Shift+Down", "exec": "fili-term ctl --pid %pid action next-command" }
       ]
     },
     {

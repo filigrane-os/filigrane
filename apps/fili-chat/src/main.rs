@@ -2,6 +2,8 @@
 // open session) so that the conversation stays when the drawer (FiliChat.qml) hides; the drawer connects to it.
 // fili-chat daemon          daemon (started by the drawer on first display; it stops without a client or an agent)
 // fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
+// fili-chat ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
+//                           application's button, e.g. Aéroport's "Ask Rob": the details are in its context)
 // fili-chat status          sessions as JSON (the daemon must be running)
 // fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
 // fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
@@ -1043,25 +1045,37 @@ fn ask_user(sid: &str, args: &Json) -> Json {
     deny("The request was cancelled")
 }
 
-// ───── commandes de l'utilisateur ─────
+// ───── user commands ─────
+/// Context of the active application (fili-context), for the next message of the drawer
+fn note_context() -> Result<(), String> {
+    let ctx = format!("{}/context.json", state_dir().display());
+    let _ = fs::create_dir_all(state_dir());
+    let out = Command::new(format!("{}/.local/bin/fili-context", home())).output();
+    fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default()).map_err(|e| e.to_string())
+}
+
+fn shell_chat(args: &[&str]) -> Result<(), String> {
+    Command::new(format!("{}/.local/bin/fili-shell", home()))
+        .arg("chat")
+        .args(args)
+        .status()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn connect() -> Result<UnixStream, String> {
-    UnixStream::connect(sock_path()).map_err(|_| "fili-chat: le démon ne tourne pas (le tiroir le lance)".to_string())
+    UnixStream::connect(sock_path()).map_err(|_| "fili-chat: the daemon is not running (the drawer starts it)".to_string())
 }
 
 fn main() {
     let a: Vec<String> = env::args().skip(1).collect();
     let r = match a.first().map(String::as_str) {
         Some("daemon") => daemon(),
-        Some("toggle") => {
-            let ctx = format!("{}/context.json", state_dir().display());
-            let _ = fs::create_dir_all(state_dir());
-            let out = Command::new(format!("{}/.local/bin/fili-context", home())).output();
-            let _ = fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default());
-            Command::new(format!("{}/.local/bin/fili-shell", home()))
-                .args(["chat", "toggle"])
-                .status()
-                .map(|_| ())
-                .map_err(|e| e.to_string())
+        Some("toggle") => note_context().and_then(|_| shell_chat(&["toggle"])),
+        Some("ask") if a.len() >= 2 => {
+            // One line: the shell pipe takes one command per line
+            let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+            note_context().and_then(|_| shell_chat(&["ask", &text]))
         }
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("status") => connect().and_then(|s| {
@@ -1086,7 +1100,7 @@ fn main() {
             }
             Ok(())
         }),
-        _ => Err("usage: fili-chat daemon | toggle | status | send ID TEXTE".into()),
+        _ => Err("usage: fili-chat daemon | toggle | ask TEXT | status | send ID TEXT".into()),
     };
     if let Err(e) = r {
         eprintln!("fili-chat: {e}");

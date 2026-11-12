@@ -1,4 +1,4 @@
 # Aéroport (fili-term) lives in its own repository. This pin is the version the distribution builds and packages
 # (see scripts/upstream-dir). To update: tag a release there, change ref here, run tests/fili-shell/run.sh.
 url=https://github.com/filigrane-os/fili-term
-ref=v1.0.0
+ref=v2.0.0

@@ -270,6 +270,7 @@ Singleton {
         case "show": show(); break;
         case "close": hide(); break;
         case "new": show(); newSession(); break;
+        case "ask": ask(args ? args.join(" ") : ""); break;
         case "new-here": show(); pendingLink = linkKey(ctx, true); newSession(); break;
         case "unlink": if (current) send_({ op: "link", id: current, key: "" }); break;
         case "sessions": show(); tabsOpen = !tabsOpen; break;
@@ -344,6 +345,7 @@ Singleton {
                 chat.ctxOn = chat.ctx !== null;
                 chat.ctxReady = true;
                 chat.tryFollow();
+                chat.askNow();
             }
         }
     }
@@ -355,6 +357,7 @@ Singleton {
                 retry.stop();
                 if (chat.current)
                     chat.send_({ op: "open", id: chat.current });
+                chat.askNow();
             } else if (chat.wantLink) {
                 // Daemon stopped while it is awaited: restarted
                 chat.ensure();
@@ -382,6 +385,24 @@ Singleton {
     // ───── actions ─────
     function newSession() {
         followPending = false;
+        send_({ op: "new" });
+    }
+    // Question asked from an application (`fili-chat ask TEXT`, e.g. Aéroport's "Ask Rob" on a failed command): a new
+    // session gets it, with the context of the application noted just before (the details are in that context)
+    property string pendingAsk: ""
+    function ask(text) {
+        if (!text)
+            return;
+        show();
+        followPending = false;
+        pendingAsk = text;
+        askNow();
+    }
+    function askNow() {
+        if (!pendingAsk || !(ctxReady || FiliTheme.testing) || !(link.connected || FiliTheme.testing))
+            return;
+        pending = pendingAsk;
+        pendingAsk = "";
         send_({ op: "new" });
     }
     function openSession(id) {

@@ -22,15 +22,15 @@ def entries(items):
 for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]]):
     m = re.fullmatch(r"fili-shell chat ([a-z-]+)", e.get("exec", ""))
     if e.get("exec", "").startswith("fili-shell chat") and not (m and m.group(1) in cases):
-        errors.append(f"commande sans case dans act(): {e['exec']}")
+        errors.append(f"command without a case in act(): {e['exec']}")
     k = e.get("keys")
     if k and (k not in keys or keys[k] not in qml):
-        errors.append(f"raccourci sans touche dans FiliChat.qml: {k}")
+        errors.append(f"shortcut without a key in FiliChat.qml: {k}")
 for a in cases:
-    if not any(e.get("exec") == f"fili-shell chat {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show", "open", "answer"):
-        errors.append(f"action de act() absente du menu: {a}")
+    if not any(e.get("exec") == f"fili-shell chat {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show", "open", "answer", "ask"):
+        errors.append(f"action of act() missing from the menu: {a}")
 if errors:
-    print("not ok - menu du chat:")
+    print("not ok - menu of the chat:")
     print("\n".join("#   " + e for e in errors))
     sys.exit(1)
-print("ok - menu du chat d'accord avec FiliChat.qml (%d actions)" % len(cases))
+print("ok - menu of the chat agrees with FiliChat.qml (%d actions)" % len(cases))
