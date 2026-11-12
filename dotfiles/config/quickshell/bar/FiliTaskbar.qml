@@ -274,6 +274,15 @@ PanelWindow {
                         anchors.fill: parent
                         color: btn.modelData.is_active || btnHover.containsMouse ? FiliTheme.toned(FiliTheme.taskbarTone, "hover") : "transparent"
                     }
+                    // On a column: a thin line under the element, so that the icons do not run into each other
+                    Rectangle {
+                        visible: win.vertical
+                        x: 5
+                        y: parent.height - 1
+                        width: parent.width - 10
+                        height: 1
+                        color: FiliTheme.toned(FiliTheme.taskbarTone, "hover")
+                    }
                     Text {
                         id: btnText
                         anchors.centerIn: parent
@@ -358,6 +367,15 @@ PanelWindow {
                         anchors.fill: parent
                         color: grp.modelData.folded && chipHover.containsMouse ? FiliTheme.toned(FiliTheme.taskbarTone, "hover") : "transparent"
                     }
+                    // On a column: a thin line under the element, so that the icons do not run into each other
+                    Rectangle {
+                        visible: win.vertical
+                        x: 5
+                        y: parent.height - 1
+                        width: parent.width - 10
+                        height: 1
+                        color: FiliTheme.toned(FiliTheme.taskbarTone, "hover")
+                    }
                     Text {
                         id: chipText
                         anchors.centerIn: parent
@@ -411,6 +429,15 @@ PanelWindow {
                         Rectangle {
                             anchors.fill: parent
                             color: cell.modelData.focused || cellHover.containsMouse ? FiliTheme.toned(FiliTheme.taskbarTone, "hover") : "transparent"
+                        }
+                        // On a column: a thin line under the element, so that the icons do not run into each other
+                        Rectangle {
+                            visible: win.vertical
+                            x: 5
+                            y: parent.height - 1
+                            width: parent.width - 10
+                            height: 1
+                            color: FiliTheme.toned(FiliTheme.taskbarTone, "hover")
                         }
                         // Mark of the focused window, on the inner edge of the bar (like the active workspace of the fili-bar)
                         Rectangle {
