@@ -975,7 +975,7 @@ ShellRoot {
                 BarLayout.parsed = ({});
                 // Four edges: left and right make a column, the edge of the fili-bar is never shared
                 BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "top"\n[taskbar]\nedge = "left"\n');
-                ok(TaskbarLayout.edge === "left" && TaskbarLayout.vertical && t.taskbar.vertical && FiliTheme.taskbarThickness === FiliTheme.taskbarWidth && FiliTheme.barMargin("left") === FiliTheme.taskbarWidth,
+                ok(TaskbarLayout.edge === "left" && TaskbarLayout.vertical && t.taskbar.vertical && FiliTheme.taskbarThickness === FiliTheme.taskbarHeight && FiliTheme.taskbarWidth === FiliTheme.taskbarHeight && FiliTheme.barMargin("left") === FiliTheme.taskbarHeight,
                     "quai: left -> a column, its width in the margin of the full-screen windows", TaskbarLayout.edge + " " + FiliTheme.barMargin("left"));
                 BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "right"\n[taskbar]\nedge = "right"\n');
                 ok(TaskbarLayout.edge === "left", "quai: the edge of the fili-bar is not shared (the opposite one)", TaskbarLayout.edge);

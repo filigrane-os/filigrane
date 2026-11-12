@@ -277,6 +277,9 @@ PanelWindow {
                     Text {
                         id: btnText
                         anchors.centerIn: parent
+                        width: win.vertical ? Math.min(implicitWidth, btn.width - 4) : implicitWidth
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
                         text: btn.label
                         color: btn.modelData.is_active || btnHover.containsMouse ? FiliTheme.toned(FiliTheme.taskbarTone, "text") : FiliTheme.toned(FiliTheme.taskbarTone, "muted")
                         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: btn.modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
@@ -358,6 +361,9 @@ PanelWindow {
                     Text {
                         id: chipText
                         anchors.centerIn: parent
+                        width: win.vertical ? Math.min(implicitWidth, chip.width - 4) : implicitWidth
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
                         text: grp.modelData.folded ? grp.modelData.label + " · " + grp.modelData.count : grp.modelData.label
                         color: TaskbarHint.active ? FiliTheme.toned(FiliTheme.taskbarTone, "accent") : grp.modelData.urgent ? FiliTheme.toned(FiliTheme.taskbarTone, "warn") : grp.modelData.active ? FiliTheme.toned(FiliTheme.taskbarTone, "text") : FiliTheme.toned(FiliTheme.taskbarTone, "muted")
                         opacity: grp.modelData.wins.some(w => TaskbarHint.matches(TaskbarNumbers.numberOf(w.id))) || TaskbarHint.typed === "" ? 1 : 0.35
