@@ -20,6 +20,13 @@
       ]
     },
     {
+      "label": "Edit",
+      "children": [
+        { "label": "Copy", "keys": "Ctrl+C", "exec": "fili-mail ctl --pid %pid action copy" },
+        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-mail ctl --pid %pid action select-all" }
+      ]
+    },
+    {
       "label": "Message",
       "children": [
         { "label": "Next Message", "exec": "fili-mail ctl --pid %pid action next-message" },

@@ -1,0 +1,4 @@
+# Facteur (fili-mail) lives in its own repository. This pin is the version the distribution builds and packages
+# (see scripts/upstream-dir). To update: tag a release there, change ref here, run tests/fili-shell/run.sh.
+url=https://github.com/filigrane-os/fili-mail
+ref=facteur-v0.1.0

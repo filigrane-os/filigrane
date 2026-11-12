@@ -485,8 +485,8 @@ setup_apps() {
             continue
         fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
-        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term
-        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term; third_party/: litehtml (fili-mail)
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon third_party -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         # Programs of the tool (BINS in package.env, e.g. fili-term and its session daemon), default: the one named like it
         bins="$(BINS="" && . "$src/package.env" 2>/dev/null && echo "$BINS")"; bins="${bins:-$name}"
