@@ -1,6 +1,6 @@
 # The bar (fili-bar)
 
-The bar is the thin line at the top of every screen. In the interface it is simply called **Barre**; `fili-bar` is its name in the repository, the code and the commands. It is part of the *fili-shell* (Quickshell, QML) and is made of **modules**: small independent items, each one a folder.
+The bar is the thin line at the top of every screen. In the interface it is called **Passerelle**; `fili-bar` is its name in the repository, the code and the commands. It is part of the *fili-shell* (Quickshell, QML) and is made of **modules**: small independent items, each one a folder.
 
 Idle, a module shows little or nothing: indicators such as alerts, the timer or the recording mark only appear when they have something to say.
 
@@ -157,7 +157,7 @@ fili-bar sync                          clone the pinned plugins of bar-plugins.t
 
 `enable`, `disable` and `move` write `[modules.<name>]` in `~/.config/filigrane/fili-bar.toml`, which the bar re-reads at once. Plugins you add live in `~/.local/share/filigrane/bar/plugins/<name>/`, never in the repository, and are linked into `~/.config/quickshell/bar/modules/<name>`. `install` records `name = "url@commit"` in `~/.config/filigrane/bar-plugins.toml`, so `sync` brings the same commits back on another machine. A manifest with an `api` newer than the bar's is refused. A plugin is code with your rights, without a sandbox: read what `install` shows, and the script, before saying `--yes`. A new plugin shows after the shell restarts.
 
-### Settings > Barre
+### Settings > Passerelle
 
 A right click on the bar background opens a panel with the edge and the screens (also `fili-bar edge` and `fili-bar screens`), and a shortcut to **Settings › Barre**. The same choices are in **Settings › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
 

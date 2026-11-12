@@ -324,6 +324,7 @@ PanelWindow {
         }
         // Separator between the strip and the windows
         Item {
+            visible: !win.vertical
             width: win.vertical ? FiliTheme.taskbarWidth : 1
             height: win.vertical ? 9 : rowItem.height
             Rectangle {
@@ -345,7 +346,7 @@ PanelWindow {
                 spacing: 0
                 // A thin separator between two workspaces
                 Item {
-                    visible: grp.index > 0
+                    visible: grp.index > 0 && !win.vertical
                     width: win.vertical ? FiliTheme.taskbarWidth : 1
                     height: win.vertical ? 9 : grp.height
                     Rectangle {

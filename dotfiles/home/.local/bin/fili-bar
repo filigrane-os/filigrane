@@ -1,5 +1,5 @@
 #!/bin/sh
-# Manage the modules of the fili-bar (Barre). Usage:
+# Manage the modules of the fili-bar (Passerelle). Usage:
 # fili-bar list                       modules: name, side, order, state, kind, title
 # fili-bar enable NAME | disable NAME show or hide a module (fili-bar.toml)
 # fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)

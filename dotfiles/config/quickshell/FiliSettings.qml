@@ -28,7 +28,7 @@ Singleton {
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
         { id: "login", label: FiliI18n.tr("Login"), source: "SettingsLogin.qml" },
-        { id: "bar", label: "Barre", source: "SettingsBar.qml" },
+        { id: "bar", label: "Passerelle", source: "SettingsBar.qml" },
         { id: "quai", label: "Quai", source: "SettingsQuai.qml" },
         { id: "files", label: "Casier", source: "SettingsFiles.qml" },
         { id: "about", label: FiliI18n.tr("About"), source: "SettingsAbout.qml" }

@@ -1,4 +1,4 @@
-// Settings page "Barre" (fili-settings): where the fili-bar sits and its background, and its modules (the Quai has its own page). Each module of the manifests (module.toml): a switch
+// Settings page "Passerelle" (the fili-bar) (fili-settings): where the fili-bar sits and its background, and its modules (the Quai has its own page). Each module of the manifests (module.toml): a switch
 // (shown or hidden), its title and description, buttons to move it up or down its row and to the other side. Every change
 // is made by the `fili-bar` command, which writes ~/.config/filigrane/fili-bar.toml; the bar re-reads it at once and this
 // page follows (BarLayout). An explicit left / right list in that file wins over the order set here (stated below).
@@ -62,7 +62,7 @@ ColumnLayout {
     BarPlacement { Layout.fillWidth: true; target: "bar" }
     PanelSection { text: FiliI18n.tr("MODULES") }
     Text {
-        text: "Barre"
+        text: "Passerelle"
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
