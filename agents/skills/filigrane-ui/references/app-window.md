@@ -38,6 +38,7 @@ Other values of the header, taken from Casier: back/forward capsule 30 high, rad
 - **Window buttons at the far right of the header**: close (`WindowGlyph` `close`, red `danger` on hover, white glyph) at `(toolbarHeight - 24) / 2` from the right edge, the window button (`WindowGlyph` `window`, opens `WindowPanel`: niri actions, or fullscreen/maximize/minimize outside niri) `space1` to its left. Names for accessibility: "Close window", "Window".
 - They can be hidden: entry "Show Window Buttons" of the bar menu (`ctl action toggle-window-buttons`), choice kept in the state file (`window_buttons=0|1`, `~/.local/state/filigrane/`); Casier also reads a default `window_buttons = false` in `fili-file.toml`. The search field then takes `margin` from the edge. "Window Actions…" (Ctrl+Shift+W) and "Close" (Ctrl+W) stay in the menu either way.
 - No title bar, no menu bar drawn in the window: the window title lives in the fili-bar.
+- **Headless windows.** The whole header can be left out: Settings > Appearance, `fili-theme header off`, `[window] header = false` in the shared `~/.config/filigrane/theme.toml` (or in `<app>.toml`, which wins), or `--no-header` / `--header` for one window (the flag wins over both). Every application follows the change **live**, with no relaunch (it watches `~/.config/filigrane/`). Nothing may be reachable only from the header: each tool has a shortcut and an entry in the bar menu. The search (Ctrl+F) shows the header while it is used, Esc hides it again. The bar menu entry "Show Header" (`ctl action toggle-header`) changes it for one window only.
 
 ## Sidebar
 
@@ -72,6 +73,7 @@ Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row 
 ## Footer
 
 - Reference: Facteur's footer. Height `statusHeight` (28), full width, recessed background `backgroundDeep`, 1 px `border` line above. Left, from `margin`: where we are (place, path, search); right, `margin` from the edge: counts, selection, "Loading more…", in `sizeSmall` + `textSecondary`, elided; an error or notice there in `danger`.
+- **Status bar off.** Like the header, the footer can be left out: Settings > Appearance, `fili-theme footer off`, `[window] footer = false` (shared file, or `<app>.toml`), `--no-footer` / `--footer`; followed live. It is independent of the header. It still appears for as long as it has something to say: an operation in progress, an error, a notice, an inline confirmation, a typed path, search results. Bar menu entry "Show Status Bar" (`ctl action toggle-footer`) for one window only.
 - An error, a notice or an operation in progress takes the whole footer for its duration (Casier); an inline confirmation ("Delete the label…?") uses the same band, with the action as the default button on the right and Cancel to its left.
 
 ## Scrolling

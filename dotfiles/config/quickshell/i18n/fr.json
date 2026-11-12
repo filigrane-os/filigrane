@@ -405,5 +405,16 @@
  "Edit": "Modifier",
  "Save": "Enregistrer",
  "Or a command": "Ou une commande",
- "Search applications": "Rechercher une application"
+ "Search applications": "Rechercher une application",
+ "Appearance": "Apparence",
+ "SYSTEM FONT": "POLICE SYSTÈME",
+ "The font of the shell, the bar, the Filigrane apps, GTK apps and Chrome's interface. Apps already open keep the old one until they are reopened.": "La police du shell, de la barre, des applications Filigrane, des applications GTK et de l'interface de Chrome. Les applications déjà ouvertes gardent l'ancienne jusqu'à leur réouverture.",
+ "WINDOWS": "FENÊTRES",
+ "Show application headers": "Afficher les en-têtes des applications",
+ "Off: the Filigrane apps open without their header (navigation, title, search and window buttons) to give the content the whole window. Everything stays reachable from the keyboard and the menu of the bar; Ctrl+F shows the search. An app can also be launched with --no-header or --header.": "Désactivé: les applications Filigrane s'ouvrent sans leur en-tête (navigation, titre, recherche et boutons de fenêtre) pour donner toute la fenêtre au contenu. Tout reste accessible au clavier et par le menu de la barre; Ctrl+F affiche la recherche. Une application peut aussi se lancer avec --no-header ou --header.",
+ "Show application status bars": "Afficher les barres d'état des applications",
+ "Off: the status bar at the bottom of the Filigrane apps (place, counts) is hidden. It still appears while it has something to say: an operation in progress, an error or a notice. An app can also be launched with --no-footer or --footer.": "Désactivé: la barre d'état au bas des applications Filigrane (lieu, compteurs) est masquée. Elle réapparaît tant qu'elle a quelque chose à dire: une opération en cours, une erreur ou un avis. Une application peut aussi se lancer avec --no-footer ou --footer.",
+ "URGENT": "URGENT",
+ "click: list of the windows": "clic: liste des fenêtres",
+ "click: go there · middle click: close": "clic: y aller · clic du milieu: fermer"
 }

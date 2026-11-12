@@ -24,6 +24,7 @@ Singleton {
     readonly property var pages: [
         { id: "display", label: FiliI18n.tr("Display"), source: "SettingsDisplay.qml" },
         { id: "workspaces", label: FiliI18n.tr("Workspaces"), source: "SettingsWorkspaces.qml" },
+        { id: "appearance", label: FiliI18n.tr("Appearance"), source: "SettingsAppearance.qml" },
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
         { id: "login", label: FiliI18n.tr("Login"), source: "SettingsLogin.qml" },

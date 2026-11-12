@@ -1,6 +1,6 @@
 // Settings page "Display" (fili-settings): the outputs on a canvas (drag to place them, snapping to edges), then for
-// the chosen output power, resolution, refresh rate, scale, rotation and VRR, the kanshi profile and the accent
-// colour. Changes go through `niri msg output` (temporary, applied at once); resolution, rotation and power-off must
+// the chosen output power, resolution, refresh rate, scale, rotation and VRR, the kanshi profile.
+// Changes go through `niri msg output` (temporary, applied at once); resolution, rotation and power-off must
 // be confirmed within 15 s (or when the window closes), else the previous state comes back. Scale applies without
 // confirmation: it never makes the screen unusable and can be picked again with one click. Dragging only stages the
 // layout; "Apply" commits it (the screens do not move at each drag), "Reset" lines the screens up again and
@@ -592,61 +592,6 @@ ColumnLayout {
         glyph: "→"
         label: FiliI18n.tr("Workspaces and applications per display…")
         onClicked: FiliSettings.page = "workspaces"
-    }
-    // Accent colour (fili-theme accent): niri window focus, selections in the shell and fili-file
-    PanelSection { text: FiliI18n.tr("ACCENT COLOR") }
-    Row {
-        id: accents
-        objectName: "accent"
-        spacing: FiliTheme.space2
-        readonly property var names: ["voile", "ardoise", "sauge", "sable", "cendre", "brume"]
-        readonly property var labels: ({ voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
-        property int cursor: Math.max(0, names.indexOf(FiliTheme.accentName))
-        function pick(n) {
-            FiliTheme.accent = n;
-            FiliTheme.run(FiliTheme.bin + "/fili-theme accent " + n);
-        }
-        activeFocusOnTab: true
-        Keys.onLeftPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.max(0, cursor - 1); }
-        Keys.onRightPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.min(names.length - 1, cursor + 1); }
-        Keys.onReturnPressed: pick(names[cursor])
-        Keys.onSpacePressed: pick(names[cursor])
-        Repeater {
-            model: accents.names
-            Rectangle {
-                id: dot
-                required property string modelData
-                required property int index
-                readonly property bool on: modelData === FiliTheme.accentName
-                width: 22
-                height: 22
-                radius: width / 2
-                color: "transparent"
-                border.width: on ? 2 : 0
-                border.color: FiliTheme.brume
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: FiliTheme.accentTones[dot.modelData][FiliTheme.light ? 2 : 0]
-                }
-                FocusRing {
-                    shown: accents.activeFocus && accents.cursor === dot.index
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: accents.pick(dot.modelData)
-                }
-            }
-        }
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: accents.labels[FiliTheme.accentName]
-            color: FiliTheme.brume2
-            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-        }
     }
 
     // Closed with a change pending confirmation: go back rather than leave an unusable screen

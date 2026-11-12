@@ -88,6 +88,10 @@ if want 'bin/fili-theme|check-fili-theme-font|fontconfig/|config/gtk-'; then
 # The interface font reaches GTK and fontconfig (fili-theme font)
 "$ROOT/tests/fili-shell/check-fili-theme-font.sh" || exit 1
 fi
+if want 'bin/fili-theme|check-fili-theme-window'; then
+# Headless windows and status bars (fili-theme header|footer)
+"$ROOT/tests/fili-shell/check-fili-theme-window.sh" || exit 1
+fi
 if want 'fili-login|SettingsLogin'; then
 # The fili-login command (programs started at login)
 "$ROOT/tests/fili-shell/check-fili-login.sh" || exit 1

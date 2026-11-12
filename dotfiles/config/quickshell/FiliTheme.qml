@@ -143,6 +143,10 @@ Singleton {
     // Third-party applications (GTK, Chrome, fontconfig) follow: fili-theme regenerates their settings
     onFontChanged: if (!testing && parsedLoaded) Quickshell.execDetached(["fili-theme", "font"])
     property bool parsedLoaded: false
+    // Headers of the fili-* windows ([window] header of theme.toml, `fili-theme header on|off`); false = headless apps
+    readonly property bool headers: (parsed.window?.header ?? "true") !== "false"
+    // Footer (status bar) of the fili-* windows ([window] footer, `fili-theme footer on|off`); false = shown only when it has something to say
+    readonly property bool footers: (parsed.window?.footer ?? "true") !== "false"
     readonly property string mono: ov("mono", "JetBrains Mono")
     // Type scale (tokens.md): system 14, view (lists) 13, small (secondary, tooltips, subheadings) 12,
     // label 11; title ≥ 18 (the only step where Light is allowed); accent = Jost SemiBold 600

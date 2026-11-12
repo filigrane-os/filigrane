@@ -1027,16 +1027,16 @@ ShellRoot {
                 ok(FiliTheme.mode === "dark" && /\/fili-theme dark$/.test(FiliTheme.ran[1]), "fili-panel displays: back to dark", JSON.stringify(FiliTheme.ran));
                 FiliPanel.close();
             },
-            // fili-settings display, accent colour: sable by default, the choice changes the accent of the shell and runs fili-theme accent
+            // fili-settings appearance, accent colour: sable by default, the choice changes the accent of the shell and runs fili-theme accent
             () => {
-                FiliSettings.show("display");
+                FiliSettings.show("appearance");
                 const acc = t.find(FiliSettings.loaded, "accent");
-                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-settings display: default accent: sand in dark mode", acc ? FiliTheme.accent : "not found");
-                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-settings display: no Default entry, sand is the colour chosen by default", FiliTheme.accentName);
+                ok(acc && FiliTheme.accent === "default" && Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "fili-settings appearance: default accent: sand in dark mode", acc ? FiliTheme.accent : "not found");
+                ok(acc.names.indexOf("default") < 0 && FiliTheme.accentName === "sable" && acc.names[acc.cursor] === "sable", "fili-settings appearance: no Default entry, sand is the colour chosen by default", FiliTheme.accentName);
                 FiliTheme.ran = [];
                 acc.pick("sable");
-                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-settings display: sand accent in the shell", String(FiliTheme.voile));
-                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-settings display: fili-theme accent sable run", JSON.stringify(FiliTheme.ran));
+                ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92") && Qt.colorEqual(FiliTheme.voileVif, "#e0d1ab"), "fili-settings appearance: sand accent in the shell", String(FiliTheme.voile));
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme accent sable$/.test(FiliTheme.ran[0]), "fili-settings appearance: fili-theme accent sable run", JSON.stringify(FiliTheme.ran));
                 FiliTheme.mode = "light";
                 ok(Qt.colorEqual(FiliTheme.voile, "#80662b"), "accent sable en mode clair", String(FiliTheme.voile));
                 FiliTheme.mode = "dark";
@@ -1048,6 +1048,30 @@ ShellRoot {
                 FiliTheme.accent = "inconnu";
                 ok(Qt.colorEqual(FiliTheme.voile, "#d2bf92"), "unknown accent: fall back to the default", String(FiliTheme.voile));
                 FiliTheme.accent = "default";
+                FiliSettings.close();
+            },
+            // fili-settings appearance, system font and headless apps: the choices run fili-theme (written to theme.toml)
+            () => {
+                FiliSettings.show("appearance");
+                const font = t.find(FiliSettings.loaded, "font");
+                const headers = t.find(FiliSettings.loaded, "headers");
+                ok(font && headers, "fili-settings appearance: font choice and headers switch present", font ? "no switch" : "no font choice");
+                ok(font.currentIndex >= 0 && font.model.some(m => m.value === "Jost"), "fili-settings appearance: current font and Jost (default) are offered", JSON.stringify(font.model));
+                ok(FiliTheme.headers === true && headers.checked, "fili-settings appearance: headers shown by default", String(FiliTheme.headers));
+                FiliTheme.ran = [];
+                font.picked("Inter");
+                headers.toggled();
+                font.picked("Jost");
+                ok(FiliTheme.ran.length === 3 && /\/fili-theme font 'Inter'$/.test(FiliTheme.ran[0]) && /\/fili-theme header off$/.test(FiliTheme.ran[1]) && /\/fili-theme font default$/.test(FiliTheme.ran[2]), "fili-settings appearance: fili-theme font and header run", JSON.stringify(FiliTheme.ran));
+                FiliTheme.parsed = ({ window: { header: "false" } });
+                ok(FiliTheme.headers === false && !headers.checked && FiliTheme.footers === true, "fili-settings appearance: header = false in theme.toml means headless, the footer stays", String(FiliTheme.headers));
+                const footers = t.find(FiliSettings.loaded, "footers");
+                FiliTheme.ran = [];
+                footers.toggled();
+                ok(FiliTheme.ran.length === 1 && /\/fili-theme footer off$/.test(FiliTheme.ran[0]), "fili-settings appearance: fili-theme footer off run", JSON.stringify(FiliTheme.ran));
+                FiliTheme.parsed = ({ window: { footer: "false" } });
+                ok(FiliTheme.footers === false && !footers.checked && FiliTheme.headers === true, "fili-settings appearance: footer = false in theme.toml hides the status bars only", String(FiliTheme.footers));
+                FiliTheme.parsed = ({});
                 FiliSettings.close();
             },
             // Panel open: the action of a module fires on press (a single click), not twice on release

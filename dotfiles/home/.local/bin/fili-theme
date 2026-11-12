@@ -31,6 +31,23 @@ tones() {
 acc=$(cat "$dir/accent" 2>/dev/null)
 case " $accents " in *" $acc "*) ;; *) acc=default ;; esac
 changed=mode
+# Options of the global ~/.config/filigrane/theme.toml (read live by the fili-shell and the fili-* applications):
+# toml_set SECTION KEY VALUE (VALUE already quoted when it is a string; empty = remove the key). Comments and the
+# other lines stay; the file is written in place (the shell follows it through inotify).
+toml_file="$cfg/filigrane/theme.toml"
+toml_set() {
+    mkdir -p "${toml_file%/*}"
+    [ -f "$toml_file" ] || : > "$toml_file"
+    tmp=$(mktemp) || return 1
+    awk -v want="$1" -v key="$2" -v val="$3" '
+        function flush() { if (insec && !done && val != "") { print key " = " val; done = 1 } }
+        /^[ \t]*\[/ { flush(); name = $0; gsub(/^[ \t]*\[|\][ \t]*(#.*)?$/, "", name); insec = (name == want); if (insec) seen = 1 }
+        insec && $0 ~ "^[ \t]*" key "[ \t]*=" { if (val != "" && !done) { print key " = " val; done = 1 } next }
+        { print }
+        END { flush(); if (!seen && val != "") { if (NR) print ""; print "[" want "]"; print key " = " val } }
+    ' "$toml_file" > "$tmp" && cat "$tmp" > "$toml_file"
+    rm -f "$tmp"
+}
 case "${1:-get}" in
     get) echo "$cur"; exit 0 ;;
     accent)
@@ -40,8 +57,33 @@ case "${1:-get}" in
     toggle) [ "$cur" = light ] && mode=dark || mode=light ;;
     dark | light) mode=$1 ;;
     apply) mode=$cur ;;
-    font) mode=$cur changed=font ;;
-    *) echo "usage: fili-theme [get|dark|light|toggle|apply|font|accent [name]]" >&2; exit 2 ;;
+    font)
+        # fili-theme font NAME | default: choose the interface font ([theme] font); without argument, resync only
+        case "${2:-}" in
+            "") ;;
+            default) toml_set theme font "" ;;
+            *[!A-Za-z0-9\ ._-]*) echo "invalid font name: $2" >&2; exit 2 ;;
+            *) toml_set theme font "\"$2\"" ;;
+        esac
+        mode=$cur changed=font ;;
+    fonts)
+        # Families offered for the interface font: Latin text fonts only (no icons, symbols, emoji, monospace, serif, script variants)
+        fc-list :lang=en family 2>/dev/null | sed 's/,.*//' | grep -viE 'icon|awesome|emoji|symbol|math|mono|serif|display|condensed|narrow|unjoined|roman|^(c059|d050000l|p052|z003|urw)' | sort -u
+        exit 0 ;;
+    header | footer)
+        # fili-theme header|footer [on|off|default]: header and footer (status bar) of the fili-* windows ([window] header|footer;
+        # header off = headless); without argument, print
+        part=$1
+        case "${2:-}" in
+            on) toml_set window "$part" true ;;
+            off) toml_set window "$part" false ;;
+            default) toml_set window "$part" "" ;;
+            "") [ -f "$toml_file" ] || { echo on; exit 0; }
+                awk -v part="$part" '/^\[/ { sec = ($0 ~ /^\[window\]/) } sec && $1 == part { print ($0 ~ /false/ ? "off" : "on"); f = 1 } END { if (!f) print "on" }' "$toml_file" 2>/dev/null; exit 0 ;;
+            *) echo "usage: fili-theme $part [on|off|default]" >&2; exit 2 ;;
+        esac
+        exit 0 ;;
+    *) echo "usage: fili-theme [get|dark|light|toggle|apply|font [name|default]|fonts|header|footer [on|off|default]|accent [name]]" >&2; exit 2 ;;
 esac
 
 mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/gtk-4.0" "$cfg/foot" "$cfg/niri"

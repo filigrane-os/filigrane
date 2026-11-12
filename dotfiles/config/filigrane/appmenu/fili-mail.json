@@ -5,7 +5,9 @@
   ],
   "window": [
     { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-mail ctl --pid %pid action window-actions" },
-    { "label": "Show Window Buttons", "exec": "fili-mail ctl --pid %pid action toggle-window-buttons" }
+    { "label": "Show Window Buttons", "exec": "fili-mail ctl --pid %pid action toggle-window-buttons" },
+    { "label": "Show Header", "exec": "fili-mail ctl --pid %pid action toggle-header" },
+    { "label": "Show Status Bar", "exec": "fili-mail ctl --pid %pid action toggle-footer" }
   ],
   "menus": [
     {
