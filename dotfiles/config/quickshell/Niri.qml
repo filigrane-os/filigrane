@@ -130,7 +130,8 @@ Singleton {
     // Fields of a window read by the bar: niri sends the whole window at every move or resize
     // (layout), without changing anything that is displayed
     function same(a, b) {
-        return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id;
+        return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id
+            && a.is_urgent === b.is_urgent && a.is_floating === b.is_floating;
     }
 
     // Event stream read directly from the niri socket ("EventStream" request), without a `niri msg` process
@@ -184,6 +185,23 @@ Singleton {
                         niri.focusedId = w.id;
                     if (opened)
                         niri.windowOpened(w);
+                } else if (ev.WindowLayoutsChanged) {
+                    // Position of a window in its workspace (tasks bar order): the rest of the layout changes at every
+                    // move or resize and is not worth a new model, so only a new column / row republishes
+                    let m = null;
+                    for (const [id, layout] of ev.WindowLayoutsChanged.changes) {
+                        const w = niri.windows[id];
+                        if (!w)
+                            continue;
+                        if (JSON.stringify(w.layout?.pos_in_scrolling_layout) !== JSON.stringify(layout?.pos_in_scrolling_layout)) {
+                            m = m ?? Object.assign({}, niri.windows);
+                            m[id] = Object.assign({}, w, { layout: layout });
+                        } else {
+                            w.layout = layout;
+                        }
+                    }
+                    if (m)
+                        niri.setWindows(m);
                 } else if (ev.WindowClosed) {
                     const m = Object.assign({}, niri.windows);
                     delete m[ev.WindowClosed.id];

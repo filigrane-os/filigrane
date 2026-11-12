@@ -176,14 +176,22 @@ Singleton {
     readonly property int barWidth: ov("bar_width", 56)
     // Vertical margin of a module in a column (the stacked modules are many: tighter than the side margin of a row)
     readonly property int barPadV: ov("pad_v", 2)
+    // Tasks bar (fili-tasks, FiliTasks.qml): a row listing every window by workspace, on the "bottom" or "top" edge ("" =
+    // none; set by TasksLayout from [tasks] of fili-bar.toml). Its thickness is part of barMargin.
+    property string tasksEdge: ""
+    readonly property int tasksHeight: ov("tasks_height", 32)
     readonly property int barThickness: barVertical ? barWidth : barHeight
     // Margin to leave on `side` of a full-screen window so that it starts beside the bar (0 on the other sides)
     function barMargin(side) {
-        return barEdge === side ? barThickness : 0;
+        return (barEdge === side ? barThickness : 0) + (tasksEdge === side ? tasksHeight : 0);
     }
     // Gap (px) of a popup from the bar, on the side the bar is on only
     function barGap(side, px) {
         return barEdge === side ? px : 0;
+    }
+    // Edges and gravity of a popup opened beside an item of the bar (or of the tasks bar: edge = its edge): away from it
+    function popupEdgesFor(edge) {
+        return edge === "top" ? Edges.Bottom : edge === "bottom" ? Edges.Top : edge === "left" ? Edges.Right : Edges.Left;
     }
     // Edges and gravity of a popup opened beside a bar item: away from the bar
     readonly property int popupEdges: barEdge === "top" ? Edges.Bottom : barEdge === "bottom" ? Edges.Top : barEdge === "left" ? Edges.Right : Edges.Left

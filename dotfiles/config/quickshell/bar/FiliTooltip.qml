@@ -13,6 +13,9 @@ Singleton {
     id: tip
     property Item target: null
     property var card: ({})
+    // Edge of the screen of the bar the card belongs to ("" = the fili-bar's; the tasks bar passes its own)
+    property string edge: ""
+    readonly property string at: edge || FiliTheme.barEdge
     // Grace period after a fili-panel closes (ms), during which no card opens
     readonly property int cooldown: 1500
 
@@ -29,7 +32,7 @@ Singleton {
     function empty(c) {
         return !c || (!c.title && !c.text && !(c.rows && c.rows.length));
     }
-    function show(item, content) {
+    function show(item, content, side) {
         const c = normalize(content);
         // Nothing during a fili-panel, nor right after it closes (the mouse is still on the clicked icon: the card would
         // pop up at once and look like a bug): leave the icon, then come back after the grace period
@@ -38,6 +41,7 @@ Singleton {
             return;
         }
         card = c;
+        edge = side ?? "";
         if (target !== item) {
             target = item;
             popup.visible = false;
@@ -67,12 +71,12 @@ Singleton {
         id: popup
         visible: false
         anchor.item: tip.target
-        anchor.edges: FiliTheme.popupEdges
-        anchor.gravity: FiliTheme.popupEdges
-        anchor.margins.top: FiliTheme.barGap("top", 6)
-        anchor.margins.bottom: FiliTheme.barGap("bottom", 6)
-        anchor.margins.left: FiliTheme.barGap("left", 6)
-        anchor.margins.right: FiliTheme.barGap("right", 6)
+        anchor.edges: FiliTheme.popupEdgesFor(tip.at)
+        anchor.gravity: FiliTheme.popupEdgesFor(tip.at)
+        anchor.margins.top: tip.at === "top" ? 6 : 0
+        anchor.margins.bottom: tip.at === "bottom" ? 6 : 0
+        anchor.margins.left: tip.at === "left" ? 6 : 0
+        anchor.margins.right: tip.at === "right" ? 6 : 0
         implicitWidth: body.implicitWidth + 28
         implicitHeight: body.implicitHeight + 22
         color: "transparent"

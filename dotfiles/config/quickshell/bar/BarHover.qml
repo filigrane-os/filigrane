@@ -9,6 +9,8 @@ MouseArea {
     id: area
     property var tip
     property string tipInfo
+    // Edge of the screen of the bar this area belongs to, when it is not the fili-bar's (the tasks bar): where the card opens away from
+    property string tipEdge: ""
     property string click
     property string rclick
     property string mclick
@@ -87,10 +89,10 @@ MouseArea {
             return;
         }
         if (tipInfo) {
-            FiliTooltip.show(area, tip || { title: "…" });
+            FiliTooltip.show(area, tip || { title: "…" }, area.tipEdge);
             FiliInfo.request(tipInfo);
         } else {
-            FiliTooltip.show(area, tip);
+            FiliTooltip.show(area, tip, area.tipEdge);
         }
     }
     onTipChanged: if (containsMouse && !tipInfo) FiliTooltip.update(area, tip)

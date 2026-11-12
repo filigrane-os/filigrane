@@ -53,6 +53,35 @@ The `status` module is a single icon for the indicators (recording, SSH, airplan
 
 `appmenu` is the global menu: the name of the active application in bold, then its menus, like the classic Mac OS X menu bar. It reads the application's menu bar through AT-SPI (GTK, Qt) or, for applications that export none, a hand-written fallback in `dotfiles/config/filigrane/appmenu/<app_id>.json` (personal ones in `users/<login>/dotfiles/config/filigrane/appmenu/`). Menus that do not fit move into a `…` title. `Mod+F10` gives the menu the keyboard focus.
 
+## The tasks bar
+
+A second bar, **fili-tasks**, runs along the bottom of every screen (`bar/FiliTasks.qml`, logic in `bar/TasksLayout.qml`). It lists **every window of that screen grouped by workspace**, in the order niri lays them out (columns left to right), so that one glance tells what runs where, including the windows scrolled out of view.
+
+| Action | Result |
+|---|---|
+| click on a window | focus it, whatever its workspace |
+| middle click | close it |
+| click on a workspace label | go to the workspace |
+| click on a merged icon or a folded workspace | list of its windows |
+| hover | fili-tooltip: application, titles, urgent windows |
+
+**Numbers.** Every window has a number, shown on its icon at all times: the lowest free number (1, 2, 3...) when it opens, the same on every screen, kept while the window lives and given back when it closes. They are saved in `~/.local/state/filigrane/window-numbers.json`, so reloading the shell does not renumber. A merged icon shows `3+2` (its first number and how many more); the hover and the list show them all.
+
+To go to a window by its number, hold **Mod+Alt**, type the whole number (one or more digits) and release: the focus goes to the window. Esc cancels, Backspace erases a digit, Enter validates at once. niri cannot bind Mod+Alt alone, so the digits are bound (`fili-shell tasks N`): the keypad (`Mod+Alt+KP_0..9`, with or without NumLock) in the distribution, and the number row of layouts that type symbols (bépo) in the layer of the user, e.g. `Mod+Alt+quotedbl` for the 1. The bar of the focused screen takes the keyboard to see the release; if a key is missed, the mode validates by itself 1.2 s after the last digit.
+
+Like the fili-bar it squeezes itself per screen, one level at a time while its row does not fit: 0 icon and title of every window; 1 the title of the focused window only; 2 the windows of one application in a workspace merge into one icon with a count; 3 the workspaces that are not shown on their screen fold into a label and a count.
+
+Settings, all optional, in `fili-bar.toml`:
+
+```toml
+[tasks]
+enabled = true     # false: no tasks bar
+edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the tasks bar takes the other one
+screens = "all"    # "all" or a list of output names, like [bar] screens
+```
+
+Its height is `tasks_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
+
 ## Choosing and ordering modules
 
 Every module folder has a manifest, `module.toml`:

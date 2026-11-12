@@ -33,3 +33,9 @@
 # show = "always"     # "active" (default, hidden while empty) or "always"
 # compact_at = 2      # squeeze level (1-4) from which the module shows its compact form (icon alone, clock without the date)
 # drawer_at = 3       # squeeze level from which the module moves into the drawer (0 = never)
+
+# The tasks bar: every window of a screen, grouped by workspace (docs/bar.md, "The tasks bar").
+# [tasks]
+# enabled = true      # false: no tasks bar
+# edge = "bottom"     # "bottom" or "top" (the edge of the fili-bar is never shared: the tasks bar takes the other one)
+# screens = "all"     # "all", or a list of output names

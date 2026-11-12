@@ -15,6 +15,11 @@ ShellRoot {
         model: BarLayout.barScreens
         FiliBar {}
     }
+    // Tasks bar: one per screen, every window by workspace (bar/FiliTasks.qml, settings [tasks] of fili-bar.toml)
+    Variants {
+        model: TasksLayout.screens
+        FiliTasks {}
+    }
 
     // Instantiated at start (singletons are otherwise loaded on first use)
     Component.onCompleted: {
@@ -44,6 +49,12 @@ ShellRoot {
                 FiliAbout.toggle();
             else if (target === "settings")
                 FiliSettings.toggle(action);
+            else if (target === "tasks") {
+                if (action === "hint")
+                    TasksHint.begin();
+                else
+                    TasksHint.type(action);
+            }
             else if (target === "reload")
                 Quickshell.reload(false);
         }

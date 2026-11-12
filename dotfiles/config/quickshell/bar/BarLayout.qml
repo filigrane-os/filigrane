@@ -113,8 +113,9 @@ Singleton {
     }
     // Next level of a bar: `right` = width of its right row at the current level, `avail` = width the row may use,
     // `seen[l]` = width of the right row last measured at level l (to know what a lower level needs before going back)
-    function nextLevel(level, avail, right, seen) {
-        if (right > avail && level < maxLevel)
+    // (max: the highest level, the tasks bar has fewer)
+    function nextLevel(level, avail, right, seen, max) {
+        if (right > avail && level < (max ?? maxLevel))
             return level + 1;
         if (level > 0 && seen[level - 1] !== undefined && seen[level - 1] + 16 <= avail)
             return level - 1;
