@@ -1,27 +1,27 @@
 pragma Singleton
-// fili-tasks: which windows the tasks bar (FiliTasks.qml) lists, and how it squeezes. One bar per screen, listing the
-// windows of that screen grouped by workspace, in the order niri lays them out. Settings: [tasks] of fili-bar.toml
+// fili-taskbar: which windows the taskbar (FiliTaskbar.qml) lists, and how it squeezes. One bar per screen, listing the
+// windows of that screen grouped by workspace, in the order niri lays them out. Settings: [taskbar] of fili-bar.toml
 // (dotfiles/config/filigrane/fili-bar.toml lists them):
-//   [tasks]
-//   enabled = true         # false: no tasks bar
-//   edge = "bottom"        # "bottom" (default) | "top"; the edge of the fili-bar is never shared (the tasks bar takes the other one)
+//   [taskbar]
+//   enabled = true         # false: no taskbar
+//   edge = "bottom"        # "bottom" (default) | "top"; the edge of the fili-bar is never shared (the taskbar takes the other one)
 //   screens = "all"        # "all" (default) or a list of output names, like [bar] screens
 import QtQuick
 import Quickshell
 import qs
 
 Singleton {
-    id: tasks
-    readonly property var conf: BarLayout.parsed.tasks ?? ({})
+    id: taskbar
+    readonly property var conf: BarLayout.parsed.taskbar ?? ({})
     readonly property bool enabled: String(conf.enabled ?? "true") !== "false"
     // Edge of the screen: the one asked for, unless the fili-bar sits there (then the opposite one)
     readonly property string edge: {
         const want = conf.edge === "top" ? "top" : "bottom";
         return want === FiliTheme.barEdge ? (want === "top" ? "bottom" : "top") : want;
     }
-    Binding { target: FiliTheme; property: "tasksEdge"; value: tasks.enabled ? tasks.edge : "" }
+    Binding { target: FiliTheme; property: "taskbarEdge"; value: taskbar.enabled ? taskbar.edge : "" }
 
-    // Screens that get a tasks bar (a list that matches no connected screen gives all of them, like the fili-bar)
+    // Screens that get a taskbar (a list that matches no connected screen gives all of them, like the fili-bar)
     readonly property var screens: {
         if (!enabled)
             return [];
@@ -77,7 +77,7 @@ Singleton {
                     entries.push({ key: (level >= 2 ? "a" + ws.id + "/" + (w.app_id ?? "") : "w" + w.id), app_id: w.app_id ?? "", wins: [w] });
             }
             for (const e of entries) {
-                e.nums = e.wins.map(w => TasksNumbers.numberOf(w.id));
+                e.nums = e.wins.map(w => TaskbarNumbers.numberOf(w.id));
                 e.focused = e.wins.some(w => w.id === focusedId);
                 e.urgent = e.wins.some(w => w.is_urgent);
                 // Title: every window at level 0, then the focused one (not a merged icon)

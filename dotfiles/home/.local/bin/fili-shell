@@ -22,7 +22,7 @@
 # fili-shell settings [PAGE]                        opens/closes the Settings window (fili-settings), on page PAGE (display, language, power, files, about)
 # fili-shell about                                  opens/closes the "About" window (fili-about: Filigrane, system, machine)
 # fili-shell lang                                   re-reads the chosen language (fili-lang)
-# fili-shell tasks [hint|DIGIT]                    tasks bar: type the number of a window (Mod+Alt+0..9), release the keys to go there
+# fili-shell taskbar [hint|DIGIT]                    taskbar: type the number of a window (Mod+Alt+0..9), release the keys to go there
 # fili-shell reload                                 reloads the config
 D="${XDG_RUNTIME_DIR:-/tmp}"
 F="$D/fili-shell"
@@ -56,7 +56,7 @@ case "$1 $2" in
     "settings "*) send "settings${2:+ $2}"; exit 0 ;;
     "chat "*) send "chat ${2:-toggle}${3:+ $3}"; exit 0 ;;
     "lang "*) send "lang reload"; exit 0 ;;
-    "tasks "*) send "tasks ${2:-hint}"; exit 0 ;;
+    "taskbar "*) send "taskbar ${2:-hint}"; exit 0 ;;
     "reload "*) send reload; exit 0 ;;
     "launcher "*) shift ;;
     *) usage ;;

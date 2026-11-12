@@ -9,7 +9,7 @@ pragma Singleton
 // chat [ACTION]                         fili-chat drawer (FiliChat, Mod+Y): toggle (default), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
 // hotkeys toggle | about toggle         shortcuts window (FiliHotkeys), "About" (FiliAbout)
 // settings [PAGE]                       Settings window (FiliSettings), on the page PAGE (display...)
-// tasks hint | tasks DIGIT              hint mode of the tasks bar (TasksHint): a digit (Mod+Alt+0..9) starts or continues the number of the window to go to
+// taskbar hint | taskbar DIGIT              hint mode of the taskbar (TaskbarHint): a digit (Mod+Alt+0..9) starts or continues the number of the window to go to
 // lang reload                           re-reads the language chosen with fili-lang (FiliI18n)
 // reload
 // Read by bar-stats (apps/bar-stats, the only resident process of the shell), which copies these lines and mixes in its own:

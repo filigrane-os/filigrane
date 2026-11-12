@@ -186,7 +186,7 @@ Singleton {
                     if (opened)
                         niri.windowOpened(w);
                 } else if (ev.WindowLayoutsChanged) {
-                    // Position of a window in its workspace (tasks bar order): the rest of the layout changes at every
+                    // Position of a window in its workspace (taskbar order): the rest of the layout changes at every
                     // move or resize and is not worth a new model, so only a new column / row republishes
                     let m = null;
                     for (const [id, layout] of ev.WindowLayoutsChanged.changes) {

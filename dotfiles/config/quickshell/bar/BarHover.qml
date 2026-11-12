@@ -9,7 +9,7 @@ MouseArea {
     id: area
     property var tip
     property string tipInfo
-    // Edge of the screen of the bar this area belongs to, when it is not the fili-bar's (the tasks bar): where the card opens away from
+    // Edge of the screen of the bar this area belongs to, when it is not the fili-bar's (the taskbar): where the card opens away from
     property string tipEdge: ""
     property string click
     property string rclick

@@ -1,7 +1,7 @@
 pragma Singleton
-// Hint mode of the tasks bar (Mod+Alt+digits): every window has a number, always shown in the bar (TasksNumbers). Holding Mod+Alt
-// and typing a number (niri binds Mod+Alt+0..9 to `fili-shell tasks N`) waits for the whole number; releasing Mod / Alt
-// (or Enter) focuses the window, Esc cancels, Backspace erases the last digit. The tasks bar of the screen that has the
+// Hint mode of the taskbar (Mod+Alt+digits): every window has a number, always shown in the bar (TaskbarNumbers). Holding Mod+Alt
+// and typing a number (niri binds Mod+Alt+0..9 to `fili-shell taskbar N`) waits for the whole number; releasing Mod / Alt
+// (or Enter) focuses the window, Esc cancels, Backspace erases the last digit. The taskbar of the screen that has the
 // focus takes the keyboard to see the release. Without a key for a moment the mode ends by itself (see the timer), so a missed
 // release never keeps the keyboard.
 import QtQuick
@@ -13,20 +13,20 @@ Singleton {
     property bool active: false
     // Digits typed: the number of the window
     property string typed: ""
-    // Display that has the focus: its tasks bar takes the keyboard (the display of the focused window)
+    // Display that has the focus: its taskbar takes the keyboard (the display of the focused window)
     readonly property string output: {
         const wsId = Niri.focused?.workspace_id ?? -1;
         const ws = Niri.workspaces.find(w => w.id === wsId) ?? Niri.workspaces.find(w => w.is_focused);
-        return ws ? ws.output : (TasksLayout.screens[0]?.name ?? "");
+        return ws ? ws.output : (TaskbarLayout.screens[0]?.name ?? "");
     }
 
     function begin() {
-        if (TasksLayout.screens.length === 0)
+        if (TaskbarLayout.screens.length === 0)
             return;
         typed = "";
         active = true;
         FiliTooltip.hide();
-        FiliShell.popupOpened("tasks-hint");
+        FiliShell.popupOpened("taskbar-hint");
         idle.restart();
     }
     function cancel() {
@@ -51,7 +51,7 @@ Singleton {
     }
     // Niri id of the window the digits designate, or null (nothing typed, no such number)
     function resolve(digits) {
-        return digits === "" ? null : TasksNumbers.windowOf(parseInt(digits));
+        return digits === "" ? null : TaskbarNumbers.windowOf(parseInt(digits));
     }
     // Focus the window and leave the mode
     function commit() {

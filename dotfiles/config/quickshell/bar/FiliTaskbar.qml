@@ -1,8 +1,8 @@
-// fili-tasks: the tasks bar, one per screen (bottom edge by default, TasksLayout): every window of the screen, grouped by
+// fili-taskbar: the taskbar, one per screen (bottom edge by default, TaskbarLayout): every window of the screen, grouped by
 // workspace in the order niri lays them out (columns left to right), so that one glance tells what runs where and one click
 // goes there, whatever the workspace. Click: focus the window; middle click: close it. A merged icon (several windows of one
 // application) and a folded workspace open the list of their windows. Hover: fili-tooltip.
-// Like the fili-bar it squeezes itself, per screen, one level at a time while its row does not fit (TasksLayout.groups for
+// Like the fili-bar it squeezes itself, per screen, one level at a time while its row does not fit (TaskbarLayout.groups for
 // the levels), and goes back as soon as there is room again.
 import QtQuick
 import QtQuick.Layouts
@@ -15,45 +15,45 @@ PanelWindow {
     id: win
     required property var modelData
     screen: modelData
-    readonly property string edge: TasksLayout.edge
+    readonly property string edge: TaskbarLayout.edge
     anchors {
         top: edge === "top"
         bottom: edge === "bottom"
         left: true
         right: true
     }
-    implicitHeight: FiliTheme.tasksHeight
+    implicitHeight: FiliTheme.taskbarHeight
     color: FiliTheme.nuit
     visible: !FiliTheme.testing
-    WlrLayershell.namespace: "fili-tasks"
+    WlrLayershell.namespace: "fili-taskbar"
     // Hint mode: the bar of the display that has the focus takes the keyboard until the digits are given
-    readonly property bool hinting: TasksHint.active && TasksHint.output === modelData.name
+    readonly property bool hinting: TaskbarHint.active && TaskbarHint.output === modelData.name
     WlrLayershell.keyboardFocus: hinting ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
     onHintingChanged: if (hinting) keys.forceActiveFocus()
     Item {
         id: keys
-        objectName: "tasks-keys"
+        objectName: "taskbar-keys"
         focus: true
         Keys.onPressed: e => {
-            if (!TasksHint.active)
+            if (!TaskbarHint.active)
                 return;
             if (e.key === Qt.Key_Escape)
-                TasksHint.cancel();
+                TaskbarHint.cancel();
             else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter)
-                TasksHint.commit();
+                TaskbarHint.commit();
             else if (e.key === Qt.Key_Backspace)
-                TasksHint.erase();
+                TaskbarHint.erase();
             else
-                TasksHint.type(e.text);
+                TaskbarHint.type(e.text);
             e.accepted = true;
         }
         // Releasing Mod or Alt (the keys held to start the mode) goes to the window
         Keys.onReleased: e => {
-            if (TasksHint.active && [Qt.Key_Alt, Qt.Key_AltGr, Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R].indexOf(e.key) >= 0) {
-                if (TasksHint.typed === "")
-                    TasksHint.cancel();
+            if (TaskbarHint.active && [Qt.Key_Alt, Qt.Key_AltGr, Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R].indexOf(e.key) >= 0) {
+                if (TaskbarHint.typed === "")
+                    TaskbarHint.cancel();
                 else
-                    TasksHint.commit();
+                    TaskbarHint.commit();
             }
             e.accepted = true;
         }
@@ -64,7 +64,7 @@ PanelWindow {
     property var seen: []
     property bool measure: !FiliTheme.testing
     // Hint mode: one icon per window, no title, nothing merged or folded (the numbers name the windows)
-    readonly property var groups: TasksLayout.groups(modelData.name, Niri.workspaces, Niri.windows, Niri.focusedId, TasksHint.active ? 1 : level)
+    readonly property var groups: TaskbarLayout.groups(modelData.name, Niri.workspaces, Niri.windows, Niri.focusedId, TaskbarHint.active ? 1 : level)
     function fit() {
         if (!measure || width <= 0) {
             if (level !== 0)
@@ -75,7 +75,7 @@ PanelWindow {
         const s = seen.slice();
         s[level] = row;
         seen = s;
-        const next = TasksLayout.nextLevel(level, width - 2 * FiliTheme.space1, row, s);
+        const next = TaskbarLayout.nextLevel(level, width - 2 * FiliTheme.space1, row, s);
         if (next !== level) {
             level = next;
             settle.restart();
@@ -96,7 +96,7 @@ PanelWindow {
     property Item listAnchor: null
     function openList(item, wins) {
         FiliTooltip.hide();
-        FiliShell.popupOpened("tasks");
+        FiliShell.popupOpened("taskbar");
         listAnchor = item;
         listWins = wins;
     }
@@ -110,7 +110,7 @@ PanelWindow {
     property Item menuAnchor: null
     function openMenu(item, ws) {
         FiliTooltip.hide();
-        FiliShell.popupOpened("tasks");
+        FiliShell.popupOpened("taskbar");
         const at = "focus-workspace " + ws.idx;
         const items = [{ text: FiliI18n.tr("Go to the workspace"), cmd: at }];
         if (Niri.focusedId !== null && Niri.focused?.workspace_id !== ws.id)
@@ -127,7 +127,7 @@ PanelWindow {
     Connections {
         target: FiliShell
         function onPopupOpened(who) {
-            if (who !== "tasks")
+            if (who !== "taskbar")
                 win.closeList();
         }
     }
@@ -156,14 +156,14 @@ PanelWindow {
 
     Row {
         id: rowItem
-        objectName: "tasks-row"
+        objectName: "taskbar-row"
         anchors { left: parent.left; leftMargin: FiliTheme.space1; top: parent.top; bottom: parent.bottom }
         spacing: 0
         // Workspaces of the screen (all of them, empty ones too): click goes there, wheel goes to the previous / next,
         // right click opens the menu of the workspace
         Row {
             id: strip
-            objectName: "tasks-strip"
+            objectName: "taskbar-strip"
             height: rowItem.height
             spacing: 0
             Repeater {
@@ -171,9 +171,9 @@ PanelWindow {
                 Item {
                     id: btn
                     required property var modelData
-                    objectName: "tasks-ws-" + modelData.id
+                    objectName: "taskbar-ws-" + modelData.id
                     property alias hover: btnHover
-                    readonly property string label: TasksLayout.label(modelData, Niri.workspaces.some(w => /^[0-9]+$/.test(w.name ?? "")))
+                    readonly property string label: TaskbarLayout.label(modelData, Niri.workspaces.some(w => /^[0-9]+$/.test(w.name ?? "")))
                     height: strip.height
                     width: btnText.implicitWidth + 2 * FiliTheme.pad
                     Rectangle {
@@ -202,7 +202,7 @@ PanelWindow {
                             const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
                             return {
                                 title: btn.label === "\u2022" ? FiliI18n.tr("Unnumbered workspace") : FiliI18n.tr("Workspace %1", btn.label),
-                                rows: wins.length ? wins.map(w => ["#" + TasksNumbers.numberOf(w.id) + " " + TasksLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
+                                rows: wins.length ? wins.map(w => ["#" + TaskbarNumbers.numberOf(w.id) + " " + TaskbarLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
                                 hint: FiliI18n.tr("click: go there · wheel: previous / next") + " · " + FiliI18n.tr("right click: menu")
                             };
                         }
@@ -227,7 +227,7 @@ PanelWindow {
                 id: grp
                 required property var modelData
                 required property int index
-                objectName: "tasks-group-" + modelData.id
+                objectName: "taskbar-group-" + modelData.id
                 height: rowItem.height
                 spacing: 0
                 // A thin separator between two workspaces
@@ -241,7 +241,7 @@ PanelWindow {
                 // Label of the workspace; folded: label and count in one cell that opens the list
                 Item {
                     id: chip
-                    objectName: "tasks-label-" + grp.modelData.id
+                    objectName: "taskbar-label-" + grp.modelData.id
                     property alias hover: chipHover
                     height: grp.height
                     implicitWidth: chipText.implicitWidth + 2 * FiliTheme.pad
@@ -254,9 +254,9 @@ PanelWindow {
                         id: chipText
                         anchors.centerIn: parent
                         text: grp.modelData.folded ? grp.modelData.label + " · " + grp.modelData.count : grp.modelData.label
-                        color: TasksHint.active ? FiliTheme.voile : grp.modelData.urgent ? FiliTheme.sable : grp.modelData.active ? FiliTheme.brume : FiliTheme.ardoise
-                        opacity: grp.modelData.wins.some(w => TasksHint.matches(TasksNumbers.numberOf(w.id))) || TasksHint.typed === "" ? 1 : 0.35
-                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: grp.modelData.active || TasksHint.active ? FiliTheme.weightAccent : Font.Normal }
+                        color: TaskbarHint.active ? FiliTheme.voile : grp.modelData.urgent ? FiliTheme.sable : grp.modelData.active ? FiliTheme.brume : FiliTheme.ardoise
+                        opacity: grp.modelData.wins.some(w => TaskbarHint.matches(TaskbarNumbers.numberOf(w.id))) || TaskbarHint.typed === "" ? 1 : 0.35
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: grp.modelData.active || TaskbarHint.active ? FiliTheme.weightAccent : Font.Normal }
                     }
                     BarHover {
                         id: chipHover
@@ -266,7 +266,7 @@ PanelWindow {
                             const g = grp.modelData;
                             return {
                                 title: g.label === "•" ? FiliI18n.tr("Unnumbered workspace") : FiliI18n.tr("Workspace %1", g.label),
-                                rows: g.wins.length ? g.wins.map(w => ["#" + TasksNumbers.numberOf(w.id) + " " + TasksLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
+                                rows: g.wins.length ? g.wins.map(w => ["#" + TaskbarNumbers.numberOf(w.id) + " " + TaskbarLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
                                 hint: g.folded ? FiliI18n.tr("click: list of the windows · wheel: previous / next") : FiliI18n.tr("click: go there · wheel: previous / next")
                             };
                         }
@@ -291,7 +291,7 @@ PanelWindow {
                         property alias hover: cellHover
                         readonly property bool merged: modelData.wins.length > 1
                         height: grp.height
-                        opacity: cell.modelData.nums.some(n => TasksHint.matches(n)) ? 1 : 0.35
+                        opacity: cell.modelData.nums.some(n => TaskbarHint.matches(n)) ? 1 : 0.35
                         implicitWidth: FiliTheme.pad + 16 + FiliTheme.space1 + numText.implicitWidth + (title.visible ? FiliTheme.space1 + title.width : 0) + FiliTheme.pad
                         width: implicitWidth
                         Rectangle {
@@ -313,7 +313,7 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 16
                             height: 16
-                            readonly property string source: TasksLayout.appIcon(cell.modelData.app_id)
+                            readonly property string source: TaskbarLayout.appIcon(cell.modelData.app_id)
                             IconImage {
                                 anchors.fill: parent
                                 visible: glyph.source !== ""
@@ -328,7 +328,7 @@ PanelWindow {
                                 border { width: FiliTheme.borderWidth; color: FiliTheme.ardoise }
                                 Text {
                                     anchors.centerIn: parent
-                                    text: (TasksLayout.appName(cell.modelData.app_id) || "?").charAt(0).toUpperCase()
+                                    text: (TaskbarLayout.appName(cell.modelData.app_id) || "?").charAt(0).toUpperCase()
                                     color: FiliTheme.brume2
                                     font { family: FiliTheme.font; pixelSize: FiliTheme.sizeLabel; weight: FiliTheme.weightAccent }
                                 }
@@ -347,7 +347,7 @@ PanelWindow {
                         }
                         Text {
                             id: title
-                            visible: cell.modelData.title !== "" && !TasksHint.active
+                            visible: cell.modelData.title !== "" && !TaskbarHint.active
                             x: FiliTheme.pad + 16 + FiliTheme.space1 + numText.implicitWidth + FiliTheme.space1
                             anchors.verticalCenter: parent.verticalCenter
                             width: Math.min(implicitWidth, 180)
@@ -356,7 +356,7 @@ PanelWindow {
                             color: cell.modelData.focused ? FiliTheme.brume : FiliTheme.brume2
                             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }
-                        // Number of the window (TasksNumbers), always shown: the one to type in the hint mode. A merged icon shows the
+                        // Number of the window (TaskbarNumbers), always shown: the one to type in the hint mode. A merged icon shows the
                         // first number and how many windows come with it ("3+2").
                         Text {
                             id: numText
@@ -364,7 +364,7 @@ PanelWindow {
                             x: FiliTheme.pad + 16 + FiliTheme.space1
                             anchors.verticalCenter: parent.verticalCenter
                             text: cell.modelData.nums[0] + (cell.merged ? "+" + (cell.modelData.nums.length - 1) : "")
-                            color: TasksHint.active ? FiliTheme.voile : FiliTheme.ardoise
+                            color: TaskbarHint.active ? FiliTheme.voile : FiliTheme.ardoise
                             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: FiliTheme.weightAccent }
                         }
                         BarHover {
@@ -374,8 +374,8 @@ PanelWindow {
                             tip: {
                                 const e = cell.modelData;
                                 return {
-                                    title: TasksLayout.appName(e.app_id),
-                                    rows: e.wins.map(w => [(w.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + "#" + TasksNumbers.numberOf(w.id), w.title ?? ""]),
+                                    title: TaskbarLayout.appName(e.app_id),
+                                    rows: e.wins.map(w => [(w.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + "#" + TaskbarNumbers.numberOf(w.id), w.title ?? ""]),
                                     hint: cell.merged ? FiliI18n.tr("click: list of the windows") : FiliI18n.tr("click: go there · middle click: close")
                                 };
                             }
@@ -407,7 +407,7 @@ PanelWindow {
 
     PopupWindow {
         id: menu
-        objectName: "tasks-menu"
+        objectName: "taskbar-menu"
         visible: win.menuItems.length > 0 && win.menuAnchor !== null
         anchor.item: win.menuAnchor
         anchor.edges: FiliTheme.popupEdgesFor(win.edge)
@@ -430,7 +430,7 @@ PanelWindow {
                     Rectangle {
                         id: mrow
                         required property var modelData
-                        objectName: "tasks-menu-" + index
+                        objectName: "taskbar-menu-" + index
                         required property int index
                         property alias hover: mHover
                         width: mcol.width
@@ -463,7 +463,7 @@ PanelWindow {
 
     PopupWindow {
         id: list
-        objectName: "tasks-list"
+        objectName: "taskbar-list"
         visible: win.listWins.length > 0 && win.listAnchor !== null
         anchor.item: win.listAnchor
         anchor.edges: FiliTheme.popupEdgesFor(win.edge)
@@ -486,7 +486,7 @@ PanelWindow {
                     Rectangle {
                         id: row
                         required property var modelData
-                        objectName: "tasks-list-" + modelData.id
+                        objectName: "taskbar-list-" + modelData.id
                         property alias hover: rowHover
                         width: col.width
                         height: 28
@@ -498,7 +498,7 @@ PanelWindow {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 16
                             height: 16
-                            readonly property string source: TasksLayout.appIcon(row.modelData.app_id)
+                            readonly property string source: TaskbarLayout.appIcon(row.modelData.app_id)
                             IconImage {
                                 anchors.fill: parent
                                 visible: rowGlyph.source !== ""
@@ -509,7 +509,7 @@ PanelWindow {
                         Text {
                             anchors { left: parent.left; leftMargin: FiliTheme.space2 + 16 + FiliTheme.space2; right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                             elide: Text.ElideRight
-                            text: "#" + TasksNumbers.numberOf(row.modelData.id) + "  " + (row.modelData.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + (row.modelData.title || TasksLayout.appName(row.modelData.app_id))
+                            text: "#" + TaskbarNumbers.numberOf(row.modelData.id) + "  " + (row.modelData.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + (row.modelData.title || TaskbarLayout.appName(row.modelData.app_id))
                             color: row.modelData.id === Niri.focusedId ? FiliTheme.voile : FiliTheme.brume
                             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }

@@ -15,7 +15,7 @@
 # screens = "all"
 
 # The modules. A module is a folder of bar/modules/ (<name>/<Name>Module.qml); its module.toml gives its default side
-# and order. Default rows: the manifests sorted by order, left = logo, appmenu (workspaces is off, see the tasks bar); right = the others.
+# and order. Default rows: the manifests sorted by order, left = logo, appmenu (workspaces is off, see the taskbar); right = the others.
 # An explicit list is the exact order of the row, left to right, and wins over `order`. "..." stands for the default
 # modules of the row that are not listed yet, so a module of yours can join without restating the rest.
 # [modules]
@@ -34,8 +34,8 @@
 # compact_at = 2      # squeeze level (1-4) from which the module shows its compact form (icon alone, clock without the date)
 # drawer_at = 3       # squeeze level from which the module moves into the drawer (0 = never)
 
-# The tasks bar: every window of a screen, grouped by workspace (docs/bar.md, "The tasks bar").
-# [tasks]
-# enabled = true      # false: no tasks bar
-# edge = "bottom"     # "bottom" or "top" (the edge of the fili-bar is never shared: the tasks bar takes the other one)
+# The taskbar: every window of a screen, grouped by workspace (docs/bar.md, "The taskbar").
+# [taskbar]
+# enabled = true      # false: no taskbar
+# edge = "bottom"     # "bottom" or "top" (the edge of the fili-bar is never shared: the taskbar takes the other one)
 # screens = "all"     # "all", or a list of output names

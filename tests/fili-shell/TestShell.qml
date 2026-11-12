@@ -100,11 +100,11 @@ ShellRoot {
         FiliBar {}
     }
     Variants {
-        id: taskBars
+        id: taskbars
         model: [Quickshell.screens[0]]
-        FiliTasks {}
+        FiliTaskbar {}
     }
-    readonly property var tasks: taskBars.instances[0] ?? null
+    readonly property var taskbar: taskbars.instances[0] ?? null
     property var cards: ({})
     // French catalog of the fili-shell (FiliI18n test)
     property var frCatalog: ({})
@@ -667,7 +667,7 @@ ShellRoot {
                 d.enabling = "";
                 FiliSettings.close();
             },
-            // The workspaces module is off by default (the strip of the tasks bar replaces it): the tests of the module turn it on
+            // The workspaces module is off by default (the strip of the taskbar replaces it): the tests of the module turn it on
             () => { BarLayout.parsed = FiliTheme.parseToml('[modules.workspaces]\nenabled = true\n'); },
             wait(() => {}, () => BarLayout.left.indexOf("workspaces") >= 0, 5000),
             // fili-settings workspaces: numbering across the displays (left to right), open workspaces, applications
@@ -776,123 +776,123 @@ ShellRoot {
                 BarLayout.parsed = ({});
                 FiliSettings.close();
             },
-            // fili-tasks: the windows of a screen by workspace, in niri's order, and the squeeze levels
+            // fili-taskbar: the windows of a screen by workspace, in niri's order, and the squeeze levels
             () => {
-                const tb = t.tasks, so = tb.modelData.name, tr = tb.contentItem;
+                const tb = t.taskbar, so = tb.modelData.name, tr = tb.contentItem;
                 const mk = (id, ws, app, col, extra) => Object.assign({ id: id, pid: 0, app_id: app, title: "t" + id, workspace_id: ws, layout: { pos_in_scrolling_layout: col ? [col, 1] : null } }, extra ?? {});
                 Niri.workspaces = [{ id: 71, idx: 1, name: "1", output: so, is_active: true }, { id: 72, idx: 2, name: "2", output: so, is_active: false },
                     { id: 73, idx: 3, output: so, is_active: false }, { id: 74, idx: 1, name: "9", output: "Z-9", is_active: true }];
                 Niri.setWindows({ 1: mk(1, 71, "foot", 2), 2: mk(2, 71, "firefox", 1), 3: mk(3, 71, "foot", 3), 4: mk(4, 72, "foot", 1), 5: mk(5, 74, "foot", 1), 6: mk(6, 71, "float", 0) });
                 Niri.focusedId = 1;
-                const g0 = TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 0);
-                ok(g0.map(g => g.label).join() === "1,2", "tasks: workspaces of the screen with a window (or active), the empty unnamed one and other screens left out", g0.map(g => g.label).join());
-                ok(g0[0].entries.map(e => e.key).join() === "w2,w1,w3,w6", "tasks: windows in niri's order (columns left to right, floating last)", g0[0].entries.map(e => e.key).join());
-                ok(g0[0].entries.every(e => e.title !== ""), "tasks: level 0 shows every title");
-                const g1 = TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 1);
-                ok(g1[0].entries.filter(e => e.title !== "").map(e => e.key).join() === "w1", "tasks: level 1 keeps the title of the focused window only", JSON.stringify(g1[0].entries.map(e => e.title)));
-                const g2 = TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 2);
-                ok(g2[0].entries.map(e => e.key + ":" + e.wins.length).join() === "a71/firefox:1,a71/foot:2,a71/float:1", "tasks: level 2 merges the windows of one application", g2[0].entries.map(e => e.key + ":" + e.wins.length).join());
-                const g3 = TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3);
-                ok(!g3[0].folded && g3[1].folded && g3[1].count === 1, "tasks: level 3 folds the workspaces that are not shown", JSON.stringify(g3.map(g => g.folded)));
-                ok(TasksLayout.nextLevel(0, 100, 150, []) === 1 && TasksLayout.nextLevel(3, 100, 150, []) === 3 && TasksLayout.nextLevel(1, 300, 150, [100]) === 0 && TasksLayout.nextLevel(1, 120, 150, [100]) === 2 && TasksLayout.nextLevel(1, 200, 150, [190]) === 1,
-                    "tasks: squeeze goes up while the row does not fit, back down when the level below fits, stops at the last level");
-                ok(TasksLayout.edge === "bottom" && FiliTheme.tasksEdge === "bottom" && FiliTheme.barMargin("bottom") === FiliTheme.tasksHeight && FiliTheme.barMargin("top") === FiliTheme.barThickness,
-                    "tasks: bottom edge, its height added to the margin of the full-screen windows", TasksLayout.edge + " " + FiliTheme.barMargin("bottom"));
+                const g0 = TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 0);
+                ok(g0.map(g => g.label).join() === "1,2", "taskbar: workspaces of the screen with a window (or active), the empty unnamed one and other screens left out", g0.map(g => g.label).join());
+                ok(g0[0].entries.map(e => e.key).join() === "w2,w1,w3,w6", "taskbar: windows in niri's order (columns left to right, floating last)", g0[0].entries.map(e => e.key).join());
+                ok(g0[0].entries.every(e => e.title !== ""), "taskbar: level 0 shows every title");
+                const g1 = TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 1);
+                ok(g1[0].entries.filter(e => e.title !== "").map(e => e.key).join() === "w1", "taskbar: level 1 keeps the title of the focused window only", JSON.stringify(g1[0].entries.map(e => e.title)));
+                const g2 = TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 2);
+                ok(g2[0].entries.map(e => e.key + ":" + e.wins.length).join() === "a71/firefox:1,a71/foot:2,a71/float:1", "taskbar: level 2 merges the windows of one application", g2[0].entries.map(e => e.key + ":" + e.wins.length).join());
+                const g3 = TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3);
+                ok(!g3[0].folded && g3[1].folded && g3[1].count === 1, "taskbar: level 3 folds the workspaces that are not shown", JSON.stringify(g3.map(g => g.folded)));
+                ok(TaskbarLayout.nextLevel(0, 100, 150, []) === 1 && TaskbarLayout.nextLevel(3, 100, 150, []) === 3 && TaskbarLayout.nextLevel(1, 300, 150, [100]) === 0 && TaskbarLayout.nextLevel(1, 120, 150, [100]) === 2 && TaskbarLayout.nextLevel(1, 200, 150, [190]) === 1,
+                    "taskbar: squeeze goes up while the row does not fit, back down when the level below fits, stops at the last level");
+                ok(TaskbarLayout.edge === "bottom" && FiliTheme.taskbarEdge === "bottom" && FiliTheme.barMargin("bottom") === FiliTheme.taskbarHeight && FiliTheme.barMargin("top") === FiliTheme.barThickness,
+                    "taskbar: bottom edge, its height added to the margin of the full-screen windows", TaskbarLayout.edge + " " + FiliTheme.barMargin("bottom"));
                 // The bar itself
                 tb.level = 0;
-                ok(t.find(tr, "task-w1") !== null && t.find(tr, "task-w5") === null, "tasks bar: one cell per window of its screen");
+                ok(t.find(tr, "task-w1") !== null && t.find(tr, "task-w5") === null, "taskbar: one cell per window of its screen");
                 FiliTheme.ran = [];
                 t.find(tr, "task-w2").hover.press(Qt.LeftButton);
-                ok(FiliTheme.ran[0] === "niri msg action focus-window --id 2", "tasks bar: click -> focus the window, whatever the workspace", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === "niri msg action focus-window --id 2", "taskbar: click -> focus the window, whatever the workspace", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
                 t.find(tr, "task-w2").hover.press(Qt.MiddleButton);
-                ok(FiliTheme.ran[0] === "niri msg action close-window --id 2", "tasks bar: middle click -> close the window", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === "niri msg action close-window --id 2", "taskbar: middle click -> close the window", JSON.stringify(FiliTheme.ran));
                 tb.level = 2;
                 const merged = t.find(tr, "task-a71/foot");
-                ok(merged !== null && t.find(tr, "task-w1") === null, "tasks bar: level 2 -> one icon for the windows of an application");
+                ok(merged !== null && t.find(tr, "task-w1") === null, "taskbar: level 2 -> one icon for the windows of an application");
                 FiliTheme.ran = [];
                 merged.hover.press(Qt.LeftButton);
-                ok(tb.listWins.map(w => w.id).join() === "1,3" && FiliTheme.ran.length === 0, "tasks bar: click on a merged icon opens the list of its windows", JSON.stringify(tb.listWins.map(w => w.id)));
+                ok(tb.listWins.map(w => w.id).join() === "1,3" && FiliTheme.ran.length === 0, "taskbar: click on a merged icon opens the list of its windows", JSON.stringify(tb.listWins.map(w => w.id)));
                 tb.focusWindow(3);
-                ok(tb.listWins.length === 0 && FiliTheme.ran[0] === "niri msg action focus-window --id 3", "tasks bar: a choice in the list focuses the window and closes it", JSON.stringify(FiliTheme.ran));
+                ok(tb.listWins.length === 0 && FiliTheme.ran[0] === "niri msg action focus-window --id 3", "taskbar: a choice in the list focuses the window and closes it", JSON.stringify(FiliTheme.ran));
                 tb.level = 3;
-                ok(t.find(tr, "task-w4") === null && t.find(tr, "tasks-label-72").hover !== undefined, "tasks bar: level 3 -> the folded workspace has no icons");
-                tb.openList(t.find(tr, "tasks-label-72"), TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3)[1].wins);
+                ok(t.find(tr, "task-w4") === null && t.find(tr, "taskbar-label-72").hover !== undefined, "taskbar: level 3 -> the folded workspace has no icons");
+                tb.openList(t.find(tr, "taskbar-label-72"), TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3)[1].wins);
                 Niri.focusedId = 4;
-                ok(tb.listWins.length === 0, "tasks bar: the list closes when the focus changes");
+                ok(tb.listWins.length === 0, "taskbar: the list closes when the focus changes");
                 // Strip of the workspaces: every workspace of the screen (empty ones too), click goes there, right click opens the menu
                 Niri.focusedId = 1;
-                ok(t.find(tr, "tasks-ws-71") !== null && t.find(tr, "tasks-ws-73") !== null && t.find(tr, "tasks-ws-74") === null,
-                    "tasks strip: a button per workspace of the screen, the empty one too, none for another screen");
+                ok(t.find(tr, "taskbar-ws-71") !== null && t.find(tr, "taskbar-ws-73") !== null && t.find(tr, "taskbar-ws-74") === null,
+                    "taskbar strip: a button per workspace of the screen, the empty one too, none for another screen");
                 FiliTheme.ran = [];
-                tb.openMenu(t.find(tr, "tasks-ws-72"), Niri.workspaces.find(w => w.id === 72));
+                tb.openMenu(t.find(tr, "taskbar-ws-72"), Niri.workspaces.find(w => w.id === 72));
                 const mt = tb.menuItems.map(i => i.text);
                 ok(mt[0] === "Go to the workspace" && mt.indexOf("Move the focused window here") === 1 && mt.indexOf("Move up") > 1 && mt.indexOf("Move down") > 1,
-                    "tasks menu: go there, move the focused window here, move up, move down", mt.join("|"));
+                    "taskbar menu: go there, move the focused window here, move up, move down", mt.join("|"));
                 ok(tb.menuItems[1].cmd === "move-window-to-workspace --window-id 1 2" && tb.menuItems.find(i => i.text === "Move up").cmd === "focus-workspace 2 && niri msg action move-workspace-up",
-                    "tasks menu: the commands name the workspace (focus first for the ones that act on the focused workspace)", JSON.stringify(tb.menuItems.map(i => i.cmd)));
-                tb.openMenu(t.find(tr, "tasks-ws-71"), Niri.workspaces.find(w => w.id === 71));
-                ok(tb.menuItems.every(i => i.text !== "Move the focused window here"), "tasks menu: no move of the focused window to the workspace it is already in");
+                    "taskbar menu: the commands name the workspace (focus first for the ones that act on the focused workspace)", JSON.stringify(tb.menuItems.map(i => i.cmd)));
+                tb.openMenu(t.find(tr, "taskbar-ws-71"), Niri.workspaces.find(w => w.id === 71));
+                ok(tb.menuItems.every(i => i.text !== "Move the focused window here"), "taskbar menu: no move of the focused window to the workspace it is already in");
                 tb.closeList();
-                ok(tb.menuItems.length === 0, "tasks menu: closes with the list");
+                ok(tb.menuItems.length === 0, "taskbar menu: closes with the list");
                 tb.level = 0;
                 Niri.setWindows({});
                 Niri.workspaces = [];
                 Niri.focusedId = null;
             },
-            // fili-tasks numbers and hint mode: a stable number per window, shown in the bar; type it holding Mod+Alt, release to go there
+            // fili-taskbar numbers and hint mode: a stable number per window, shown in the bar; type it holding Mod+Alt, release to go there
             () => {
-                const tb = t.tasks, so = tb.modelData.name, tr = tb.contentItem;
+                const tb = t.taskbar, so = tb.modelData.name, tr = tb.contentItem;
                 const mk = (id, ws, app, col) => ({ id: id, pid: 0, app_id: app, title: "t" + id, workspace_id: ws, layout: { pos_in_scrolling_layout: [col, 1] } });
                 Niri.workspaces = [{ id: 71, idx: 1, name: "1", output: so, is_active: true }, { id: 72, idx: 2, name: "2", output: so, is_active: false }];
                 Niri.setWindows({ 11: mk(11, 71, "foot", 2), 12: mk(12, 71, "firefox", 1), 13: mk(13, 71, "foot", 3), 14: mk(14, 72, "foot", 1) });
                 Niri.focusedId = 11;
-                ok(TasksNumbers.numberOf(11) === 1 && TasksNumbers.numberOf(12) === 2 && TasksNumbers.numberOf(14) === 4, "tasks numbers: the lowest free number, across the workspaces", JSON.stringify(TasksNumbers.map));
+                ok(TaskbarNumbers.numberOf(11) === 1 && TaskbarNumbers.numberOf(12) === 2 && TaskbarNumbers.numberOf(14) === 4, "taskbar numbers: the lowest free number, across the workspaces", JSON.stringify(TaskbarNumbers.map));
                 Niri.setWindows({ 11: mk(11, 71, "foot", 2), 13: mk(13, 71, "foot", 3), 14: mk(14, 72, "foot", 1) });
-                ok(TasksNumbers.numberOf(13) === 3 && TasksNumbers.numberOf(14) === 4 && TasksNumbers.windowOf(2) === null, "tasks numbers: a window keeps its number when another closes", JSON.stringify(TasksNumbers.map));
+                ok(TaskbarNumbers.numberOf(13) === 3 && TaskbarNumbers.numberOf(14) === 4 && TaskbarNumbers.windowOf(2) === null, "taskbar numbers: a window keeps its number when another closes", JSON.stringify(TaskbarNumbers.map));
                 Niri.setWindows({ 11: mk(11, 71, "foot", 2), 13: mk(13, 71, "foot", 3), 14: mk(14, 72, "foot", 1), 15: mk(15, 72, "foot", 2) });
-                ok(TasksNumbers.numberOf(15) === 2 && TasksNumbers.windowOf(2) === 15, "tasks numbers: a new window takes the freed number", JSON.stringify(TasksNumbers.map));
+                ok(TaskbarNumbers.numberOf(15) === 2 && TaskbarNumbers.windowOf(2) === 15, "taskbar numbers: a new window takes the freed number", JSON.stringify(TaskbarNumbers.map));
                 tb.level = 0;
-                ok(t.find(tr, "task-num-w13").text === "3" && t.find(tr, "task-num-w15").text === "2", "tasks bar: the number of every window is always shown", t.find(tr, "task-num-w13").text);
+                ok(t.find(tr, "task-num-w13").text === "3" && t.find(tr, "task-num-w15").text === "2", "taskbar: the number of every window is always shown", t.find(tr, "task-num-w13").text);
                 tb.level = 2;
-                ok(t.find(tr, "task-num-a71/foot").text === "1+1", "tasks bar: a merged icon shows the first number and the others", t.find(tr, "task-num-a71/foot").text);
+                ok(t.find(tr, "task-num-a71/foot").text === "1+1", "taskbar: a merged icon shows the first number and the others", t.find(tr, "task-num-a71/foot").text);
                 tb.level = 3;
-                TasksHint.begin();
-                ok(TasksHint.active && TasksHint.output === so, "tasks hint: the mode starts on the display that has the focus", TasksHint.output);
-                ok(tb.groups.every(g => !g.folded) && tb.groups[0].entries.every(e => e.wins.length === 1), "tasks hint: one icon per window, nothing merged or folded even on a squeezed bar");
+                TaskbarHint.begin();
+                ok(TaskbarHint.active && TaskbarHint.output === so, "taskbar hint: the mode starts on the display that has the focus", TaskbarHint.output);
+                ok(tb.groups.every(g => !g.folded) && tb.groups[0].entries.every(e => e.wins.length === 1), "taskbar hint: one icon per window, nothing merged or folded even on a squeezed bar");
                 FiliTheme.ran = [];
-                TasksHint.type("x");
-                TasksHint.type("1");
-                ok(TasksHint.typed === "1" && TasksHint.matches(1) && !TasksHint.matches(3), "tasks hint: digits only, the other numbers are dimmed", TasksHint.typed);
-                TasksHint.commit();
-                ok(!TasksHint.active && FiliTheme.ran[0] === "niri msg action focus-window --id 11", "tasks hint: the number goes to its window, mode left", JSON.stringify(FiliTheme.ran));
+                TaskbarHint.type("x");
+                TaskbarHint.type("1");
+                ok(TaskbarHint.typed === "1" && TaskbarHint.matches(1) && !TaskbarHint.matches(3), "taskbar hint: digits only, the other numbers are dimmed", TaskbarHint.typed);
+                TaskbarHint.commit();
+                ok(!TaskbarHint.active && FiliTheme.ran[0] === "niri msg action focus-window --id 11", "taskbar hint: the number goes to its window, mode left", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
-                TasksHint.type("4");
-                ok(TasksHint.active && TasksHint.typed === "4", "tasks hint: a digit starts the mode (Mod+Alt+digit)");
-                TasksHint.commit();
-                ok(FiliTheme.ran[0] === "niri msg action focus-window --id 14", "tasks hint: another number, another workspace", JSON.stringify(FiliTheme.ran));
+                TaskbarHint.type("4");
+                ok(TaskbarHint.active && TaskbarHint.typed === "4", "taskbar hint: a digit starts the mode (Mod+Alt+digit)");
+                TaskbarHint.commit();
+                ok(FiliTheme.ran[0] === "niri msg action focus-window --id 14", "taskbar hint: another number, another workspace", JSON.stringify(FiliTheme.ran));
                 // A number of several digits: the whole number is waited for (a window numbered 12)
                 const many = {};
                 for (let i = 20; i < 32; i++)
                     many[i] = mk(i, 71, "foot", i);
                 Niri.setWindows(many);
                 FiliTheme.ran = [];
-                TasksHint.type("1");
-                TasksHint.type("2");
-                TasksHint.commit();
-                ok(FiliTheme.ran[0] === "niri msg action focus-window --id " + TasksNumbers.windowOf(12), "tasks hint: two digits make one number", JSON.stringify(FiliTheme.ran));
+                TaskbarHint.type("1");
+                TaskbarHint.type("2");
+                TaskbarHint.commit();
+                ok(FiliTheme.ran[0] === "niri msg action focus-window --id " + TaskbarNumbers.windowOf(12), "taskbar hint: two digits make one number", JSON.stringify(FiliTheme.ran));
                 FiliTheme.ran = [];
-                TasksHint.type("9");
-                TasksHint.type("9");
-                TasksHint.commit();
-                ok(!TasksHint.active && FiliTheme.ran.length === 0, "tasks hint: a number nobody has does nothing", JSON.stringify(FiliTheme.ran));
-                TasksHint.begin();
-                TasksHint.type("1");
-                TasksHint.type("3");
-                TasksHint.erase();
-                ok(TasksHint.typed === "1", "tasks hint: backspace erases the last digit");
-                TasksHint.cancel();
-                ok(!TasksHint.active && TasksHint.typed === "" && TasksHint.resolve("") === null, "tasks hint: Esc cancels");
+                TaskbarHint.type("9");
+                TaskbarHint.type("9");
+                TaskbarHint.commit();
+                ok(!TaskbarHint.active && FiliTheme.ran.length === 0, "taskbar hint: a number nobody has does nothing", JSON.stringify(FiliTheme.ran));
+                TaskbarHint.begin();
+                TaskbarHint.type("1");
+                TaskbarHint.type("3");
+                TaskbarHint.erase();
+                ok(TaskbarHint.typed === "1", "taskbar hint: backspace erases the last digit");
+                TaskbarHint.cancel();
+                ok(!TaskbarHint.active && TaskbarHint.typed === "" && TaskbarHint.resolve("") === null, "taskbar hint: Esc cancels");
                 tb.level = 0;
                 Niri.setWindows({});
                 Niri.workspaces = [];

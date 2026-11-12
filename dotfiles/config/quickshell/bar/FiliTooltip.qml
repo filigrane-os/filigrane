@@ -13,7 +13,7 @@ Singleton {
     id: tip
     property Item target: null
     property var card: ({})
-    // Edge of the screen of the bar the card belongs to ("" = the fili-bar's; the tasks bar passes its own)
+    // Edge of the screen of the bar the card belongs to ("" = the fili-bar's; the taskbar passes its own)
     property string edge: ""
     readonly property string at: edge || FiliTheme.barEdge
     // Grace period after a fili-panel closes (ms), during which no card opens

@@ -6,7 +6,7 @@ Idle, a module shows little or nothing: indicators such as alerts, the timer or 
 
 ## Default layout
 
-Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the tasks bar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
+Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the taskbar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
 
 | Module | Shows | Click |
 |---|---|---|
@@ -53,9 +53,9 @@ The `status` module is a single icon for the indicators (recording, SSH, airplan
 
 `appmenu` is the global menu: the name of the active application in bold, then its menus, like the classic Mac OS X menu bar. It reads the application's menu bar through AT-SPI (GTK, Qt) or, for applications that export none, a hand-written fallback in `dotfiles/config/filigrane/appmenu/<app_id>.json` (personal ones in `users/<login>/dotfiles/config/filigrane/appmenu/`). Menus that do not fit move into a `…` title. `Mod+F10` gives the menu the keyboard focus.
 
-## The tasks bar
+## The taskbar (Quai)
 
-A second bar, **fili-tasks**, runs along the bottom of every screen (`bar/FiliTasks.qml`, logic in `bar/TasksLayout.qml`). It lists **every window of that screen grouped by workspace**, in the order niri lays them out (columns left to right), so that one glance tells what runs where, including the windows scrolled out of view.
+A second bar, **fili-taskbar** (shown as **Quai** to the user), runs along the bottom of every screen (`bar/FiliTaskbar.qml`, logic in `bar/TaskbarLayout.qml`). It lists **every window of that screen grouped by workspace**, in the order niri lays them out (columns left to right), so that one glance tells what runs where, including the windows scrolled out of view.
 
 | Action | Result |
 |---|---|
@@ -67,20 +67,20 @@ A second bar, **fili-tasks**, runs along the bottom of every screen (`bar/FiliTa
 
 **Numbers.** Every window has a number, shown on its icon at all times: the lowest free number (1, 2, 3...) when it opens, the same on every screen, kept while the window lives and given back when it closes. They are saved in `~/.local/state/filigrane/window-numbers.json`, so reloading the shell does not renumber. A merged icon shows `3+2` (its first number and how many more); the hover and the list show them all.
 
-To go to a window by its number, hold **Mod+Alt**, type the whole number (one or more digits) and release: the focus goes to the window. Esc cancels, Backspace erases a digit, Enter validates at once. niri cannot bind Mod+Alt alone, so the digits are bound (`fili-shell tasks N`): the keypad (`Mod+Alt+KP_0..9`, with or without NumLock) in the distribution, and the number row of layouts that type symbols (bépo) in the layer of the user, e.g. `Mod+Alt+quotedbl` for the 1. The bar of the focused screen takes the keyboard to see the release; if a key is missed, the mode validates by itself 1.2 s after the last digit.
+To go to a window by its number, hold **Mod+Alt**, type the whole number (one or more digits) and release: the focus goes to the window. Esc cancels, Backspace erases a digit, Enter validates at once. niri cannot bind Mod+Alt alone, so the digits are bound (`fili-shell taskbar N`): the keypad (`Mod+Alt+KP_0..9`, with or without NumLock) in the distribution, and the number row of layouts that type symbols (bépo) in the layer of the user, e.g. `Mod+Alt+quotedbl` for the 1. The bar of the focused screen takes the keyboard to see the release; if a key is missed, the mode validates by itself 1.2 s after the last digit.
 
 Like the fili-bar it squeezes itself per screen, one level at a time while its row does not fit: 0 icon and title of every window; 1 the title of the focused window only; 2 the windows of one application in a workspace merge into one icon with a count; 3 the workspaces that are not shown on their screen fold into a label and a count.
 
 Settings, all optional, in `fili-bar.toml`:
 
 ```toml
-[tasks]
-enabled = true     # false: no tasks bar
-edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the tasks bar takes the other one
+[taskbar]
+enabled = true     # false: no taskbar
+edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the taskbar takes the other one
 screens = "all"    # "all" or a list of output names, like [bar] screens
 ```
 
-Its height is `tasks_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
+Its height is `taskbar_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
 
 ## Choosing and ordering modules
 

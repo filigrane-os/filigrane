@@ -1,5 +1,5 @@
 pragma Singleton
-// Number of every window, shown in the tasks bar and typed in its hint mode (TasksHint): a window gets the lowest free
+// Number of every window, shown in the taskbar and typed in its hint mode (TaskbarHint): a window gets the lowest free
 // number (1, 2, 3...) when it opens, across all the screens, keeps it as long as it lives, and gives it back when it
 // closes (so the numbers stay small and a number can be learned). The numbers are kept in
 // ~/.local/state/filigrane/window-numbers.json, so that a reload of the shell does not renumber the windows.

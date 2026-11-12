@@ -527,41 +527,41 @@ binds {
     XF86KbdBrightnessUp   allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "+10%"; }
     XF86KbdBrightnessDown allow-when-locked=true { spawn "brightnessctl" "-d" "*kbd_backlight" "set" "10%-"; }
     Mod+Tab hotkey-overlay-title="Windows: go to" { spawn-sh "$HOME/.local/bin/menu windows"; }
-    // Tasks bar: every window has a number (shown in the bar). Hold Mod+Alt, type the number, release to go there
-    // (fili-shell tasks N: a digit starts or continues the number; TasksHint reads the release)
-    Mod+Alt+1 hotkey-overlay-title="Windows: go to by number (hold Mod+Alt, type it)" { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 1"; }
-    Mod+Alt+2 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 2"; }
-    Mod+Alt+3 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 3"; }
-    Mod+Alt+4 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 4"; }
-    Mod+Alt+5 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 5"; }
-    Mod+Alt+6 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 6"; }
-    Mod+Alt+7 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 7"; }
-    Mod+Alt+8 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 8"; }
-    Mod+Alt+9 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 9"; }
-    Mod+Alt+0 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 0"; }
+    // Taskbar (Quai): every window has a number (shown in the bar). Hold Mod+Alt, type the number, release to go there
+    // (fili-shell taskbar N: a digit starts or continues the number; TaskbarHint reads the release)
+    Mod+Alt+1 hotkey-overlay-title="Windows: go to by number (hold Mod+Alt, type it)" { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 1"; }
+    Mod+Alt+2 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 2"; }
+    Mod+Alt+3 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 3"; }
+    Mod+Alt+4 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 4"; }
+    Mod+Alt+5 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 5"; }
+    Mod+Alt+6 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 6"; }
+    Mod+Alt+7 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 7"; }
+    Mod+Alt+8 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 8"; }
+    Mod+Alt+9 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 9"; }
+    Mod+Alt+0 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 0"; }
     // The same on the numeric keypad (any layout, NumLock on); other layouts whose number row types symbols (bépo) bind
     // Mod+Alt+<symbol> in their layer
-    Mod+Alt+KP_0 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 0"; }
-    Mod+Alt+KP_1 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 1"; }
-    Mod+Alt+KP_2 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 2"; }
-    Mod+Alt+KP_3 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 3"; }
-    Mod+Alt+KP_4 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 4"; }
-    Mod+Alt+KP_5 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 5"; }
-    Mod+Alt+KP_6 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 6"; }
-    Mod+Alt+KP_7 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 7"; }
-    Mod+Alt+KP_8 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 8"; }
-    Mod+Alt+KP_9 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 9"; }
+    Mod+Alt+KP_0 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 0"; }
+    Mod+Alt+KP_1 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 1"; }
+    Mod+Alt+KP_2 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 2"; }
+    Mod+Alt+KP_3 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 3"; }
+    Mod+Alt+KP_4 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 4"; }
+    Mod+Alt+KP_5 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 5"; }
+    Mod+Alt+KP_6 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 6"; }
+    Mod+Alt+KP_7 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 7"; }
+    Mod+Alt+KP_8 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 8"; }
+    Mod+Alt+KP_9 hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 9"; }
     // Keypad with NumLock off (the keys then send KP_End, KP_Down...)
-    Mod+Alt+KP_End hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 1"; }
-    Mod+Alt+KP_Down hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 2"; }
-    Mod+Alt+KP_Next hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 3"; }
-    Mod+Alt+KP_Left hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 4"; }
-    Mod+Alt+KP_Begin hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 5"; }
-    Mod+Alt+KP_Right hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 6"; }
-    Mod+Alt+KP_Home hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 7"; }
-    Mod+Alt+KP_Up hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 8"; }
-    Mod+Alt+KP_Prior hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 9"; }
-    Mod+Alt+KP_Insert hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell tasks 0"; }
+    Mod+Alt+KP_End hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 1"; }
+    Mod+Alt+KP_Down hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 2"; }
+    Mod+Alt+KP_Next hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 3"; }
+    Mod+Alt+KP_Left hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 4"; }
+    Mod+Alt+KP_Begin hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 5"; }
+    Mod+Alt+KP_Right hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 6"; }
+    Mod+Alt+KP_Home hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 7"; }
+    Mod+Alt+KP_Up hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 8"; }
+    Mod+Alt+KP_Prior hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 9"; }
+    Mod+Alt+KP_Insert hotkey-overlay-title=null { spawn "sh" "-c" "exec $HOME/.local/bin/fili-shell taskbar 0"; }
     Mod+B hotkey-overlay-title="Notifications: on/off" { spawn-sh "$HOME/.local/bin/fili-shell notification dnd toggle"; }
     Mod+Shift+B hotkey-overlay-title="Notifications: close all" { spawn-sh "$HOME/.local/bin/fili-shell notification dismiss-all"; }
     Mod+Shift+Space hotkey-overlay-title="Shortcuts help" { spawn-sh "$HOME/.local/bin/menu keys"; }
