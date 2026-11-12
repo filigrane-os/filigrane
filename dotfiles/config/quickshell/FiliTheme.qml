@@ -41,7 +41,10 @@ Singleton {
         watchChanges: true
         printErrors: false
         onFileChanged: reload()
-        onLoaded: theme.parsed = theme.parseToml(text())
+        onLoaded: {
+            theme.parsed = theme.parseToml(text());
+            theme.parsedLoaded = true;
+        }
         onLoadFailed: theme.parsed = ({})
     }
     function stripComment(line) {
@@ -137,6 +140,9 @@ Singleton {
     }
 
     readonly property string font: ov("font", "Jost")
+    // Third-party applications (GTK, Chrome, fontconfig) follow: fili-theme regenerates their settings
+    onFontChanged: if (!testing && parsedLoaded) Quickshell.execDetached(["fili-theme", "font"])
+    property bool parsedLoaded: false
     readonly property string mono: ov("mono", "JetBrains Mono")
     // Type scale (tokens.md): system 14, view (lists) 13, small (secondary, tooltips, subheadings) 12,
     // label 11; title ≥ 18 (the only step where Light is allowed); accent = Jost SemiBold 600

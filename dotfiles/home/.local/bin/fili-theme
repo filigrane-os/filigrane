@@ -40,7 +40,8 @@ case "${1:-get}" in
     toggle) [ "$cur" = light ] && mode=dark || mode=light ;;
     dark | light) mode=$1 ;;
     apply) mode=$cur ;;
-    *) echo "usage: fili-theme [get|dark|light|toggle|apply|accent [nom]]" >&2; exit 2 ;;
+    font) mode=$cur changed=font ;;
+    *) echo "usage: fili-theme [get|dark|light|toggle|apply|font|accent [name]]" >&2; exit 2 ;;
 esac
 
 mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/gtk-4.0" "$cfg/foot" "$cfg/niri"
@@ -105,6 +106,35 @@ layout {
 }
 EOF
 fi
+
+# Font: [theme] font of ~/.config/filigrane/theme.toml (default Jost, like FiliTheme.qml); an invalid name falls back to Jost
+font=$(awk -F= '/^\[/ { sec = ($0 ~ /^\[theme\][ \t]*(#.*)?$/) } sec && $1 ~ /^[ \t]*font[ \t]*$/ { v = $2; sub(/[ \t]*#.*$/, "", v); gsub(/^[ \t"]+|[ \t"]+$/, "", v); print v; exit }' "$cfg/filigrane/theme.toml" 2>/dev/null)
+case "$font" in "" | *[!A-Za-z0-9\ ._-]*) font=Jost ;; esac
+# GTK settings and the fontconfig aliases are generated (rm first: a write through a repository link would change the repository)
+for v in 3 4; do
+    rm -f "$cfg/gtk-$v.0/settings.ini"
+    printf '# %s\n[Settings]\ngtk-font-name=%s 10\n' "${gen#// }" "$font" > "$cfg/gtk-$v.0/settings.ini"
+done
+mkdir -p "$cfg/fontconfig/conf.d"
+rm -f "$cfg/fontconfig/conf.d/62-fili-font.conf"
+cat > "$cfg/fontconfig/conf.d/62-fili-font.conf" <<EOF
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd">
+<!-- ${gen#// }: the interface font is the sans-serif and system-ui font of third-party applications -->
+<fontconfig>
+  <match target="pattern">
+    <test name="family" qual="any"><string>sans-serif</string></test>
+    <edit name="family" mode="prepend" binding="strong"><string>$font</string></edit>
+  </match>
+  <match target="pattern">
+    <test name="family" qual="any"><string>system-ui</string></test>
+    <edit name="family" mode="prepend" binding="strong"><string>$font</string></edit>
+  </match>
+</fontconfig>
+EOF
+gsettings set org.gnome.desktop.interface font-name "$font 10" 2>/dev/null
+# "fili-theme font" resyncs only the font (run by the fili-shell when it changes)
+[ "$changed" = font ] && exit 0
 
 # Without a D-Bus session (installation), only the files are written
 gsettings set org.gnome.desktop.interface color-scheme "$scheme" 2>/dev/null
