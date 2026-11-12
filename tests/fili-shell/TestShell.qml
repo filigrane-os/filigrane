@@ -909,6 +909,17 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings wallpaper: a click on an image runs `wallpaper IMAGE`
+            () => {
+                FiliSettings.show("wallpaper");
+                const d = FiliSettings.loaded;
+                d.images = ["/w/a.png", "/w/it's.jpg"];
+                ok(t.find(d, "wallpapers") !== null, "fili-settings wallpaper: grid", "");
+                FiliTheme.ran = [];
+                d.pick("/w/it's.jpg");
+                ok(FiliTheme.ran[0] === "'" + FiliTheme.bin + "/wallpaper' '/w/it'\\''s.jpg'" && d.current === "/w/it's.jpg", "fili-settings wallpaper: runs wallpaper", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings Casier: the resident mode switch runs fili-file spare on / off
             () => {
                 FiliSettings.show("files");

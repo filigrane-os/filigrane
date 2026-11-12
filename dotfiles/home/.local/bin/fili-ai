@@ -237,6 +237,13 @@ status() {
     done
 }
 
+# Aéroport (fili-term), or foot while it is not installed
+term() {
+    t="$(command -v fili-term || echo "$HOME/.local/bin/fili-term")"
+    [ -x "$t" ] || t=foot
+    exec "$t" -e "$@"
+}
+
 case "${1:-}" in
     use)
         a="${2:-$(choose)}"
@@ -248,7 +255,7 @@ case "${1:-}" in
             "$HOME/.local/bin/fili-shell" launcher --prompt "$(t 'AI agent') › " --lines 5 --width 50 --with-nth 2 --accept-nth 1)" || exit 0
         [ -n "$a" ] || exit 0
         # shellcheck disable=SC2016
-        exec foot -e bash -c '"$0" use "$1" && { [ "$1" = none ] || exec "$0"; }; read -r -p "$2" _' "$0" "$a" "$(t 'Press Enter to close ')" ;;
+        term bash -c '"$0" use "$1" && { [ "$1" = none ] || exec "$0"; }; read -r -p "$2" _' "$0" "$a" "$(t 'Press Enter to close ')" ;;
     install) [ -n "${2:-}" ] || die 'usage: fili-ai install <agent>'; install_agent "$2" update ;;
     update)
         command -v claude >/dev/null && install_agent claude update
@@ -260,7 +267,7 @@ case "${1:-}" in
     key)
         mkdir -p "$STATE"
         "$HOME/.local/bin/fili-context" >"$STATE/context.json" 2>/dev/null || : >"$STATE/context.json"
-        exec foot -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
+        term bash -lc 'exec ~/.local/bin/fili-ai' ;;
     -h|--help|help) sed -n '2,/^set -e/{/^set -e/!p}' "$0" ;;
     *) launch "$@" ;;
 esac

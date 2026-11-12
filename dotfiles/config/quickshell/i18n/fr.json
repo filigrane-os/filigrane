@@ -443,5 +443,9 @@
  "POWER SOURCE": "ALIMENTATION",
  "Plugged in": "Sur secteur",
  "These delays are in use now.": "Ces délais sont ceux en cours.",
- "These delays apply when the power source changes.": "Ces délais s'appliquent au changement d'alimentation."
+ "These delays apply when the power source changes.": "Ces délais s'appliquent au changement d'alimentation.",
+ "Wallpaper": "Fond d’écran",
+ "IMAGES": "IMAGES",
+ "The image behind the windows. Add your own to the Pictures/Wallpapers folder.": "L’image derrière les fenêtres. Ajoutez les vôtres dans le dossier Pictures/Wallpapers.",
+ "Open the folder of your wallpapers": "Ouvrir le dossier de vos fonds d’écran"
 }
