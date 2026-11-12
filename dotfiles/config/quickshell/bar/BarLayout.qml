@@ -54,6 +54,16 @@ Singleton {
     readonly property var backgrounds: ({ solid: 1, translucent: 0.7, transparent: 0 })
     readonly property string background: layout.backgrounds[parsed.bar?.background] !== undefined ? parsed.bar.background : "solid"
     readonly property real alpha: layout.backgrounds[layout.background]
+    // Colour of the text on a bar of this background and edge: "theme" while it is solid, else "dark" or "light" by the
+    // luminance of what shows through (the wallpaper under the edge mixed with the background of the bar)
+    function toneFor(edge, alpha) {
+        if (alpha >= 1)
+            return "theme";
+        const behind = (FiliTheme.wallLuma[edge] ?? 0) / 100;
+        const mixed = alpha * (FiliTheme.light ? 0.95 : 0.13) + (1 - alpha) * behind;
+        return mixed > 0.55 ? "dark" : "light";
+    }
+    Binding { target: FiliTheme; property: "barTone"; value: layout.toneFor(layout.edge, layout.alpha) }
     // Screens that get a bar: [bar] screens = "all" (default) or a list of output names. A list that matches no connected
     // screen gives a bar on every screen, so the bar never disappears (a screen unplugged, a name mistyped).
     readonly property var wantedScreens: {

@@ -13,7 +13,7 @@ BarItem {
         const t = player.isPlaying ? " " + player.trackTitle + (player.trackArtist ? "  ·  " + player.trackArtist : "") : " " + player.trackTitle;
         return t.length > 40 ? t.slice(0, 39) + "…" : t;
     }
-    color: FiliTheme.brume2
+    color: FiliTheme.barText2
     function mmss(s) {
         s = Math.max(0, Math.round(s));
         return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");

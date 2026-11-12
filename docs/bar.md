@@ -82,6 +82,14 @@ autohide = false   # true: hidden until the pointer touches its edge; it then ta
 background = "solid"  # "solid" (default) | "translucent" | "transparent"
 ```
 
+**Workspaces and titles.** The strip at the left lists the workspaces of the screen in alphanumeric order of their names (`2` before `10`), the unnamed ones last, so a workspace keeps its place whatever niri's order. The titles of the windows share the room: they shrink (down to 64 px) before any is dropped, then only the focused one keeps its title, then the windows of one application merge, then the other workspaces fold.
+
+**Edge.** `edge` is `top`, `bottom`, `left` or `right`. On the left or the right the Quai is a narrow column (`taskbar_width` of the theme, 56): one icon over its number per window. It never shares the edge of the fili-bar (it takes the opposite one) and keeps clear of its corner.
+
+**Text over a see-through background.** With a `translucent` or `transparent` background (of the fili-bar or of the Quai) the text colour follows what is behind: `bar-luma` measures the wallpaper under each edge (ImageMagick, once per wallpaper), and the bar uses dark text over a light wallpaper, light text over a dark one (the logo changes with it). A transparent bar has no line on its inner edge.
+
+**Right click** on the background of the fili-bar or of the Quai opens the same panel for both: edge, background, screens (and hiding for the Quai), with a gear to its page of Settings (Bar, Quai).
+
 With `autohide` only a 2 px line stays on the edge; the pointer on it, the number mode (Mod+Alt), an open menu or list, and the half second after the pointer left show the bar. `background` is the same choice as `[bar] background` for the fili-bar. All of it is in **Settings > Bar** (the fili-bar background, then the Quai: shown, edge, hiding, background, screens), and from the command line: `fili-bar background transparent`, `fili-bar taskbar autohide true`, `fili-bar taskbar` (shows the settings).
 
 Its height is `taskbar_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.

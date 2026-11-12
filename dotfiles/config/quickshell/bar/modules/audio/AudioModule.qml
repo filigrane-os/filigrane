@@ -16,7 +16,7 @@ BarItem {
     PwObjectTracker { objects: [sink, source] }
     text: !audio ? "" : (kind || (audio.muted ? "" : vol < 34 ? "" : vol < 67 ? "" : ""))
         + (audio.muted ? " " + FiliI18n.tr("muted") : " " + vol + "%")
-    color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
+    color: audio?.muted ? FiliTheme.barMuted : FiliTheme.barText
     tip: !audio ? "" : {
         title: audio.muted ? FiliI18n.tr("Sound muted") : FiliI18n.tr("Sound"),
         rows: [[FiliI18n.tr("Output"), sink.description || sink.nickname || sink.name], [FiliI18n.tr("Volume"), vol + " %"],

@@ -18,10 +18,10 @@ BarModule {
         BarScript { id: rec; objectName: "rec"; title: FiliI18n.tr("Recording"); cmd: FiliTheme.bin + "/bar-status rec"; signal: 11; color: FiliTheme.cendre; click: FiliTheme.bin + "/bar-toggle rec" }
         // Incoming SSH session, airplane mode (click = turn off), VPN: written by bar-stats when the state changes
         BarScript { id: remote; objectName: "remote"; title: "SSH"; stat: "remote"; color: FiliTheme.cendre }
-        BarScript { id: air; objectName: "air"; title: FiliI18n.tr("Airplane mode"); stat: "air"; color: FiliTheme.sable; click: FiliTheme.bin + "/bar-toggle air" }
+        BarScript { id: air; objectName: "air"; title: FiliI18n.tr("Airplane mode"); stat: "air"; color: FiliTheme.barWarn; click: FiliTheme.bin + "/bar-toggle air" }
         BarScript { id: vpn; objectName: "vpn"; title: "VPN"; stat: "vpn" }
         // xbps updates (hidden when there are none), click = update in a floating terminal
-        BarScript { id: upd; objectName: "update"; title: FiliI18n.tr("Updates"); cmd: FiliTheme.bin + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.sable; click: FiliTheme.bin + "/bar-update run" }
+        BarScript { id: upd; objectName: "update"; title: FiliI18n.tr("Updates"); cmd: FiliTheme.bin + "/bar-update"; interval: 3600; signal: 16; color: FiliTheme.barWarn; click: FiliTheme.bin + "/bar-update run" }
     }
 
     // Most urgent first
@@ -43,7 +43,7 @@ BarModule {
             objectName: "status"
             title: FiliI18n.tr("Status")
             hint: FiliI18n.tr("click: details")
-            colors: ({ rec: FiliTheme.cendre, remote: FiliTheme.cendre, air: FiliTheme.sable, vpn: FiliTheme.brume, update: FiliTheme.sable })
+            colors: ({ rec: FiliTheme.cendre, remote: FiliTheme.cendre, air: FiliTheme.barWarn, vpn: FiliTheme.barText, update: FiliTheme.barWarn })
             value: {
                 const a = status.active;
                 if (a.length === 0)

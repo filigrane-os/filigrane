@@ -1,0 +1,16 @@
+#!/bin/sh
+# Luminance (0-100) of the wallpaper under each edge of a screen, as swaybg fills it: "top bottom left right".
+# Usage: bar-luma WIDTH HEIGHT THICKNESS [image]   (image: the wallpaper in use, see `wallpaper`)
+# Read by the fili-bar to pick a text colour that reads over a transparent background (bar/BarTone.qml).
+w="${1:-1920}" h="${2:-1080}" t="${3:-32}"
+img="${4:-$(cat "${XDG_STATE_HOME:-$HOME/.local/state}/wallpaper" 2>/dev/null)}"
+if [ ! -f "$img" ]; then echo "0 0 0 0"; exit 0; fi
+# A small copy is enough: scaled to 240 px wide
+sw=240; sh=$((h * sw / w)); [ "$sh" -ge 8 ] || sh=8
+st=$((t * sw / w)); [ "$st" -ge 2 ] || st=2
+magick "$img" -resize "${sw}x${sh}^" -gravity center -extent "${sw}x${sh}" -colorspace Gray \
+    \( +clone -gravity north -crop "${sw}x${st}+0+0" +repage -scale 1x1! -format '%[fx:round(mean*100)] ' -write info: +delete \) \
+    \( +clone -gravity south -crop "${sw}x${st}+0+0" +repage -scale 1x1! -format '%[fx:round(mean*100)] ' -write info: +delete \) \
+    \( +clone -gravity west -crop "${st}x${sh}+0+0" +repage -scale 1x1! -format '%[fx:round(mean*100)] ' -write info: +delete \) \
+    \( +clone -gravity east -crop "${st}x${sh}+0+0" +repage -scale 1x1! -format '%[fx:round(mean*100)]\n' -write info: +delete \) \
+    null: 2>/dev/null || echo "0 0 0 0"

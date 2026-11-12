@@ -425,10 +425,14 @@
  "Send to %1": "Envoyer sur %1",
  "right click: menu": "clic droit: menu",
  "BAR BACKGROUND": "FOND DE LA BARRE",
- "QUAI (WINDOWS BY WORKSPACE)": "QUAI (FENÊTRES PAR WORKSPACE)",
  "Show the Quai": "Afficher le Quai",
  "Hide it until the pointer touches its edge": "Le cacher tant que le pointeur ne touche pas son bord",
  "Solid": "Opaque",
  "Translucent": "Translucide",
- "Transparent": "Transparent"
+ "Transparent": "Transparent",
+ "Every window of the screen by workspace, each with its number. Hold Mod+Alt and type a number to go to its window.": "Toutes les fenêtres de l'écran par workspace, chacune avec son numéro. Tiens Mod+Alt et tape un numéro pour aller à sa fenêtre.",
+ "POSITION": "POSITION",
+ "BACKGROUND": "FOND",
+ "QUAI POSITION": "POSITION DU QUAI",
+ "BEHAVIOUR": "COMPORTEMENT"
 }

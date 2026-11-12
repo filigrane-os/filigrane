@@ -6,7 +6,7 @@
 # fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on (shows it without argument)
 # fili-bar screens [all|NAME...]      screens that get a bar: all, or output names (niri msg outputs)
 # fili-bar background [solid|translucent|transparent]   background of the fili-bar (shows it without argument)
-# fili-bar taskbar [KEY [VALUE...]]   the taskbar (Quai): enabled true|false, edge top|bottom, autohide true|false, background
+# fili-bar taskbar [KEY [VALUE...]]   the taskbar (Quai): enabled true|false, edge top|bottom|left|right, autohide true|false, background
 #                                     solid|translucent|transparent, screens all|NAME... (shows the settings without argument)
 # fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
 # fili-bar check DIR|NAME             check the manifest and the script of a module
@@ -387,10 +387,10 @@ cmd_taskbar() {
         return
     fi
     key="$1"; shift
-    usage="$(t 'Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom, background solid|translucent|transparent, screens all|NAME...')"
+    usage="$(t 'Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom|left|right, background solid|translucent|transparent, screens all|NAME...')"
     case "$key" in
         enabled | autohide) case "${1:-}" in true | false) setsec "[taskbar]" "$key" "$1" ;; *) die "$usage" ;; esac ;;
-        edge) case "${1:-}" in top | bottom) setsec "[taskbar]" edge "\"$1\"" ;; *) die "$usage" ;; esac ;;
+        edge) case "${1:-}" in top | bottom | left | right) setsec "[taskbar]" edge "\"$1\"" ;; *) die "$usage" ;; esac ;;
         background) case "${1:-}" in solid | translucent | transparent) setsec "[taskbar]" background "\"$1\"" ;; *) die "$usage" ;; esac ;;
         screens)
             [ "$#" -gt 0 ] || die "$usage"

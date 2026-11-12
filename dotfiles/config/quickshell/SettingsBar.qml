@@ -1,4 +1,4 @@
-// Settings page "Barre" (fili-settings): where the fili-bar sits and its background, the Quai (taskbar), and the modules of the fili-bar. Each module of the manifests (module.toml): a switch
+// Settings page "Barre" (fili-settings): where the fili-bar sits and its background, and its modules (the Quai has its own page). Each module of the manifests (module.toml): a switch
 // (shown or hidden), its title and description, buttons to move it up or down its row and to the other side. Every change
 // is made by the `fili-bar` command, which writes ~/.config/filigrane/fili-bar.toml; the bar re-reads it at once and this
 // page follows (BarLayout). An explicit left / right list in that file wins over the order set here (stated below).
@@ -58,66 +58,8 @@ ColumnLayout {
         FiliTheme.run(cli + " move " + name + " " + other + " " + (last + 10));
     }
 
-    // Edge of the screen and screens (fili-bar edge, fili-bar screens; also in the right click menu of the bar)
-    BarPlacement { Layout.fillWidth: true }
-    // Background of the fili-bar (fili-bar background)
-    PanelSection { text: FiliI18n.tr("BAR BACKGROUND") }
-    PanelChips {
-        objectName: "bar-background"
-        model: view.backgrounds
-        current: BarLayout.background
-        onPicked: v => FiliTheme.run(view.cli + " background " + v)
-    }
-
-    // The taskbar, shown as Quai (fili-bar taskbar): on or off, edge, automatic hiding, background, screens
-    PanelSection { text: FiliI18n.tr("QUAI (WINDOWS BY WORKSPACE)") }
-    Repeater {
-        model: [
-            { key: "enabled", label: FiliI18n.tr("Show the Quai"), on: TaskbarLayout.enabled },
-            { key: "autohide", label: FiliI18n.tr("Hide it until the pointer touches its edge"), on: TaskbarLayout.autohide }
-        ]
-        RowLayout {
-            id: flag
-            required property var modelData
-            Layout.fillWidth: true
-            spacing: FiliTheme.space2
-            PanelSwitch {
-                objectName: "quai-" + flag.modelData.key
-                checked: flag.modelData.on
-                onToggled: FiliTheme.run(view.cli + " taskbar " + flag.modelData.key + " " + (flag.modelData.on ? "false" : "true"))
-            }
-            Text {
-                Layout.fillWidth: true
-                elide: Text.ElideRight
-                text: flag.modelData.label
-                color: flag.modelData.on ? FiliTheme.brume : FiliTheme.ardoise
-                font { family: FiliTheme.font; pixelSize: FiliTheme.size }
-            }
-        }
-    }
-    PanelChips {
-        objectName: "quai-edge"
-        model: [{ label: FiliI18n.tr("Bottom"), value: "bottom" }, { label: FiliI18n.tr("Top"), value: "top" }]
-        current: TaskbarLayout.conf.edge === "top" ? "top" : "bottom"
-        onPicked: v => FiliTheme.run(view.cli + " taskbar edge " + v)
-    }
-    PanelChips {
-        objectName: "quai-background"
-        model: view.backgrounds
-        current: TaskbarLayout.background
-        onPicked: v => FiliTheme.run(view.cli + " taskbar background " + v)
-    }
-    PanelChips {
-        objectName: "quai-screens"
-        model: [{ label: FiliI18n.tr("All screens"), value: "all" }].concat(Quickshell.screens.map(s => ({ label: s.name, value: s.name })))
-        current: {
-            const v = TaskbarLayout.conf.screens;
-            const list = Array.isArray(v) ? v : (v ? [v] : []);
-            return list.length === 1 && list[0] !== "all" ? list[0] : "all";
-        }
-        onPicked: v => FiliTheme.run(view.cli + " taskbar screens " + v)
-    }
-
+    // Edge, background and screens (fili-bar edge, background, screens; the same block is the right click panel of the bar)
+    BarPlacement { Layout.fillWidth: true; target: "bar" }
     PanelSection { text: FiliI18n.tr("MODULES") }
     Text {
         text: "Barre"

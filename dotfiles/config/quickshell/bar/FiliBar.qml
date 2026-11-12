@@ -22,9 +22,19 @@ PanelWindow {
     }
     implicitHeight: vertical ? 0 : FiliTheme.barHeight
     implicitWidth: vertical ? FiliTheme.barWidth : 0
-    color: Qt.alpha(FiliTheme.nuit, BarLayout.alpha)
+    // The window stays "transparent" (so its surface has an alpha channel from the start: it cannot be added once the
+    // surface exists); the background is a rectangle, solid or not ([bar] background)
+    color: "transparent"
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
+    // The luminance of the wallpaper under the bar is measured while a bar is see-through (BarTone)
+    readonly property bool toneMeasured: BarTone.needed
+    Rectangle {
+        objectName: "bar-fill"
+        z: -3
+        anchors.fill: parent
+        color: Qt.alpha(FiliTheme.nuit, BarLayout.alpha)
+    }
 
     // Squeeze level (BarLayout.nextLevel): raised one step at a time while the right row does not fit next to the left
     // row, lowered when it fits again. seen[l] = width of the right row measured at level l. A column never squeezes.
@@ -91,9 +101,10 @@ PanelWindow {
         }
     }
 
-    // Thin line on the inner edge of the bar
+    // Thin line on the inner edge of the bar (none when the background is transparent)
     Rectangle {
         z: -1
+        visible: BarLayout.background !== "transparent"
         x: FiliTheme.barEdge === "left" ? parent.width - 1 : 0
         y: FiliTheme.barEdge === "top" ? parent.height - 1 : 0
         width: barWin.vertical ? 1 : parent.width

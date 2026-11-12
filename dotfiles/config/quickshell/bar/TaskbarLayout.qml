@@ -4,7 +4,7 @@ pragma Singleton
 // (dotfiles/config/filigrane/fili-bar.toml lists them):
 //   [taskbar]
 //   enabled = true         # false: no taskbar
-//   edge = "bottom"        # "bottom" (default) | "top"; the edge of the fili-bar is never shared (the taskbar takes the other one)
+//   edge = "bottom"        # "bottom" (default) | "top" | "left" | "right"; the edge of the fili-bar is never shared (the taskbar takes the opposite one)
 //   screens = "all"        # "all" (default) or a list of output names, like [bar] screens
 //   autohide = false       # true: hidden until the pointer touches the edge, takes no room
 //   background = "solid"   # "solid" (default) | "translucent" | "transparent"
@@ -16,16 +16,19 @@ Singleton {
     id: taskbar
     readonly property var conf: BarLayout.parsed.taskbar ?? ({})
     readonly property bool enabled: String(conf.enabled ?? "true") !== "false"
-    // Edge of the screen: the one asked for, unless the fili-bar sits there (then the opposite one)
+    // Edge of the screen: the one asked for ("top", "bottom" (default), "left" or "right"), unless the fili-bar sits there (then the opposite one)
     readonly property string edge: {
-        const want = conf.edge === "top" ? "top" : "bottom";
-        return want === FiliTheme.barEdge ? (want === "top" ? "bottom" : "top") : want;
+        const want = ["top", "bottom", "left", "right"].indexOf(conf.edge) >= 0 ? conf.edge : "bottom";
+        return want === FiliTheme.barEdge ? ({ top: "bottom", bottom: "top", left: "right", right: "left" })[want] : want;
     }
+    // On the left or the right the Quai is a narrow column: one icon over its number per window, no titles
+    readonly property bool vertical: edge === "left" || edge === "right"
     // Hidden until the pointer touches its edge ([taskbar] autohide = true); it then takes no room: the windows use the whole screen
     readonly property bool autohide: String(conf.autohide ?? "false") === "true"
     // Background, like the fili-bar: "solid" (default) | "translucent" | "transparent"
     readonly property string background: BarLayout.backgrounds[conf.background] !== undefined ? conf.background : "solid"
     readonly property real alpha: BarLayout.backgrounds[taskbar.background]
+    Binding { target: FiliTheme; property: "taskbarTone"; value: BarLayout.toneFor(taskbar.edge, taskbar.alpha) }
     Binding { target: FiliTheme; property: "taskbarEdge"; value: taskbar.enabled && !taskbar.autohide ? taskbar.edge : "" }
 
     // Screens that get a taskbar (a list that matches no connected screen gives all of them, like the fili-bar)
@@ -57,6 +60,30 @@ Singleton {
             return pa ? -1 : 1;
         return a.id - b.id;
     }
+    // Natural order of two names: "2" before "10", "a" before "b" (case ignored)
+    function naturalCompare(a, b) {
+        const pa = String(a).toLowerCase().match(/\d+|\D+/g) ?? [], pb = String(b).toLowerCase().match(/\d+|\D+/g) ?? [];
+        for (let i = 0; i < Math.min(pa.length, pb.length); i++) {
+            const x = pa[i], y = pb[i];
+            if (x === y)
+                continue;
+            const nx = /^\d/.test(x), ny = /^\d/.test(y);
+            if (nx && ny)
+                return Number(x) - Number(y) || x.length - y.length;
+            return x < y ? -1 : 1;
+        }
+        return pa.length - pb.length;
+    }
+    // Order of the workspaces of a screen, left to right: the named ones in alphanumeric order, then the unnamed ones as niri has
+    // them (a workspace keeps its place whatever niri's order, which moves with every workspace that opens or closes)
+    function wsOrder(a, b) {
+        const na = a.name ?? "", nb = b.name ?? "";
+        if (na && nb)
+            return naturalCompare(na, nb);
+        if (na || nb)
+            return na ? -1 : 1;
+        return a.idx - b.idx;
+    }
     // Label of a workspace in the bar: its name, else its index on the display, else a dot (numbered workspaces, like the
     // workspaces module of the fili-bar)
     function label(ws, numbered) {
@@ -70,7 +97,7 @@ Singleton {
         const all = Object.values(windows);
         const numbered = workspaces.some(w => /^[0-9]+$/.test(w.name ?? ""));
         const out = [];
-        for (const ws of workspaces.filter(w => w.output === output).sort((a, b) => a.idx - b.idx)) {
+        for (const ws of workspaces.filter(w => w.output === output).sort(wsOrder)) {
             const wins = all.filter(w => w.workspace_id === ws.id).sort(order);
             if (wins.length === 0 && !ws.is_active)
                 continue;

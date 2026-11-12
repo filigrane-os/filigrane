@@ -26,19 +26,19 @@ BarModule {
                 property alias text: ws.text
                 implicitWidth: FiliTheme.barVertical ? FiliTheme.barWidth : ws.implicitWidth + 2 * FiliTheme.pad
                 implicitHeight: FiliTheme.barHeight
-                color: modelData.is_active || wsHover.containsMouse ? FiliTheme.nuit3 : "transparent"
+                color: modelData.is_active || wsHover.containsMouse ? FiliTheme.barHover : "transparent"
                 BarLabel {
                     id: ws
                     anchors.centerIn: parent
                     // A named workspace shows its name (numbered across the displays: Settings > Workspaces)
                     text: parent.modelData.label
-                    color: parent.modelData.is_active || wsHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
+                    color: parent.modelData.is_active || wsHover.containsMouse ? FiliTheme.barText : FiliTheme.barMuted
                 }
                 Rectangle {
                     visible: parent.modelData.is_active
                     anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                     height: 2
-                    color: FiliTheme.voile
+                    color: FiliTheme.barAccent
                 }
                 BarHover {
                     id: wsHover

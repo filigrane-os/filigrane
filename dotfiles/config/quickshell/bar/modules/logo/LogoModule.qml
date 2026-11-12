@@ -14,7 +14,7 @@ BarModule {
         x: logoX
         width: 44
         height: parent.height
-        source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-" + (FiliTheme.light ? "couleur" : "sombre") + ".svg"
+        source: "file://" + Quickshell.env("HOME") + "/.local/share/filigrane/filigrane-" + (FiliTheme.barTone === "dark" || (FiliTheme.barTone === "theme" && FiliTheme.light) ? "couleur" : "sombre") + ".svg"
         sourceSize.width: 44
         fillMode: Image.PreserveAspectFit
     }

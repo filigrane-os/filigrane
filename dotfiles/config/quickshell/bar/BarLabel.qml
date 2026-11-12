@@ -3,7 +3,7 @@ import QtQuick
 import qs
 
 Text {
-    color: FiliTheme.brume
+    color: FiliTheme.barText
     font.family: FiliTheme.font
     font.pixelSize: FiliTheme.size
     verticalAlignment: Text.AlignVCenter

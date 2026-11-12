@@ -18,7 +18,7 @@ BarScript {
     // Icon in the open drawer when there is no alert
     property string idleGlyph: glyph
     // Colour of the alert (at rest: slate)
-    property color accent: FiliTheme.brume
+    property color accent: FiliTheme.barText
     property string openHint: FiliI18n.tr("click: open %1", title)
     // Web app opened by a click (bar-alert open KIND URL); empty: the web app of the list named like the kind
     property string url: ""
@@ -45,7 +45,7 @@ BarScript {
 
     readonly property var shown: build(file.content, counter.exists ? counter.content : null, now)
     value: shown.text !== "" ? shown : (BarState.trayOpen ? ({ text: idleGlyph, "class": "idle", tooltip: { title: title, hint: FiliI18n.tr("click: open") } }) : BarState.empty)
-    colors: ({ active: accent, idle: FiliTheme.ardoise })
+    colors: ({ active: accent, idle: FiliTheme.barMuted })
     click: FiliTheme.bin + "/bar-alert open " + kind + (url ? " '" + url + "'" : "")
 
     // State from the file content, the content of <kind>.count (null if it does not exist) and the time

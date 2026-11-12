@@ -19,7 +19,7 @@ BarItem {
     readonly property bool charging: status === "Charging" || status === "Full"
 
     text: capacity < 0 ? "" : (status === "Charging" ? "" : ["", "", "", "", ""][Math.min(4, Math.floor(capacity / 20))]) + " " + capacity + "%"
-    color: status === "Charging" ? FiliTheme.voile : capacity <= 10 ? FiliTheme.cendre : capacity <= 25 ? FiliTheme.sable : FiliTheme.brume
+    color: status === "Charging" ? FiliTheme.barAccent : capacity <= 10 ? FiliTheme.cendre : capacity <= 25 ? FiliTheme.barWarn : FiliTheme.barText
     tip: status ? { title: FiliI18n.tr("Battery"), rows: [[FiliI18n.tr("Level"), capacity + " %"], [FiliI18n.tr("State"), { Charging: FiliI18n.tr("Charging"), Discharging: FiliI18n.tr("On battery"), Full: FiliI18n.tr("Full"), "Not charging": FiliI18n.tr("Plugged in, charging paused") }[status] ?? status]] } : ""
 
     FileView { id: cap; path: batt.dir + "/capacity"; blockLoading: true; printErrors: false }

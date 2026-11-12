@@ -179,11 +179,39 @@ Singleton {
     // Taskbar, Quai (fili-taskbar, FiliTaskbar.qml): a row listing every window by workspace, on the "bottom" or "top" edge ("" =
     // none; set by TaskbarLayout from [taskbar] of fili-bar.toml). Its thickness is part of barMargin.
     property string taskbarEdge: ""
+    // Text over a see-through bar: the fili-bar and the Quai are "theme" (the colours of the theme, solid background) or, when
+    // their background lets the wallpaper show, "dark" or "light" (the colour of the text that reads on what is behind
+    // them: BarLayout and TaskbarLayout decide from wallLuma, set by BarTone). The bar tokens below follow that tone.
+    property string barTone: "theme"
+    property string taskbarTone: "theme"
+    // Luminance (0-100) of the wallpaper under each edge of the screen
+    property var wallLuma: ({ top: 0, bottom: 0, left: 0, right: 0 })
+    readonly property var toneColors: ({
+        text: [brume, "#1c222b", "#dbe7f4"],
+        text2: [brume2, "#3f4d5e", "#a9b8c8"],
+        muted: [ardoise, "#4b5d73", "#8ea2b8"],
+        accent: [voile, tone[2], tone[0]],
+        hover: [nuit3, "#261c222b", "#26dbe7f4"],
+        warn: [sable, "#6d561f", "#d2bf92"]
+    })
+    function toned(which, role) {
+        const c = toneColors[role];
+        return which === "dark" ? c[1] : which === "light" ? c[2] : c[0];
+    }
+    readonly property color barText: toned(barTone, "text")
+    readonly property color barText2: toned(barTone, "text2")
+    readonly property color barMuted: toned(barTone, "muted")
+    readonly property color barAccent: toned(barTone, "accent")
+    readonly property color barHover: toned(barTone, "hover")
+    readonly property color barWarn: toned(barTone, "warn")
     readonly property int taskbarHeight: ov("taskbar_height", 32)
+    readonly property int taskbarWidth: ov("taskbar_width", 56)
+    // Thickness of the Quai: its height on the top or the bottom, its width on the left or the right
+    readonly property int taskbarThickness: taskbarEdge === "left" || taskbarEdge === "right" ? taskbarWidth : taskbarHeight
     readonly property int barThickness: barVertical ? barWidth : barHeight
     // Margin to leave on `side` of a full-screen window so that it starts beside the bar (0 on the other sides)
     function barMargin(side) {
-        return (barEdge === side ? barThickness : 0) + (taskbarEdge === side ? taskbarHeight : 0);
+        return (barEdge === side ? barThickness : 0) + (taskbarEdge === side ? taskbarThickness : 0);
     }
     // Gap (px) of a popup from the bar, on the side the bar is on only
     function barGap(side, px) {

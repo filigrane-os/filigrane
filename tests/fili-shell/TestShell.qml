@@ -961,11 +961,49 @@ ShellRoot {
                 Niri.workspaces = [];
                 BarLayout.parsed = FiliTheme.parseToml('[taskbar]\nbackground = "bogus"\n');
                 ok(TaskbarLayout.background === "solid" && TaskbarLayout.alpha === 1 && !TaskbarLayout.autohide, "quai: an unknown background falls back to solid");
+                // Workspaces left to right in alphanumeric order, whatever niri's order
+                const nm = ["10", "2", "b", "a", "1", "A2"].sort(TaskbarLayout.naturalCompare);
+                ok(nm.join() === "1,2,10,A2,a,b" || nm.join() === "1,2,10,a,A2,b" || nm.join() === "1,2,10,a,b,A2", "taskbar: natural order of names (2 before 10)", nm.join());
+                const wo = [{ id: 1, idx: 1, name: "3" }, { id: 2, idx: 2 }, { id: 3, idx: 3, name: "1" }, { id: 4, idx: 4, name: "10" }, { id: 5, idx: 5, name: "2" }].sort(TaskbarLayout.wsOrder);
+                ok(wo.map(w => w.id).join() === "3,5,1,4,2", "taskbar: workspaces sorted by name, the unnamed ones last", wo.map(w => w.name ?? "-").join());
+                // Titles share the room: the cap goes down before any title is dropped, and back up
+                ok(t.taskbar.capFor([300, 300, 300], 2000) === t.taskbar.titleMax && t.taskbar.capFor([300, 300, 300], 360) === 120 && t.taskbar.capFor([300, 40, 300], 400) === 180 && t.taskbar.capFor([300, 300], 10) === t.taskbar.titleMin,
+                    "taskbar: titles shrink to share the room (cap), at most titleMax, at least titleMin", [t.taskbar.capFor([300, 300, 300], 360), t.taskbar.capFor([300, 40, 300], 400)].join());
+                // No line on the inner edge of a transparent bar
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nbackground = "transparent"\n[taskbar]\nbackground = "transparent"\n');
+                ok(BarLayout.background === "transparent" && TaskbarLayout.background === "transparent", "quai: transparent background read for both bars");
+                BarLayout.parsed = ({});
+                // Four edges: left and right make a column, the edge of the fili-bar is never shared
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "top"\n[taskbar]\nedge = "left"\n');
+                ok(TaskbarLayout.edge === "left" && TaskbarLayout.vertical && t.taskbar.vertical && FiliTheme.taskbarThickness === FiliTheme.taskbarWidth && FiliTheme.barMargin("left") === FiliTheme.taskbarWidth,
+                    "quai: left -> a column, its width in the margin of the full-screen windows", TaskbarLayout.edge + " " + FiliTheme.barMargin("left"));
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nedge = "right"\n[taskbar]\nedge = "right"\n');
+                ok(TaskbarLayout.edge === "left", "quai: the edge of the fili-bar is not shared (the opposite one)", TaskbarLayout.edge);
+                BarLayout.parsed = FiliTheme.parseToml('[taskbar]\nedge = "left"\n');
+                Niri.workspaces = [{ id: 71, idx: 1, name: "1", output: t.taskbar.modelData.name, is_active: true }];
+                Niri.setWindows({ 1: { id: 1, pid: 0, app_id: "foot", title: "a", workspace_id: 71 } });
+                ok(t.find(t.taskbar.contentItem, "task-w1") !== null && t.find(t.taskbar.contentItem, "task-w1").height === 44 && t.find(t.taskbar.contentItem, "task-w1").width === FiliTheme.taskbarWidth,
+                    "quai: a column shows one icon over its number per window");
+                // Right click on the Quai: the same panel as on the fili-bar (edge, background, hiding, screens), hanging from the Quai
+                FiliPanel.openBarMenu(t.taskbar, 5, 5, "taskbar");
+                ok(FiliPanel.view === "barmenu" && FiliPanel.hang === "left" && FiliPanel.hangEdge === "left" && t.find(FiliPanel.loaded, "quai-edge") !== null && t.find(FiliPanel.loaded, "quai-background") !== null
+                    && t.find(FiliPanel.loaded, "quai-autohide") !== null && t.find(FiliPanel.loaded, "quai-screens") !== null && FiliPanel.loaded?.settingsPage === "quai",
+                    "quai: right click -> the bar panel with the edge, background, hiding and screens of the Quai, gear to its page", FiliPanel.view + " " + FiliPanel.hang);
+                FiliPanel.close();
+                FiliPanel.openBarMenu(t.bar, 5, 5, "bar");
+                ok(FiliPanel.view === "barmenu" && FiliPanel.hang === "" && FiliPanel.menuTarget === "bar" && FiliPanel.hangEdge === FiliTheme.barEdge,
+                    "fili-bar: right click -> the same panel, hanging from the fili-bar", FiliPanel.view + " " + FiliPanel.hang);
+                FiliPanel.close();
+                t.taskbar.closeList();
+                Niri.setWindows({});
+                Niri.workspaces = [];
                 BarLayout.parsed = ({});
                 FiliSettings.show("bar");
-                const d = FiliSettings.loaded;
                 FiliTheme.ran = [];
-                t.find(d, "bar-background").picked("transparent");
+                t.find(FiliSettings.loaded, "bar-background").picked("transparent");
+                FiliSettings.show("quai");
+                const d = FiliSettings.loaded;
+                ok(d !== null && FiliSettings.current.id === "quai" && t.find(d, "bar-background") === null && t.find(FiliSettings.loaded, "quai-edge") !== null, "fili-settings: the Quai has its own page");
                 t.find(d, "quai-background").picked("translucent");
                 t.find(d, "quai-edge").picked("top");
                 t.find(d, "quai-screens").picked("all");

@@ -10,7 +10,7 @@ AlertModule {
     kind: "mail"
     title: FiliI18n.tr("Mail")
     glyph: ""
-    accent: FiliTheme.sable
+    accent: FiliTheme.barWarn
     openHint: FiliI18n.tr("click: open Facteur")
     click: "fili-mail"
 }

@@ -63,13 +63,13 @@ BarModule {
         implicitHeight: FiliTheme.barHeight
         Rectangle {
             anchors.fill: parent
-            color: title.current || area.containsMouse ? FiliTheme.nuit3 : "transparent"
+            color: title.current || area.containsMouse ? FiliTheme.barHover : "transparent"
         }
         Text {
             id: label
             anchors.centerIn: parent
             text: title.text
-            color: title.current || area.containsMouse ? FiliTheme.brume : FiliTheme.brume2
+            color: title.current || area.containsMouse ? FiliTheme.barText : FiliTheme.barText2
             font {
                 family: FiliTheme.font
                 pixelSize: FiliTheme.size

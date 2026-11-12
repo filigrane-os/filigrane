@@ -489,6 +489,8 @@ _t_lookup() {
     'Usage: fili-bar move NAME left|right [ORDER]') _t_fmt='Usage: fili-bar move NOM left|right [ORDRE]' ;;
     'Usage: fili-bar screens all|NAME...') _t_fmt='Usage: fili-bar screens all|NOM...' ;;
     'Usage: fili-bar edge top|bottom|left|right') _t_fmt='Usage: fili-bar edge top|bottom|left|right' ;;
+    'Usage: fili-bar background solid|translucent|transparent') _t_fmt='Usage: fili-bar background solid|translucent|transparent' ;;
+    'Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom|left|right, background solid|translucent|transparent, screens all|NAME...') _t_fmt='Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom|left|right, background solid|translucent|transparent, screens all|NOM...' ;;
     'Usage: fili-bar new NAME [--qml] (lowercase letters, digits, hyphens)') _t_fmt='Usage: fili-bar new NOM [--qml] (minuscules, chiffres, tirets)' ;;
     'Usage: fili-bar remove NAME') _t_fmt='Usage: fili-bar remove NOM' ;;
     esac

@@ -11,7 +11,7 @@ BarScript {
     panel: "agent"
     panelSource: Qt.resolvedUrl("AgentPanel.qml")
     value: BarState.ai
-    colors: ({ off: FiliTheme.ardoise, idle: FiliTheme.brume2, working: FiliTheme.brume, waiting: FiliTheme.sable, done: FiliTheme.voile })
+    colors: ({ off: FiliTheme.barMuted, idle: FiliTheme.barText2, working: FiliTheme.barText, waiting: FiliTheme.barWarn, done: FiliTheme.barAccent })
     blinkClass: "waiting"
     rclick: FiliTheme.bin + "/fili-ai pick"
     hover.onLeftClicked: hover.meta ? BarState.aiAsk() : togglePanel()
