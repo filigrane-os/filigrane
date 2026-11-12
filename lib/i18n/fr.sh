@@ -396,7 +396,7 @@ _t_lookup() {
     'Notifications: on/off') _t_fmt='Notifications: activer/couper' ;;
     'Notifications: close all') _t_fmt='Notifications: fermer toutes' ;;
     'Shortcuts help') _t_fmt='Aide des raccourcis' ;;
-    'Open a Terminal: foot') _t_fmt='Ouvrir un terminal: foot' ;;
+    'Open a Terminal: Aéroport') _t_fmt='Ouvrir un terminal: Aéroport' ;;
     'Run an Application') _t_fmt='Lancer une application' ;;
     'Audio (wiremix)') _t_fmt='Audio (wiremix)' ;;
     'Bluetooth (bluetui)') _t_fmt='Bluetooth (bluetui)' ;;

@@ -2,7 +2,7 @@
 
 - Config: `dotfiles/config/niri/config.kdl` (linked to `~/.config/niri/`). `niri validate` before saving; niri reloads on save.
 - `environment {}` sets `CHROME_FLAGS` (Void's chromium wrapper reads only that, no flags file) and `ELECTRON_OZONE_PLATFORM_HINT`. Autostart: `spawn-at-startup` lines.
-- Keys (arrows, `Mod+1-9` workspaces; the bépo right-hand set `Mod+T/S/R/N` and its number row live in the user layer `local.kdl`): arrows = left/down/up/right, `Ctrl` moves, `Shift` changes screen. `Mod+Return` foot, `Mod+Space` menu, `Mod+D` app launcher, `Mod+Y` AI agent (`fili-ai`), `Super+Alt+L` lock. `Mod+K` lists them.
+- Keys (arrows, `Mod+1-9` workspaces; the bépo right-hand set `Mod+T/S/R/N` and its number row live in the user layer `local.kdl`): arrows = left/down/up/right, `Ctrl` moves, `Shift` changes screen. `Mod+Return` terminal (Aéroport, else foot), `Mod+Space` menu, `Mod+D` app launcher, `Mod+Y` AI agent (`fili-ai`), `Super+Alt+L` lock. `Mod+K` lists them.
 - Personal additions: `users/<login>/dotfiles/config/niri/local.kdl` (included at the end of `config.kdl`).
 - Shell: **fili-shell**, one Quickshell process (replaces waybar, mako, fuzzel), config `dotfiles/config/quickshell/`. Use these names with the user:
 

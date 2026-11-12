@@ -14,7 +14,7 @@
 |---|---|
 | `Mod+Space` | Menu: applications, clipboard, emoji, calculator, windows, files, web, system... (press again to close) |
 | `Mod+D` | Application launcher, most used first |
-| `Mod+Return` | Terminal (foot) |
+| `Mod+Return` | Terminal (Aéroport, foot if not installed) |
 | `Mod+Y` | AI agent (`fili-ai`), see [ai-agent.md](ai-agent.md) |
 | `Mod+Tab` | Go to a window |
 | `Mod+O` | Overview of all workspaces |

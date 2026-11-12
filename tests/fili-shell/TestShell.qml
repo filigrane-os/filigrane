@@ -275,10 +275,14 @@ ShellRoot {
                 const title = t.find(t.bar.contentItem, "appmenu-1");
                 const host = t.find(t.bar.contentItem, "appmenu");
                 ok(title && host && host.visible && host.shown, "appmenu: menu titles in the fili-bar", host ? host.visible : "not found");
+                // A bind that runs foot (Mod+Return opens Aéroport in the real config), whatever the user layer says
+                const localBinds = AppMenu.bindsLocal;
+                AppMenu.bindsLocal = Object.assign({}, localBinds, { "exec:foot": "Super+Return" });
                 AppMenu.openAt(1, title, t.bar);
                 ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: click on a title -> menu open");
                 ok(AppMenu.levels[0][0].keys === "Super+Return", "appmenu: shortcut of a fallback entry = niri bind of the same command", AppMenu.levels[0][0].keys);
                 ok(AppMenu.menus[0].children[0].keys === "Super+Q", "appmenu: Quitter -> raccourci de close-window", AppMenu.menus[0].children[0].keys);
+                AppMenu.bindsLocal = localBinds;
                 const pb = AppMenu.parseBinds('binds {\n    // Mod+X { nope; }\n    Mod+Ctrl+W hotkey-overlay-title="a" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }\n    Mod+V       { toggle-window-floating; }\n    Mod+1 { focus-workspace 1; }\n    Mod+B { spawn "foot" "-e" "btop"; }\n}\nlayout { Mod+Z { x; } }\n');
                 ok(pb["exec:bar-tui impala"] === "Super+Ctrl+W" && pb["niri:toggle-window-floating"] === "Super+V" && pb["niri:focus-workspace 1"] === "Super+1" && pb["exec:foot -e btop"] === "Super+B" && Object.keys(pb).length === 4, "appmenu: reading the niri binds (spawn, spawn-sh, actions, arguments, comments)", JSON.stringify(pb));
                 FiliTheme.ran = [];

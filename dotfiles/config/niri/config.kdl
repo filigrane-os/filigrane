@@ -477,7 +477,8 @@ binds {
     Mod+K hotkey-overlay-title="Keyboard shortcuts" { spawn-sh "$HOME/.local/bin/fili-shell hotkeys"; }
 
     // Suggested binds for running programs: terminal, app launcher, screen locker.
-    Mod+Return hotkey-overlay-title="Open a Terminal: foot" { spawn "foot"; }
+    // Aéroport (fili-term), or foot while it is not installed
+    Mod+Return hotkey-overlay-title="Open a Terminal: Aéroport" { spawn-sh "t=$(command -v fili-term || echo \"$HOME/.local/bin/fili-term\"); [ -x \"$t\" ] && exec \"$t\"; exec foot"; }
     Mod+Y hotkey-overlay-title="AI chat (fili-chat)" { spawn-sh "fili-chat toggle"; }
     Mod+Shift+Y hotkey-overlay-title="AI agent in a terminal (fili-ai)" { spawn "bash" "-lc" "exec ~/.local/bin/fili-ai key"; }
     Mod+E hotkey-overlay-title="Casier" { spawn-sh "/usr/bin/fili-file"; }
