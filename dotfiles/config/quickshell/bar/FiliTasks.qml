@@ -102,6 +102,27 @@ PanelWindow {
     }
     function closeList() {
         listWins = [];
+        menuItems = [];
+    }
+    // Menu of a workspace (right click on its label or its button of the strip): [{ text, cmd }], cmd = niri action(s)
+    // run on the display of the workspace once it has the focus (move-workspace-up/down act on the focused workspace)
+    property var menuItems: []
+    property Item menuAnchor: null
+    function openMenu(item, ws) {
+        FiliTooltip.hide();
+        FiliShell.popupOpened("tasks");
+        const at = "focus-workspace " + ws.idx;
+        const items = [{ text: FiliI18n.tr("Go to the workspace"), cmd: at }];
+        if (Niri.focusedId !== null && Niri.focused?.workspace_id !== ws.id)
+            items.push({ text: FiliI18n.tr("Move the focused window here"), cmd: "move-window-to-workspace --window-id " + Niri.focusedId + " " + ws.idx });
+        items.push({ text: FiliI18n.tr("Move up"), cmd: at + " && niri msg action move-workspace-up" });
+        items.push({ text: FiliI18n.tr("Move down"), cmd: at + " && niri msg action move-workspace-down" });
+        for (const s of Quickshell.screens)
+            if (s.name !== ws.output)
+                items.push({ text: FiliI18n.tr("Send to %1").replace("%1", s.name), cmd: at + " && niri msg action move-workspace-to-monitor " + s.name });
+        listWins = [];
+        menuAnchor = item;
+        menuItems = items.map(i => Object.assign(i, { output: ws.output }));
     }
     Connections {
         target: FiliShell
@@ -138,6 +159,68 @@ PanelWindow {
         objectName: "tasks-row"
         anchors { left: parent.left; leftMargin: FiliTheme.space1; top: parent.top; bottom: parent.bottom }
         spacing: 0
+        // Workspaces of the screen (all of them, empty ones too): click goes there, wheel goes to the previous / next,
+        // right click opens the menu of the workspace
+        Row {
+            id: strip
+            objectName: "tasks-strip"
+            height: rowItem.height
+            spacing: 0
+            Repeater {
+                model: Niri.workspaces.filter(w => w.output === win.modelData.name).sort((a, b) => a.idx - b.idx)
+                Item {
+                    id: btn
+                    required property var modelData
+                    objectName: "tasks-ws-" + modelData.id
+                    property alias hover: btnHover
+                    readonly property string label: TasksLayout.label(modelData, Niri.workspaces.some(w => /^[0-9]+$/.test(w.name ?? "")))
+                    height: strip.height
+                    width: btnText.implicitWidth + 2 * FiliTheme.pad
+                    Rectangle {
+                        anchors.fill: parent
+                        color: btn.modelData.is_active || btnHover.containsMouse ? FiliTheme.nuit3 : "transparent"
+                    }
+                    Text {
+                        id: btnText
+                        anchors.centerIn: parent
+                        text: btn.label
+                        color: btn.modelData.is_active || btnHover.containsMouse ? FiliTheme.brume : FiliTheme.ardoise
+                        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: btn.modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
+                    }
+                    Rectangle {
+                        visible: btn.modelData.is_active
+                        anchors { left: parent.left; right: parent.right; top: win.edge === "bottom" ? parent.top : undefined; bottom: win.edge === "bottom" ? undefined : parent.bottom }
+                        height: 2
+                        color: FiliTheme.voile
+                    }
+                    BarHover {
+                        id: btnHover
+                        anchors.fill: parent
+                        tipEdge: win.edge
+                        tip: {
+                            const id = btn.modelData.id;
+                            const wins = Object.values(Niri.windows).filter(w => w.workspace_id === id);
+                            return {
+                                title: btn.label === "\u2022" ? FiliI18n.tr("Unnumbered workspace") : FiliI18n.tr("Workspace %1", btn.label),
+                                rows: wins.length ? wins.map(w => ["#" + TasksNumbers.numberOf(w.id) + " " + TasksLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
+                                hint: FiliI18n.tr("click: go there · wheel: previous / next") + " · " + FiliI18n.tr("right click: menu")
+                            };
+                        }
+                        onLeftClicked: Niri.onOutput(win.modelData.name, "focus-workspace " + btn.modelData.idx)
+                        onRightClicked: win.openMenu(btn, btn.modelData)
+                        onWheelUp: Niri.onOutput(win.modelData.name, "focus-workspace-up")
+                        onWheelDown: Niri.onOutput(win.modelData.name, "focus-workspace-down")
+                    }
+                }
+            }
+        }
+        // Separator between the strip and the windows
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 1
+            height: 16
+            color: FiliTheme.nuit3
+        }
         Repeater {
             model: win.groups
             Row {
@@ -193,6 +276,7 @@ PanelWindow {
                             else
                                 Niri.onOutput(win.modelData.name, "focus-workspace " + win.workspaceIdx(grp.modelData.id));
                         }
+                        onRightClicked: win.openMenu(chip, Niri.workspaces.find(w => w.id === grp.modelData.id))
                         onWheelUp: Niri.onOutput(win.modelData.name, "focus-workspace-up")
                         onWheelDown: Niri.onOutput(win.modelData.name, "focus-workspace-down")
                     }
@@ -319,6 +403,62 @@ PanelWindow {
     // Index of a workspace on its display (focus-workspace N)
     function workspaceIdx(id) {
         return (Niri.workspaces.find(w => w.id === id) ?? { idx: 1 }).idx;
+    }
+
+    PopupWindow {
+        id: menu
+        objectName: "tasks-menu"
+        visible: win.menuItems.length > 0 && win.menuAnchor !== null
+        anchor.item: win.menuAnchor
+        anchor.edges: FiliTheme.popupEdgesFor(win.edge)
+        anchor.gravity: FiliTheme.popupEdgesFor(win.edge)
+        anchor.margins.top: win.edge === "top" ? 6 : 0
+        anchor.margins.bottom: win.edge === "bottom" ? 6 : 0
+        implicitWidth: Math.min(380, Math.max(180, mcol.implicitWidth + 2 * FiliTheme.space2))
+        implicitHeight: mcol.implicitHeight + 2 * FiliTheme.space1
+        color: "transparent"
+        Rectangle {
+            anchors.fill: parent
+            color: FiliTheme.nuit
+            border { color: FiliTheme.border; width: FiliTheme.borderWidth }
+            radius: FiliTheme.radiusWindow
+            Column {
+                id: mcol
+                anchors { fill: parent; margins: FiliTheme.space1 }
+                Repeater {
+                    model: win.menuItems
+                    Rectangle {
+                        id: mrow
+                        required property var modelData
+                        objectName: "tasks-menu-" + index
+                        required property int index
+                        property alias hover: mHover
+                        width: mcol.width
+                        height: 28
+                        radius: FiliTheme.radiusControl
+                        color: mHover.containsMouse ? FiliTheme.nuit3 : "transparent"
+                        Text {
+                            anchors { left: parent.left; leftMargin: FiliTheme.space2; right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                            elide: Text.ElideRight
+                            text: mrow.modelData.text
+                            color: FiliTheme.brume
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
+                        }
+                        MouseArea {
+                            id: mHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                const it = mrow.modelData;
+                                win.closeList();
+                                Niri.onOutput(it.output, it.cmd);
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     PopupWindow {

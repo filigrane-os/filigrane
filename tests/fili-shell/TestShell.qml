@@ -816,6 +816,21 @@ ShellRoot {
                 tb.openList(t.find(tr, "tasks-label-72"), TasksLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3)[1].wins);
                 Niri.focusedId = 4;
                 ok(tb.listWins.length === 0, "tasks bar: the list closes when the focus changes");
+                // Strip of the workspaces: every workspace of the screen (empty ones too), click goes there, right click opens the menu
+                Niri.focusedId = 1;
+                ok(t.find(tr, "tasks-ws-71") !== null && t.find(tr, "tasks-ws-73") !== null && t.find(tr, "tasks-ws-74") === null,
+                    "tasks strip: a button per workspace of the screen, the empty one too, none for another screen");
+                FiliTheme.ran = [];
+                tb.openMenu(t.find(tr, "tasks-ws-72"), Niri.workspaces.find(w => w.id === 72));
+                const mt = tb.menuItems.map(i => i.text);
+                ok(mt[0] === "Go to the workspace" && mt.indexOf("Move the focused window here") === 1 && mt.indexOf("Move up") > 1 && mt.indexOf("Move down") > 1,
+                    "tasks menu: go there, move the focused window here, move up, move down", mt.join("|"));
+                ok(tb.menuItems[1].cmd === "move-window-to-workspace --window-id 1 2" && tb.menuItems.find(i => i.text === "Move up").cmd === "focus-workspace 2 && niri msg action move-workspace-up",
+                    "tasks menu: the commands name the workspace (focus first for the ones that act on the focused workspace)", JSON.stringify(tb.menuItems.map(i => i.cmd)));
+                tb.openMenu(t.find(tr, "tasks-ws-71"), Niri.workspaces.find(w => w.id === 71));
+                ok(tb.menuItems.every(i => i.text !== "Move the focused window here"), "tasks menu: no move of the focused window to the workspace it is already in");
+                tb.closeList();
+                ok(tb.menuItems.length === 0, "tasks menu: closes with the list");
                 tb.level = 0;
                 Niri.setWindows({});
                 Niri.workspaces = [];

@@ -417,5 +417,11 @@
  "URGENT": "URGENT",
  "click: list of the windows": "clic: liste des fenêtres",
  "click: list of the windows · wheel: previous / next": "clic: liste des fenêtres · molette: précédent / suivant",
- "click: go there · middle click: close": "clic: y aller · clic du milieu: fermer"
+ "click: go there · middle click: close": "clic: y aller · clic du milieu: fermer",
+ "Go to the workspace": "Aller au workspace",
+ "Move the focused window here": "Déplacer la fenêtre active ici",
+ "Move up": "Monter",
+ "Move down": "Descendre",
+ "Send to %1": "Envoyer sur %1",
+ "right click: menu": "clic droit: menu"
 }
