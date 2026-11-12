@@ -184,7 +184,7 @@ PanelWindow {
                             return {
                                 title: g.label === "•" ? FiliI18n.tr("Unnumbered workspace") : FiliI18n.tr("Workspace %1", g.label),
                                 rows: g.wins.length ? g.wins.map(w => ["#" + TasksNumbers.numberOf(w.id) + " " + TasksLayout.appName(w.app_id), w.title ?? ""]) : [["", FiliI18n.tr("no window")]],
-                                hint: g.folded ? FiliI18n.tr("click: list of the windows") : ""
+                                hint: g.folded ? FiliI18n.tr("click: list of the windows · wheel: previous / next") : FiliI18n.tr("click: go there · wheel: previous / next")
                             };
                         }
                         onLeftClicked: {
@@ -193,6 +193,8 @@ PanelWindow {
                             else
                                 Niri.onOutput(win.modelData.name, "focus-workspace " + win.workspaceIdx(grp.modelData.id));
                         }
+                        onWheelUp: Niri.onOutput(win.modelData.name, "focus-workspace-up")
+                        onWheelDown: Niri.onOutput(win.modelData.name, "focus-workspace-down")
                     }
                 }
                 Repeater {

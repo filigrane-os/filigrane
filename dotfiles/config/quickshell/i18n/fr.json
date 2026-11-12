@@ -416,5 +416,6 @@
  "Off: the status bar at the bottom of the Filigrane apps (place, counts) is hidden. It still appears while it has something to say: an operation in progress, an error or a notice. An app can also be launched with --no-footer or --footer.": "Désactivé: la barre d'état au bas des applications Filigrane (lieu, compteurs) est masquée. Elle réapparaît tant qu'elle a quelque chose à dire: une opération en cours, une erreur ou un avis. Une application peut aussi se lancer avec --no-footer ou --footer.",
  "URGENT": "URGENT",
  "click: list of the windows": "clic: liste des fenêtres",
+ "click: list of the windows · wheel: previous / next": "clic: liste des fenêtres · molette: précédent / suivant",
  "click: go there · middle click: close": "clic: y aller · clic du milieu: fermer"
 }
