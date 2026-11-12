@@ -332,7 +332,7 @@ spawn-sh-at-startup "$HOME/.local/bin/fili-bar autostart"
 spawn-sh-at-startup "$HOME/.local/bin/fili-login start"
 // Reconnect the paired Bluetooth devices (keyboard, mouse, headset) that were already on before the login
 spawn-sh-at-startup "$HOME/.local/bin/fili-bt-autoconnect"
-// Auto lock (swayidle): delays in ~/.config/filigrane/power.toml, set in Settings > Power (default: lock after 5 min, screen off after 10 min, no auto suspend: a long S3 suspend on battery can lose the session, see hardware/mac-t2/README.md); caffeine in the bar
+// Auto lock (swayidle): delays in ~/.config/filigrane/power.toml, set in Settings > Power, one set plugged in ([idle]: lock after 5 min, screen off after 10 min) and one on battery ([battery]: 2 and 5 min); no auto suspend by default (a long S3 suspend on battery can lose the session, see hardware/mac-t2/README.md); the power module of the bar switches set when the cable changes; caffeine in the bar
 spawn-sh-at-startup "$HOME/.local/bin/bar-toggle idle start"
 // Lid: lock and screen off, suspend after 5 min with the lid closed (elogind ignores the lid), see ~/.local/bin/lid
 switch-events {

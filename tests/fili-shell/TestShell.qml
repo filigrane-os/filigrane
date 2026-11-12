@@ -1030,7 +1030,14 @@ ShellRoot {
                 ok(d.lockChoices.some(c => c.value === 0) && d.sleepChoices[0].value === 900, "fili-settings power: never and minutes", JSON.stringify(d.sleepChoices));
                 FiliTheme.ran = [];
                 d.apply(d.lock, 120, 1800);
-                ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set 300 120 1800" && d.screenOff === 120 && d.sleep === 1800, "fili-settings power: bar-toggle idle set", JSON.stringify(FiliTheme.ran));
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set ac 300 120 1800" && d.screenOff === 120 && d.sleep === 1800, "fili-settings power: bar-toggle idle set ac", JSON.stringify(FiliTheme.ran));
+                // Two sets of delays: without a battery the source choice is hidden; on battery a choice writes the battery set
+                ok(d.source === "ac" && !d.hasBattery && d.sourceChoices.length === 2, "fili-settings power: plugged in by default, no battery: no source choice");
+                d.hasBattery = true;
+                d.source = "battery";
+                FiliTheme.ran = [];
+                d.apply(60, 120, 0);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set battery 60 120 0", "fili-settings power: bar-toggle idle set battery", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
             // fili-settings login: items read from login.toml, switch, remove and add go through fili-login

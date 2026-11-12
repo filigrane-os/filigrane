@@ -44,6 +44,13 @@ ColumnLayout {
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("The look of the system and its applications: font, accent colour, and how windows are drawn (header and footer).")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
 
     PanelSection { divided: false; text: FiliI18n.tr("SYSTEM FONT") }
     PanelSelect {

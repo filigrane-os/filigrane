@@ -58,14 +58,21 @@ ColumnLayout {
         FiliTheme.run(cli + " move " + name + " " + other + " " + (last + 10));
     }
 
-    // Edge, background and screens (fili-bar edge, background, screens; the same block is the right click panel of the bar)
-    BarPlacement { Layout.fillWidth: true; target: "bar" }
-    PanelSection { text: FiliI18n.tr("MODULES") }
     Text {
         text: "Passerelle"
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("Passerelle is the bar of the screen: the menu of the active application, the clock, the battery, the network... each one a module. Choose where it sits and how it looks, then which modules it shows.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
+    // Edge, background and screens (fili-bar edge, background, screens; the same block is the right click panel of the bar)
+    BarPlacement { Layout.fillWidth: true; target: "bar" }
+    PanelSection { text: FiliI18n.tr("MODULES") }
     Text {
         Layout.fillWidth: true
         wrapMode: Text.WordWrap

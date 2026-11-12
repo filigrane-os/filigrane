@@ -345,7 +345,6 @@
  "Power": "Énergie",
  "Never": "Jamais",
  "%1 min": "%1 min",
- "Time without activity before each step. Caffeine, in the power panel, pauses them all.": "Temps sans activité avant chaque étape. La caféine, dans le panneau d'alimentation, les suspend toutes.",
  "LOCK AFTER": "VERROUILLER APRÈS",
  "TURN THE SCREEN OFF AFTER": "ÉTEINDRE L'ÉCRAN APRÈS",
  "SLEEP AFTER": "METTRE EN VEILLE APRÈS",
@@ -434,5 +433,15 @@
  "POSITION": "POSITION",
  "BACKGROUND": "FOND",
  "QUAI POSITION": "POSITION DU QUAI",
- "BEHAVIOUR": "COMPORTEMENT"
+ "BEHAVIOUR": "COMPORTEMENT",
+ "The screens plugged in: where each one sits next to the others, its resolution, scale and rotation. Drag a screen in the drawing to move it.": "Les écrans branchés: la place de chacun par rapport aux autres, sa résolution, son échelle et sa rotation. Faites glisser un écran dans le dessin pour le déplacer.",
+ "A workspace is a virtual desktop: a set of windows you switch to as a whole. Choose how they are numbered across your screens and which workspace each application opens on.": "Un espace de travail est un bureau virtuel: un ensemble de fenêtres où l'on passe d'un bloc. Choisissez comment ils sont numérotés entre vos écrans et sur quel espace chaque application s'ouvre.",
+ "The look of the system and its applications: font, accent colour, and how windows are drawn (header and footer).": "L'aspect du système et de ses applications: police, couleur d'accent et dessin des fenêtres (en-tête et pied de page).",
+ "Casier is the file manager (fili-file). Choose how it starts.": "Casier est le gestionnaire de fichiers (fili-file). Choisissez comment il démarre.",
+ "Passerelle is the bar of the screen: the menu of the active application, the clock, the battery, the network... each one a module. Choose where it sits and how it looks, then which modules it shows.": "Passerelle est la barre de l'écran: le menu de l'application active, l'horloge, la batterie, le réseau... chacun est un module. Choisissez où elle se place et son aspect, puis les modules qu'elle affiche.",
+ "What the computer does when you stop using it: lock, turn the screen off, sleep. Each step waits for its own time without activity; plugged in and on battery have their own times, and the right ones apply by themselves when you plug or unplug. Caffeine, in the power panel, pauses them all.": "Ce que fait l'ordinateur quand vous ne l'utilisez plus: verrouiller, éteindre l'écran, se mettre en veille. Chaque étape attend son propre délai sans activité; sur secteur et sur batterie les délais sont distincts et les bons s'appliquent seuls quand on branche ou débranche. La caféine, dans le panneau d'alimentation, les suspend tous.",
+ "POWER SOURCE": "ALIMENTATION",
+ "Plugged in": "Sur secteur",
+ "These delays are in use now.": "Ces délais sont ceux en cours.",
+ "These delays apply when the power source changes.": "Ces délais s'appliquent au changement d'alimentation."
 }

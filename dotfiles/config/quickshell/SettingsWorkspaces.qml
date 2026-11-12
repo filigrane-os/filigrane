@@ -194,6 +194,13 @@ ColumnLayout {
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("A workspace is a virtual desktop: a set of windows you switch to as a whole. Choose how they are numbered across your screens and which workspace each application opens on.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
 
     // Numbering across the displays
     PanelSection { text: FiliI18n.tr("NUMBERING") }

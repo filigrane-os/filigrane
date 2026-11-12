@@ -331,6 +331,13 @@ ColumnLayout {
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("The screens plugged in: where each one sits next to the others, its resolution, scale and rotation. Drag a screen in the drawing to move it.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
 
     // Canvas: outputs that are on, to scale; drag to move
     Item {
