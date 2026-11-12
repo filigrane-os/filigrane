@@ -1,6 +1,6 @@
 # Settings of the fili-bar (the bar of the desktop). Everything is optional: commented lines show the defaults.
 # The bar re-reads this file as soon as it changes. The same choices are in the right click menu of the bar and in
-# Settings > Bar, and `fili-bar` (edge, screens, enable, disable, move) writes them here.
+# Settings > Bar, and `fili-bar` (edge, screens, background, taskbar, enable, disable, move) writes them here.
 # Your own choices belong to the personal layer: users/<login>/dotfiles/config/filigrane/fili-bar.toml replaces this file.
 
 [bar]
@@ -8,6 +8,7 @@
 # On the left and the right the bar is a narrow column: modules stack, the application menu folds into one button,
 # the clock shows the time over the date.
 # edge = "top"
+# background = "solid"    # "solid" (default) | "translucent" | "transparent"
 
 # Screens that get a bar: "all", or a list of output names (see `niri msg outputs`, or Settings > Display).
 # Example: screens = ["eDP-1"] (laptop screen only), screens = ["DP-6", "DP-7"].
@@ -39,3 +40,5 @@
 # enabled = true      # false: no taskbar
 # edge = "bottom"     # "bottom" or "top" (the edge of the fili-bar is never shared: the taskbar takes the other one)
 # screens = "all"     # "all", or a list of output names
+# autohide = false    # true: hidden until the pointer touches its edge, takes no room
+# background = "solid"  # "solid" | "translucent" | "transparent"

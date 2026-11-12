@@ -6,6 +6,8 @@ pragma Singleton
 //   enabled = true         # false: no taskbar
 //   edge = "bottom"        # "bottom" (default) | "top"; the edge of the fili-bar is never shared (the taskbar takes the other one)
 //   screens = "all"        # "all" (default) or a list of output names, like [bar] screens
+//   autohide = false       # true: hidden until the pointer touches the edge, takes no room
+//   background = "solid"   # "solid" (default) | "translucent" | "transparent"
 import QtQuick
 import Quickshell
 import qs
@@ -19,7 +21,12 @@ Singleton {
         const want = conf.edge === "top" ? "top" : "bottom";
         return want === FiliTheme.barEdge ? (want === "top" ? "bottom" : "top") : want;
     }
-    Binding { target: FiliTheme; property: "taskbarEdge"; value: taskbar.enabled ? taskbar.edge : "" }
+    // Hidden until the pointer touches its edge ([taskbar] autohide = true); it then takes no room: the windows use the whole screen
+    readonly property bool autohide: String(conf.autohide ?? "false") === "true"
+    // Background, like the fili-bar: "solid" (default) | "translucent" | "transparent"
+    readonly property string background: BarLayout.backgrounds[conf.background] !== undefined ? conf.background : "solid"
+    readonly property real alpha: BarLayout.backgrounds[taskbar.background]
+    Binding { target: FiliTheme; property: "taskbarEdge"; value: taskbar.enabled && !taskbar.autohide ? taskbar.edge : "" }
 
     // Screens that get a taskbar (a list that matches no connected screen gives all of them, like the fili-bar)
     readonly property var screens: {

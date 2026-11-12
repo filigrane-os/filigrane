@@ -939,6 +939,43 @@ ShellRoot {
                 ok(FiliTheme.ran[0].indexOf("fili-bar move appmenu right ") > 0, "fili-settings bar: switch sides", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // Quai (taskbar) and fili-bar settings: automatic hiding, background, the page that writes them through fili-bar
+            () => {
+                const tb = t.taskbar, so = tb.modelData.name;
+                ok(!TaskbarLayout.autohide && tb.shown && tb.implicitHeight === FiliTheme.taskbarHeight && BarLayout.alpha === 1 && TaskbarLayout.alpha === 1,
+                    "quai: by default always shown and solid", tb.implicitHeight + " " + BarLayout.alpha);
+                BarLayout.parsed = FiliTheme.parseToml('[bar]\nbackground = "translucent"\n[taskbar]\nautohide = true\nbackground = "transparent"\n');
+                ok(BarLayout.background === "translucent" && BarLayout.alpha > 0 && BarLayout.alpha < 1 && TaskbarLayout.background === "transparent" && TaskbarLayout.alpha === 0,
+                    "quai: backgrounds of the fili-bar and of the Quai", BarLayout.background + " " + TaskbarLayout.background);
+                ok(TaskbarLayout.autohide && !tb.shown && tb.implicitHeight === 2 && FiliTheme.taskbarEdge === "" && FiliTheme.barMargin("bottom") === 0,
+                    "quai: autohide -> a thin strip, no room taken", tb.implicitHeight + " " + FiliTheme.barMargin("bottom"));
+                Niri.setWindows({ 1: { id: 1, pid: 0, app_id: "foot", title: "a", workspace_id: 71 } });
+                Niri.workspaces = [{ id: 71, idx: 1, name: "1", output: so, is_active: true }];
+                TaskbarHint.begin();
+                ok(tb.shown && tb.implicitHeight === FiliTheme.taskbarHeight, "quai: autohide -> shown while the hint mode waits for a number");
+                TaskbarHint.cancel();
+                tb.openMenu(tb.contentItem, Niri.workspaces[0]);
+                ok(tb.shown, "quai: autohide -> shown while a menu is open");
+                tb.closeList();
+                Niri.setWindows({});
+                Niri.workspaces = [];
+                BarLayout.parsed = FiliTheme.parseToml('[taskbar]\nbackground = "bogus"\n');
+                ok(TaskbarLayout.background === "solid" && TaskbarLayout.alpha === 1 && !TaskbarLayout.autohide, "quai: an unknown background falls back to solid");
+                BarLayout.parsed = ({});
+                FiliSettings.show("bar");
+                const d = FiliSettings.loaded;
+                FiliTheme.ran = [];
+                t.find(d, "bar-background").picked("transparent");
+                t.find(d, "quai-background").picked("translucent");
+                t.find(d, "quai-edge").picked("top");
+                t.find(d, "quai-screens").picked("all");
+                t.find(d, "quai-autohide").toggled();
+                t.find(d, "quai-enabled").toggled();
+                const b = FiliTheme.bin + "/fili-bar";
+                ok(FiliTheme.ran.join("|") === [b + " background transparent", b + " taskbar background translucent", b + " taskbar edge top", b + " taskbar screens all", b + " taskbar autohide true", b + " taskbar enabled false"].join("|"),
+                    "fili-settings bar: background, Quai edge, background, screens, autohide and switch go through fili-bar", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings About: the card of Réglages (alias), aka fili-settings
             () => {
                 FiliSettings.show("about");

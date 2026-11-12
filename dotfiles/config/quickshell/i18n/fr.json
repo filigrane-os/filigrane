@@ -423,5 +423,12 @@
  "Move up": "Monter",
  "Move down": "Descendre",
  "Send to %1": "Envoyer sur %1",
- "right click: menu": "clic droit: menu"
+ "right click: menu": "clic droit: menu",
+ "BAR BACKGROUND": "FOND DE LA BARRE",
+ "QUAI (WINDOWS BY WORKSPACE)": "QUAI (FENÊTRES PAR WORKSPACE)",
+ "Show the Quai": "Afficher le Quai",
+ "Hide it until the pointer touches its edge": "Le cacher tant que le pointeur ne touche pas son bord",
+ "Solid": "Opaque",
+ "Translucent": "Translucide",
+ "Transparent": "Transparent"
 }

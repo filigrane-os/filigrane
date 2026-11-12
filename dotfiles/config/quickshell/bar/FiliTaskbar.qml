@@ -22,8 +22,21 @@ PanelWindow {
         left: true
         right: true
     }
-    implicitHeight: FiliTheme.taskbarHeight
-    color: FiliTheme.nuit
+    // Automatic hiding ([taskbar] autohide): a thin strip on the edge that takes no room; the pointer on it, the hint mode, a
+    // list or a menu open, or the moment after the pointer left (the timer) show the bar
+    readonly property bool autohide: TaskbarLayout.autohide
+    readonly property bool shown: !autohide || hinting || hov.hovered || leave.running || listWins.length > 0 || menuItems.length > 0
+    HoverHandler {
+        id: hov
+        onHoveredChanged: if (!hovered) leave.restart()
+    }
+    Timer {
+        id: leave
+        interval: 600
+    }
+    implicitHeight: shown ? FiliTheme.taskbarHeight : 2
+    exclusionMode: autohide ? ExclusionMode.Ignore : ExclusionMode.Auto
+    color: shown ? Qt.alpha(FiliTheme.nuit, TaskbarLayout.alpha) : FiliTheme.nuit3
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-taskbar"
     // Hint mode: the bar of the display that has the focus takes the keyboard until the digits are given
@@ -157,6 +170,7 @@ PanelWindow {
     Row {
         id: rowItem
         objectName: "taskbar-row"
+        visible: win.shown
         anchors { left: parent.left; leftMargin: FiliTheme.space1; top: parent.top; bottom: parent.bottom }
         spacing: 0
         // Workspaces of the screen (all of them, empty ones too): click goes there, wheel goes to the previous / next,

@@ -5,6 +5,9 @@
 # fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)
 # fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on (shows it without argument)
 # fili-bar screens [all|NAME...]      screens that get a bar: all, or output names (niri msg outputs)
+# fili-bar background [solid|translucent|transparent]   background of the fili-bar (shows it without argument)
+# fili-bar taskbar [KEY [VALUE...]]   the taskbar (Quai): enabled true|false, edge top|bottom, autohide true|false, background
+#                                     solid|translucent|transparent, screens all|NAME... (shows the settings without argument)
 # fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
 # fili-bar check DIR|NAME             check the manifest and the script of a module
 # fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
@@ -359,8 +362,51 @@ cmd_screens() {
     fi
     echo "screens: $*"
 }
+# Value of KEY in a section of fili-bar.toml, without quotes ("" when it is not set)
+secval() {
+    awk -v sec="$1" -v key="$2" '/^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); next }
+        cur && $0 ~ "^[ \t]*" key "[ \t]*=" { sub(/^[^=]*=[ \t]*/, ""); sub(/[ \t]*#.*$/, ""); gsub(/"/, ""); print; exit }' "$conf" 2>/dev/null
+}
+cmd_background() {
+    if [ -z "${1:-}" ]; then
+        echo "$(secval "[bar]" background)" | sed 's/^$/solid/'
+        return
+    fi
+    case "$1" in solid | translucent | transparent) ;; *) die "$(t 'Usage: fili-bar background solid|translucent|transparent')" ;; esac
+    setsec "[bar]" background "\"$1\""
+    echo "background: $1"
+}
+# The taskbar: [taskbar] of fili-bar.toml
+cmd_taskbar() {
+    if [ "$#" -eq 0 ]; then
+        for k in enabled edge autohide background screens; do
+            v="$(secval "[taskbar]" "$k")"
+            [ -n "$v" ] || case "$k" in enabled) v=true ;; edge) v=bottom ;; autohide) v=false ;; background) v=solid ;; *) v=all ;; esac
+            echo "$k = $v"
+        done
+        return
+    fi
+    key="$1"; shift
+    usage="$(t 'Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom, background solid|translucent|transparent, screens all|NAME...')"
+    case "$key" in
+        enabled | autohide) case "${1:-}" in true | false) setsec "[taskbar]" "$key" "$1" ;; *) die "$usage" ;; esac ;;
+        edge) case "${1:-}" in top | bottom) setsec "[taskbar]" edge "\"$1\"" ;; *) die "$usage" ;; esac ;;
+        background) case "${1:-}" in solid | translucent | transparent) setsec "[taskbar]" background "\"$1\"" ;; *) die "$usage" ;; esac ;;
+        screens)
+            [ "$#" -gt 0 ] || die "$usage"
+            for n in "$@"; do printf '%s' "$n" | grep -Eq '^[A-Za-z0-9._-]+$' || die "$usage"; done
+            if [ "$1" = all ]; then setsec "[taskbar]" screens '"all"'; else
+                list=""; for n in "$@"; do list="$list${list:+, }\"$n\""; done
+                setsec "[taskbar]" screens "[$list]"
+            fi ;;
+        *) die "$usage" ;;
+    esac
+    echo "taskbar $key: $*"
+}
 case "${1:-list}" in
     list) cmd_list ;;
+    background) cmd_background "${2:-}" ;;
+    taskbar) shift; cmd_taskbar "$@" ;;
     enable) cmd_enable "${2:-}" "" ;;
     disable) cmd_enable "${2:-}" false ;;
     move) cmd_move "${2:-}" "${3:-}" "${4:-}" ;;
@@ -373,6 +419,6 @@ case "${1:-list}" in
     setup) cmd_setup "${2:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
-    -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
-    *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+    -h | --help | help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

@@ -22,7 +22,7 @@ PanelWindow {
     }
     implicitHeight: vertical ? 0 : FiliTheme.barHeight
     implicitWidth: vertical ? FiliTheme.barWidth : 0
-    color: FiliTheme.nuit
+    color: Qt.alpha(FiliTheme.nuit, BarLayout.alpha)
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
 

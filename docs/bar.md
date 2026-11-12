@@ -78,7 +78,11 @@ Settings, all optional, in `fili-bar.toml`:
 enabled = true     # false: no taskbar
 edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the taskbar takes the other one
 screens = "all"    # "all" or a list of output names, like [bar] screens
+autohide = false   # true: hidden until the pointer touches its edge; it then takes no room (windows use the whole screen)
+background = "solid"  # "solid" (default) | "translucent" | "transparent"
 ```
+
+With `autohide` only a 2 px line stays on the edge; the pointer on it, the number mode (Mod+Alt), an open menu or list, and the half second after the pointer left show the bar. `background` is the same choice as `[bar] background` for the fili-bar. All of it is in **Settings > Bar** (the fili-bar background, then the Quai: shown, edge, hiding, background, screens), and from the command line: `fili-bar background transparent`, `fili-bar taskbar autohide true`, `fili-bar taskbar` (shows the settings).
 
 Its height is `taskbar_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
 
@@ -99,7 +103,8 @@ To change the defaults, create `~/.config/filigrane/fili-bar.toml` (re-read as s
 
 ```toml
 [bar]
-edge = "top"         # "top" (default), "bottom", "left" or "right": on the left and the right the bar is a narrow column
+edge = "top"         # "top" (default), "bottom", "left" or "right"
+background = "solid"  # "solid" (default) | "translucent" | "transparent": on the left and the right the bar is a narrow column
 screens = "all"      # "all" (default) or a list of output names, e.g. ["eDP-1", "DP-6"]
 
 [modules]

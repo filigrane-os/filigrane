@@ -50,6 +50,10 @@ Singleton {
     // Edge of the screen: [bar] edge = "top" (default) | "bottom" | "left" | "right"
     readonly property string edge: ["top", "bottom", "left", "right"].indexOf(parsed.bar?.edge) >= 0 ? parsed.bar.edge : "top"
     Binding { target: FiliTheme; property: "barEdge"; value: layout.edge }
+    // Background of the bar: [bar] background = "solid" (default) | "translucent" | "transparent" (the taskbar has the same choice)
+    readonly property var backgrounds: ({ solid: 1, translucent: 0.7, transparent: 0 })
+    readonly property string background: layout.backgrounds[parsed.bar?.background] !== undefined ? parsed.bar.background : "solid"
+    readonly property real alpha: layout.backgrounds[layout.background]
     // Screens that get a bar: [bar] screens = "all" (default) or a list of output names. A list that matches no connected
     // screen gives a bar on every screen, so the bar never disappears (a screen unplugged, a name mistyped).
     readonly property var wantedScreens: {
