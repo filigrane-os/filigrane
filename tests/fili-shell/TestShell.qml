@@ -814,6 +814,8 @@ ShellRoot {
                 ok(!g3[0].folded && g3[1].folded && g3[1].count === 1, "taskbar: level 3 folds the workspaces that are not shown", JSON.stringify(g3.map(g => g.folded)));
                 ok(TaskbarLayout.nextLevel(0, 100, 150, []) === 1 && TaskbarLayout.nextLevel(3, 100, 150, []) === 3 && TaskbarLayout.nextLevel(1, 300, 150, [100]) === 0 && TaskbarLayout.nextLevel(1, 120, 150, [100]) === 2 && TaskbarLayout.nextLevel(1, 200, 150, [190]) === 1,
                     "taskbar: squeeze goes up while the row does not fit, back down when the level below fits, stops at the last level");
+                ok(TaskbarLayout.nextLevel(3, 1500, 300, []) === 2 && TaskbarLayout.nextLevel(3, 1500, 300, [1600, 1600, 1600]) === 3 && TaskbarLayout.nextLevel(3, 1500, 1495, []) === 3 && TaskbarLayout.nextLevel(0, 1500, 300, []) === 0,
+                    "taskbar: stale widths forgotten -> try the level below when there is room, hold when the known width does not fit");
                 ok(TaskbarLayout.edge === "bottom" && FiliTheme.taskbarEdge === "bottom" && FiliTheme.barMargin("bottom") === FiliTheme.taskbarHeight && FiliTheme.barMargin("top") === FiliTheme.barThickness,
                     "taskbar: bottom edge, its height added to the margin of the full-screen windows", TaskbarLayout.edge + " " + FiliTheme.barMargin("bottom"));
                 // The bar itself

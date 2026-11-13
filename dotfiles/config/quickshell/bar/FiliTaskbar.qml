@@ -92,6 +92,7 @@ PanelWindow {
     // Squeeze level and the width of the row measured at each level (tests drive the level by hand unless they ask for the measure)
     property int level: 0
     property var seen: []
+    property string seenStamp: ""
     property bool measure: !FiliTheme.testing
     // Hint mode: one icon per window, no title, nothing merged or folded (the numbers name the windows)
     readonly property var groups: TaskbarLayout.groups(modelData.name, Niri.workspaces, Niri.windows, Niri.focusedId, TaskbarHint.active ? Math.min(level, 1) : level)
@@ -135,6 +136,13 @@ PanelWindow {
         }
         const avail = (vertical ? height : width) - 2 * FiliTheme.space1;
         let row = vertical ? rowItem.implicitHeight : rowItem.implicitWidth;
+        // Widths measured at the other levels belong to the windows of that time: forget them when the windows change
+        // (moved from or to another screen, opened, closed), or the bar would stay squeezed with room to spare
+        const stamp = groups.map(g => g.id + ":" + g.wins.map(w => w.id).join(",")).join("|");
+        if (stamp !== seenStamp) {
+            seenStamp = stamp;
+            seen = [];
+        }
         const s = seen.slice();
         s[level] = row;
         if (level === 0 && !vertical) {

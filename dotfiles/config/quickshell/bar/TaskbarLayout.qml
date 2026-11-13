@@ -48,7 +48,12 @@ Singleton {
     // and a count. Click on a merged icon or a folded workspace opens the list of its windows.
     readonly property int maxLevel: 3
     function nextLevel(level, avail, row, seen) {
-        return BarLayout.nextLevel(level, avail, row, seen, maxLevel);
+        const next = BarLayout.nextLevel(level, avail, row, seen, maxLevel);
+        // Width of the lower level unknown (forgotten when the windows changed): try it when there is room at all; if it does
+        // not fit, the measure taken there sends the bar back up and is kept until the windows change again
+        if (next === level && level > 0 && seen[level - 1] === undefined && row + 16 <= avail)
+            return level - 1;
+        return next;
     }
 
     // Place of a window in its workspace: niri's columns left to right, then the tiles of a column, floating ones last
