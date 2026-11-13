@@ -26,6 +26,23 @@ ShellRoot {
     property var refreshed: []
     readonly property var bar: bars.instances[0] ?? null
     Component { id: alertComp; AlertModule {} }
+    // Stands in for a request of polkit (an AuthFlow) in the fili-polkit check
+    Component {
+        id: polkitFlowComp
+        QtObject {
+            property string message: "Change the firewall"
+            property bool isResponseRequired: true
+            property string inputPrompt: "Password:"
+            property bool failed: false
+            property string supplementaryMessage: ""
+            property bool supplementaryIsError: false
+            property bool responseVisible: false
+            property var selectedIdentity: ({ displayName: "thomas" })
+            property string got: ""
+            function submit(v) { got = v; }
+            function cancelAuthenticationRequest() { got = "cancelled"; }
+        }
+    }
     Component { id: mailComp; MailModule {} }
     readonly property string bin: FiliTheme.bin
 
@@ -176,7 +193,7 @@ ShellRoot {
             // ───── fili-bar: one click per module ─────
             () => {
                 expectClick("logo", L, "/menu");
-                expectClick("logo", R, "foot");
+                expectClick("logo", R, "fili-terminal");
                 expectClick("rec", L, "bar-toggle rec");
                 expectClick("air", L, "bar-toggle air");
                 expectClick("update", L, "bar-update run");
@@ -1050,6 +1067,67 @@ ShellRoot {
                 d.apply(60, 120, 0);
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/bar-toggle idle set battery 60 120 0", "fili-settings power: bar-toggle idle set battery", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
+            },
+            // fili-settings firewall: settings read from firewall.toml, every change goes through fili-firewall
+            () => {
+                FiliSettings.show("firewall");
+                const d = FiliSettings.loaded;
+                d.load("");
+                ok(d.enabled && d.presets.ping && d.presets.mdns && d.presets.localsend && d.ports.length === 0, "fili-settings firewall: defaults without a file", JSON.stringify(d.presets));
+                d.load('enabled = true\nping = false\nmdns = true\nlocalsend = true\nports = ["tcp:8080:lan", "udp:5000:any"]\n');
+                ok(d.enabled && d.presets.ping === false && d.presets.mdns && d.ports.length === 2 && d.ports[0].port === "8080" && d.ports[1].scope === "any", "fili-settings firewall: settings read from the file", JSON.stringify(d.ports));
+                FiliTheme.ran = [];
+                d.setEnabled(false);
+                d.setPreset("ping", true);
+                d.setPreset("mdns", false);
+                ok(FiliTheme.ran.join("|") === [FiliTheme.bin + "/fili-firewall off", FiliTheme.bin + "/fili-firewall allow ping", FiliTheme.bin + "/fili-firewall block mdns"].join("|"), "fili-settings firewall: switch and presets run fili-firewall", JSON.stringify(FiliTheme.ran));
+                d.newPort = "abc";
+                ok(!d.canAdd, "fili-settings firewall: a port must be a number");
+                d.newPort = "70000";
+                ok(!d.canAdd, "fili-settings firewall: a port above 65535 is refused");
+                d.newPort = "5000";
+                d.newProto = "udp";
+                d.newScope = "any";
+                FiliTheme.ran = [];
+                d.add();
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-firewall open udp 5000 any" && d.newPort === "", "fili-settings firewall: open runs fili-firewall, form cleared", JSON.stringify(FiliTheme.ran));
+                FiliTheme.ran = [];
+                d.remove(d.ports[0]);
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-firewall close tcp 8080", "fili-settings firewall: remove closes the port", JSON.stringify(FiliTheme.ran));
+                ok(d.scopeLabel("lan") === "Local network" && d.scopeLabel("any") === "Anywhere", "fili-settings firewall: scope in words");
+                // A name says why a port is open: read from the file, shown, quoted for the shell, refused when it breaks the file
+                d.load('ports = ["tcp:3000:lan:Dev server: API", "udp:5000:any"]\n');
+                ok(d.ports[0].name === "Dev server: API" && d.ports[1].name === "" && d.portLabel(d.ports[0]) === "TCP 3000", "fili-settings firewall: the name of a port is read from the file", JSON.stringify(d.ports));
+                d.newPort = "3000";
+                d.newName = "It's mine";
+                FiliTheme.ran = [];
+                d.add();
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-firewall open udp 3000 any 'It'\\''s mine'" && d.newName === "", "fili-settings firewall: open passes the name, quoted", JSON.stringify(FiliTheme.ran));
+                d.newPort = "3000";
+                for (const bad of ["a,b", "a#b", 'a"b', "a\\b", "a[b", "x".repeat(61)]) {
+                    d.newName = bad;
+                    ok(d.nameBad && !d.canAdd, "fili-settings firewall: name refused: " + bad.slice(0, 8));
+                }
+                d.newName = "";
+                FiliSettings.close();
+            },
+            // fili-polkit: the authentication window follows the request of polkit (a fake request stands in for the agent)
+            () => {
+                ok(!FiliPolkit.open, "fili-polkit: no window without a request");
+                const f = polkitFlowComp.createObject(null, {});
+                FiliPolkit.testFlow = f;
+                ok(FiliPolkit.open && FiliPolkit.account === "thomas", "fili-polkit: a request opens the window, the account is said", FiliPolkit.account);
+                FiliPolkit.submit("secret");
+                ok(f.got === "secret", "fili-polkit: the answer goes to polkit", f.got);
+                f.isResponseRequired = false;
+                f.got = "";
+                FiliPolkit.submit("ignored");
+                ok(f.got === "", "fili-polkit: nothing is sent when PAM waits for something else (fingerprint)");
+                FiliPolkit.cancel();
+                ok(f.got === "cancelled", "fili-polkit: cancel refuses the request", f.got);
+                FiliPolkit.testFlow = null;
+                ok(!FiliPolkit.open, "fili-polkit: the window closes with the request");
+                f.destroy();
             },
             // fili-settings login: items read from login.toml, switch, remove and add go through fili-login
             () => {

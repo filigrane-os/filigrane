@@ -30,6 +30,7 @@ ShellRoot {
         FiliChatAbout.open;
         FiliPlacement.columns;
         FiliAudioSwitch.open;
+        FiliPolkit.open;
         FiliShell.fifo;
         FiliHotkeys.startup();
     }

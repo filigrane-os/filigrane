@@ -1,0 +1,99 @@
+#!/bin/sh
+# The firewall (the "Firewall" page of Settings). Usage:
+# fili-firewall list                    the settings, one per line: `enabled on|off`, `NAME on|off` (a preset),
+#                                       `port PROTO:PORT:SCOPE[:NAME]` (an open port)
+# fili-firewall status                  what the kernel enforces now: `v4 DROP`, `v6 DROP` (policy of the incoming chain)
+# fili-firewall on | off                filter incoming connections, or not at all
+# fili-firewall allow NAME | block NAME     a preset: ping, mdns (Chromecast discovery), localsend (file reception)
+# fili-firewall open PROTO PORT [lan|any [NAME]]   open a port (tcp or udp; lan = the local network only, the default);
+#                                       NAME says why (no quote, backslash, comma, hash or bracket)
+# fili-firewall close PROTO PORT        close a port opened with `open`
+# fili-firewall apply                   load the settings again (after editing the file by hand)
+# The settings live in ~/.config/filigrane/firewall.toml (when that file is a link to a user layer, the file of the layer
+# is edited); Settings re-reads it as soon as it changes. Every change is checked and loaded at once by
+# fili-firewall-apply, the only thing run as root, through polkit (pkexec): the authentication window of the fili-shell
+# asks for the password (or a fingerprint) and remembers it a few minutes; when the rules are refused, or the
+# authentication is cancelled, the file is left as it was. Incoming connections are refused by default, outgoing ones are free.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/firewall.toml"
+helper="${FILI_FIREWALL_APPLY:-/usr/local/bin/fili-firewall-apply}"
+# FILI_FIREWALL_SUDO: what runs the helper as root (tests replace it)
+run_root() { if [ "$(id -u)" = 0 ]; then "$@"; else ${FILI_FIREWALL_SUDO:-pkexec} "$@"; fi; }
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+[ -x "$helper" ] || die "$(t 'fili-firewall-apply is not installed (run ./bootstrap.sh)')"
+
+# The settings in canonical form (defaults for what the file does not say)
+current() {
+    if [ -r "$conf" ]; then "$helper" normalize < "$conf"; else "$helper" normalize < /dev/null; fi
+}
+# Writes the canonical settings read on the standard input: first loaded (the helper checks everything), then saved
+save() {
+    new="$(cat)"
+    [ -n "$new" ] || exit 1
+    printf '%s\n' "$new" | "$helper" normalize > /dev/null || exit 1
+    printf '%s\n' "$new" | run_root "$helper" apply || die "$(t 'The firewall refused these settings: nothing changed.')"
+    real="$(readlink -f "$conf" 2> /dev/null || printf '%s' "$conf")"
+    mkdir -p "$(dirname "$real")"
+    printf '%s\n' "$new" > "$real"
+}
+# Value of a key in the canonical text
+keyval() { current | sed -n "s/^$1 = //p"; }
+# Canonical text with one line replaced
+with_key() { current | VALUE="$2" awk -v k="$1" 'index($0, k " = ") == 1 { print k " = " ENVIRON["VALUE"]; next } 1'; }
+valid_preset() { case "$1" in ping | mdns | localsend) return 0 ;; *) return 1 ;; esac; }
+onoff() { [ "$1" = true ] && echo on || echo off; }
+# Ports of the canonical text, one per line: proto:port:scope
+port_lines() { keyval ports | grep -o '"[^"]*"' | tr -d '"'; }
+# New `ports = [...]` value from the lines on the standard input
+port_value() { printf '['; awk 'length { printf "%s\"%s\"", (n++ ? ", " : ""), $0 }'; printf ']'; }
+valid_proto() { case "$1" in tcp | udp) return 0 ;; *) return 1 ;; esac; }
+valid_port() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; [ "$1" -ge 1 ] && [ "$1" -le 65535 ]; }
+
+case "${1:-}" in
+    list)
+        printf 'enabled %s\n' "$(onoff "$(keyval enabled)")"
+        for p in ping mdns localsend; do printf '%s %s\n' "$p" "$(onoff "$(keyval "$p")")"; done
+        port_lines | sed 's/^/port /'
+        ;;
+    status)
+        run_root "$helper" status || exit 1
+        ;;
+    on | off)
+        [ "$1" = on ] && v=true || v=false
+        with_key enabled "$v" | save
+        ;;
+    allow | block)
+        valid_preset "${2:-}" || die "$(t 'Unknown preset: %s (ping, mdns, localsend)' "${2:-}")"
+        [ "$1" = allow ] && v=true || v=false
+        with_key "$2" "$v" | save
+        ;;
+    open)
+        valid_proto "${2:-}" || die "$(t 'The protocol is tcp or udp.')"
+        valid_port "${3:-}" || die "$(t 'The port is a number from 1 to 65535.')"
+        scope="${4:-lan}"
+        case "$scope" in lan | any) ;; *) die "$(t 'The scope is lan or any.')" ;; esac
+        proto="$2"; port="$3"; name=""
+        if [ $# -gt 4 ]; then shift 4; name="$*"; fi
+        # An existing entry for this protocol and port is replaced (its scope and its name change)
+        list="$( { port_lines | grep -v "^$proto:$port:"; echo "$proto:$port:$scope${name:+:$name}"; } | sort -s -t: -k2,2n -k1,1 -u)"
+        with_key ports "$(printf '%s\n' "$list" | port_value)" | save
+        ;;
+    close)
+        valid_proto "${2:-}" || die "$(t 'The protocol is tcp or udp.')"
+        valid_port "${3:-}" || die "$(t 'The port is a number from 1 to 65535.')"
+        port_lines | grep -q "^$2:$3:" || die "$(t 'This port is not open: %s' "$2:$3")"
+        with_key ports "$(port_lines | grep -v "^$2:$3:" | port_value)" | save
+        ;;
+    apply)
+        current | save
+        ;;
+    *)
+        sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
+        exit 1
+        ;;
+esac

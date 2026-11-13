@@ -1,0 +1,6 @@
+# Firewall (Settings > Firewall, `fili-firewall`). Incoming connections are refused unless allowed here.
+enabled = true
+ping = true
+mdns = true
+localsend = true
+ports = []

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!-- Firewall settings (Settings > Firewall, `fili-firewall`): the helper that checks the settings and loads the rules.
+     An administrator is asked for a password (or a fingerprint, whatever PAM offers) by the authentication window of
+     the fili-shell; the answer is remembered for a few minutes, so several changes in a row ask once. -->
+<policyconfig>
+  <vendor>Filigrane</vendor>
+  <vendor_url>https://github.com/filigrane-os</vendor_url>
+  <action id="org.filigrane.firewall.apply">
+    <description>Change the firewall</description>
+    <description xml:lang="fr">Modifier le pare-feu</description>
+    <message>Authentication is required to change the firewall</message>
+    <message xml:lang="fr">Une authentification est nécessaire pour modifier le pare-feu</message>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/bin/fili-firewall-apply</annotate>
+  </action>
+</policyconfig>
