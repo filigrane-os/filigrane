@@ -93,6 +93,8 @@ pub mod qobject {
         #[qproperty(QString, input, READ, NOTIFY = changed)]
         #[qproperty(QString, output, READ, NOTIFY = changed)]
         #[qproperty(bool, mix, READ, NOTIFY = changed)]
+        // "opus", "mp3" or "wav": the format the next recording is saved in
+        #[qproperty(QString, format, READ, NOTIFY = changed)]
         #[qproperty(QString, dir, READ, NOTIFY = changed)]
         // Result of the last action: where the file went, or the error
         #[qproperty(QString, message, READ, NOTIFY = changed)]
@@ -141,6 +143,9 @@ pub mod qobject {
         fn sources(self: &Cassette) -> QString;
         #[qinvokable]
         fn trash(self: Pin<&mut Cassette>, path: &QString);
+        // Gives a recording another name (the extension stays); returns the new path, empty when it failed (see message)
+        #[qinvokable]
+        fn rename(self: Pin<&mut Cassette>, path: &QString, name: &QString) -> QString;
         #[qinvokable]
         #[cxx_name = "openFolder"]
         fn open_folder(self: &Cassette);
@@ -162,7 +167,7 @@ use std::{path::PathBuf, pin::Pin};
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::QString;
 
-use crate::{i18n, library, player::Player, recorder, theme, window};
+use crate::{codec, i18n, library, player::Player, recorder, theme, window};
 
 fn home() -> String {
     std::env::var("HOME").unwrap_or_default()
@@ -388,11 +393,14 @@ pub struct CassetteRust {
     input: QString,
     output: QString,
     mix: bool,
+    format: QString,
     dir: QString,
     message: QString,
     failed: bool,
     entries: Vec<library::Entry>,
     player: Option<Player>,
+    // Counts the files asked to play: a recording that is still decoding is dropped when another one was asked for
+    play_serial: u64,
 }
 
 impl Default for CassetteRust {
@@ -412,11 +420,13 @@ impl Default for CassetteRust {
             input: QString::from("default"),
             output: QString::from("default"),
             mix: true,
+            format: QString::from("opus"),
             dir: QString::default(),
             message: QString::default(),
             failed: false,
             entries: Vec::new(),
             player: None,
+            play_serial: 0,
         }
     }
 }
@@ -444,12 +454,15 @@ impl qobject::Cassette {
         let (input, output) =
             session.as_ref().map_or((set.input.clone(), set.output.clone()), |s| (s.input.clone(), s.output.clone()));
         let dir = set.dir.display().to_string();
+        let format =
+            session.as_ref().filter(|s| !s.format.is_empty()).map_or(set.format.name().to_string(), |s| s.format.clone());
         let same = self.recording == recording
             && self.saving == saving
             && self.rec_start == start
             && self.input.to_string() == input
             && self.output.to_string() == output
             && self.mix == set.mix
+            && self.format.to_string() == format
             && self.dir.to_string() == dir;
         if !same {
             let mut me = self.as_mut().rust_mut();
@@ -459,6 +472,7 @@ impl qobject::Cassette {
             me.input = QString::from(&input);
             me.output = QString::from(&output);
             me.mix = set.mix;
+            me.format = QString::from(&format);
             me.dir = QString::from(&dir);
         }
         !same
@@ -525,12 +539,46 @@ impl qobject::Cassette {
     }
 
     pub fn play(mut self: Pin<&mut Self>, path: &QString) {
-        let path = path.to_string();
-        let result = self.as_mut().rust_mut().player().play(std::path::Path::new(&path), 0.0);
-        if let Err(e) = result {
+        let path = PathBuf::from(path.to_string());
+        let serial = self.play_serial + 1;
+        self.as_mut().rust_mut().play_serial = serial;
+        if codec::Format::from_path(&path) == Some(codec::Format::Wav) {
+            self.start_playing(&path, Ok(path.clone()));
+            return;
+        }
+        // Opus and MP3 are decoded once into a cache of WAV files: a few seconds for an hour of sound, off the interface thread
+        {
             let mut me = self.as_mut().rust_mut();
-            me.message = QString::from(&e);
-            me.failed = true;
+            me.message = QString::from(i18n::tr("Preparing the recording…"));
+            me.failed = false;
+        }
+        self.as_mut().changed();
+        let qt = self.qt_thread();
+        std::thread::spawn(move || {
+            let wav = codec::playable(&path);
+            let _ = qt.queue(move |mut f| {
+                if f.play_serial == serial {
+                    f.as_mut().start_playing(&path, wav);
+                }
+            });
+        });
+    }
+
+    // Starts the player on a recording whose WAV file is ready (or says why it is not)
+    fn start_playing(mut self: Pin<&mut Self>, label: &std::path::Path, wav: Result<PathBuf, String>) {
+        let result = wav.and_then(|w| self.as_mut().rust_mut().player().play_with(label, &w, 0.0));
+        {
+            let mut me = self.as_mut().rust_mut();
+            match result {
+                Ok(()) => {
+                    me.message = QString::default();
+                    me.failed = false;
+                }
+                Err(e) => {
+                    me.message = QString::from(&e);
+                    me.failed = true;
+                }
+            }
         }
         self.as_mut().tick();
         self.as_mut().changed();
@@ -646,6 +694,7 @@ impl qobject::Cassette {
                 "input" => me.input = QString::from(&value),
                 "output" => me.output = QString::from(&value),
                 "mode" => me.mix = value != "separate",
+                "format" => me.format = QString::from(&value),
                 _ => {}
             }
             self.as_mut().changed();
@@ -671,6 +720,27 @@ impl qobject::Cassette {
             .is_ok_and(|s| s.success());
         self.as_mut()
             .report(if ok { Ok(()) } else { Err(i18n::tr("The recording could not be moved to the trash").to_string()) }, false);
+    }
+
+    pub fn rename(mut self: Pin<&mut Self>, path: &QString, name: &QString) -> QString {
+        let path = path.to_string();
+        // A file that plays is released first (its decoded copy in the cache stays valid for the old path only)
+        if self.current.to_string() == path {
+            self.as_mut().stop_play();
+        }
+        let result = library::rename(std::path::Path::new(&path), &name.to_string());
+        let (answer, err) = match &result {
+            Ok(p) => (p.display().to_string(), None),
+            Err(e) => (String::new(), Some(i18n::tr(e).to_string())),
+        };
+        {
+            let mut me = self.as_mut().rust_mut();
+            me.failed = err.is_some();
+            me.message = QString::from(&err.unwrap_or_default());
+        }
+        self.as_mut().refresh();
+        self.as_mut().changed();
+        QString::from(&answer)
     }
 
     pub fn open_folder(&self) {

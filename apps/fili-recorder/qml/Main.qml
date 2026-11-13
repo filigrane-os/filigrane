@@ -38,15 +38,43 @@ ApplicationWindow {
     property string kind: ""
     property bool searchOpen: false
     property bool aboutOpen: false
+    // Path of the recording whose name is being edited in the list, and the path to select once the list has changed
+    property string renaming: ""
+    property string pendingSelect: ""
     property bool showHeader: Fili.header()
     property bool showFooter: Fili.footer()
     property bool windowButtons: Fili.windowButtons()
-    readonly property bool typing: searchInput.activeFocus
+    readonly property bool typing: searchInput.activeFocus || renaming !== ""
     readonly property bool headerShown: showHeader || searchOpen || searchInput.text !== ""
     readonly property bool footerShown: showFooter || cas.message !== "" || cas.recording
     property var sources: ({ inputs: [], outputs: [], default_input: "", default_output: "" })
 
     readonly property var all: JSON.parse(cas.recordings)
+    readonly property var formats: [
+        { label: Fili.tr("Opus · small, best for voice"), value: "opus", hint: Fili.tr("About 29 MB per hour") },
+        { label: Fili.tr("MP3 · plays everywhere"), value: "mp3", hint: Fili.tr("About 43 MB per hour") },
+        { label: Fili.tr("WAV · lossless, large"), value: "wav", hint: Fili.tr("About 690 MB per hour") }
+    ]
+    function startRename() {
+        if (selectedItem)
+            renaming = selectedItem.path;
+    }
+    function commitRename(path, name) {
+        renaming = "";
+        const moved = cas.rename(path, name);
+        if (moved !== "")
+            pendingSelect = moved;
+        list.forceActiveFocus();
+    }
+    // The list changed (a rename, a new recording): the renamed one stays selected
+    onItemsChanged: {
+        if (pendingSelect !== "") {
+            const i = items.findIndex(r => r.path === pendingSelect);
+            if (i >= 0)
+                list.currentIndex = i;
+            pendingSelect = "";
+        }
+    }
     function startOfDay() {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -152,6 +180,7 @@ ApplicationWindow {
         "seek-back": { on: () => cas.playing, run: () => cas.seekBy(-10) },
         "seek-forward": { on: () => cas.playing, run: () => cas.seekBy(10) },
         "play-selected": { on: () => win.selectedItem !== null, run: () => win.playSelected() },
+        "rename": { on: () => win.selectedItem !== null && win.mode === "library", run: () => win.startRename() },
         "trash": { on: () => win.selectedItem !== null, run: () => win.trashSelected() },
         "show-in-casier": { on: () => win.selectedItem !== null, run: () => cas.reveal(win.selectedItem.path) },
         "open-folder": { on: () => true, run: () => cas.openFolder() },
@@ -223,11 +252,15 @@ ApplicationWindow {
     Shortcut { sequence: "Right"; enabled: win.mode === "library" && !win.typing && cas.playing; onActivated: cas.seekBy(10) }
     Shortcut { sequence: "Ctrl+Left"; enabled: cas.playing; onActivated: cas.prev() }
     Shortcut { sequence: "Ctrl+Right"; enabled: cas.playing; onActivated: cas.next() }
+    Shortcut { sequence: "F2"; enabled: win.mode === "library" && !win.typing && win.selectedItem !== null && !win.aboutOpen; onActivated: win.startRename() }
     Shortcut { sequence: "Delete"; enabled: win.mode === "library" && !win.typing && win.selectedItem !== null; onActivated: win.trashSelected() }
     Shortcut {
         sequence: "Escape"
         onActivated: {
-            if (win.aboutOpen)
+            if (win.renaming !== "") {
+                win.renaming = "";
+                list.forceActiveFocus();
+            } else if (win.aboutOpen)
                 win.aboutOpen = false;
             else if (win.searchOpen || searchInput.text !== "") {
                 searchInput.text = "";
@@ -520,6 +553,9 @@ ApplicationWindow {
     Item {
         id: library
         visible: win.mode === "library"
+        // Format and size only when there is room for them: the name keeps the rest
+        readonly property bool wide: width > 760
+        readonly property real nameWidth: Math.max(120, width - 2 * FiliTheme.margin - 28 - 140 - 80 - (wide ? 60 + 80 : 0))
         anchors { top: toolbar.bottom; left: side.right; right: parent.right; bottom: statusbar.top }
 
         // Column headings
@@ -532,7 +568,7 @@ ApplicationWindow {
                 anchors { fill: parent; leftMargin: FiliTheme.margin; rightMargin: FiliTheme.margin }
                 Item { width: 28; height: parent.height }
                 Text {
-                    width: parent.width - 28 - 160 - 80 - 80
+                    width: library.nameWidth
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     text: Fili.tr("Name")
@@ -541,10 +577,20 @@ ApplicationWindow {
                     color: FiliTheme.muted
                 }
                 Text {
-                    width: 160
+                    width: 140
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     text: Fili.tr("Started")
+                    font.family: FiliTheme.font
+                    font.pixelSize: FiliTheme.sizeSmall
+                    color: FiliTheme.muted
+                }
+                Text {
+                    visible: library.wide
+                    width: 60
+                    height: parent.height
+                    verticalAlignment: Text.AlignVCenter
+                    text: Fili.tr("Format")
                     font.family: FiliTheme.font
                     font.pixelSize: FiliTheme.sizeSmall
                     color: FiliTheme.muted
@@ -560,6 +606,7 @@ ApplicationWindow {
                     color: FiliTheme.muted
                 }
                 Text {
+                    visible: library.wide
                     width: 80
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
@@ -608,22 +655,72 @@ ApplicationWindow {
                         font.pixelSize: 14
                         color: row.playing ? FiliTheme.accentColor : FiliTheme.muted
                     }
-                    Text {
-                        width: parent.width - 28 - 160 - 80 - 80
+                    Item {
+                        id: nameCell
+                        width: library.nameWidth
                         height: parent.height
-                        verticalAlignment: Text.AlignVCenter
-                        text: row.modelData.name
-                        elide: Text.ElideRight
-                        font.family: FiliTheme.font
-                        font.pixelSize: FiliTheme.sizeList
-                        font.weight: row.playing ? FiliTheme.weightAccent : Font.Normal
-                        color: row.playing ? FiliTheme.accentColor : FiliTheme.text
+                        readonly property bool editing: win.renaming === row.modelData.path
+                        Text {
+                            anchors.fill: parent
+                            visible: !nameCell.editing
+                            verticalAlignment: Text.AlignVCenter
+                            text: row.modelData.name
+                            elide: Text.ElideRight
+                            font.family: FiliTheme.font
+                            font.pixelSize: FiliTheme.sizeList
+                            font.weight: row.playing ? FiliTheme.weightAccent : Font.Normal
+                            color: row.playing ? FiliTheme.accentColor : FiliTheme.text
+                        }
+                        // Editing the name (F2, the menu, the context menu): Enter keeps it, Esc or leaving the field gives up
+                        Rectangle {
+                            visible: nameCell.editing
+                            anchors { fill: parent; topMargin: 1; bottomMargin: 1; rightMargin: FiliTheme.space2 }
+                            radius: FiliTheme.radiusControl
+                            color: FiliTheme.surface
+                            border.width: FiliTheme.borderWidth
+                            border.color: FiliTheme.accentColor
+                            TextInput {
+                                id: nameEdit
+                                anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
+                                verticalAlignment: TextInput.AlignVCenter
+                                clip: true
+                                text: row.modelData.name
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.sizeList
+                                color: FiliTheme.text
+                                selectionColor: FiliTheme.surfaceActive
+                                selectedTextColor: FiliTheme.text
+                                Accessible.name: Fili.tr("Name")
+                                onAccepted: win.commitRename(row.modelData.path, text)
+                                onActiveFocusChanged: if (!activeFocus && nameCell.editing)
+                                    win.renaming = ""
+                                Keys.onEscapePressed: {
+                                    win.renaming = "";
+                                    list.forceActiveFocus();
+                                }
+                            }
+                            onVisibleChanged: if (visible) {
+                                nameEdit.text = row.modelData.name;
+                                nameEdit.forceActiveFocus();
+                                nameEdit.selectAll();
+                            }
+                        }
                     }
                     Text {
-                        width: 160
+                        width: 140
                         height: parent.height
                         verticalAlignment: Text.AlignVCenter
                         text: win.whenText(row.modelData.when)
+                        font.family: FiliTheme.font
+                        font.pixelSize: FiliTheme.sizeList
+                        color: FiliTheme.textSecondary
+                    }
+                    Text {
+                        visible: library.wide
+                        width: 60
+                        height: parent.height
+                        verticalAlignment: Text.AlignVCenter
+                        text: row.modelData.format.toUpperCase()
                         font.family: FiliTheme.font
                         font.pixelSize: FiliTheme.sizeList
                         color: FiliTheme.textSecondary
@@ -639,6 +736,7 @@ ApplicationWindow {
                         color: FiliTheme.textSecondary
                     }
                     Text {
+                        visible: library.wide
                         width: 80
                         height: parent.height
                         verticalAlignment: Text.AlignVCenter
@@ -879,6 +977,29 @@ ApplicationWindow {
             }
             Item { width: 1; height: FiliTheme.space1 }
             Text {
+                text: Fili.tr("Format")
+                font.family: FiliTheme.font
+                font.pixelSize: FiliTheme.sizeSmall
+                font.weight: FiliTheme.weightAccent
+                color: FiliTheme.muted
+            }
+            SourcePicker {
+                width: parent.width
+                enabled: !cas.recording
+                opacity: enabled ? 1 : 0.5
+                model: win.formats
+                current: cas.format
+                placeholder: cas.format
+                onPicked: v => cas.setChoice("format", v)
+            }
+            Text {
+                text: (win.formats.find(f => f.value === cas.format) ?? { hint: "" }).hint
+                font.family: FiliTheme.font
+                font.pixelSize: FiliTheme.sizeSmall
+                color: FiliTheme.muted
+            }
+            Item { width: 1; height: FiliTheme.space1 }
+            Text {
                 text: Fili.tr("Files")
                 font.family: FiliTheme.font
                 font.pixelSize: FiliTheme.sizeSmall
@@ -1051,6 +1172,7 @@ ApplicationWindow {
     function rowMenu() {
         return [
             { id: "play-selected", label: Fili.tr("Play") },
+            { id: "rename", label: Fili.tr("Rename…"), hint: "F2" },
             { id: "separator1", separator: true },
             { id: "show-in-casier", label: Fili.tr("Show in Casier") },
             { id: "copy-name", label: Fili.tr("Copy name") },

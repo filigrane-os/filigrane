@@ -5,6 +5,10 @@
 # Where the recordings go
 # dir = "~/Music/Recordings"
 
+# Format of the recordings: "opus" (default, about 29 MB an hour, best for voice), "mp3" (about 43 MB, plays everywhere) or
+# "wav" (lossless, about 690 MB). The choice made in the window wins over this line.
+# format = "opus"
+
 # "mix": one stereo WAV file with the input and the output together (default); both are brought to a comparable
 # level first, so a quiet microphone is not buried under the voices of a call.
 # "separate": one untouched WAV file per source, "(input)" and "(output)" in their names.

@@ -13,6 +13,7 @@
 // one WAV file (default) or as one file per source (`mode = "separate"`). Nothing stays resident: `start` leaves the
 // two pw-record processes running on their own and `stop` ends them. Options: ~/.config/filigrane/fili-recorder.toml;
 // choices of use: ~/.local/state/filigrane/fili-recorder.toml (see dotfiles/config/filigrane/fili-recorder.toml).
+use crate::codec::{self, Format};
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{BufReader, BufWriter, Read, Write};
@@ -81,6 +82,7 @@ pub struct Settings {
     pub mix: bool,
     pub input: String,
     pub output: String,
+    pub format: Format,
 }
 
 pub fn load_settings() -> Settings {
@@ -93,6 +95,7 @@ pub fn load_settings() -> Settings {
         mix: state.get("mode").or(conf.get("mode")).map(|m| m != "separate").unwrap_or(true),
         input: choice("input"),
         output: choice("output"),
+        format: Format::parse(state.get("format").or(conf.get("format")).map(String::as_str).unwrap_or("opus")),
     }
 }
 
@@ -121,6 +124,8 @@ pub struct Session {
     pub name: String,
     pub input: String,
     pub output: String,
+    /// "opus", "mp3" or "wav": the format the recording is saved in at the end (empty: WAV, as before this field).
+    pub format: String,
     pub input_pid: u32,
     pub output_pid: u32,
 }
@@ -137,7 +142,7 @@ impl Session {
     }
     fn render(&self) -> String {
         format!(
-            "start={}\nmix={}\nsaving={}\ndir={}\nname={}\ninput={}\noutput={}\ninput_pid={}\noutput_pid={}\n",
+            "start={}\nmix={}\nsaving={}\ndir={}\nname={}\ninput={}\noutput={}\nformat={}\ninput_pid={}\noutput_pid={}\n",
             self.start,
             self.mix as u8,
             self.saving as u8,
@@ -145,6 +150,7 @@ impl Session {
             self.name,
             self.input,
             self.output,
+            self.format,
             self.input_pid,
             self.output_pid
         )
@@ -161,6 +167,7 @@ impl Session {
                 "name" => s.name = v.to_string(),
                 "input" => s.input = v.to_string(),
                 "output" => s.output = v.to_string(),
+                "format" => s.format = v.to_string(),
                 "input_pid" => s.input_pid = v.parse().unwrap_or(0),
                 "output_pid" => s.output_pid = v.parse().unwrap_or(0),
                 _ => {}
@@ -244,7 +251,7 @@ pub fn wav_data(path: &Path) -> Result<(u64, u64), String> {
     }
 }
 
-fn wav_header(data_len: u64) -> Vec<u8> {
+pub fn wav_header(data_len: u64) -> Vec<u8> {
     let data = data_len.min(u32::MAX as u64 - 36) as u32;
     let mut h = Vec::with_capacity(44);
     h.extend_from_slice(b"RIFF");
@@ -432,6 +439,7 @@ pub fn cmd_start(args: &[String]) -> Result<(), String> {
         match a.as_str() {
             "--input" => set.input = it.next().ok_or("--input needs a value")?.clone(),
             "--output" => set.output = it.next().ok_or("--output needs a value")?.clone(),
+            "--format" => set.format = Format::parse(it.next().ok_or("--format needs a value")?),
             other => return Err(format!("unknown option {other}")),
         }
     }
@@ -447,6 +455,7 @@ pub fn cmd_start(args: &[String]) -> Result<(), String> {
         name: format!("Recording {}", stamp.unwrap_or_else(|| now().to_string()).trim()),
         input: set.input,
         output: set.output,
+        format: set.format.name().to_string(),
         ..Default::default()
     };
     if s.input != "none" {
@@ -492,12 +501,19 @@ pub fn cmd_stop() -> Result<(), String> {
     let _ = fs::remove_file(session_file());
     refresh_bar();
     match result {
-        Ok(files) => {
+        Ok((files, warning)) => {
             for f in &files {
                 println!("{}", f.display());
             }
             let name = files.first().and_then(|f| f.file_name()).map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-            notify("Recording saved", &name);
+            match warning {
+                // The recording is safe as a WAV file: say why it was not compressed
+                Some(w) => {
+                    eprintln!("fili-recorder: kept as WAV: {w}");
+                    notify("Recording saved as WAV", &format!("{name}: {w}"));
+                }
+                None => notify("Recording saved", &name),
+            }
             Ok(())
         }
         Err(e) => {
@@ -508,7 +524,7 @@ pub fn cmd_stop() -> Result<(), String> {
 }
 
 /// Turns the parts into the final files; the parts are removed only once their content is safe.
-fn finalize(s: &Session) -> Result<Vec<PathBuf>, String> {
+fn finalize(s: &Session) -> Result<(Vec<PathBuf>, Option<String>), String> {
     let (pi, po) = (s.part("input"), s.part("output"));
     let have = |p: &Path| wav_data(p).map(|(_, n)| n > 0).unwrap_or(false);
     let (hi, ho) = (have(&pi), have(&po));
@@ -531,7 +547,20 @@ fn finalize(s: &Session) -> Result<Vec<PathBuf>, String> {
     }
     let _ = fs::remove_file(&pi);
     let _ = fs::remove_file(&po);
-    Ok(files)
+    // The WAV files are the safe result; compressing them is the last step, and a failure keeps them
+    let format = if s.format.is_empty() { Format::Wav } else { Format::parse(&s.format) };
+    let mut warning = None;
+    let files = files
+        .into_iter()
+        .map(|f| match codec::encode(&f, format) {
+            Ok(done) => done,
+            Err(e) => {
+                warning = Some(e);
+                f
+            }
+        })
+        .collect();
+    Ok((files, warning))
 }
 
 /// The folder is created on the first recording: opening it before that must still work.
@@ -555,7 +584,13 @@ fn cmd_set(args: &[String]) -> Result<(), String> {
         [key, value] if key == "mode" && (value == "mix" || value == "separate") => {
             save_choice(key, value).map_err(|e| e.to_string())
         }
-        _ => Err("usage: fili-recorder set input|output NAME|default|none | set mode mix|separate".into()),
+        [key, value] if key == "format" && matches!(value.as_str(), "opus" | "mp3" | "wav") => {
+            save_choice(key, value).map_err(|e| e.to_string())
+        }
+        _ => {
+            Err("usage: fili-recorder set input|output NAME|default|none | set mode mix|separate | set format opus|mp3|wav"
+                .into())
+        }
     }
 }
 
@@ -583,12 +618,13 @@ fn status_json() -> String {
     // What the next (or this) recording uses
     let (input, output) = if rec { (d.input.clone(), d.output.clone()) } else { (set.input.clone(), set.output.clone()) };
     format!(
-        "{{\"recording\":{rec},\"saving\":{saving},\"start\":{},\"input\":{},\"output\":{},\"dir\":{},\"mode\":{}}}",
+        "{{\"recording\":{rec},\"saving\":{saving},\"start\":{},\"input\":{},\"output\":{},\"dir\":{},\"mode\":{},\"format\":{}}}",
         d.start,
         json_str(&input),
         json_str(&output),
         json_str(&if rec { d.dir.clone() } else { set.dir.clone() }.display().to_string()),
-        json_str(if mix { "mix" } else { "separate" })
+        json_str(if mix { "mix" } else { "separate" }),
+        json_str(if rec && !d.format.is_empty() { &d.format } else { set.format.name() })
     )
 }
 
@@ -694,6 +730,7 @@ mod tests {
             name: "Recording a b".into(),
             input: "default".into(),
             output: "alsa_output.x".into(),
+            format: "opus".into(),
             input_pid: 7,
             output_pid: 9,
         };

@@ -17,7 +17,9 @@ const CHUNK_FRAMES: u64 = RATE / 40;
 
 #[derive(Default)]
 struct State {
+    /// The recording shown as playing, and the WAV file actually read (the same for a WAV recording, else its decoded copy).
     path: Option<PathBuf>,
+    read: Option<PathBuf>,
     /// Frame about to be written.
     pos: u64,
     total: u64,
@@ -86,9 +88,15 @@ impl Player {
 
     /// Starts a file from the beginning (or from `at` seconds).
     pub fn play(&self, path: &Path, at: f64) -> Result<(), String> {
-        let (_, bytes) = wav_data(path)?;
+        self.play_with(path, path, at)
+    }
+
+    /// Plays `read` (a WAV file) as the recording `path`.
+    pub fn play_with(&self, path: &Path, read: &Path, at: f64) -> Result<(), String> {
+        let (_, bytes) = wav_data(read)?;
         let mut s = self.lock();
         s.path = Some(path.to_path_buf());
+        s.read = Some(read.to_path_buf());
         s.total = bytes / FRAME;
         s.pos = ((at.max(0.0) * RATE as f64) as u64).min(s.total);
         s.paused = false;
@@ -199,7 +207,7 @@ fn worker(shared: Arc<Shared>, sink: Vec<String>) {
                 }
                 s = shared.wake.wait(s).unwrap_or_else(|e| e.into_inner());
             }
-            (s.path.clone().unwrap_or_default(), s.generation)
+            (s.read.clone().or_else(|| s.path.clone()).unwrap_or_default(), s.generation)
         };
         let Ok((offset, _)) = wav_data(&path) else {
             let mut s = lock(&shared);

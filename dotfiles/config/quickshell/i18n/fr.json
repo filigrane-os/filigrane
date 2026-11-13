@@ -568,5 +568,13 @@
  "Windowed fullscreen": "Plein écran fenêtré",
  "Workspace above": "Espace au-dessus",
  "Workspace below": "Espace en dessous",
- "recordings": "enregistrements"
+ "recordings": "enregistrements",
+ "Opus · small, best for voice": "Opus · léger, idéal pour la voix",
+ "About 29 MB per hour": "Environ 29 Mo par heure",
+ "MP3 · plays everywhere": "MP3 · lisible partout",
+ "About 43 MB per hour": "Environ 43 Mo par heure",
+ "WAV · lossless, large": "WAV · sans perte, volumineux",
+ "About 690 MB per hour": "Environ 690 Mo par heure",
+ "Rename…": "Renommer…",
+ "Preparing the recording…": "Préparation de l'enregistrement…"
 }

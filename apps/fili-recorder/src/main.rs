@@ -2,6 +2,7 @@
 // (Qt Quick, like Casier); with a command it works without one: start, stop, toggle, status, set, folder (the fili-bar
 // module and scripts use them), ctl (commands to an open window).
 mod bridge;
+mod codec;
 mod ctl;
 mod i18n;
 mod library;

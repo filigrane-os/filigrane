@@ -15,6 +15,7 @@
       "label": "File",
       "children": [
         { "label": "Open Recordings Folder", "exec": "fili-recorder ctl --pid %pid action open-folder" },
+        { "label": "Rename…", "keys": "F2", "exec": "fili-recorder ctl --pid %pid action rename" },
         { "label": "Show in Casier", "exec": "fili-recorder ctl --pid %pid action show-in-casier" },
         { "label": "Copy Name", "exec": "fili-recorder ctl --pid %pid action copy-name" },
         { "sep": true },

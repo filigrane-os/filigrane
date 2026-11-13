@@ -4,10 +4,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::UNIX_EPOCH;
 
-use crate::recorder::{json_str, wav_data};
-
-const FRAME: u64 = 4;
-const RATE: f64 = 48000.0;
+use crate::codec::{self, Format};
+use crate::recorder::json_str;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entry {
@@ -20,6 +18,8 @@ pub struct Entry {
     pub size: u64,
     /// "mix" (both sides in one file), "input" or "output" (one side, in the separate mode).
     pub kind: &'static str,
+    /// "opus", "mp3" or "wav".
+    pub format: &'static str,
 }
 
 fn kind_of(stem: &str) -> &'static str {
@@ -32,7 +32,7 @@ fn kind_of(stem: &str) -> &'static str {
     }
 }
 
-/// The WAV files of a folder, newest first; hidden files (the parts of a recording in progress) are left out.
+/// The recordings of a folder (WAV, Opus, MP3), newest first; hidden files (the parts of a recording in progress) are left out.
 pub fn list(dir: &Path) -> Vec<Entry> {
     let Ok(read) = fs::read_dir(dir) else { return Vec::new() };
     let mut out: Vec<Entry> = read
@@ -40,16 +40,17 @@ pub fn list(dir: &Path) -> Vec<Entry> {
         .filter_map(|e| {
             let path = e.path();
             let file = path.file_name()?.to_string_lossy().into_owned();
-            let stem = file.strip_suffix(".wav")?.to_string();
             if file.starts_with('.') {
                 return None;
             }
+            let format = Format::from_path(&path)?;
+            let stem = path.file_stem()?.to_string_lossy().into_owned();
             let meta = e.metadata().ok()?;
-            let (_, bytes) = wav_data(&path).ok()?;
-            let duration = (bytes / FRAME) as f64 / RATE;
+            let duration = codec::duration(&path, format)?;
             let end = meta.modified().ok()?.duration_since(UNIX_EPOCH).ok()?.as_secs();
             Some(Entry {
                 kind: kind_of(&stem),
+                format: format.name(),
                 name: stem,
                 when: end.saturating_sub(duration as u64),
                 duration,
@@ -62,18 +63,40 @@ pub fn list(dir: &Path) -> Vec<Entry> {
     out
 }
 
+/// Renames a recording: `name` replaces the file name without its extension (which stays). Returns the new path.
+pub fn rename(path: &Path, name: &str) -> Result<PathBuf, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("the name is empty".into());
+    }
+    if name.starts_with('.') || name.contains('/') || name.contains('\0') || name.len() > 200 {
+        return Err("this name cannot be used (no slash, no leading dot)".into());
+    }
+    let ext = path.extension().and_then(|e| e.to_str()).ok_or("not a recording")?;
+    let target = path.with_file_name(format!("{name}.{ext}"));
+    if target == path {
+        return Ok(target);
+    }
+    if target.exists() {
+        return Err("a recording with this name already exists".into());
+    }
+    fs::rename(path, &target).map_err(|e| e.to_string())?;
+    Ok(target)
+}
+
 pub fn json(entries: &[Entry]) -> String {
     let items: Vec<String> = entries
         .iter()
         .map(|e| {
             format!(
-                "{{\"path\":{},\"name\":{},\"when\":{},\"duration\":{:.2},\"size\":{},\"kind\":{}}}",
+                "{{\"path\":{},\"name\":{},\"when\":{},\"duration\":{:.2},\"size\":{},\"kind\":{},\"format\":{}}}",
                 json_str(&e.path.display().to_string()),
                 json_str(&e.name),
                 e.when,
                 e.duration,
                 e.size,
-                json_str(e.kind)
+                json_str(e.kind),
+                json_str(e.format)
             )
         })
         .collect();
@@ -138,6 +161,22 @@ mod tests {
         let sinks =
             "Sink #3\n\tName: alsa_output.x\n\tDescription: Speakers\n\nSink #4\n\tName: alsa_output.y\n\tDescription: HDMI\n";
         assert_eq!(devices(sinks, false).len(), 2);
+    }
+
+    #[test]
+    fn renames_keep_the_extension_and_refuse_a_clash() {
+        let d = std::env::temp_dir().join(format!("fili-recorder-rename-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&d);
+        fs::create_dir_all(&d).unwrap();
+        fs::write(d.join("Recording a.opus"), b"x").unwrap();
+        fs::write(d.join("Taken.opus"), b"y").unwrap();
+        let new = rename(&d.join("Recording a.opus"), "  Team meeting 2026.11  ").unwrap();
+        assert_eq!(new, d.join("Team meeting 2026.11.opus"));
+        assert!(new.exists() && !d.join("Recording a.opus").exists());
+        assert!(rename(&new, "Taken").is_err(), "never replaces another recording");
+        assert!(rename(&new, "").is_err() && rename(&new, "a/b").is_err() && rename(&new, ".hidden").is_err());
+        assert_eq!(rename(&new, "Team meeting 2026.11").unwrap(), new, "same name: nothing to do");
+        let _ = fs::remove_dir_all(d);
     }
 
     #[test]
