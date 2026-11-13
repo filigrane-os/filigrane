@@ -5,6 +5,7 @@
 # Where the recordings go
 # dir = "~/Music/Recordings"
 
-# "mix": one stereo WAV file with the input and the output together (default).
-# "separate": one WAV file per source, "(input)" and "(output)" in their names.
+# "mix": one stereo WAV file with the input and the output together (default); both are brought to a comparable
+# level first, so a quiet microphone is not buried under the voices of a call.
+# "separate": one untouched WAV file per source, "(input)" and "(output)" in their names.
 # mode = "mix"

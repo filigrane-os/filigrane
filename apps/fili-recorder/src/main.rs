@@ -248,8 +248,58 @@ fn finish_one(part: &Path, out: &Path) -> Result<(), String> {
     dst.flush().map_err(|e| e.to_string())
 }
 
-/// Sums two parts sample by sample (saturating), the longer one goes on alone once the shorter one ends.
+/// Level the speech of a track is brought to before mixing (RMS of its active parts, 16-bit scale).
+const TARGET_RMS: f64 = 2500.0;
+/// A window of 100 ms is active (not silence) above this RMS.
+const ACTIVE_RMS: f64 = 30.0;
+
+/// RMS of the parts of a track that are not silence: a microphone is much quieter than what the speakers play, and
+/// summing them as they are would bury the voice under the other side of a call.
+fn active_rms(path: &Path) -> Result<f64, String> {
+    let (off, len) = wav_data(path)?;
+    let mut f = File::open(path).map_err(|e| e.to_string())?;
+    std::io::Seek::seek(&mut f, std::io::SeekFrom::Start(off)).map_err(|e| e.to_string())?;
+    let mut r = BufReader::new(f.take(len));
+    let mut buf = vec![0u8; RATE as usize / 10 * FRAME];
+    let (mut energy, mut windows) = (0.0f64, 0u64);
+    loop {
+        let n = fill(&mut r, &mut buf)?;
+        if n == 0 {
+            break;
+        }
+        let sum: f64 = buf[..n].as_chunks::<2>().0.iter().map(|c| (i16::from_le_bytes([c[0], c[1]]) as f64).powi(2)).sum();
+        let mean = sum / (n / 2) as f64;
+        if mean.sqrt() >= ACTIVE_RMS {
+            energy += mean;
+            windows += 1;
+        }
+    }
+    Ok(if windows == 0 { 0.0 } else { (energy / windows as f64).sqrt() })
+}
+
+/// Gain that brings a track to the target level; a track with nothing in it is left alone. A strong boost is capped
+/// (it would only raise the noise) and so is a cut (a loud track is never silenced).
+fn gain_for(rms: f64) -> f64 {
+    if rms < ACTIVE_RMS { 1.0 } else { (TARGET_RMS / rms).clamp(0.25, 16.0) }
+}
+
+/// Soft limiter: the samples are untouched up to 3/4 of the range, above they bend towards the limit instead of
+/// clipping, so a voice raised for the mix does not crackle.
+fn limit(x: f64) -> i16 {
+    const KNEE: f64 = 24000.0;
+    const HEAD: f64 = 32767.0 - KNEE;
+    let a = x.abs();
+    let y = if a <= KNEE { a } else { KNEE + HEAD * ((a - KNEE) / HEAD).tanh() };
+    (y.copysign(x)).round() as i16
+}
+
+/// Mixes two parts, each one brought to a comparable level first (see `active_rms`).
 fn mix(a: &Path, b: &Path, out: &Path) -> Result<(), String> {
+    mix_with(a, b, out, gain_for(active_rms(a)?), gain_for(active_rms(b)?))
+}
+
+/// Sums two parts sample by sample with their gains, the longer one goes on alone once the shorter one ends.
+fn mix_with(a: &Path, b: &Path, out: &Path, gain_a: f64, gain_b: f64) -> Result<(), String> {
     let (off_a, len_a) = wav_data(a)?;
     let (off_b, len_b) = wav_data(b)?;
     let open = |p: &Path, off: u64, len: u64| -> Result<_, String> {
@@ -269,10 +319,9 @@ fn mix(a: &Path, b: &Path, out: &Path) -> Result<(), String> {
         }
         let n = na.max(nb);
         for i in (0..n).step_by(2) {
-            let x = if i < na { i16::from_le_bytes([ba[i], ba[i + 1]]) as i32 } else { 0 };
-            let y = if i < nb { i16::from_le_bytes([bb[i], bb[i + 1]]) as i32 } else { 0 };
-            let s = (x + y).clamp(i16::MIN as i32, i16::MAX as i32) as i16;
-            dst.write_all(&s.to_le_bytes()).map_err(|e| e.to_string())?;
+            let x = if i < na { i16::from_le_bytes([ba[i], ba[i + 1]]) as f64 * gain_a } else { 0.0 };
+            let y = if i < nb { i16::from_le_bytes([bb[i], bb[i + 1]]) as f64 * gain_b } else { 0.0 };
+            dst.write_all(&limit(x + y).to_le_bytes()).map_err(|e| e.to_string())?;
         }
     }
     dst.flush().map_err(|e| e.to_string())
@@ -603,16 +652,48 @@ mod tests {
     }
 
     #[test]
-    fn mixes_with_saturation_and_unequal_lengths() {
+    fn mixes_with_the_limiter_and_unequal_lengths() {
         let d = tmp("mix");
         write_wav(&d.join("a.wav"), &[100, -100, 30000, 30000, 7, 7], 0);
         write_wav(&d.join("b.wav"), &[1, 2, 30000, -30000], 4);
-        mix(&d.join("a.wav"), &d.join("b.wav"), &d.join("out.wav")).unwrap();
-        assert_eq!(read_samples(&d.join("out.wav")), vec![101, -98, 32767, 0, 7, 7]);
+        mix_with(&d.join("a.wav"), &d.join("b.wav"), &d.join("out.wav"), 1.0, 1.0).unwrap();
+        let got = read_samples(&d.join("out.wav"));
+        assert_eq!(&got[..2], &[101, -98]);
+        assert!(got[2] > 30000, "soft limit, never wrapping: {}", got[2]);
+        assert_eq!(&got[3..], &[0, 7, 7]);
         // The header of the result tells the real length
         let h = fs::read(d.join("out.wav")).unwrap();
         assert_eq!(u32::from_le_bytes([h[40], h[41], h[42], h[43]]), 12);
         let _ = fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn a_quiet_voice_is_not_buried_by_a_loud_track() {
+        let d = tmp("level");
+        // 2 s of a quiet "voice" (RMS ~ 300) against 2 s of a loud track (RMS ~ 6000), both over 100 ms windows
+        let tone =
+            |amp: f64| -> Vec<i16> { (0..RATE as usize * 2 * 2).map(|i| (amp * (i as f64 / 40.0).sin()) as i16).collect() };
+        write_wav(&d.join("mic.wav"), &tone(420.0), 0);
+        write_wav(&d.join("out.wav"), &tone(8500.0), 0);
+        let (rm, ro) = (active_rms(&d.join("mic.wav")).unwrap(), active_rms(&d.join("out.wav")).unwrap());
+        assert!((rm - 297.0).abs() < 15.0 && (ro - 6010.0).abs() < 100.0, "{rm} {ro}");
+        let (gm, go) = (gain_for(rm), gain_for(ro));
+        // After the gains the two tracks sit within 1 dB of each other
+        assert!((20.0 * ((rm * gm) / (ro * go)).log10()).abs() < 1.0);
+        assert!(gm > 5.0 && go < 1.0);
+        // Silence is left alone, a nearly empty track is not boosted into noise
+        assert_eq!(gain_for(0.0), 1.0);
+        assert_eq!(gain_for(31.0), 16.0);
+        let _ = fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn the_limiter_keeps_small_samples_and_bends_large_ones() {
+        assert_eq!(limit(1234.0), 1234);
+        assert_eq!(limit(-24000.0), -24000);
+        assert!(limit(40000.0) > 30000);
+        assert_eq!(limit(1.0e9), 32767);
+        assert_eq!(limit(-1.0e9), -32767);
     }
 
     #[test]
