@@ -238,8 +238,10 @@ fn wav_header(data_len: u64) -> Vec<u8> {
 }
 
 /// Rewrites a part as a clean WAV file (header with the real sizes): a part cut short by a crash stays playable.
-fn finish_one(part: &Path, out: &Path) -> Result<(), String> {
+fn finish_one(part: &Path, out: &Path, skip: u64) -> Result<(), String> {
     let (offset, bytes) = wav_data(part)?;
+    let dropped = (skip * FRAME as u64).min(bytes);
+    let (offset, bytes) = (offset + dropped, bytes - dropped);
     let mut src = File::open(part).map_err(|e| e.to_string())?;
     std::io::Seek::seek(&mut src, std::io::SeekFrom::Start(offset)).map_err(|e| e.to_string())?;
     let mut dst = BufWriter::new(File::create(out).map_err(|e| format!("{}: {e}", out.display()))?);
@@ -248,33 +250,37 @@ fn finish_one(part: &Path, out: &Path) -> Result<(), String> {
     dst.flush().map_err(|e| e.to_string())
 }
 
-/// Level the speech of a track is brought to before mixing (RMS of its active parts, 16-bit scale).
-const TARGET_RMS: f64 = 2500.0;
+/// Level the speech of a track is brought to before mixing (typical RMS of its active parts, 16-bit scale).
+const TARGET_RMS: f64 = 3500.0;
 /// A window of 100 ms is active (not silence) above this RMS.
 const ACTIVE_RMS: f64 = 30.0;
+/// The start of a capture is dropped: the microphone of a jack headset clicks for a moment when the stream opens.
+const START_SKIP: u64 = RATE as u64 * 3 / 10;
 
-/// RMS of the parts of a track that are not silence: a microphone is much quieter than what the speakers play, and
-/// summing them as they are would bury the voice under the other side of a call.
-fn active_rms(path: &Path) -> Result<f64, String> {
+/// Typical level of the parts of a track that are not silence (median RMS of the 100 ms windows above silence, after
+/// the start): a microphone is much quieter than what the speakers play, and summing them as they are would bury the
+/// voice under the other side of a call. The median, not the mean, so that a click or a loud word does not decide it.
+fn typical_rms(path: &Path, skip: u64) -> Result<f64, String> {
     let (off, len) = wav_data(path)?;
+    let skip_bytes = (skip * FRAME as u64).min(len);
     let mut f = File::open(path).map_err(|e| e.to_string())?;
-    std::io::Seek::seek(&mut f, std::io::SeekFrom::Start(off)).map_err(|e| e.to_string())?;
-    let mut r = BufReader::new(f.take(len));
+    std::io::Seek::seek(&mut f, std::io::SeekFrom::Start(off + skip_bytes)).map_err(|e| e.to_string())?;
+    let mut r = BufReader::new(f.take(len - skip_bytes));
     let mut buf = vec![0u8; RATE as usize / 10 * FRAME];
-    let (mut energy, mut windows) = (0.0f64, 0u64);
+    let mut levels = Vec::new();
     loop {
         let n = fill(&mut r, &mut buf)?;
         if n == 0 {
             break;
         }
         let sum: f64 = buf[..n].as_chunks::<2>().0.iter().map(|c| (i16::from_le_bytes([c[0], c[1]]) as f64).powi(2)).sum();
-        let mean = sum / (n / 2) as f64;
-        if mean.sqrt() >= ACTIVE_RMS {
-            energy += mean;
-            windows += 1;
+        let rms = (sum / (n / 2) as f64).sqrt();
+        if rms >= ACTIVE_RMS {
+            levels.push(rms);
         }
     }
-    Ok(if windows == 0 { 0.0 } else { (energy / windows as f64).sqrt() })
+    levels.sort_by(|a, b| a.total_cmp(b));
+    Ok(levels.get(levels.len() / 2).copied().unwrap_or(0.0))
 }
 
 /// Gain that brings a track to the target level; a track with nothing in it is left alone. A strong boost is capped
@@ -293,15 +299,18 @@ fn limit(x: f64) -> i16 {
     (y.copysign(x)).round() as i16
 }
 
-/// Mixes two parts, each one brought to a comparable level first (see `active_rms`).
+/// Mixes two parts, each one brought to a comparable level first (see `typical_rms`).
 fn mix(a: &Path, b: &Path, out: &Path) -> Result<(), String> {
-    mix_with(a, b, out, gain_for(active_rms(a)?), gain_for(active_rms(b)?))
+    mix_with(a, b, out, gain_for(typical_rms(a, START_SKIP)?), gain_for(typical_rms(b, START_SKIP)?), START_SKIP)
 }
 
 /// Sums two parts sample by sample with their gains, the longer one goes on alone once the shorter one ends.
-fn mix_with(a: &Path, b: &Path, out: &Path, gain_a: f64, gain_b: f64) -> Result<(), String> {
+fn mix_with(a: &Path, b: &Path, out: &Path, gain_a: f64, gain_b: f64, skip: u64) -> Result<(), String> {
     let (off_a, len_a) = wav_data(a)?;
     let (off_b, len_b) = wav_data(b)?;
+    // The same start is dropped from both, they stay in step
+    let drop = |len: u64| (skip * FRAME as u64).min(len);
+    let (off_a, len_a, off_b, len_b) = (off_a + drop(len_a), len_a - drop(len_a), off_b + drop(len_b), len_b - drop(len_b));
     let open = |p: &Path, off: u64, len: u64| -> Result<_, String> {
         let mut f = File::open(p).map_err(|e| e.to_string())?;
         std::io::Seek::seek(&mut f, std::io::SeekFrom::Start(off)).map_err(|e| e.to_string())?;
@@ -470,15 +479,15 @@ fn finalize(s: &Session) -> Result<Vec<PathBuf>, String> {
         let out = s.final_path(None);
         match (hi, ho) {
             (true, true) => mix(&pi, &po, &out)?,
-            (true, false) => finish_one(&pi, &out)?,
-            (false, true) => finish_one(&po, &out)?,
+            (true, false) => finish_one(&pi, &out, START_SKIP)?,
+            (false, true) => finish_one(&po, &out, START_SKIP)?,
             (false, false) => return Err("nothing was recorded".into()),
         }
         files.push(out);
     } else {
         for (part, which) in [(&pi, "input"), (&po, "output")] {
             let out = s.final_path(Some(which));
-            finish_one(part, &out)?;
+            finish_one(part, &out, START_SKIP)?;
             files.push(out);
         }
     }
@@ -656,7 +665,7 @@ mod tests {
         let d = tmp("mix");
         write_wav(&d.join("a.wav"), &[100, -100, 30000, 30000, 7, 7], 0);
         write_wav(&d.join("b.wav"), &[1, 2, 30000, -30000], 4);
-        mix_with(&d.join("a.wav"), &d.join("b.wav"), &d.join("out.wav"), 1.0, 1.0).unwrap();
+        mix_with(&d.join("a.wav"), &d.join("b.wav"), &d.join("out.wav"), 1.0, 1.0, 0).unwrap();
         let got = read_samples(&d.join("out.wav"));
         assert_eq!(&got[..2], &[101, -98]);
         assert!(got[2] > 30000, "soft limit, never wrapping: {}", got[2]);
@@ -675,7 +684,7 @@ mod tests {
             |amp: f64| -> Vec<i16> { (0..RATE as usize * 2 * 2).map(|i| (amp * (i as f64 / 40.0).sin()) as i16).collect() };
         write_wav(&d.join("mic.wav"), &tone(420.0), 0);
         write_wav(&d.join("out.wav"), &tone(8500.0), 0);
-        let (rm, ro) = (active_rms(&d.join("mic.wav")).unwrap(), active_rms(&d.join("out.wav")).unwrap());
+        let (rm, ro) = (typical_rms(&d.join("mic.wav"), 0).unwrap(), typical_rms(&d.join("out.wav"), 0).unwrap());
         assert!((rm - 297.0).abs() < 15.0 && (ro - 6010.0).abs() < 100.0, "{rm} {ro}");
         let (gm, go) = (gain_for(rm), gain_for(ro));
         // After the gains the two tracks sit within 1 dB of each other
@@ -684,6 +693,26 @@ mod tests {
         // Silence is left alone, a nearly empty track is not boosted into noise
         assert_eq!(gain_for(0.0), 1.0);
         assert_eq!(gain_for(31.0), 16.0);
+        let _ = fs::remove_dir_all(d);
+    }
+
+    #[test]
+    fn a_start_click_and_one_loud_word_do_not_decide_the_level() {
+        let d = tmp("click");
+        let win = RATE as usize / 10 * 2; // samples of 100 ms, stereo
+        let mut v: Vec<i16> = Vec::new();
+        let tone = |amp: f64, n: usize, v: &mut Vec<i16>| v.extend((0..n).map(|i| (amp * (i as f64 / 9.0).sin()) as i16));
+        tone(20000.0, win * 3, &mut v); // the click when the stream opens (300 ms)
+        for k in 0..20 {
+            tone(if k == 10 { 12000.0 } else { 500.0 }, win, &mut v); // quiet speech, one loud word
+        }
+        write_wav(&d.join("mic.wav"), &v, 0);
+        let rms = typical_rms(&d.join("mic.wav"), START_SKIP).unwrap();
+        assert!((rms - 354.0).abs() < 25.0, "typical level of the speech, not of the click: {rms}");
+        // The skipped start is not in the output either, and the two sides stay in step
+        write_wav(&d.join("out.wav"), &v, 0);
+        mix_with(&d.join("mic.wav"), &d.join("out.wav"), &d.join("m.wav"), 1.0, 1.0, START_SKIP).unwrap();
+        assert_eq!(read_samples(&d.join("m.wav")).len(), v.len() - win * 3);
         let _ = fs::remove_dir_all(d);
     }
 
@@ -700,7 +729,7 @@ mod tests {
     fn a_lone_part_is_repaired_not_mixed() {
         let d = tmp("one");
         write_wav(&d.join("a.part"), &[5, 6, 7, 8], 0xFFFF_FFFF);
-        finish_one(&d.join("a.part"), &d.join("a.wav")).unwrap();
+        finish_one(&d.join("a.part"), &d.join("a.wav"), 0).unwrap();
         assert_eq!(read_samples(&d.join("a.wav")), vec![5, 6, 7, 8]);
         let _ = fs::remove_dir_all(d);
     }
