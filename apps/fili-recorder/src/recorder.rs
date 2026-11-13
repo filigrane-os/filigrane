@@ -277,6 +277,9 @@ fn finish_one(part: &Path, out: &Path, skip: u64) -> Result<(), String> {
 
 /// Level the speech of a track is brought to before mixing (typical RMS of its active parts, 16-bit scale).
 const TARGET_RMS: f64 = 3500.0;
+/// The voice sits about 5 dB above what the speakers play: it is what the recording is for, and a video or a call is
+/// heard at a steady, loud level while speech has pauses.
+const VOICE_BOOST: f64 = 1.8;
 /// A window of 100 ms is active (not silence) above this RMS.
 const ACTIVE_RMS: f64 = 30.0;
 /// The start of a capture is dropped: the microphone of a jack headset clicks for a moment when the stream opens.
@@ -310,8 +313,8 @@ fn typical_rms(path: &Path, skip: u64) -> Result<f64, String> {
 
 /// Gain that brings a track to the target level; a track with nothing in it is left alone. A strong boost is capped
 /// (it would only raise the noise) and so is a cut (a loud track is never silenced).
-fn gain_for(rms: f64) -> f64 {
-    if rms < ACTIVE_RMS { 1.0 } else { (TARGET_RMS / rms).clamp(0.25, 16.0) }
+fn gain_for(rms: f64, target: f64) -> f64 {
+    if rms < ACTIVE_RMS { 1.0 } else { (target / rms).clamp(0.25, 16.0) }
 }
 
 /// Soft limiter: the samples are untouched up to 3/4 of the range, above they bend towards the limit instead of
@@ -326,7 +329,15 @@ fn limit(x: f64) -> i16 {
 
 /// Mixes two parts, each one brought to a comparable level first (see `typical_rms`).
 fn mix(a: &Path, b: &Path, out: &Path) -> Result<(), String> {
-    mix_with(a, b, out, gain_for(typical_rms(a, START_SKIP)?), gain_for(typical_rms(b, START_SKIP)?), START_SKIP)
+    // `a` is the input (the voice), `b` the output
+    mix_with(
+        a,
+        b,
+        out,
+        gain_for(typical_rms(a, START_SKIP)?, TARGET_RMS * VOICE_BOOST),
+        gain_for(typical_rms(b, START_SKIP)?, TARGET_RMS),
+        START_SKIP,
+    )
 }
 
 /// Sums two parts sample by sample with their gains, the longer one goes on alone once the shorter one ends.
@@ -716,13 +727,13 @@ mod tests {
         write_wav(&d.join("out.wav"), &tone(8500.0), 0);
         let (rm, ro) = (typical_rms(&d.join("mic.wav"), 0).unwrap(), typical_rms(&d.join("out.wav"), 0).unwrap());
         assert!((rm - 297.0).abs() < 15.0 && (ro - 6010.0).abs() < 100.0, "{rm} {ro}");
-        let (gm, go) = (gain_for(rm), gain_for(ro));
+        let (gm, go) = (gain_for(rm, TARGET_RMS), gain_for(ro, TARGET_RMS));
         // After the gains the two tracks sit within 1 dB of each other
         assert!((20.0 * ((rm * gm) / (ro * go)).log10()).abs() < 1.0);
         assert!(gm > 5.0 && go < 1.0);
         // Silence is left alone, a nearly empty track is not boosted into noise
-        assert_eq!(gain_for(0.0), 1.0);
-        assert_eq!(gain_for(31.0), 16.0);
+        assert_eq!(gain_for(0.0, TARGET_RMS), 1.0);
+        assert_eq!(gain_for(31.0, TARGET_RMS), 16.0);
         let _ = fs::remove_dir_all(d);
     }
 
