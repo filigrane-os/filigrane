@@ -40,9 +40,19 @@
 # header = true
 # footer = true
 
+# Integrated modes, only when you call the program. herdr: its tabs become tabs of the window (each one shows a pane,
+# without herdr's own sidebar and tab row), its workspaces and agents fill the sidebar with their status, and a
+# notification comes when an agent waits for you or finished while you look elsewhere. `fili-term mode herdr` opens
+# them; when you start `herdr` in a tab, "ask" offers it in the footer (Integrate · Not Now · Don't Ask Again), "auto"
+# integrates it at once, "off" never. Stop Integration (bottom of the sidebar) closes those tabs; herdr goes on.
+# View > Show Sidebar (Ctrl+Shift+B) hides the sidebar.
+# [modes]
+# herdr = "ask"
+
 # Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
 # close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
-# next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom).
+# next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom,
+# toggle-sidebar).
 # The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
 # in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
 # [keys]
