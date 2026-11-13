@@ -25,7 +25,7 @@ BarModule {
         height: parent.height
         tip: ({ title: "Filigrane", hint: FiliI18n.tr("click: menu · right click: terminal · middle click: about") })
         click: "setsid -f " + FiliTheme.bin + "/menu"
-        rclick: "setsid -f foot"
+        rclick: "setsid -f fili-terminal"
         onMiddleClicked: FiliAbout.show()
     }
 }

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Opens a terminal window: Aéroport (fili-term), or foot while it is not installed.
+# Usage: fili-terminal [--app-id ID] [--title TITLE|-T TITLE] [--hold] [-e COMMAND [ARGS...]]
+# Both terminals understand these options, so scripts name neither of them.
+t="$(command -v fili-term || echo "$HOME/.local/bin/fili-term")"
+[ -x "$t" ] || t=foot
+exec "$t" "$@"

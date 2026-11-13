@@ -26,7 +26,7 @@ title="$(t 'Preview: %s' "$(basename "$f")")"
 
 page() { # page COMMAND... : output in less (Space or q closes)
     "$@" > "$tmp/out" 2>&1
-    foot --app-id=quicklook --title="$title" less -R --lesskey-content='\40 quit' "$tmp/out"
+    fili-terminal --app-id=quicklook --title="$title" less -R --lesskey-content='\40 quit' "$tmp/out"
 }
 images() { imv -i quicklook -w "$title" -c 'bind <space> quit' -c 'bind <Escape> quit' "$@"; }
 
@@ -40,7 +40,7 @@ fi
 case "$f" in
     *.[cC][sS][vV]|*.[tT][sS][vV])
         fmt=--csv; case "$f" in *.[tT][sS][vV]) fmt=--tsv ;; esac
-        foot --app-id=quicklook --title="$title" pspg "$fmt" --on-sigint-exit "$f"
+        fili-terminal --app-id=quicklook --title="$title" pspg "$fmt" --on-sigint-exit "$f"
         exit 0 ;;
 esac
 

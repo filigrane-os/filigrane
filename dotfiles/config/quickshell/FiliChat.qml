@@ -57,7 +57,7 @@ Singleton {
     property bool agentOk: true
     function installAgent() {
         if (!FiliTheme.testing)
-            Quickshell.execDetached(["foot", "--hold", "-e", "fili-ai", "install", "claude"]);
+            Quickshell.execDetached(["fili-terminal", "--hold", "-e", "fili-ai", "install", "claude"]);
     }
     Timer {
         interval: 2000

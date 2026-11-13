@@ -1,6 +1,7 @@
 # Settings of fili-term (Aéroport, the terminal). Everything is optional: commented lines show the defaults.
-# Read each time a window opens. What you change by hand in the application (window buttons from the menu)
-# is kept in ~/.local/state/filigrane/term/ and takes precedence over this file.
+# Read each time a window opens (keyboard shortcuts, header and footer are followed live). What you change by hand in
+# the application (window buttons from the menu) is kept in ~/.local/state/filigrane/term/ and takes precedence over
+# this file. The plain `key = value` lines must stay above the first [section].
 
 # Font size of the terminal, in pixels (Ctrl+0 comes back to it after zooming)
 # font_size = 12
@@ -8,9 +9,47 @@
 # Space between the edge of the window and the text, in pixels
 # padding = 10
 
+# Extra height of each line, in pixels (half above the text, half below): room around the dashed line between
+# command blocks. 0 = the height of the font.
+# line_spacing = 0
+
+# A notification when a command that ran at least this many seconds ends while its terminal is not the one you are
+# looking at (another window, another tab). 0 turns it off.
+# notify_after = 10
+
 # Close and Window buttons (niri window actions) at the right of the header. Window > Show Window Buttons
 # in the menu takes precedence over this setting
 # window_buttons = true
+
+# Keyboard shortcuts: a preset, then any action one by one in [keys] (below).
+#   default  Ctrl+Shift+letter (Ctrl+letter stays with the shell): T new tab, N new window, W close tab, Q close window,
+#            C copy, V paste, F find, G / H next / previous match, O copy last output, Ctrl+Shift+Up / Down previous /
+#            next command, Ctrl+PgUp / PgDown or Ctrl+Shift+Left / Right change tab, Alt+1 to 9 go to a tab,
+#            Ctrl+plus / minus / 0 zoom, Shift+PgUp / PgDown history
+#   mac      the Cmd keys of a Mac keyboard on the Super key (Meta): Meta+T, Meta+W, Meta+C, Meta+V, Meta+F, Meta+1 to 9…
+#            (the compositor keeps the combinations it binds itself)
+#   tmux     prefix Ctrl+B, then a key: C new tab, N / P next / previous, 1 to 9 a tab, / find
+#   none     no shortcut but the ones in [keys]
+# Also: Settings > Aéroport, or `fili-term keymap NAME` in a terminal.
+# keymap = "default"
+
+# Window: show or hide the header and the footer (also `fili-theme header|footer on|off` for every Filigrane
+# application, and --no-header / --no-footer on the command line). Without a header, the search field appears over
+# the terminal; a hidden footer still shows the latest file transaction (Undo).
+# [window]
+# header = true
+# footer = true
+
+# Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
+# close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
+# next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom).
+# The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
+# in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
+# [keys]
+# new-tab = "Ctrl+Shift+T | Ctrl+Alt+T"
+# next-tab = "Ctrl+PgDown | Alt+Right"
+# find = "Ctrl+Shift+F | Ctrl+B, /"
+# close-window = ""
 
 # Theme: same sections and keys as ~/.config/filigrane/theme.toml (see theme.toml in the fili-term repository).
 # The font of the terminal is `mono`; its 16 colours are `palette`, one list per mode, for example:

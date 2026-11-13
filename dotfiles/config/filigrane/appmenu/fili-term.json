@@ -13,6 +13,7 @@
       "children": [
         { "label": "New Tab", "keys": "Ctrl+Shift+T", "exec": "fili-term ctl --pid %pid action new-tab" },
         { "label": "New Window", "keys": "Ctrl+Shift+N", "exec": "fili-term ctl --pid %pid action new-window" },
+        { "label": "Show in Casier", "exec": "fili-term ctl --pid %pid action show-in-files" },
         { "sep": true },
         { "label": "Ask Rob About Last Command", "exec": "fili-term ctl --pid %pid action ask-rob" },
         { "sep": true },
@@ -29,7 +30,11 @@
         { "label": "Paste", "keys": "Ctrl+Shift+V", "exec": "fili-term ctl --pid %pid action paste" },
         { "sep": true },
         { "label": "Copy Last Output", "keys": "Ctrl+Shift+O", "exec": "fili-term ctl --pid %pid action copy-last-output" },
-        { "label": "Copy Last Command", "exec": "fili-term ctl --pid %pid action copy-last-command" }
+        { "label": "Copy Last Command", "exec": "fili-term ctl --pid %pid action copy-last-command" },
+        { "sep": true },
+        { "label": "Find…", "keys": "Ctrl+Shift+F", "exec": "fili-term ctl --pid %pid action find" },
+        { "label": "Find Next", "keys": "Ctrl+Shift+G", "exec": "fili-term ctl --pid %pid action find-next" },
+        { "label": "Find Previous", "keys": "Ctrl+Shift+H", "exec": "fili-term ctl --pid %pid action find-previous" }
       ]
     },
     {

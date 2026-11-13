@@ -112,7 +112,7 @@ confirm() { # confirm QUESTION (translated): Yes -> 0 ; No -> 1 ; cancelled -> c
 }
 term() { # term COMMAND : terminal kept open at the end
     FILI_CLOSE="$(t 'Press Enter to close ')"; export FILI_CLOSE
-    exec foot -e sh -c "$1; echo; printf '%s' \"\$FILI_CLOSE\"; read _"
+    exec fili-terminal -e sh -c "$1; echo; printf '%s' \"\$FILI_CLOSE\"; read _"
 }
 trim_var() { # without a subprocess: result in $TRIMMED
     TRIMMED="${1#"${1%%[![:space:]]*}"}"
@@ -180,7 +180,7 @@ run_app() { # run_app NOM : retourne 1 si aucune application de ce nom
     cmd="$(printf '%s' "$line" | cut -f2)"
     istty="$(printf '%s' "$line" | cut -f3)"
     if [ "$istty" = "true" ]; then
-        exec foot -e sh -c "$cmd"
+        exec fili-terminal -e sh -c "$cmd"
     else
         setsid sh -c "$cmd" >/dev/null 2>&1 &
         exit 0
@@ -217,7 +217,7 @@ custom_run() { # custom_run LABEL : returns 1 if the label does not exist
         mode="$(trim "$mode")"
         cmd="$(trim "$cmd")"
         case "$mode" in
-            term) exec foot -e sh -c "$cmd" ;;
+            term) exec fili-terminal -e sh -c "$cmd" ;;
             hold) term "$cmd" ;;
             run) setsid sh -c "$cmd" >/dev/null 2>&1 & exit 0 ;;
             *) notify -u critical "Menu" "$(t 'Unknown mode %s for %s' "$mode" "$label")"; exit 1 ;;
@@ -254,7 +254,7 @@ menu_custom() {
                     fi
                 fi
                 ;;
-            "Edit file") exec foot -e nvim "$ENTRIES" ;;
+            "Edit file") exec fili-terminal -e nvim "$ENTRIES" ;;
         esac
         [ -n "$arg" ] && return $BACK # cancelled from the single list
     done
@@ -589,7 +589,7 @@ menu_ai() {
     act="${1:-$(choose 'AI › ' 3 'Open agent' 'Choose agent' 'Update agents')}"
     [ -n "$act" ] || { cancel; return $BACK; }
     case "$act" in
-        "Open agent") exec foot -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
+        "Open agent") exec fili-terminal -e bash -lc 'exec ~/.local/bin/fili-ai' ;;
         "Choose agent") exec "$HOME/.local/bin/fili-ai" pick ;;
         "Update agents") term "$HOME/.local/bin/fili-ai update; $HOME/.local/bin/fili-ai status" ;;
     esac

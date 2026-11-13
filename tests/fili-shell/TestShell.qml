@@ -938,6 +938,16 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === "'" + FiliTheme.bin + "/wallpaper' '/w/it'\\''s.jpg'" && d.current === "/w/it's.jpg", "fili-settings wallpaper: runs wallpaper", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings Aéroport: the keyboard preset runs fili-term keymap NAME
+            () => {
+                FiliSettings.show("term");
+                const d = FiliSettings.loaded;
+                ok(d !== null && d.keymap === "default" && t.find(d, "keymap") !== null && t.find(d, "keys-file") !== null, "fili-settings aeroport: presets, default", d ? d.keymap : "null");
+                FiliTheme.ran = [];
+                d.setKeymap("tmux");
+                ok(FiliTheme.ran[0] === "/usr/bin/fili-term keymap tmux" && d.keymap === "tmux", "fili-settings aeroport: keymap runs fili-term keymap", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings Casier: the resident mode switch runs fili-file spare on / off
             () => {
                 FiliSettings.show("files");

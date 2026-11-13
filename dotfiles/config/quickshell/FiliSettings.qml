@@ -33,6 +33,7 @@ Singleton {
         { id: "bar", label: "Passerelle", source: "SettingsBar.qml" },
         { id: "quai", label: "Quai", source: "SettingsQuai.qml" },
         { id: "files", label: "Casier", source: "SettingsFiles.qml" },
+        { id: "term", label: "Aéroport", source: "SettingsTerminal.qml" },
         { id: "about", label: FiliI18n.tr("About"), source: "SettingsAbout.qml" }
     ]
     readonly property var current: pages.find(p => p.id === page) ?? pages[0]

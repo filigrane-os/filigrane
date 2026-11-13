@@ -241,11 +241,7 @@ status() {
 }
 
 # Aéroport (fili-term), or foot while it is not installed
-term() {
-    t="$(command -v fili-term || echo "$HOME/.local/bin/fili-term")"
-    [ -x "$t" ] || t=foot
-    exec "$t" -e "$@"
-}
+term() { exec fili-terminal -e "$@"; }
 
 case "${1:-}" in
     use)
