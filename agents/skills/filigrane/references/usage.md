@@ -50,3 +50,10 @@ Desktop: niri `<layer>/dotfiles/config/niri/local.kdl` (included last), bar/noti
 - Keys: `Mod+K` shows them; `Mod+Space` menu (search everything), `Mod+D` apps, `Mod+Return` terminal, `Mod+Y` AI chat, `Mod+Shift+Y` AI agent in a terminal.
 - Resource use: `budget` (system vs user work), `budget check`.
 - Docs: `README.md` (desktop), `distro/README.md` (ISO, xbps repo), `hardware/<machine>/README.md`.
+
+## Sound recorder (`fili-recorder`, Cassette)
+
+- Cassette (aka `fili-recorder`, k7) records an input (microphone) and an output (what the speakers play), each one optional, so a call or a meeting is recorded whole: the voices of the others (the output) and yours (the microphone). It only listens, the sound itself is never touched.
+- The bar module `recorder` (`bar/modules/recorder/`) sits in the drawer at rest and shows `REC` in the bar while recording. Click: the panel (choose the input and the output, `None` / `Default` / a device; start / stop; folder; settings; about). Middle click: start / stop with the chosen sources. Launcher: "Cassette" (`fili-shell panel recorder`).
+- Command: `fili-recorder start [--input X] [--output Y] | stop | toggle | status [--json|--bar] | set input|output X | folder`. Files go to `~/Music/Recordings` (`dir` in `~/.config/filigrane/fili-recorder.toml`): one mixed stereo WAV file by default, `mode = "separate"` for one file per source. The choice of sources is kept in `~/.local/state/filigrane/fili-recorder.toml`.
+- No resident process: `start` leaves two `pw-record` captures running (named "Cassette" in the mixers), `stop` ends them and writes the final file. A leftover session (crash) is finished by the next `fili-recorder stop`.

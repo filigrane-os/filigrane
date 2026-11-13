@@ -1,0 +1,7 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Cassette"
+description = "Record the sound of an input and an output (fili-recorder)"
+side = "right"
+order = 11
+# In the drawer at rest, in the bar while a recording runs
+tray = "idle"

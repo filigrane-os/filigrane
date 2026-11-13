@@ -31,7 +31,7 @@ cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 # Repo scripts, and compiled apps/ binaries (bar-stats): $FILI_APPS (build in progress), else ~/.local/bin, then /usr/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
 # Packaged tools (fili-apps) are in /usr/bin; a local build or ~/.local/bin wins when present
-for n in bar-stats fili-ai-session fili-appmenu; do
+for n in bar-stats fili-ai-session fili-appmenu fili-recorder; do
     for d in "${FILI_APPS:-$HOME/.local/bin}" /usr/bin; do [ -e "$d/$n" ] && { ln -sf "$d/$n" "$T/bin/"; break; }; done
 done
 
@@ -75,6 +75,12 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 (cd "$FILI_TERM_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make test >/dev/null 2>&1) \
     && echo "ok - fili-term builds and passes its unit tests" || { echo "not ok - fili-term: cd $FILI_TERM_SRC && make test"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_TERM_SRC" || exit 1
+fi
+if want '^apps/fili-recorder/'; then
+# Cassette (fili-recorder): mixing, WAV repair, settings and session files
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
+(cd "$ROOT/apps/fili-recorder" && cargo test --release -q --locked >/dev/null 2>&1) \
+    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd apps/fili-recorder && cargo test"; exit 1; }
 fi
 if want 'fili-chat|chat'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1

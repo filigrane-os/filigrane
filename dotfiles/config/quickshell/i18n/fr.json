@@ -489,5 +489,20 @@
  "No shortcut: set the ones you want in the file below.": "Aucun raccourci: définissez ceux que vous voulez dans le fichier ci-dessous.",
  "Ctrl+Shift+letter, so that Ctrl+letter stays with the shell: T new tab, W close, F find, Ctrl+PgUp and Ctrl+PgDown or Alt+1 to 9 to change tab.": "Ctrl+Maj+lettre, pour que Ctrl+lettre reste au shell: T nouvel onglet, W fermer, F chercher, Ctrl+PgUp et Ctrl+PgDown ou Alt+1 à 9 pour changer d'onglet.",
  "Edit the keys one by one…": "Modifier les touches une par une…",
- "In the [keys] section of fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Alternatives are separated by |, a chord by a comma, an empty value removes the shortcut.": "Dans la section [keys] de fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Les alternatives sont séparées par |, un enchaînement par une virgule, une valeur vide retire le raccourci."
+ "In the [keys] section of fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Alternatives are separated by |, a chord by a comma, an empty value removes the shortcut.": "Dans la section [keys] de fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Les alternatives sont séparées par |, un enchaînement par une virgule, une valeur vide retire le raccourci.",
+ "REC": "ENR",
+ "SAVING": "SAUVEGARDE",
+ "Since": "Depuis",
+ "Not recording": "Pas d'enregistrement",
+ "click: panel · middle click: stop": "clic : panneau · clic milieu : arrêter",
+ "click: panel · middle click: record": "clic : panneau · clic milieu : enregistrer",
+ "Start recording": "Démarrer l'enregistrement",
+ "Stop recording": "Arrêter l'enregistrement",
+ "Saving…": "Sauvegarde…",
+ "Saved: %1": "Enregistré : %1",
+ "Choose an input or an output": "Choisir une entrée ou une sortie",
+ "The sources apply to the next recording": "Les sources s'appliquent au prochain enregistrement",
+ "Open recordings folder": "Ouvrir le dossier des enregistrements",
+ "About Cassette": "À propos de Cassette",
+ "Recordings": "Enregistrements"
 }

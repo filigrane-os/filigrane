@@ -1,0 +1,10 @@
+# Cassette (fili-recorder): options of the sound recorder. Everything is optional, commented lines are the defaults.
+# The sources (input and output) are chosen in the panel of the bar; that choice is kept in
+# ~/.local/state/filigrane/fili-recorder.toml.
+
+# Where the recordings go
+# dir = "~/Music/Recordings"
+
+# "mix": one stereo WAV file with the input and the output together (default).
+# "separate": one WAV file per source, "(input)" and "(output)" in their names.
+# mode = "mix"

@@ -195,6 +195,7 @@ ShellRoot {
                 expectClick("logo", L, "/menu");
                 expectClick("logo", R, "fili-terminal");
                 expectClick("rec", L, "bar-toggle rec");
+                expectClick("recorder", M, "fili-recorder toggle");
                 expectClick("air", L, "bar-toggle air");
                 expectClick("update", L, "bar-update run");
                 expectClick("backup", L, "bar-backup run");
@@ -207,7 +208,7 @@ ShellRoot {
                 ok(card.title && card.rows.length >= 3 && card.rows.every(r => r[0] && r[1]), "horloge: fiche (date, heure, fuseau, semaine)", JSON.stringify(card));
                 // Resources, sound, Bluetooth, network, battery: click = fili-panel (view open, then closed)
                 for (const [name, view] of [["cpu", "monitor"], ["temp", "monitor"], ["mem", "monitor"], ["disk", "monitor"],
-                                            ["volume", "audio"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"], ["ai", "agent"]]) {
+                                            ["volume", "audio"], ["recorder", "recorder"], ["keyboard", "keyboard"], ["display", "display"], ["bluetooth", "bluetooth"], ["network", "network"], ["power", "power"], ["ai", "agent"]]) {
                     act(name, L);
                     ok(FiliPanel.view === view, "fili-bar " + name + ", click -> fili-panel " + view, FiliPanel.view);
                     FiliPanel.close();
@@ -619,7 +620,7 @@ ShellRoot {
 
             // ───── fili-panel: every view loads without an error, then fili-net ─────
             () => {
-                for (const v of ["network", "audio", "bluetooth", "power", "monitor", "keyboard", "display"]) {
+                for (const v of ["network", "audio", "recorder", "bluetooth", "power", "monitor", "keyboard", "display"]) {
                     FiliPanel.view = v;
                     ok(FiliPanel.loaded !== null, "fili-panel " + v + ": view loaded");
                     FiliPanel.close();
