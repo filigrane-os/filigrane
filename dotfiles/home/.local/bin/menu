@@ -4,7 +4,7 @@
 # The script only exists while the menu is up; the display (and the background blur) is done by the already resident shell.
 #
 # menu                  categories when empty; while typing, fuzzy search over everything
-# menu apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|language|custom
+# menu apps|clip|emoji|calc|windows|files|web|webapps|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|language|custom
 # opens a section directly (keyboard shortcuts)
 #
 # Custom entries: ~/.config/menu/entries (Label | mode | command), plus the files of ~/.config/menu/entries.d/ (shipped by bar plugins).
@@ -479,6 +479,40 @@ menu_web() {
     setsid xdg-open "$url" >/dev/null 2>&1 &
 }
 
+# Web apps (list ~/.config/webapps/list, scripts webapp-add / webapp-edit / webapp-remove)
+webapps_names() { grep -v '^[[:space:]]*\(#\|$\)' "${XDG_CONFIG_HOME:-$HOME/.config}/webapps/list" 2>/dev/null | cut -d'|' -f1 | sed 's/^ *//;s/ *$//'; }
+webapps_pick() { # webapps_pick PROMPT : name of a web app, empty if cancelled
+    names="$(webapps_names)"
+    [ -n "$names" ] || { notify "$(t 'No web app yet')"; return 0; }
+    printf '%s\n' "$names" | pick "$1" 12
+}
+menu_webapps() {
+    arg="$1"
+    while :; do
+        act="${arg:-$(choose 'Web apps › ' 3 'Add' 'Edit' 'Remove')}"
+        [ -n "$act" ] || { cancel; return $BACK; }
+        case "$act" in
+            Add)
+                n="$(ask "$(t 'Name › ')")"; [ -n "$n" ] || { cancel; return $BACK; }
+                u="$(ask "$(t 'URL › ')")"; [ -n "$u" ] || { cancel; return $BACK; }
+                case "$u" in http://*|https://*) ;; *) u="https://$u" ;; esac
+                i="$(ask "$(t 'Icon (theme name or file, empty = default) › ')")"
+                out="$(webapp-add "$n" "$u" ${i:+"$i"} 2>&1)" ; notify "$out" ;;
+            Edit)
+                sel="$(webapps_pick "$(t 'Edit › ')")"; [ -n "$sel" ] || { cancel; return $BACK; }
+                n="$(ask "$(t 'New name (empty = keep) › ')")"
+                u="$(ask "$(t 'New URL (empty = keep) › ')")"
+                [ -z "$u" ] || case "$u" in http://*|https://*) ;; *) u="https://$u" ;; esac
+                i="$(ask "$(t 'New icon (empty = keep, - = default) › ')")"
+                out="$(webapp-edit "$sel" ${n:+--name "$n"} ${u:+--url "$u"} ${i:+--icon "$i"} 2>&1)"; notify "$out" ;;
+            Remove)
+                sel="$(webapps_pick "$(t 'Remove › ')")"; [ -n "$sel" ] || { cancel; return $BACK; }
+                if confirm "$(t 'Remove %s' "$sel")"; then out="$(webapp-remove "$sel" 2>&1)"; notify "$out"; fi ;;
+        esac
+        [ -n "$arg" ] && return $BACK
+    done
+}
+
 menu_keys() {
     # niri shortcuts extracted from the config, fuzzy search; Enter copies the key
     cfg="${XDG_CONFIG_HOME:-$HOME/.config}/niri/config.kdl"
@@ -624,6 +658,9 @@ actions_list() {
     item 'Windows: Go to a window' "$I_WIN"
     item 'Files: Find a file' "$I_SEARCH"
     item 'Web: Search or open a URL' "$I_GLOBE"
+    item 'Web apps: Add' "$I_GLOBE"
+    item 'Web apps: Edit' "$I_GLOBE"
+    item 'Web apps: Remove' "$I_TRASH"
     item 'Shortcuts: Shortcuts help' "$I_CODE"
     item 'Toggles: Auto lock' "$I_LOCK"
     item 'Toggles: Airplane mode' "$I_NET"
@@ -654,6 +691,7 @@ categories_list() {
     item 'Windows ›' "$I_WIN"
     item 'Files ›' "$I_SEARCH"
     item 'Web ›' "$I_GLOBE"
+    item 'Web apps ›' "$I_GLOBE"
     item 'Shortcuts ›' "$I_CODE"
     item 'Toggles ›' "$I_LOCK"
     item 'System ›' "$I_SYS"
@@ -817,6 +855,7 @@ menu_main() {
             "Windows ›") menu_windows; rc=$? ;;
             "Files ›") menu_files; rc=$? ;;
             "Web ›") menu_web; rc=$? ;;
+            "Web apps ›") menu_webapps; rc=$? ;;
             "Shortcuts ›") menu_keys; rc=$? ;;
             "Toggles ›") menu_toggles; rc=$? ;;
             "System ›") menu_system; rc=$? ;;
@@ -833,6 +872,7 @@ menu_main() {
                     "Windows: "*) menu_windows; rc=$? ;;
                     "Files: "*) menu_files; rc=$? ;;
                     "Web: "*) menu_web; rc=$? ;;
+                    "Web apps: "*) menu_webapps "${sel#Web apps: }"; rc=$? ;;
                     "Shortcuts: "*) menu_keys; rc=$? ;;
                     "Toggles: "*) menu_toggles "${sel#Toggles: }"; rc=$? ;;
                     "System: "*) menu_system "${sel#System: }"; rc=$? ;;
@@ -857,6 +897,7 @@ case "${1:-}" in
     windows) menu_windows ;;
     files) menu_files ;;
     web) menu_web ;;
+    webapps) menu_webapps ;;
     keys) menu_keys ;;
     toggles) menu_toggles ;;
     history) menu_toggles "Notification history" ;;
@@ -870,7 +911,7 @@ case "${1:-}" in
     language) menu_language ;;
     custom) menu_custom ;;
     "") menu_main ;;
-    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|ai|language|custom]" >&2; exit 1 ;;
+    *) echo "Usage: menu [apps|clip|emoji|calc|windows|files|web|webapps|keys|toggles|history|system [ACTION]|audio|network|style|packages|capture|ai|language|custom]" >&2; exit 1 ;;
 esac
 rc=$?
 [ "$rc" -eq "$BACK" ] && exit 0 # section launched directly and cancelled: clean exit
