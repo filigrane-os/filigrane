@@ -94,7 +94,7 @@ PanelWindow {
     property var seen: []
     property bool measure: !FiliTheme.testing
     // Hint mode: one icon per window, no title, nothing merged or folded (the numbers name the windows)
-    readonly property var groups: TaskbarLayout.groups(modelData.name, Niri.workspaces, Niri.windows, Niri.focusedId, TaskbarHint.active ? 1 : level)
+    readonly property var groups: TaskbarLayout.groups(modelData.name, Niri.workspaces, Niri.windows, Niri.focusedId, TaskbarHint.active ? Math.min(level, 1) : level)
     // Width the titles may take at level 0: they shrink to share the room before any title is dropped (level 1), and grow back
     // up to titleMax when there is room again
     readonly property int titleMax: 180
@@ -356,13 +356,15 @@ PanelWindow {
                         color: FiliTheme.toned(FiliTheme.taskbarTone, "hover")
                     }
                 }
-                // Label of the workspace; folded: label and count in one cell that opens the list
+                // Folded workspace: one cell with the window count that opens the list. An unfolded workspace has no label
+                // (the strip of workspaces says which one it is, the separator and the tooltip of the windows too)
                 Item {
                     id: chip
+                    visible: grp.modelData.folded
                     objectName: "taskbar-label-" + grp.modelData.id
                     property alias hover: chipHover
-                    height: win.vertical ? 22 : grp.height
-                    implicitWidth: win.vertical ? FiliTheme.taskbarWidth : chipText.implicitWidth + 2 * FiliTheme.pad
+                    height: !visible ? 0 : win.vertical ? 22 : grp.height
+                    implicitWidth: !visible ? 0 : win.vertical ? FiliTheme.taskbarWidth : chipText.implicitWidth + 2 * FiliTheme.pad
                     width: implicitWidth
                     Rectangle {
                         anchors.fill: parent
@@ -383,7 +385,7 @@ PanelWindow {
                         width: win.vertical ? Math.min(implicitWidth, chip.width - 4) : implicitWidth
                         elide: Text.ElideRight
                         horizontalAlignment: Text.AlignHCenter
-                        text: grp.modelData.folded ? grp.modelData.label + " · " + grp.modelData.count : grp.modelData.label
+                        text: "+" + grp.modelData.count
                         color: TaskbarHint.active ? FiliTheme.toned(FiliTheme.taskbarTone, "accent") : grp.modelData.urgent ? FiliTheme.toned(FiliTheme.taskbarTone, "warn") : grp.modelData.active ? FiliTheme.toned(FiliTheme.taskbarTone, "text") : FiliTheme.toned(FiliTheme.taskbarTone, "muted")
                         opacity: grp.modelData.wins.some(w => TaskbarHint.matches(TaskbarNumbers.numberOf(w.id))) || TaskbarHint.typed === "" ? 1 : 0.35
                         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: grp.modelData.active || TaskbarHint.active ? FiliTheme.weightAccent : Font.Normal }
@@ -420,12 +422,14 @@ PanelWindow {
                         objectName: "task-" + modelData.key
                         property alias hover: cellHover
                         readonly property bool merged: modelData.wins.length > 1
+                        // Width taken by the number badge
+                        readonly property real numW: win.vertical ? 0 : numText.implicitWidth + FiliTheme.space1
                         // Read by the squeeze (FiliTaskbar.titleWidths)
                         readonly property bool titleShown: title.visible
                         readonly property real titleNatural: title.implicitWidth
                         height: win.vertical ? 44 : grp.height
                         opacity: cell.modelData.nums.some(n => TaskbarHint.matches(n)) ? 1 : 0.35
-                        implicitWidth: win.vertical ? FiliTheme.taskbarWidth : FiliTheme.pad + 16 + FiliTheme.space1 + numText.implicitWidth + (title.visible ? FiliTheme.space1 + title.width : 0) + FiliTheme.pad
+                        implicitWidth: win.vertical ? FiliTheme.taskbarWidth : FiliTheme.pad + cell.numW + 16 + (title.visible ? FiliTheme.space1 + title.width : 0) + FiliTheme.pad
                         width: implicitWidth
                         Rectangle {
                             anchors.fill: parent
@@ -452,8 +456,8 @@ PanelWindow {
                         // Application icon, or its first letter when the theme has none
                         Item {
                             id: glyph
-                            x: win.vertical ? (parent.width - width) / 2 : FiliTheme.pad
-                            y: win.vertical ? 6 : (parent.height - height) / 2
+                            x: win.vertical ? (parent.width - width) / 2 : FiliTheme.pad + cell.numW
+                            y: win.vertical ? 24 : (parent.height - height) / 2
                             width: 16
                             height: 16
                             readonly property string source: TaskbarLayout.appIcon(cell.modelData.app_id)
@@ -490,8 +494,8 @@ PanelWindow {
                         }
                         Text {
                             id: title
-                            visible: cell.modelData.title !== "" && !TaskbarHint.active && !win.vertical
-                            x: FiliTheme.pad + 16 + FiliTheme.space1 + numText.implicitWidth + FiliTheme.space1
+                            visible: cell.modelData.title !== "" && !win.vertical
+                            x: FiliTheme.pad + cell.numW + 16 + FiliTheme.space1
                             anchors.verticalCenter: parent.verticalCenter
                             width: Math.min(implicitWidth, win.level === 0 ? win.titleCap : win.titleMax)
                             elide: Text.ElideRight
@@ -499,16 +503,17 @@ PanelWindow {
                             color: cell.modelData.focused ? FiliTheme.toned(FiliTheme.taskbarTone, "text") : FiliTheme.toned(FiliTheme.taskbarTone, "text2")
                             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                         }
-                        // Number of the window (TaskbarNumbers), always shown: the one to type in the hint mode. A merged icon shows the
+                        // Number of the window (TaskbarNumbers), before the icon, always shown: the one to type in the hint mode. A merged icon shows the
                         // first number and how many windows come with it ("3+2").
+                        // Written "1." (a list item), so that it never reads as a workspace number (bare digits in the strip).
                         Text {
                             id: numText
                             objectName: "task-num-" + cell.modelData.key
-                            x: win.vertical ? (parent.width - width) / 2 : FiliTheme.pad + 16 + FiliTheme.space1
-                            y: win.vertical ? 26 : (parent.height - height) / 2
-                            text: cell.modelData.nums[0] + (cell.merged ? "+" + (cell.modelData.nums.length - 1) : "")
+                            x: win.vertical ? (parent.width - width) / 2 : FiliTheme.pad
+                            y: win.vertical ? 6 : (parent.height - height) / 2
+                            text: cell.modelData.nums[0] + (cell.merged ? "+" + (cell.modelData.nums.length - 1) : "") + "."
                             color: TaskbarHint.active ? FiliTheme.toned(FiliTheme.taskbarTone, "accent") : FiliTheme.toned(FiliTheme.taskbarTone, "muted")
-                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; weight: FiliTheme.weightAccent }
+                            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall - 1; weight: Font.Normal }
                         }
                         BarHover {
                             id: cellHover

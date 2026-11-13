@@ -870,9 +870,10 @@ ShellRoot {
                 Niri.setWindows({ 11: mk(11, 71, "foot", 2), 13: mk(13, 71, "foot", 3), 14: mk(14, 72, "foot", 1), 15: mk(15, 72, "foot", 2) });
                 ok(TaskbarNumbers.numberOf(15) === 2 && TaskbarNumbers.windowOf(2) === 15, "taskbar numbers: a new window takes the freed number", JSON.stringify(TaskbarNumbers.map));
                 tb.level = 0;
-                ok(t.find(tr, "task-num-w13").text === "3" && t.find(tr, "task-num-w15").text === "2", "taskbar: the number of every window is always shown", t.find(tr, "task-num-w13").text);
+                ok(t.find(tr, "task-num-w13").text === "3." && t.find(tr, "task-num-w15").text === "2.", "taskbar: every window has its number", t.find(tr, "task-num-w13").text);
+                ok(t.find(tr, "task-num-w13").visible && t.find(tr, "task-num-w15").visible, "taskbar: the numbers are shown");
                 tb.level = 2;
-                ok(t.find(tr, "task-num-a71/foot").text === "1+1", "taskbar: a merged icon shows the first number and the others", t.find(tr, "task-num-a71/foot").text);
+                ok(t.find(tr, "task-num-a71/foot").text === "1+1.", "taskbar: a merged icon shows the first number and the others", t.find(tr, "task-num-a71/foot").text);
                 tb.level = 3;
                 TaskbarHint.begin();
                 ok(TaskbarHint.active && TaskbarHint.output === so, "taskbar hint: the mode starts on the display that has the focus", TaskbarHint.output);
