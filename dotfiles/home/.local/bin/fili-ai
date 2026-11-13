@@ -187,6 +187,9 @@ launch() {
     cd "$FILI_AI_WORKDIR"
     case "$agent" in
         claude)
+            # Keep transcripts even when launched from inside another Claude Code session
+            unset CLAUDE_CODE_CHILD_SESSION
+            export CLAUDE_CODE_FORCE_SESSION_PERSISTENCE=1
             cmd=(claude --add-dir "$FILIGRANE_DIR" ${FILI_AI_MODEL:+--model "$FILI_AI_MODEL"})
             defaults=(--permission-mode acceptEdits) ;;
         codex|ollama)
