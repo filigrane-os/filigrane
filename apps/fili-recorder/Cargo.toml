@@ -2,9 +2,15 @@
 name = "fili-recorder"
 version = "0.1.0"
 edition = "2024"
-description = "Cassette: records the sound of the machine (inputs and outputs) without touching it"
+description = "Cassette (fili-recorder): records the sound of the machine (an input and an output) and plays the recordings back, in a Qt Quick window like Casier"
+license = "GPL-3.0-or-later"
+build = "build.rs"
 
 [dependencies]
+cxx = "1.0.205"
+cxx-qt = "0.10.0"
+cxx-qt-lib = { version = "0.10.0", features = ["qt_gui", "qt_qml"] }
+libc = "0.2.191"
 
 [profile.release]
 opt-level = "s"
@@ -12,3 +18,6 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[build-dependencies]
+cxx-qt-build = "0.10.0"

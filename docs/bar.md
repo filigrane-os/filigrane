@@ -15,7 +15,7 @@ Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the work
 | `appmenu` | name and menus of the active application | open a menu (see below) |
 | `status` | screen recording, incoming SSH, airplane mode, VPN, pending updates (each hidden when idle) | recording: stop; airplane: turn off; updates: run them |
 | `tray` | system tray icons and the drawer chevron | chevron: show or fold the drawer |
-| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output to record (each one optional), start / stop; middle: start / stop |
+| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output (each one optional), start / stop, Open Cassette (the window: recordings and player); middle: start / stop |
 | `media` | current player | play / pause; middle: next; wheel: previous / next |
 | `resources` | CPU and memory; temperature and disk only when high | monitor panel |
 | `agent` | the AI agent (waiting, done) | sessions panel |

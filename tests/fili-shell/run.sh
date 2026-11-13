@@ -76,11 +76,15 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
     && echo "ok - fili-term builds and passes its unit tests" || { echo "not ok - fili-term: cd $FILI_TERM_SRC && make test"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_TERM_SRC" || exit 1
 fi
-if want '^apps/fili-recorder/'; then
-# Cassette (fili-recorder): mixing, WAV repair, settings and session files
+if want '^apps/fili-recorder/|^dotfiles/config/quickshell/|appmenu/fili-recorder.json|^tests/fili-shell/check-fili-recorder-menu.py|^tests/fili-shell/check-app-window.py'; then
+# Cassette (fili-recorder, in this repository): unit tests of the recorder, the mixing, the player and the window (the shell
+# parity tests compare its theme with the shell's), the fili-bar menu in agreement with the window, the window anatomy of Casier
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-(cd "$ROOT/apps/fili-recorder" && cargo test --release -q --locked >/dev/null 2>&1) \
-    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd apps/fili-recorder && cargo test"; exit 1; }
+(cd "$ROOT/apps/fili-recorder" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
+    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd apps/fili-recorder && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
+python3 -I "$ROOT/tests/fili-shell/check-fili-recorder-menu.py" || exit 1
+FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
+python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$ROOT/apps/fili-recorder" || exit 1
 fi
 if want 'fili-chat|chat'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1

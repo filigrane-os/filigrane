@@ -66,6 +66,9 @@ MAP.update({0xF2000 + i: n for i, n in enumerate(TOPICS)})
 MAP.update({0xF2F00: "list", 0xF2F01: "settings"})
 # Cassette (fili-recorder): the monochrome mark of its fili-bar module, same cassette as its application icon
 MAP.update({0xF2F10: "cassette-tape"})
+# Cassette window: transport (previous, next, back, forward, stop), the recordings folder, a recording of both sides
+MAP.update({0xF2F11: "skip-back", 0xF2F12: "skip-forward", 0xF2F13: "rewind", 0xF2F14: "fast-forward", 0xF2F15: "square",
+            0xF2F16: "folder-open", 0xF2F17: "audio-lines"})
 
 
 def fetch(dest):

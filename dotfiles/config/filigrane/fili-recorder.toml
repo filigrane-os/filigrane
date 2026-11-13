@@ -9,3 +9,9 @@
 # level first, so a quiet microphone is not buried under the voices of a call.
 # "separate": one untouched WAV file per source, "(input)" and "(output)" in their names.
 # mode = "mix"
+
+# Look of the window: the same sections as ~/.config/filigrane/theme.toml ([theme], [theme.dark], [theme.light],
+# [theme.accents]; every key is listed in apps/fili-recorder/theme.toml) override the shared theme for Cassette only.
+# [window]
+# header = true   # false: no header (`--no-header` for one window)
+# footer = true   # false: no status bar (it still shows what it has to say)

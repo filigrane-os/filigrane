@@ -3,7 +3,6 @@
 // `fili-recorder` does the work (apps/fili-recorder); the choices are its state, kept for the next recordings.
 import QtQuick
 import QtQuick.Layouts
-import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.bar
@@ -21,7 +20,6 @@ ColumnLayout {
     // Result of the last action, shown under the button: an error (failed) or where the file went
     property string message: ""
     property bool failed: false
-    property bool about: false
     property real now: Date.now()
     readonly property int elapsed: rec ? Math.max(0, Math.floor(now / 1000 - info.start)) : 0
     readonly property var nodes: Pipewire.nodes.values
@@ -180,66 +178,13 @@ ColumnLayout {
         }
     }
     PanelButton {
-        objectName: "settings"
-        glyph: "\uf013"
-        label: FiliI18n.tr("Settings…")
+        objectName: "open-app"
+        glyph: String.fromCodePoint(0xf2f10)
+        label: FiliI18n.tr("Open Cassette")
         dim: true
         onClicked: {
             FiliPanel.close();
-            FiliTheme.run("xdg-open ~/.config/filigrane/fili-recorder.toml");
-        }
-    }
-    // About card (every application with a display name has one): unfolds in place, the panel has no window of its own
-    PanelButton {
-        objectName: "about"
-        glyph: "\uf05a"
-        label: FiliI18n.tr("About Cassette")
-        dim: !view.about
-        sel: view.about
-        onClicked: view.about = !view.about
-    }
-    RowLayout {
-        visible: view.about
-        Layout.fillWidth: true
-        Layout.leftMargin: FiliTheme.space2
-        spacing: FiliTheme.space2
-        Image {
-            Layout.preferredWidth: 32
-            Layout.preferredHeight: 32
-            visible: status === Image.Ready
-            source: Quickshell.iconPath("fili-recorder", true)
-            sourceSize: Qt.size(64, 64)
-        }
-        Text {
-            Layout.fillWidth: true
-            text: FiliI18n.tr("Records a microphone and what the speakers play")
-            wrapMode: Text.Wrap
-            color: FiliTheme.brume
-            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-        }
-    }
-    Repeater {
-        model: view.about ? [[FiliI18n.tr("Also known as"), "fili-recorder (k7)"], [FiliI18n.tr("Part of"), "Filigrane"],
-                             [FiliI18n.tr("Settings"), "~/.config/filigrane/fili-recorder.toml"], [FiliI18n.tr("Recordings"), view.info.dir || "~/Music/Recordings"]] : []
-        RowLayout {
-            required property var modelData
-            Layout.fillWidth: true
-            Layout.leftMargin: FiliTheme.space2
-            Layout.rightMargin: FiliTheme.space2
-            spacing: FiliTheme.space2
-            Text {
-                text: modelData[0]
-                color: FiliTheme.ardoise
-                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-            }
-            Text {
-                Layout.fillWidth: true
-                text: modelData[1]
-                horizontalAlignment: Text.AlignRight
-                elide: Text.ElideLeft
-                color: FiliTheme.brume
-                font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-            }
+            FiliTheme.run("fili-recorder");
         }
     }
 }

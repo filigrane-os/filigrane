@@ -63,7 +63,7 @@ BarModule {
             colors: ({ rec: FiliTheme.cendre, idle: FiliTheme.barMuted })
             mclick: FiliTheme.bin + "/fili-recorder toggle"
             value: rec.recording ? {
-                text: rec.mark + " " + FiliI18n.tr(rec.info.saving ? "SAVING" : "REC"),
+                text: rec.mark + " " + (rec.info.saving ? FiliI18n.tr("SAVING") : FiliI18n.tr("REC")),
                 "class": "rec",
                 tooltip: {
                     title: "Cassette",

@@ -1,0 +1,55 @@
+{
+  "name": "Cassette",
+  "app": [
+    { "label": "About Cassette", "exec": "fili-recorder ctl --pid %pid action about" },
+    { "label": "Settings…", "exec": "fili-recorder ctl --pid %pid action settings" }
+  ],
+  "window": [
+    { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-recorder ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-recorder ctl --pid %pid action toggle-window-buttons" },
+    { "label": "Show Header", "exec": "fili-recorder ctl --pid %pid action toggle-header" },
+    { "label": "Show Status Bar", "exec": "fili-recorder ctl --pid %pid action toggle-footer" }
+  ],
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        { "label": "Open Recordings Folder", "exec": "fili-recorder ctl --pid %pid action open-folder" },
+        { "label": "Show in Casier", "exec": "fili-recorder ctl --pid %pid action show-in-casier" },
+        { "label": "Copy Name", "exec": "fili-recorder ctl --pid %pid action copy-name" },
+        { "sep": true },
+        { "label": "Move to Trash", "keys": "Delete", "exec": "fili-recorder ctl --pid %pid action trash" },
+        { "sep": true },
+        { "label": "Close", "keys": "Ctrl+W", "exec": "fili-recorder ctl --pid %pid action close" }
+      ]
+    },
+    {
+      "label": "Record",
+      "children": [
+        { "label": "Start or Stop Recording", "keys": "Ctrl+R", "exec": "fili-recorder ctl --pid %pid action record-toggle" }
+      ]
+    },
+    {
+      "label": "Playback",
+      "children": [
+        { "label": "Play or Pause", "keys": "Space", "exec": "fili-recorder ctl --pid %pid action play-pause" },
+        { "label": "Play Selected", "keys": "Return", "exec": "fili-recorder ctl --pid %pid action play-selected" },
+        { "label": "Stop", "exec": "fili-recorder ctl --pid %pid action stop" },
+        { "sep": true },
+        { "label": "Previous", "keys": "Ctrl+Left", "exec": "fili-recorder ctl --pid %pid action prev" },
+        { "label": "Next", "keys": "Ctrl+Right", "exec": "fili-recorder ctl --pid %pid action next" },
+        { "label": "Back 10 Seconds", "keys": "Left", "exec": "fili-recorder ctl --pid %pid action seek-back" },
+        { "label": "Forward 10 Seconds", "keys": "Right", "exec": "fili-recorder ctl --pid %pid action seek-forward" }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        { "label": "Recordings", "keys": "Ctrl+1", "exec": "fili-recorder ctl --pid %pid action mode-library" },
+        { "label": "Record", "keys": "Ctrl+2", "exec": "fili-recorder ctl --pid %pid action mode-record" },
+        { "sep": true },
+        { "label": "Search", "keys": "Ctrl+F", "exec": "fili-recorder ctl --pid %pid action search" }
+      ]
+    }
+  ]
+}
