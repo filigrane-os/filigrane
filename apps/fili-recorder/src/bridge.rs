@@ -515,8 +515,8 @@ impl qobject::Cassette {
             }
         }
         if self.player.as_ref().is_some_and(|p| p.take_ended()) {
-            // The file played to its end: the next one of the list, or stop at the last
-            self.as_mut().next();
+            // The file played to its end: playback stops, it does not go on to the next recording
+            self.as_mut().stop_play();
             return;
         }
         if dirty {
