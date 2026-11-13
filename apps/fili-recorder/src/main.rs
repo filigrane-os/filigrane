@@ -555,9 +555,9 @@ fn status_json() -> String {
 /// "idle": the module then lives in the drawer).
 fn status_bar() -> String {
     if load_session().is_some() {
-        "{\"text\":\"\\uf111 REC\",\"class\":\"rec\"}".into()
+        "{\"text\":\"\u{f2f10} REC\",\"class\":\"rec\"}".into()
     } else {
-        "{\"text\":\"\\uf111\",\"class\":\"idle\"}".into()
+        "{\"text\":\"\u{f2f10}\",\"class\":\"idle\"}".into()
     }
 }
 

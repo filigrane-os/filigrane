@@ -3,6 +3,7 @@
 // `fili-recorder` does the work (apps/fili-recorder); the choices are its state, kept for the next recordings.
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.bar
@@ -196,6 +197,26 @@ ColumnLayout {
         dim: !view.about
         sel: view.about
         onClicked: view.about = !view.about
+    }
+    RowLayout {
+        visible: view.about
+        Layout.fillWidth: true
+        Layout.leftMargin: FiliTheme.space2
+        spacing: FiliTheme.space2
+        Image {
+            Layout.preferredWidth: 32
+            Layout.preferredHeight: 32
+            visible: status === Image.Ready
+            source: Quickshell.iconPath("fili-recorder", true)
+            sourceSize: Qt.size(64, 64)
+        }
+        Text {
+            Layout.fillWidth: true
+            text: FiliI18n.tr("Records a microphone and what the speakers play")
+            wrapMode: Text.Wrap
+            color: FiliTheme.brume
+            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+        }
     }
     Repeater {
         model: view.about ? [[FiliI18n.tr("Also known as"), "fili-recorder (k7)"], [FiliI18n.tr("Part of"), "Filigrane"],

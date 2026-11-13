@@ -64,6 +64,8 @@ MAP = {
 
 MAP.update({0xF2000 + i: n for i, n in enumerate(TOPICS)})
 MAP.update({0xF2F00: "list", 0xF2F01: "settings"})
+# Cassette (fili-recorder): the monochrome mark of its fili-bar module, same cassette as its application icon
+MAP.update({0xF2F10: "cassette-tape"})
 
 
 def fetch(dest):

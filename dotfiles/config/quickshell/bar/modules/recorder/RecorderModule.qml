@@ -14,6 +14,8 @@ BarModule {
     panelSource: Qt.resolvedUrl("RecorderPanel.qml")
     anchorItem: item
 
+    // The cassette of Fili Icons (Lucide cassette-tape, scripts/fili-icons.py), the monochrome mark of the application icon
+    readonly property string mark: String.fromCodePoint(0xf2f10)
     property var info: ({ recording: false, saving: false, start: 0, input: "default", output: "default" })
     readonly property bool recording: info.recording === true
     function node(name) {
@@ -61,7 +63,7 @@ BarModule {
             colors: ({ rec: FiliTheme.cendre, idle: FiliTheme.barMuted })
             mclick: FiliTheme.bin + "/fili-recorder toggle"
             value: rec.recording ? {
-                text: " " + FiliI18n.tr(rec.info.saving ? "SAVING" : "REC"),
+                text: rec.mark + " " + FiliI18n.tr(rec.info.saving ? "SAVING" : "REC"),
                 "class": "rec",
                 tooltip: {
                     title: "Cassette",
@@ -70,7 +72,7 @@ BarModule {
                     hint: FiliI18n.tr("click: panel · middle click: stop")
                 }
             } : {
-                text: "",
+                text: rec.mark,
                 "class": "idle",
                 tooltip: { title: "Cassette", text: FiliI18n.tr("Not recording"), hint: FiliI18n.tr("click: panel · middle click: record") }
             }

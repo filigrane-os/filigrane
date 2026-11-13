@@ -6,7 +6,7 @@ Idle, a module shows little or nothing: indicators such as alerts, the timer or 
 
 ## Default layout
 
-Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the taskbar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `recorder`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
+Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the taskbar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `tray`, `recorder`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
 
 | Module | Shows | Click |
 |---|---|---|
@@ -14,8 +14,8 @@ Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the work
 | `workspaces` | workspaces of the screen | go to one; wheel: previous / next |
 | `appmenu` | name and menus of the active application | open a menu (see below) |
 | `status` | screen recording, incoming SSH, airplane mode, VPN, pending updates (each hidden when idle) | recording: stop; airplane: turn off; updates: run them |
-| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output to record (each one optional), start / stop; middle: start / stop |
 | `tray` | system tray icons and the drawer chevron | chevron: show or fold the drawer |
+| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output to record (each one optional), start / stop; middle: start / stop |
 | `media` | current player | play / pause; middle: next; wheel: previous / next |
 | `resources` | CPU and memory; temperature and disk only when high | monitor panel |
 | `agent` | the AI agent (waiting, done) | sessions panel |
