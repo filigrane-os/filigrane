@@ -50,12 +50,19 @@
 # [modes]
 # herdr = "auto"
 
+# Agents: the programs a pane knows as AI agents (in its foreground, also under node, bun or python). Their state
+# (working, waiting for you, done, idle) shows on the tab and the pane, with a notification when one waits or finished
+# out of sight. Hooks can report it exactly: `fili-term report working|blocked|done|idle` (see the README).
+# [agents]
+# programs = ["claude", "codex", "opencode", "gemini", "aider", "goose", "amp", "cursor-agent", "copilot", "crush", "qwen", "kimi", "droid", "pi"]
+
 # Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
 # close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
 # next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom,
 # toggle-sidebar, split-right, split-down, close-pane, zoom-pane, focus-*, resize-*, resize-mode (Ctrl+Alt+R: arrows
 # or H J K L move the dividers, Esc when done), rename-pane (no key by default), edit-scrollback (Ctrl+Alt+Shift+E: the
-# pane's history in $VISUAL / $EDITOR, in a zoomed pane), context-menu).
+# pane's history in $VISUAL / $EDITOR, in a zoomed pane), next-agent (Ctrl+Alt+A: the next agent waiting for you,
+# else one that finished), context-menu).
 # The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
 # in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
 # [keys]
