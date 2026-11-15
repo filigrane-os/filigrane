@@ -33,6 +33,11 @@
 # Also: Settings > Aéroport, or `fili-term keymap NAME` in a terminal.
 # keymap = "default"
 
+# Windows come back: a bare `fili-term` with no window open reopens the windows of the last run (workspaces, tabs, splits,
+# pane names), on their old sessions when the daemon still has them, else as new shells in their old folders. A window
+# closed on purpose is forgotten. "never" turns it off; `fili-term --new` skips it once.
+# restore = "always"
+
 # Window: show or hide the header and the footer (also `fili-theme header|footer on|off` for every Filigrane
 # application, and --no-header / --no-footer on the command line). Without a header, the search field appears over
 # the terminal; a hidden footer still shows the latest file transaction (Undo).
