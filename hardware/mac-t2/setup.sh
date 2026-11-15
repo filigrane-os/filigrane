@@ -15,7 +15,7 @@ T2BCE_REPO="https://github.com/AdityaGarg8/t2bce"
 T2BCE_REF="d493b0696b133ef2a3e2192790758180d62886b0"
 T2BCE_VER="0.0+git${T2BCE_REF:0:7}"
 # Out-of-tree Touch Bar drivers (hid-appletb-kbd/bl, appletbdrm), see appletb/: increment if SHA256SUMS changes
-APPLETB_VER="2"
+APPLETB_VER="3"
 # applesmc with the T2 SMC (fans), see applesmc/: the one of the Void kernel blocks the boot
 APPLESMC_VER="1"
 # Trackpad multitouch (hid-apple + hid-magicmouse T2), voir trackpad/: sans lui, trackpad = simple souris
