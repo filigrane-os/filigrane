@@ -1452,11 +1452,11 @@ ShellRoot {
                 FiliPanel.step(-1);
                 ok(FiliPanel.view === "" && FiliNotification.centerOpen && FiliShell.keyNav, "keyboard: ← to the notification centre", FiliPanel.view);
                 FiliPanel.step(-1);
-                ok(FiliPanel.view === "network" && !FiliNotification.centerOpen, "keyboard: ← from the centre -> network", FiliPanel.view);
+                ok(FiliPanel.view === "messages" && !FiliNotification.centerOpen, "keyboard: ← from the centre -> messages", FiliPanel.view);
                 FiliPanel.summon("toggle");
                 ok(!FiliPanel.open && !FiliShell.keyNav, "keyboard: Mod+A closes, outlines forgotten");
                 FiliPanel.summon("toggle");
-                ok(FiliPanel.view === "network", "keyboard: Mod+A reopens the last panel (network)", FiliPanel.view);
+                ok(FiliPanel.view === "messages", "keyboard: Mod+A reopens the last panel (messages)", FiliPanel.view);
                 const m = FiliPanel.modules[Quickshell.screens[0].name] ?? {};
                 ok(FiliPanel.ring().every(n => m[n]), "keyboard: every panel knows its bar module", Object.keys(m).join(","));
                 FiliPanel.close();
@@ -1823,7 +1823,7 @@ ShellRoot {
                 BarLayout.parsed = ({});
             },
             wait(() => {}, () => t.find(t.bar.contentItem, "network") !== null && t.find(t.bar.contentItem, "appmenu") !== null, 5000),
-            () => ok(FiliPanel.ring().length === 9 && FiliPanel.ring().indexOf("status") < 0, "fili-bar: default modules back, panels registered again (status panel only while an indicator is active)", FiliPanel.ring().join()),
+            () => ok(FiliPanel.ring().length === 10 && FiliPanel.ring().indexOf("status") < 0, "fili-bar: default modules back, panels registered again (status panel only while an indicator is active)", FiliPanel.ring().join()),
             () => {
                 const r = t.find(t.bar.contentItem, "rec");
                 ok(r && r.display === "both" && r.trayMode === "never" && r.inDrawer, "fili-bar: default display/tray (both, never)", r ? r.display + "/" + r.trayMode : "absent");

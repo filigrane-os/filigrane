@@ -2,6 +2,17 @@
 # defaults. Messages, accounts and sessions live in ~/.local/share/fili-im; the state of the window (hidden buttons,
 # folded sections) in ~/.local/state/filigrane/.
 
+# Read receipts ("read" ticks the sender sees). Peeking from the bar or a notification never sends them.
+#   on_open (default): opening a conversation in the window sends them
+#   manual: only "Mark as read" does
+#   never: nothing is ever sent from here
+# A line for an account (its name is in `fili-im status`) or one conversation (its number in `fili-im chats`)
+# beats `default`.
+# [receipts]
+# default = "on_open"
+# whatsapp-1 = "manual"
+# chat:42 = "never"
+
 # Look of the window: the same sections as ~/.config/filigrane/theme.toml ([theme], [theme.dark], [theme.light],
 # [theme.accents]) override the shared theme for Conversations only.
 # [window]
