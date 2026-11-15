@@ -16,6 +16,7 @@
         { "label": "Show in Casier", "exec": "fili-term ctl --pid %pid action show-in-files" },
         { "sep": true },
         { "label": "Integrate Program", "exec": "fili-term ctl --pid %pid action integrate" },
+        { "label": "Machines…", "exec": "fili-term ctl --pid %pid action machines" },
         { "sep": true },
         { "label": "Ask Rob About Last Command", "exec": "fili-term ctl --pid %pid action ask-rob" },
         { "sep": true },
