@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Messages"
+description = "Unread instant messages across every account (Conversations)"
+side = "right"
+order = 106
