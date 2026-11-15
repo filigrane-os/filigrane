@@ -13,6 +13,11 @@
 # whatsapp-1 = "manual"
 # chat:42 = "never"
 
+# Links in messages: a YouTube link shows its thumbnail and title (asked to youtube.com / i.ytimg.com when the message
+# is shown, which tells them you looked at it). "off": no request is made, links stay text.
+# [links]
+# previews = "youtube"   # or "off"
+
 # Look of the window: the same sections as ~/.config/filigrane/theme.toml ([theme], [theme.dark], [theme.light],
 # [theme.accents]) override the shared theme for Conversations only.
 # [window]

@@ -9,6 +9,8 @@ swaylock
 brightnessctl
 playerctl
 mpv
+yt-dlp  # video links (YouTube) in Conversations Quick Look, played by mpv
+qt6-multimedia  # video and audio playback in Qt Quick apps (Conversations Quick Look)
 pipewire
 alsa-pipewire  # ALSA default device routed to PipeWire (cpal/ALSA apps such as tornade-tui)
 wireplumber
