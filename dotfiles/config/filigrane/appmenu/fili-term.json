@@ -21,7 +21,8 @@
         { "sep": true },
         { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-term.toml" },
         { "sep": true },
-        { "label": "Close Tab", "keys": "Ctrl+Shift+W", "exec": "fili-term ctl --pid %pid action close-tab" },
+        { "label": "Close Pane", "keys": "Ctrl+Shift+W", "exec": "fili-term ctl --pid %pid action close-pane" },
+        { "label": "Close Tab", "keys": "Ctrl+Alt+Shift+W", "exec": "fili-term ctl --pid %pid action close-tab" },
         { "label": "Close Window", "keys": "Ctrl+Shift+Q", "exec": "fili-term ctl --pid %pid action close-window" }
       ]
     },
@@ -62,6 +63,34 @@
       "children": [
         { "label": "Next Tab", "keys": "Ctrl+PgDown", "exec": "fili-term ctl --pid %pid action next-tab" },
         { "label": "Previous Tab", "keys": "Ctrl+PgUp", "exec": "fili-term ctl --pid %pid action previous-tab" }
+      ]
+    },
+    {
+      "label": "Panes",
+      "children": [
+        { "label": "Split Right", "keys": "Ctrl+Shift+D", "exec": "fili-term ctl --pid %pid action split-right" },
+        { "label": "Split Down", "keys": "Ctrl+Shift+E", "exec": "fili-term ctl --pid %pid action split-down" },
+        { "sep": true },
+        { "label": "Zoom Pane", "keys": "Ctrl+Shift+Return", "exec": "fili-term ctl --pid %pid action zoom-pane" },
+        { "sep": true },
+        {
+          "label": "Select Pane",
+          "children": [
+            { "label": "Pane on the Left", "keys": "Ctrl+Alt+Left", "exec": "fili-term ctl --pid %pid action focus-left" },
+            { "label": "Pane on the Right", "keys": "Ctrl+Alt+Right", "exec": "fili-term ctl --pid %pid action focus-right" },
+            { "label": "Pane Above", "keys": "Ctrl+Alt+Up", "exec": "fili-term ctl --pid %pid action focus-up" },
+            { "label": "Pane Below", "keys": "Ctrl+Alt+Down", "exec": "fili-term ctl --pid %pid action focus-down" }
+          ]
+        },
+        {
+          "label": "Resize Pane",
+          "children": [
+            { "label": "Move Divider Left", "keys": "Ctrl+Alt+Shift+Left", "exec": "fili-term ctl --pid %pid action resize-left" },
+            { "label": "Move Divider Right", "keys": "Ctrl+Alt+Shift+Right", "exec": "fili-term ctl --pid %pid action resize-right" },
+            { "label": "Move Divider Up", "keys": "Ctrl+Alt+Shift+Up", "exec": "fili-term ctl --pid %pid action resize-up" },
+            { "label": "Move Divider Down", "keys": "Ctrl+Alt+Shift+Down", "exec": "fili-term ctl --pid %pid action resize-down" }
+          ]
+        }
       ]
     }
   ]
