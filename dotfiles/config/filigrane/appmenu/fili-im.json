@@ -109,6 +109,10 @@
           "exec": "fili-im ctl --pid %pid action mark-read"
         },
         {
+          "label": "Contact Info…",
+          "exec": "fili-im ctl --pid %pid action contact-info"
+        },
+        {
           "sep": true
         },
         {
@@ -155,6 +159,27 @@
           "label": "Unread",
           "keys": "Ctrl+U",
           "exec": "fili-im ctl --pid %pid action unread-box"
+        }
+      ]
+    },
+    {
+      "label": "Status",
+      "children": [
+        {
+          "label": "Online",
+          "exec": "fili-im ctl --pid %pid action status-available"
+        },
+        {
+          "label": "Away",
+          "exec": "fili-im ctl --pid %pid action status-away"
+        },
+        {
+          "label": "Busy",
+          "exec": "fili-im ctl --pid %pid action status-busy"
+        },
+        {
+          "label": "Offline",
+          "exec": "fili-im ctl --pid %pid action status-offline"
         }
       ]
     }
