@@ -1,0 +1,59 @@
+{
+  "name": "Conversations",
+  "app": [
+    { "label": "About Conversations", "exec": "fili-im ctl --pid %pid action about" }
+  ],
+  "window": [
+    { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-im ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-im ctl --pid %pid action toggle-window-buttons" },
+    { "label": "Show Header", "exec": "fili-im ctl --pid %pid action toggle-header" },
+    { "label": "Show Status Bar", "exec": "fili-im ctl --pid %pid action toggle-footer" }
+  ],
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        { "label": "New Conversation…", "keys": "Ctrl+N", "exec": "fili-im ctl --pid %pid action new-conversation" },
+        { "label": "Add Account…", "exec": "fili-im ctl --pid %pid action add-account" },
+        { "label": "Link Account…", "exec": "fili-im ctl --pid %pid action pair" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-im.toml" },
+        { "sep": true },
+        { "label": "Close Tab", "keys": "Ctrl+W", "exec": "fili-im ctl --pid %pid action close-tab" },
+        { "label": "Close", "keys": "Ctrl+Q", "exec": "fili-im ctl --pid %pid action close" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "children": [
+        { "label": "Copy", "keys": "Ctrl+C", "exec": "fili-im ctl --pid %pid action copy" },
+        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-im ctl --pid %pid action select-all" },
+        { "sep": true },
+        { "label": "Find…", "keys": "Ctrl+F", "exec": "fili-im ctl --pid %pid action search" }
+      ]
+    },
+    {
+      "label": "Conversation",
+      "children": [
+        { "label": "Write a Message", "keys": "Ctrl+L", "exec": "fili-im ctl --pid %pid action focus-composer" },
+        { "label": "Reply to Last Message", "exec": "fili-im ctl --pid %pid action reply" },
+        { "label": "Mark as Read", "exec": "fili-im ctl --pid %pid action mark-read" },
+        { "sep": true },
+        { "label": "Next Conversation", "keys": "Alt+Down", "exec": "fili-im ctl --pid %pid action next-conversation" },
+        { "label": "Previous Conversation", "keys": "Alt+Up", "exec": "fili-im ctl --pid %pid action previous-conversation" },
+        { "sep": true },
+        { "label": "Next Tab", "keys": "Ctrl+Tab", "exec": "fili-im ctl --pid %pid action next-tab" },
+        { "label": "Previous Tab", "keys": "Ctrl+Shift+Tab", "exec": "fili-im ctl --pid %pid action previous-tab" },
+        { "sep": true },
+        { "label": "Refresh", "keys": "F5", "exec": "fili-im ctl --pid %pid action refresh" }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        { "label": "All Conversations", "exec": "fili-im ctl --pid %pid action all" },
+        { "label": "Unread", "keys": "Ctrl+U", "exec": "fili-im ctl --pid %pid action unread-box" }
+      ]
+    }
+  ]
+}
