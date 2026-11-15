@@ -812,6 +812,12 @@ ShellRoot {
                 ok(g2[0].entries.map(e => e.key + ":" + e.wins.length).join() === "a71/firefox:1,a71/foot:2,a71/float:1", "taskbar: level 2 merges the windows of one application", g2[0].entries.map(e => e.key + ":" + e.wins.length).join());
                 const g3 = TaskbarLayout.groups(so, Niri.workspaces, Niri.windows, 1, 3);
                 ok(!g3[0].folded && g3[1].folded && g3[1].count === 1, "taskbar: level 3 folds the workspaces that are not shown", JSON.stringify(g3.map(g => g.folded)));
+                // Tabbed column: two tall windows in one column; the active tab is the last focused one
+                Niri.focusSeq = ({ 1: 1, 2: 2, 3: 3 });
+                const tw = [{ id: 1, tall: true, layout: { pos_in_scrolling_layout: [2, 1] } }, { id: 2, tall: true, layout: { pos_in_scrolling_layout: [2, 2] } },
+                    { id: 3, tall: true, layout: { pos_in_scrolling_layout: [3, 1] } }, { id: 4, tall: false, layout: { pos_in_scrolling_layout: [4, 1] } }, { id: 5, tall: false, layout: { pos_in_scrolling_layout: [4, 2] } }];
+                const tt = TaskbarLayout.tabbed(tw);
+                ok(Object.keys(tt).join() === "1,2" && tt[1].index === 1 && tt[2].count === 2 && !tt[1].active && tt[2].active, "taskbar: tabs = tall windows sharing a column, active one = last focused (a lone or stacked window has none)", JSON.stringify(tt));
                 ok(TaskbarLayout.nextLevel(0, 100, 150, []) === 1 && TaskbarLayout.nextLevel(3, 100, 150, []) === 3 && TaskbarLayout.nextLevel(1, 300, 150, [100]) === 0 && TaskbarLayout.nextLevel(1, 120, 150, [100]) === 2 && TaskbarLayout.nextLevel(1, 200, 150, [190]) === 1,
                     "taskbar: squeeze goes up while the row does not fit, back down when the level below fits, stops at the last level");
                 ok(TaskbarLayout.nextLevel(3, 1500, 300, []) === 2 && TaskbarLayout.nextLevel(3, 1500, 300, [1600, 1600, 1600]) === 3 && TaskbarLayout.nextLevel(3, 1500, 1495, []) === 3 && TaskbarLayout.nextLevel(0, 1500, 300, []) === 0,

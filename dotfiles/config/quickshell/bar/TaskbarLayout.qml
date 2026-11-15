@@ -94,10 +94,28 @@ Singleton {
     function label(ws, numbered) {
         return ws.name ?? (numbered ? "•" : String(ws.idx));
     }
+    // Tabs of the windows of one workspace: { id: { index, count, active } } for every window of a tabbed column (two tall
+    // windows or more in one column, see Niri.isTall); the active tab is the one that had the focus last
+    function tabbed(wins) {
+        const cols = {};
+        for (const w of wins) {
+            const p = w.layout?.pos_in_scrolling_layout;
+            if (p && w.tall)
+                (cols[p[0]] = cols[p[0]] ?? []).push(w);
+        }
+        const out = {};
+        for (const list of Object.values(cols)) {
+            if (list.length < 2)
+                continue;
+            const last = list.reduce((a, b) => (Niri.focusSeq[b.id] ?? 0) > (Niri.focusSeq[a.id] ?? 0) ? b : a);
+            list.forEach((w, i) => out[w.id] = { index: i + 1, count: list.length, active: w === last });
+        }
+        return out;
+    }
     // The groups of one screen: workspaces left to right (those with a window, and the active one), each
     //   { id, label, active, urgent, count, folded, wins: [window...], entries: [entry...] }
-    // entry = { key, app_id, wins: [window...], nums: [number...], focused, urgent, title }: one window, or from level 2 all the windows of
-    // one application of the workspace (title = the title to show, "" for the icon alone).
+    // entry = { key, app_id, wins: [window...], nums: [number...], focused, urgent, tab, title }: one window, or from level 2 all the windows of
+    // one application of the workspace (tab = { index, count, active } for a window in a tabbed column, else null; title = the title to show, "" for the icon alone).
     function groups(output, workspaces, windows, focusedId, level) {
         const all = Object.values(windows);
         const numbered = workspaces.some(w => /^[0-9]+$/.test(w.name ?? ""));
@@ -107,6 +125,7 @@ Singleton {
             if (wins.length === 0 && !ws.is_active)
                 continue;
             const focusedHere = wins.some(w => w.id === focusedId);
+            const tabs = tabbed(wins);
             const entries = [];
             for (const w of wins) {
                 const prev = level >= 2 ? entries.find(e => e.app_id === (w.app_id ?? "")) : undefined;
@@ -119,6 +138,8 @@ Singleton {
                 e.nums = e.wins.map(w => TaskbarNumbers.numberOf(w.id));
                 e.focused = e.wins.some(w => w.id === focusedId);
                 e.urgent = e.wins.some(w => w.is_urgent);
+                // Place among the tabs of its column (one window only: a merged icon has no tab of its own)
+                e.tab = e.wins.length === 1 ? tabs[e.wins[0].id] ?? null : null;
                 // Title: every window at level 0, then the focused one (not a merged icon)
                 e.title = e.wins.length === 1 && (level === 0 || (level >= 1 && e.focused)) ? (e.wins[0].title ?? "") : "";
             }

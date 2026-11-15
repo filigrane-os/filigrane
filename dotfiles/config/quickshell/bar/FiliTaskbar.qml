@@ -461,6 +461,17 @@ PanelWindow {
                             height: win.vertical ? parent.height : 2
                             color: FiliTheme.toned(FiliTheme.taskbarTone, "accent")
                         }
+                        // Tab of a tabbed column (niri's Mod+W): a line along the outer edge of the icons of the column, one
+                        // segment per tab, thick and bright for the active one. The tooltip says "Tab 2 of 3".
+                        Rectangle {
+                            visible: cell.modelData.tab !== null
+                            readonly property bool on: cell.modelData.tab?.active ?? false
+                            x: win.vertical ? (win.edge === "left" ? 0 : parent.width - width) : 1
+                            y: win.vertical ? 1 : (win.edge === "bottom" ? parent.height - height : 0)
+                            width: win.vertical ? (on ? 3 : 1) : parent.width - 2
+                            height: win.vertical ? parent.height - 2 : (on ? 3 : 1)
+                            color: FiliTheme.toned(FiliTheme.taskbarTone, on ? "text2" : "muted")
+                        }
                         // Application icon, or its first letter when the theme has none
                         Item {
                             id: glyph
@@ -530,7 +541,7 @@ PanelWindow {
                             tip: {
                                 const e = cell.modelData;
                                 return {
-                                    title: TaskbarLayout.appName(e.app_id),
+                                    title: TaskbarLayout.appName(e.app_id) + (e.tab ? " · " + FiliI18n.tr("Tab %1 of %2", e.tab.index, e.tab.count) : ""),
                                     rows: e.wins.map(w => [(w.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + "#" + TaskbarNumbers.numberOf(w.id), w.title ?? ""]),
                                     hint: cell.merged ? FiliI18n.tr("click: list of the windows") : FiliI18n.tr("click: go there · middle click: close")
                                 };
