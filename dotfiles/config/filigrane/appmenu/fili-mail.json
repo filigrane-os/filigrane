@@ -52,6 +52,7 @@
       "label": "Mailbox",
       "children": [
         { "label": "Refresh", "keys": "F5", "exec": "fili-mail ctl --pid %pid action refresh" },
+        { "label": "Show Category Tabs", "exec": "fili-mail ctl --pid %pid action toggle-category-tabs" },
         { "sep": true },
         { "label": "Inbox", "exec": "fili-mail ctl --pid %pid action inbox" },
         { "label": "Unread", "exec": "fili-mail ctl --pid %pid action unread-box" },
