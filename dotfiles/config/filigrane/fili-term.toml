@@ -40,14 +40,15 @@
 # header = true
 # footer = true
 
-# Integrated modes, only when you call the program. herdr: its tabs become tabs of the window (each one shows a pane,
-# without herdr's own sidebar and tab row), its workspaces and agents fill the sidebar with their status, and a
-# notification comes when an agent waits for you or finished while you look elsewhere. `fili-term mode herdr` opens
-# them; when you start `herdr` in a tab, "ask" offers it in the footer (Integrate · Not Now · Don't Ask Again), "auto"
-# integrates it at once, "off" never. Stop Integration (bottom of the sidebar) closes those tabs; herdr goes on.
+# Integrated modes. herdr: its tabs become tabs of the window (each one shows its panes, without herdr's own sidebar
+# and tab row), its workspaces and agents fill the sidebar with their status, and a notification comes when an agent
+# waits for you or finished while you look elsewhere. When you start `herdr` in a tab (also `herdr --remote HOST`,
+# through SSH), "auto" integrates it at once, "ask" offers it in the footer (Integrate · Not Now · Don't Ask Again),
+# "off" never; `fili-term mode herdr` opens it from anywhere. Use herdr's Interface (footer, bottom of the sidebar)
+# closes those tabs and opens herdr's own client in a tab; herdr goes on.
 # View > Show Sidebar (Ctrl+Shift+B) hides the sidebar.
 # [modes]
-# herdr = "ask"
+# herdr = "auto"
 
 # Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
 # close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
