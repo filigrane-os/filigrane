@@ -461,16 +461,16 @@ PanelWindow {
                             height: win.vertical ? parent.height : 2
                             color: FiliTheme.toned(FiliTheme.taskbarTone, "accent")
                         }
-                        // Tab of a tabbed column (niri's Mod+W): a line along the outer edge of the icons of the column, one
-                        // segment per tab, thick and bright for the active one. The tooltip says "Tab 2 of 3".
+                        // Tab of a tabbed column (niri's Mod+W): a thin line along the outer edge of the icons of the column, one
+                        // segment per tab, so that they read as one. The focus mark already says which one is active; the tooltip
+                        // says "Tab 2 of 3".
                         Rectangle {
                             visible: cell.modelData.tab !== null
-                            readonly property bool on: cell.modelData.tab?.active ?? false
-                            x: win.vertical ? (win.edge === "left" ? 0 : parent.width - width) : 1
-                            y: win.vertical ? 1 : (win.edge === "bottom" ? parent.height - height : 0)
-                            width: win.vertical ? (on ? 3 : 1) : parent.width - 2
-                            height: win.vertical ? parent.height - 2 : (on ? 3 : 1)
-                            color: FiliTheme.toned(FiliTheme.taskbarTone, on ? "text2" : "muted")
+                            x: win.vertical ? (win.edge === "left" ? 0 : parent.width - 1) : 1
+                            y: win.vertical ? 1 : (win.edge === "bottom" ? parent.height - 1 : 0)
+                            width: win.vertical ? 1 : parent.width - 2
+                            height: win.vertical ? parent.height - 2 : 1
+                            color: FiliTheme.toned(FiliTheme.taskbarTone, "text2")
                         }
                         // Application icon, or its first letter when the theme has none
                         Item {

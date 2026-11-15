@@ -66,7 +66,7 @@ A second bar, **fili-taskbar** (shown as **Quai** to the user), runs along the b
 | click on a merged icon or a folded workspace | list of its windows |
 | hover | fili-tooltip: application, titles, urgent windows, "Tab 2 of 3" |
 
-**Tabs.** The windows of a column in tabbed display (niri's `Mod+W`) carry a line along the outer edge of their icons, one segment per tab, thick and bright for the active one (the last focused of the column). niri does not report tabbed columns, so they are recognised by their height: two or more windows of one column, each taller than 3/4 of the screen (`Niri.isTall`, `TaskbarLayout.tabbed`). Merged icons (squeeze level 2) show none.
+**Tabs.** The windows of a column in tabbed display (niri's `Mod+W`) carry a thin line along the outer edge of their icons, one segment per tab, joining them visually (the focus mark says which one is active; the tooltip says "Tab 2 of 3"; the active tab is the last focused of the column). niri does not report tabbed columns, so they are recognised by their height: two or more windows of one column, each taller than 3/4 of the screen (`Niri.isTall`, `TaskbarLayout.tabbed`). Merged icons (squeeze level 2) show none.
 
 **Numbers.** Every window has a number, shown on its icon at all times: the lowest free number (1, 2, 3...) when it opens, the same on every screen, kept while the window lives and given back when it closes. They are saved in `~/.local/state/filigrane/window-numbers.json`, so reloading the shell does not renumber. A merged icon shows `3+2` (its first number and how many more); the hover and the list show them all.
 
