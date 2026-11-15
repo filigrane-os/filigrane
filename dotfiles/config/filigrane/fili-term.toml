@@ -61,6 +61,18 @@
 # [agents]
 # programs = ["claude", "codex", "opencode", "gemini", "aider", "goose", "amp", "cursor-agent", "copilot", "crush", "qwen", "kimi", "droid", "pi"]
 
+# Custom commands, run for the active pane (its session in $FILI_TERM_SESSION, its folder in $FILI_TERM_CWD). `type`:
+# popup (a terminal over the pane, closed when the command ends), pane (split below, closed when it ends), tab (a new
+# tab) or shell (in the background). `key`: alternatives separated by |. `width` / `height` (popup): a percentage or a
+# count of cells. They are in the pane menu (Commands) and the picker Ctrl+Alt+P; `fili-term ctl command NAME` runs one.
+# [[commands]]
+# key = "Ctrl+Alt+G"
+# name = "Lazygit"
+# type = "popup"
+# command = "lazygit"
+# width = "90%"
+# height = "90%"
+
 # Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
 # close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
 # next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom,
@@ -68,7 +80,7 @@
 # or H J K L move the dividers, Esc when done), rename-pane (no key by default), edit-scrollback (Ctrl+Alt+Shift+E: the
 # pane's history in $VISUAL / $EDITOR, in a zoomed pane), next-agent (Ctrl+Alt+A: the next agent waiting for you,
 # else one that finished), next-workspace / previous-workspace (Ctrl+Alt+PgDown / PgUp), new-workspace (no key),
-# context-menu).
+# commands (Ctrl+Alt+P: the custom commands), context-menu).
 # The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
 # in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
 # [keys]

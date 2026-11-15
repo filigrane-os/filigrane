@@ -78,6 +78,7 @@
         { "label": "Zoom Pane", "keys": "Ctrl+Shift+Return", "exec": "fili-term ctl --pid %pid action zoom-pane" },
         { "label": "Rename Pane…", "exec": "fili-term ctl --pid %pid action rename-pane" },
         { "label": "Open History in the Editor", "keys": "Ctrl+Alt+Shift+E", "exec": "fili-term ctl --pid %pid action edit-scrollback" },
+        { "label": "Commands…", "keys": "Ctrl+Alt+P", "exec": "fili-term ctl --pid %pid action commands" },
         { "label": "Next Agent Waiting", "keys": "Ctrl+Alt+A", "exec": "fili-term ctl --pid %pid action next-agent" },
         { "sep": true },
         {
