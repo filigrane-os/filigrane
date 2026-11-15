@@ -62,7 +62,11 @@
       "label": "Tabs",
       "children": [
         { "label": "Next Tab", "keys": "Ctrl+PgDown", "exec": "fili-term ctl --pid %pid action next-tab" },
-        { "label": "Previous Tab", "keys": "Ctrl+PgUp", "exec": "fili-term ctl --pid %pid action previous-tab" }
+        { "label": "Previous Tab", "keys": "Ctrl+PgUp", "exec": "fili-term ctl --pid %pid action previous-tab" },
+        { "sep": true },
+        { "label": "Next Workspace", "keys": "Ctrl+Alt+PgDown", "exec": "fili-term ctl --pid %pid action next-workspace" },
+        { "label": "Previous Workspace", "keys": "Ctrl+Alt+PgUp", "exec": "fili-term ctl --pid %pid action previous-workspace" },
+        { "label": "New Workspace…", "exec": "fili-term ctl --pid %pid action new-workspace" }
       ]
     },
     {
