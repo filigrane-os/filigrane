@@ -1,0 +1,9 @@
+# Conversations (fili-im): options of the instant messaging window. Everything is optional, commented lines are the
+# defaults. Messages, accounts and sessions live in ~/.local/share/fili-im; the state of the window (hidden buttons,
+# folded sections) in ~/.local/state/filigrane/.
+
+# Look of the window: the same sections as ~/.config/filigrane/theme.toml ([theme], [theme.dark], [theme.light],
+# [theme.accents]) override the shared theme for Conversations only.
+# [window]
+# header = true   # false: no header (`--no-header` for one window)
+# footer = true   # false: no status bar (it still shows what it has to say)
