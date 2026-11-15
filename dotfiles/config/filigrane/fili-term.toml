@@ -80,7 +80,7 @@
 # or H J K L move the dividers, Esc when done), rename-pane (no key by default), edit-scrollback (Ctrl+Alt+Shift+E: the
 # pane's history in $VISUAL / $EDITOR, in a zoomed pane), next-agent (Ctrl+Alt+A: the next agent waiting for you,
 # else one that finished), next-workspace / previous-workspace (Ctrl+Alt+PgDown / PgUp), new-workspace (no key),
-# commands (Ctrl+Alt+P: the custom commands), context-menu).
+# commands (Ctrl+Alt+P: the custom commands), new-worktree (no key: a tab in a new git worktree), context-menu).
 # The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
 # in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
 # [keys]

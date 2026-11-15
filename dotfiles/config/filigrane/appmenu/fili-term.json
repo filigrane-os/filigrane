@@ -61,6 +61,8 @@
     {
       "label": "Tabs",
       "children": [
+        { "label": "New Tab in Worktree…", "exec": "fili-term ctl --pid %pid action new-worktree" },
+        { "sep": true },
         { "label": "Next Tab", "keys": "Ctrl+PgDown", "exec": "fili-term ctl --pid %pid action next-tab" },
         { "label": "Previous Tab", "keys": "Ctrl+PgUp", "exec": "fili-term ctl --pid %pid action previous-tab" },
         { "sep": true },
