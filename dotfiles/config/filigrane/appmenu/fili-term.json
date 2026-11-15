@@ -72,6 +72,8 @@
         { "label": "Split Down", "keys": "Ctrl+Shift+E", "exec": "fili-term ctl --pid %pid action split-down" },
         { "sep": true },
         { "label": "Zoom Pane", "keys": "Ctrl+Shift+Return", "exec": "fili-term ctl --pid %pid action zoom-pane" },
+        { "label": "Rename Pane…", "exec": "fili-term ctl --pid %pid action rename-pane" },
+        { "label": "Open History in the Editor", "keys": "Ctrl+Alt+Shift+E", "exec": "fili-term ctl --pid %pid action edit-scrollback" },
         { "sep": true },
         {
           "label": "Select Pane",
@@ -85,6 +87,8 @@
         {
           "label": "Resize Pane",
           "children": [
+            { "label": "Resize Mode", "keys": "Ctrl+Alt+R", "exec": "fili-term ctl --pid %pid action resize-mode" },
+            { "sep": true },
             { "label": "Move Divider Left", "keys": "Ctrl+Alt+Shift+Left", "exec": "fili-term ctl --pid %pid action resize-left" },
             { "label": "Move Divider Right", "keys": "Ctrl+Alt+Shift+Right", "exec": "fili-term ctl --pid %pid action resize-right" },
             { "label": "Move Divider Up", "keys": "Ctrl+Alt+Shift+Up", "exec": "fili-term ctl --pid %pid action resize-up" },

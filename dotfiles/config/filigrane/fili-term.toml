@@ -53,7 +53,9 @@
 # Keys one by one. The name is an action (`fili-term ctl actions` lists them: new-tab, new-window, close-tab,
 # close-window, copy, paste, next-tab, previous-tab, tab-1 … tab-9, zoom-in, zoom-out, zoom-reset, previous-command,
 # next-command, copy-last-output, find, find-next, find-previous, page-up, page-down, scroll-top, scroll-bottom,
-# toggle-sidebar).
+# toggle-sidebar, split-right, split-down, close-pane, zoom-pane, focus-*, resize-*, resize-mode (Ctrl+Alt+R: arrows
+# or H J K L move the dividers, Esc when done), rename-pane (no key by default), edit-scrollback (Ctrl+Alt+Shift+E: the
+# pane's history in $VISUAL / $EDITOR, in a zoomed pane), context-menu).
 # The value replaces the keys of the preset for that action: alternatives are separated by |, a chord (several keys
 # in a row) by a comma, Meta is the Super key, an empty value removes the shortcut. Changes apply at once.
 # [keys]
