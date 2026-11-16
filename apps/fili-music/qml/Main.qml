@@ -1021,4 +1021,38 @@ ApplicationWindow {
             }
         }
     }
+
+    // ---- Drag and drop: the ghost follows the pointer; dropped on the queue, the tracks are added to it ---------------------
+    Connections {
+        target: Store
+        function onDropped(x, y, payload) {
+            const q = queue.mapFromItem(null, x, y);
+            if (q.x < 0 || q.y < 0 || q.x > queue.width || q.y > queue.height)
+                return;
+            if (payload.ids)
+                Store.addToQueue(payload.ids);
+            else
+                Store.callAsync("get_album_tracks", [payload.albumId], d => Store.addToQueue(d ? d.tracks.map(t => t.id) : []));
+        }
+    }
+    Rectangle {
+        id: ghost
+        z: 1000
+        visible: Store.drag !== null
+        readonly property var pos: win.contentItem.mapFromItem(null, Store.drag ? Store.drag.x : 0, Store.drag ? Store.drag.y : 0)
+        x: pos.x + 12
+        y: pos.y + 12
+        width: ghostText.implicitWidth + 2 * FiliTheme.space3
+        height: 28
+        radius: FiliTheme.radiusControl
+        color: FiliTheme.alpha(FiliTheme.accentColor, 0.9)
+        Text {
+            id: ghostText
+            anchors.centerIn: parent
+            text: Store.drag ? Store.drag.label : ""
+            font.family: FiliTheme.font
+            font.pixelSize: FiliTheme.sizeSmall
+            color: "white"
+        }
+    }
 }

@@ -38,6 +38,19 @@ QtObject {
     signal artistRequested(int artistId)
     // A context menu is asked at window coordinates: Main draws it and calls handler(id) with the entry chosen
     signal menuRequested(real x, real y, var items, var handler)
+    // Drag and drop between views: a source calls dragMove while the pointer is down past a few pixels and dragDrop on release
+    // (window coordinates); payload is {ids: [...]} or {albumId}. Main draws the ghost and the queue takes the drop
+    property var drag: null
+    signal dropped(real x, real y, var payload)
+    function dragMove(label, payload, x, y) {
+        drag = { label: label, payload: payload, x: x, y: y };
+    }
+    function dragDrop(x, y) {
+        const d = drag;
+        drag = null;
+        if (d)
+            dropped(x, y, d.payload);
+    }
     // A notice for the footer
     signal notice(string text, bool failed)
 

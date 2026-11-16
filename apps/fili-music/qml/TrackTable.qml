@@ -221,12 +221,40 @@ Item {
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onPressed: e => {
+                    px = e.x;
+                    py = e.y;
+                    dragging = false;
                     list.forceActiveFocus();
                     if (e.button === Qt.RightButton) {
                         if (!rowItem.picked)
                             table.select(rowItem.index, false, false);
                     } else
                         table.select(rowItem.index, e.modifiers & Qt.ControlModifier, e.modifiers & Qt.ShiftModifier);
+                }
+                property real px: 0
+                property real py: 0
+                property bool dragging: false
+                onPositionChanged: e => {
+                    if (!pressed || !(pressedButtons & Qt.LeftButton))
+                        return;
+                    if (!dragging && Math.hypot(e.x - px, e.y - py) > 8)
+                        dragging = true;
+                    if (dragging) {
+                        const ids = rowItem.picked ? table.selectedIds() : [id];
+                        const p = mouse.mapToItem(null, e.x, e.y);
+                        Store.dragMove(ids.length > 1 ? ids.length + " " + Fili.tr("tracks") : rowItem.title, { ids: ids }, p.x, p.y);
+                    }
+                }
+                onReleased: e => {
+                    if (dragging) {
+                        const p = mouse.mapToItem(null, e.x, e.y);
+                        Store.dragDrop(p.x, p.y);
+                    }
+                    dragging = false;
+                }
+                onCanceled: {
+                    dragging = false;
+                    Store.drag = null;
                 }
                 onClicked: e => {
                     if (e.button === Qt.RightButton) {

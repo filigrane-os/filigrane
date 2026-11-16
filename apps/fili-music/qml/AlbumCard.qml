@@ -48,7 +48,38 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         acceptedButtons: Qt.LeftButton | Qt.RightButton
+        property real px: 0
+        property real py: 0
+        property bool dragging: false
+        onPressed: e => {
+            px = e.x;
+            py = e.y;
+            dragging = false;
+        }
+        onPositionChanged: e => {
+            if (!pressed)
+                return;
+            if (!dragging && Math.hypot(e.x - px, e.y - py) > 8)
+                dragging = true;
+            if (dragging) {
+                const p = area.mapToItem(null, e.x, e.y);
+                Store.dragMove(card.album.title, { albumId: card.album.id }, p.x, p.y);
+            }
+        }
+        onReleased: e => {
+            if (dragging) {
+                const p = area.mapToItem(null, e.x, e.y);
+                Store.dragDrop(p.x, p.y);
+            }
+            dragging = false;
+        }
+        onCanceled: {
+            dragging = false;
+            Store.drag = null;
+        }
         onClicked: e => {
+            if (dragging)
+                return;
             if (e.button === Qt.RightButton) {
                 const p = area.mapToItem(null, e.x, e.y);
                 card.menuRequested(p.x, p.y);
