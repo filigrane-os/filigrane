@@ -40,10 +40,10 @@ description = "File manager"  # one line, searched by `fili search`
 package = "fili-file"         # app: the xbps package
 weight = "heavy"              # optional: warns before installing
 
-[whatsapp]
+[vpn]
 kind = "plugin"
-title = "WhatsApp"
-url = "https://github.com/filigrane-os/fili-bar-whatsapp"   # plugin: the git repository
+title = "VPN"
+url = "https://github.com/filigrane-os/fili-bar-vpn"   # plugin: the git repository
 
 [proton-mail-web]
 kind = "webapp"
