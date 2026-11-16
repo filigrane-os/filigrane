@@ -465,6 +465,19 @@ run_as_user() {
     fi
 }
 
+# Go programs of a tool (GO_BINS="name:directory ..." in its package.env, e.g. the connectors of fili-im): built next to
+# the Rust binaries so that they are copied and linked with them
+build_go_bins() {
+    local src="$1" spec gobins
+    gobins="$(GO_BINS="" && . "$src/package.env" 2>/dev/null && echo "$GO_BINS")"
+    [ -n "$gobins" ] || return 0
+    command -v go >/dev/null || { warn 'go missing (packages/dev.txt): Go programs not built'; return 1; }
+    for spec in $gobins; do
+        (cd "$src/${spec#*:}" && run_as_user env CGO_ENABLED=1 GOFLAGS=-mod=readonly GOCACHE="$TARGET_HOME/.cache/go-build" GOPATH="$TARGET_HOME/go" \
+            go build -trimpath -ldflags="-s -w" -o "$TARGET_HOME/.cache/filigrane-apps/release/${spec%%:*}" .) || return 1
+    done
+}
+
 # Own tools (apps/<name>, Rust): native binaries rather than Python/GTK scripts, so that the OS stays light.
 # Compiled in release in ~/.local/opt/<name>-<source hash>, linked into ~/.local/bin; recompiled
 # only when the sources change. The build folder (target/) stays outside the repository, in ~/.cache.
@@ -484,8 +497,8 @@ setup_apps() {
             continue
         fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
-        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term; third_party/: litehtml (fili-mail)
-        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon third_party -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term; third_party/: litehtml (fili-mail); connectors/: Go programs (fili-im)
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon third_party connectors -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         # Programs of the tool (BINS in package.env, e.g. fili-term and its session daemon), default: the one named like it
         bins="$(BINS="" && . "$src/package.env" 2>/dev/null && echo "$BINS")"; bins="${bins:-$name}"
@@ -494,6 +507,7 @@ setup_apps() {
             # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
             if (cd "$src" && run_as_user env QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" CARGO_TARGET_DIR="$TARGET_HOME/.cache/filigrane-apps" \
                     cargo build -q --release --locked --workspace --manifest-path "$src/Cargo.toml") \
+                && build_go_bins "$src" \
                 && run_as_user mkdir -p "$dir" \
                 && (for bin in $bins; do run_as_user cp "$TARGET_HOME/.cache/filigrane-apps/release/$bin" "$dir/$bin" || exit 1; done); then
                 # old versions

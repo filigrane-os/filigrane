@@ -10,6 +10,7 @@ ripgrep
 zoxide
 mise  # Ruby/Rust/Node versions per project; single binary, no daemon (118 MB disk)
 cargo  # builds the in-house tools in apps/ (bootstrap.sh, setup_apps)
+go  # builds the Go connectors of Conversations (fili-im, GO_BINS of its package.env), build only, nothing resident
 pkg-config  # lets -sys crates (openssl-sys...) find system libraries
 openssl-devel  # headers for crates linking OpenSSL (build only)
 alsa-lib-devel  # headers for crates linking ALSA (alsa-sys), build only
