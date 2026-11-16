@@ -137,6 +137,18 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         KineticScroll {}
+        // Slot a dragged track would take (-1 when nothing is dragged)
+        property int dropIndex: -1
+        Rectangle {
+            parent: list.contentItem
+            z: 10
+            visible: list.dropIndex >= 0
+            x: 0
+            y: list.dropIndex * 44 - 1
+            width: list.width
+            height: 2
+            color: FiliTheme.accentColor
+        }
         // The current track is brought into view when it changes
         Connections {
             target: Store
@@ -200,6 +212,38 @@ Item {
                 hoverEnabled: true
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onDoubleClicked: Store.playQueueAt(row.position)
+                // Drag to reorder: a line shows where the track will land; released on its own place it does nothing
+                property real pressY: 0
+                property bool dragging: false
+                onPressed: e => {
+                    pressY = e.y;
+                    dragging = false;
+                }
+                onPositionChanged: e => {
+                    if (!pressed || panel.filter !== "")
+                        return;
+                    if (!dragging && Math.abs(e.y - pressY) > 6)
+                        dragging = true;
+                    if (dragging) {
+                        const y = area.mapToItem(list.contentItem, e.x, e.y).y;
+                        list.dropIndex = Math.max(0, Math.min(tracks.count, Math.round(y / 44)));
+                    }
+                }
+                onReleased: {
+                    if (dragging) {
+                        let to = list.dropIndex;
+                        if (to > row.position)
+                            to--;
+                        if (to !== row.position && to >= 0)
+                            Store.moveInQueue(row.position, to);
+                    }
+                    dragging = false;
+                    list.dropIndex = -1;
+                }
+                onCanceled: {
+                    dragging = false;
+                    list.dropIndex = -1;
+                }
                 onClicked: e => {
                     if (e.button === Qt.RightButton) {
                         const p = area.mapToItem(null, e.x, e.y);
