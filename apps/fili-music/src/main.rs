@@ -3,6 +3,7 @@
 mod bridge;
 mod ctl;
 mod i18n;
+mod mpris;
 mod music;
 mod theme;
 mod window;
@@ -43,6 +44,7 @@ fn main() {
     {
         return;
     }
+    mpris::start();
     let mut app = QGuiApplication::new();
     // Wayland app-id (niri rules, fili-music.desktop)
     QGuiApplication::set_desktop_file_name(&QString::from("fili-music"));

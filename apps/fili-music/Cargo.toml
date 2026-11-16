@@ -13,6 +13,8 @@ cxx-qt-lib = { version = "0.10.0", features = ["qt_gui", "qt_qml"] }
 libc = "0.2.191"
 serde_json = "1"
 env_logger = "0.11"
+log = "0.4"
+zbus = "5"
 # The core of the Tornade player (MIT). The branch makes its FFI entry points `pub`; it moves to `main` once merged there.
 tornade-core = { git = "https://github.com/tornade-player/tornade-core", branch = "expose-ffi-rust-api" }
 

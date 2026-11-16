@@ -119,7 +119,7 @@ use std::{path::PathBuf, pin::Pin};
 use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::QString;
 
-use crate::{i18n, music, theme, window};
+use crate::{i18n, mpris, music, theme, window};
 
 fn home() -> String {
     std::env::var("HOME").unwrap_or_default()
@@ -364,6 +364,7 @@ impl qobject::Music {
     pub fn tick(mut self: Pin<&mut Self>) {
         let json = music::dispatch("get_player_state", "[]");
         let (state, track) = music::player_state(&json);
+        mpris::publish(&state);
         if self.state.to_string() != state {
             self.as_mut().rust_mut().state = QString::from(&state);
             self.as_mut().state_changed();
