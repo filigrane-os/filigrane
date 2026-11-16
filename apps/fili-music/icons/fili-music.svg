@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Baladeur (fili-music), a portable player in the Filigrane colours: night body, veil screen with the play mark, slate wheel, sand button -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <title>Baladeur</title>
+  <!-- body -->
+  <rect x="24" y="8" width="48" height="80" rx="10" fill="#232b36" stroke="#3c4858" stroke-width="2"/>
+  <!-- screen -->
+  <rect x="31" y="15" width="34" height="28" rx="4" fill="#9dbbd6" stroke="#3c4858" stroke-width="1"/>
+  <path d="M43 22v14l11-7z" fill="#1c222b"/>
+  <!-- wheel -->
+  <circle cx="48" cy="63" r="15" fill="#1c222b" stroke="#3c4858" stroke-width="1.5"/>
+  <circle cx="48" cy="63" r="5.5" fill="#d2bf92" stroke="#3c4858" stroke-width="1"/>
+  <path d="M48 52.5v3M48 70.5v3M37.5 63h3M55.5 63h3" stroke="#5f7894" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

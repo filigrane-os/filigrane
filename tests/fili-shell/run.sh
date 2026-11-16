@@ -31,7 +31,7 @@ cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 # Repo scripts, and compiled apps/ binaries (bar-stats): $FILI_APPS (build in progress), else ~/.local/bin, then /usr/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
 # Packaged tools (fili-apps) are in /usr/bin; a local build or ~/.local/bin wins when present
-for n in bar-stats fili-ai-session fili-appmenu fili-recorder; do
+for n in bar-stats fili-ai-session fili-appmenu fili-recorder fili-music; do
     for d in "${FILI_APPS:-$HOME/.local/bin}" /usr/bin; do [ -e "$d/$n" ] && { ln -sf "$d/$n" "$T/bin/"; break; }; done
 done
 
@@ -85,6 +85,16 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 python3 -I "$ROOT/tests/fili-shell/check-fili-recorder-menu.py" || exit 1
 FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$ROOT/apps/fili-recorder" || exit 1
+fi
+if want '^apps/fili-music/|^dotfiles/config/quickshell/|appmenu/fili-music.json|^tests/fili-shell/check-fili-music-menu.py|^tests/fili-shell/check-app-window.py'; then
+# Baladeur (fili-music, in this repository): unit tests of the window glue (the shell parity tests compare its theme with the
+# shell's), the fili-bar menu in agreement with the window, the window anatomy of Casier
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
+(cd "$ROOT/apps/fili-music" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
+    && echo "ok - fili-music passes its unit tests" || { echo "not ok - fili-music: cd apps/fili-music && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
+python3 -I "$ROOT/tests/fili-shell/check-fili-music-menu.py" || exit 1
+FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
+python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$ROOT/apps/fili-music" || exit 1
 fi
 if want 'fili-chat|chat'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
