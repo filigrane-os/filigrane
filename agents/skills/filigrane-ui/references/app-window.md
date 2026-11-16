@@ -30,7 +30,7 @@ An application uses only the parts it needs (no empty header, sidebar or footer 
 | Sidebar section header | `side_row_height` + `space_4` | 44 | Facteur |
 | Tab row / tab | `tab_bar_height` / `tab_height` | 40 / 28 | Facteur |
 
-Other values of the header, taken from Casier: back/forward capsule 30 high, radius 8, `surface` with a 1 px `border`; icon buttons 28 × 24, glyph 16; search field 180 × 26, radius `radiusControl`, `Search` placeholder in `muted`, accent border on focus; `space3` between the groups of tools; title in `size` + `weightAccent`, elided, with an optional second line in `sizeList` + `textSecondary`.
+Other values of the header, taken from Casier: back/forward capsule 30 high, radius 8, `surface` with a 1 px `border`; icon buttons 28 × 24, glyph 16; search field 180 × 26, radius `radiusControl`, `Search` placeholder in `muted`, accent border on focus, and a × on the right as soon as it holds text (it clears the search, like Esc; every search or filter field of an application has it); `space3` between the groups of tools; title in `size` + `weightAccent`, elided, with an optional second line in `sizeList` + `textSecondary`.
 
 ## Header
 

@@ -96,6 +96,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 - Liste ou tableau dès qu'il faut comparer ou parcourir ; jamais des cartes pour des données tabulaires. **[Apple]**
 - Colonnes et valeurs alignées (chiffres à droite), en-têtes précis, sélection distincte du survol, parcours au clavier.
 - Liste longue : recherche, tri ou filtre ; état vide qui dit ce qui manque et comment commencer.
+- **Tout champ de recherche ou de filtre a une croix (×)** à droite, visible dès qu'il contient du texte : un clic l'efface, annule la recherche ou le filtre en cours et rend la vue complète ; Échap fait la même chose. Valable pour le champ de l'en-tête, un filtre de liste, une barre « chercher dans la vue » et les sélecteurs à recherche (emoji, aller à…). **[Filigrane]**
 
 ## 10. Typographie
 
