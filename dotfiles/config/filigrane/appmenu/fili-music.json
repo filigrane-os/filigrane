@@ -35,6 +35,10 @@
           "exec": "fili-music ctl --pid %pid action new-playlist"
         },
         {
+          "label": "Import Playlist…",
+          "exec": "fili-music ctl --pid %pid action import-playlist"
+        },
+        {
           "label": "Edit Metadata of the Current Track…",
           "exec": "fili-music ctl --pid %pid action edit-metadata"
         },

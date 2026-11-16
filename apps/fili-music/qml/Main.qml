@@ -85,6 +85,26 @@ ApplicationWindow {
         prompt.ids = thenAdd || [];
         prompt.open(Fili.tr("New playlist"), "", [], Fili.tr("Create"), Fili.tr("Name"));
     }
+    // An M3U file of the disk becomes a playlist; the path is typed (no file chooser yet)
+    function importPlaylist(path) {
+        const run = file => {
+            const created = Store.call("import_m3u_playlist", [file]);
+            if (!created) {
+                say(Store.lastError || Fili.tr("The playlist could not be imported"), true);
+                return;
+            }
+            Store.playlistRev++;
+            loadPlaylists();
+            say(Fili.tr("Playlist imported") + ": " + (created.name || ""), false);
+        };
+        if (path) {
+            run(path);
+            return;
+        }
+        prompt.mode = "import";
+        prompt.ids = [];
+        prompt.open(Fili.tr("Import a playlist"), "", [], Fili.tr("Import"), Fili.tr("Path of an .m3u file"));
+    }
     function saveQueue() {
         prompt.mode = "save";
         prompt.ids = Store.queueIds;
@@ -265,6 +285,7 @@ ApplicationWindow {
         "add-random": { on: () => true, run: () => Store.callAsync("get_random_tracks", [30], ids => Store.addToQueue(ids || [])) },
         "save-queue": { on: () => Store.queueIds.length > 0, run: () => win.saveQueue() },
         "clear-queue": { on: () => Store.queueIds.length > 0, run: () => Store.clearQueue() },
+        "import-playlist": { on: () => true, run: arg => win.importPlaylist(arg) },
         "new-playlist": { on: () => true, run: () => win.newPlaylist() },
         "edit-metadata": { on: () => Store.hasTrack && !tagEditor.visible, run: () => Store.tagEditorRequested("track", [Store.currentTrackId]) },
         "scan": { on: () => !scanner.scanning, run: arg => arg ? scanner.scanPath(arg) : scanner.open(false) },
@@ -917,11 +938,15 @@ ApplicationWindow {
     }
     PromptDialog {
         id: prompt
-        // "new", "save" or "rename"; the tracks to put in the new playlist; the playlist to rename
+        // "new", "save", "import" or "rename"; the tracks to put in the new playlist; the playlist to rename
         property string mode: "new"
         property var ids: []
         property int target: -1
         onAccepted: (text, choiceId) => {
+            if (mode === "import") {
+                win.importPlaylist(text.trim());
+                return;
+            }
             if (mode === "rename") {
                 Store.call("rename_playlist", [target, text]);
             } else if (choiceId >= 0) {

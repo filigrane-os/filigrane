@@ -685,5 +685,11 @@
  "Write the tags to the file?": "Écrire les étiquettes dans le fichier?",
  "Write to file": "Écrire dans le fichier",
  "Year": "Année",
- "…and %1 more": "…et %1 de plus"
+ "…and %1 more": "…et %1 de plus",
+ "The playlist could not be imported": "La playlist n’a pas pu être importée",
+ "Playlist imported": "Playlist importée",
+ "Import a playlist": "Importer une playlist",
+ "Import": "Importer",
+ "Path of an .m3u file": "Chemin d’un fichier .m3u",
+ "Import Playlist…": "Importer une playlist…"
 }
