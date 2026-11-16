@@ -12,6 +12,7 @@ fn main() {
         QmlModule::new("Fili.Baladeur")
             .qml_files([
                 "qml/AlbumCard.qml",
+                "qml/AmbientColor.qml",
                 "qml/AlbumDetail.qml",
                 "qml/AlbumGrid.qml",
                 "qml/AlbumsView.qml",

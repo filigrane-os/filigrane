@@ -10,6 +10,21 @@ Rectangle {
     readonly property real length: Store.player.duration || 0
 
     color: FiliTheme.background
+    // Ambient colour of the cover playing
+    AmbientColor {
+        id: ambient
+        source: cover.source
+    }
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            orientation: Gradient.Vertical
+            GradientStop { position: 0; color: FiliTheme.alpha(ambient.color, 0.30) }
+            GradientStop { position: 1; color: FiliTheme.alpha(ambient.color, 0.05) }
+        }
+        opacity: ambient.color.a > 0 ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 250 } }
+    }
     implicitHeight: top.height + transport.height + FiliTheme.space4 + FiliTheme.space3
 
     Row {

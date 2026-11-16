@@ -32,6 +32,21 @@ Item {
         width: parent.width
         height: 180 + 2 * FiliTheme.space4
         color: FiliTheme.background
+        // Ambient colour of the cover: a wash fading into the background
+        AmbientColor {
+            id: ambient
+            source: art.source
+        }
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0; color: FiliTheme.alpha(ambient.color, 0.34) }
+                GradientStop { position: 1; color: FiliTheme.alpha(ambient.color, 0.06) }
+            }
+            opacity: ambient.color.a > 0 ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 250 } }
+        }
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
