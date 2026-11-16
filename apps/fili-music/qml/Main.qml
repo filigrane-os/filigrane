@@ -95,6 +95,7 @@ ApplicationWindow {
             }
             Store.playlistRev++;
             loadPlaylists();
+            scanner.importedName = created.name || "";
             say(Fili.tr("Playlist imported") + ": " + (created.name || ""), false);
         };
         if (path) {
@@ -971,6 +972,7 @@ ApplicationWindow {
     }
     ScannerDialog {
         id: scanner
+        onImportRequested: path => win.importPlaylist(path)
         onFinished: {
             win.loadStats();
             win.show("tracks");

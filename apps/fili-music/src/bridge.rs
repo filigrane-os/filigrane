@@ -75,6 +75,10 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "musicDir"]
         fn music_dir(self: &Fili) -> QString;
+        // Whether a folder exists (the quick access folders of the scanner)
+        #[qinvokable]
+        #[cxx_name = "dirExists"]
+        fn dir_exists(self: &Fili, path: &QString) -> bool;
     }
 
     extern "RustQt" {
@@ -304,6 +308,10 @@ impl qobject::Fili {
         let items: Vec<String> =
             rows.iter().map(|(k, v)| format!("[{},{}]", music::json_str(k), music::json_str(v))).collect();
         QString::from(&format!("[{}]", items.join(",")))
+    }
+
+    pub fn dir_exists(&self, path: &QString) -> bool {
+        std::path::Path::new(&path.to_string()).is_dir()
     }
 
     pub fn music_dir(&self) -> QString {
