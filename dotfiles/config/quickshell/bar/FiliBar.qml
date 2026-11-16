@@ -42,14 +42,15 @@ PanelWindow {
     property var seen: []
     // Tests drive the level by hand unless they ask for the measure
     property bool measure: !FiliTheme.testing
-    // Width the left row keeps: its modules, the application menu at its minimum, the gaps
+    // Width the left row keeps: its modules, the application menu (all its titles up to BarLayout.menuWant, at least
+    // BarLayout.menuMin), the gaps: the right row gives up its details before the menu loses titles
     function leftNeed() {
         let w = 0;
         for (let i = 0; i < leftRep.count; i++) {
             const slot = leftRep.itemAt(i);
             if (!slot || !slot.item)
                 continue;
-            w += slot.modelData === "appmenu" ? (slot.item.shown ? BarLayout.menuMin : 0) : slot.implicitWidth;
+            w += slot.modelData === "appmenu" ? (slot.item.shown ? Math.max(BarLayout.menuMin, Math.min(slot.item.wanted, BarLayout.menuWant)) : 0) : slot.implicitWidth;
         }
         return w;
     }

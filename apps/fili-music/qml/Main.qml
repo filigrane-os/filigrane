@@ -860,10 +860,11 @@ ApplicationWindow {
         visible: win.footerShown
         // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill)
         color: FiliTheme.backgroundDeep
+        // Line above the footer: the accent while the window has the focus (2 px), the plain border otherwise
         Rectangle {
             width: parent.width
-            height: FiliTheme.borderWidth
-            color: FiliTheme.border
+            height: win.active ? 2 : FiliTheme.borderWidth
+            color: win.active ? FiliTheme.accentColor : FiliTheme.border
         }
         // An inline confirmation takes the whole bar: the action on the right, Cancel to its left
         Item {

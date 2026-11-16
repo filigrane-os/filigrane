@@ -42,11 +42,11 @@ When the right row no longer fits next to the left one, the bar **squeezes** its
 | Level | What happens |
 |---|---|
 | 1 | `media`: the title goes, the icon stays (title and artist stay in the card) |
-| 2 | `clock`: the time alone, the date stays in the card and the calendar |
+| 2 | `clock`: the time alone, the date stays in the card and the calendar; `agent`: icon alone |
 | 3 | `resources`, `keyboard`, `display` move into the drawer |
 | 4 | `audio`, `network`, `bluetooth`, `power`: icon alone |
 
-`compact_at = N` is the level from which a module shows its compact form (`display = "icon"` for `BarItem` and `BarScript`; a module with its own layout reads `compact`), `drawer_at = N` the level from which it goes into the drawer. Both work in a `module.toml` and in `[modules.<name>]`; a module without them never changes. What you set yourself (`display = "value"`, `tray = "idle"`) wins over the squeeze. The application menu is the last to give way: it keeps at least 200 px and truncates its titles with `…`.
+`compact_at = N` is the level from which a module shows its compact form (`display = "icon"` for `BarItem` and `BarScript`; a module with its own layout reads `compact`), `drawer_at = N` the level from which it goes into the drawer. Both work in a `module.toml` and in `[modules.<name>]`; a module without them never changes. What you set yourself (`display = "value"`, `tray = "idle"`) wins over the squeeze. The application menu is the last to give way: the right row squeezes to leave it all its titles (up to 480 px), then it keeps at least 200 px and truncates its titles with `…`.
 
 The `status` module is a single icon for the indicators (recording, SSH, airplane mode, VPN, updates): it shows the most urgent one, with a count when several are active, and nothing while none is. A click opens a panel with one row per indicator and its action.
 

@@ -277,7 +277,7 @@ fn compute(prev: &Shown, state: &Value) -> Shown {
     s.length_us = t.get("duration").and_then(Value::as_i64).unwrap_or(0) * 1000;
     if let Some(album) = t.get("album_id").and_then(Value::as_i64) {
         s.album = data(&dispatch("get_album_by_id", &format!("[{album}]"))).get("title").and_then(Value::as_str).unwrap_or("").into();
-        s.art_url = data(&dispatch("get_album_artwork", &format!("[{album}]"))).as_str().unwrap_or("").into();
+        s.art_url = data(&dispatch("get_album_artwork_with_online", &format!("[{album}]"))).as_str().unwrap_or("").into();
     }
     s
 }

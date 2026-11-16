@@ -120,6 +120,8 @@ Singleton {
     // it fits with room to spare. Minimum width kept for the application menu (the left row never gives up its last titles).
     readonly property int maxLevel: 4
     readonly property real menuMin: 200
+    // Width the application menu is given before the right row squeezes (all its titles when they fit in it)
+    readonly property real menuWant: 480
     // Level at which a module compacts (compactAt) or goes into the drawer (drawerAt): manifest or fili-bar.toml, 0 = never
     function level(name, key) {
         const v = parseInt(String(setting(name, key, "0")));

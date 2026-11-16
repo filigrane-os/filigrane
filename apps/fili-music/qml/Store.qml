@@ -161,6 +161,8 @@ QtObject {
     function trackArtist(t) {
         return t.artist_names && t.artist_names.length > 0 ? t.artist_names.join(", ") : artistName(t.artist_id);
     }
+    // (an album cover comes from get_album_artwork_with_online: the covers fetched online are kept apart from the embedded ones,
+    // and get_album_artwork alone would never show them)
     // File of the cover of an album ("" while it loads or when there is none); kind "album" or "artist"
     function cover(kind, id) {
         rev;
@@ -170,7 +172,7 @@ QtObject {
             return c;
         if (!asked["c" + key]) {
             asked["c" + key] = true;
-            callAsync(kind === "album" ? "get_album_artwork" : "get_artist_photo", [id], d => {
+            callAsync(kind === "album" ? "get_album_artwork_with_online" : "get_artist_photo", [id], d => {
                 covers[key] = d || "";
                 touch();
             });
