@@ -299,6 +299,7 @@ ShellRoot {
                 const title = t.find(t.bar.contentItem, "appmenu-1");
                 const host = t.find(t.bar.contentItem, "appmenu");
                 ok(title && host && host.visible && host.shown, "appmenu: menu titles in the fili-bar", host ? host.visible : "not found");
+                ok(host && host.wanted > 0 && host.wanted >= host.implicitWidth - 1 && BarLayout.menuWant > BarLayout.menuMin, "appmenu: asks for the width of all its titles (wanted), so the bar squeezes its right row to leave it", host ? host.wanted + "/" + host.implicitWidth : "absent");
                 // A bind that runs foot (Mod+Return opens Aéroport in the real config), whatever the user layer says
                 const localBinds = AppMenu.bindsLocal;
                 AppMenu.bindsLocal = Object.assign({}, localBinds, { "exec:foot": "Super+Return" });
@@ -1850,8 +1851,6 @@ ShellRoot {
                 ok(BarLayout.nextLevel(4, 100, 700, seen) === 4, "bar squeeze: last level holds");
                 ok(BarLayout.nextLevel(2, 650, 560, [700, 640]) === 2 && BarLayout.nextLevel(2, 660, 560, [700, 640]) === 1, "bar squeeze: back down only when the lower level fits with room to spare");
                 ok(BarLayout.nextLevel(1, 900, 500, []) === 1, "bar squeeze: unknown lower width = no step down");
-                const am = t.find(t.bar.contentItem, "appmenu");
-                ok(am && am.wanted > 0 && am.wanted >= am.implicitWidth - 1 && BarLayout.menuWant > BarLayout.menuMin, "bar squeeze: the application menu asks for all its titles (wanted), the right row squeezes to leave them", am ? am.wanted + "/" + am.implicitWidth : "absent");
                 ok(BarLayout.level("agent", "compact_at") === 2, "bar squeeze: the agent module compacts at level 2");
                 ok(BarLayout.level("media", "compact_at") === 1 && BarLayout.level("clock", "compact_at") === 2 && BarLayout.level("resources", "drawer_at") === 3 && BarLayout.level("logo", "compact_at") === 0, "bar squeeze: levels of the manifests (media 1, clock 2, resources drawer 3)");
                 t.bar.level = 1;
