@@ -67,6 +67,8 @@ Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row 
 - Label `sizeList`; current tab `surfaceActive` background, `text` colour, `weightAccent`; other tabs transparent, `textSecondary`, Normal; hover `surfaceHover`.
 - No underline, no border around a tab, no icon unless the tab is a document (a folder tab may show its `×` close on hover, middle click closes, drag-and-drop target outlined in `accentColor`: these behaviours of Casier stay on top of this look).
 - A document tab keeps a readable width: label elided, width between 80 and 180.
+- **Tabs are always reorderable**: drag a tab onto another one to move it (the dragged tab follows the pointer, the others shift; the new order is saved when released). This holds for every tab row of every application (Casier, Aéroport, Facteur…). Reference: `fili-mail/qml/TabStrip.qml` (`reordered(keys)`).
+- Tabs the user can choose (Facteur: pinned folders) end with a `+` button that opens a modal (folder, then icon); right click: change icon, remove; middle click removes. The icon of a tab is then shown (this overrides "no icon" above for user tabs).
 - Keyboard: next/previous tab in the bar menu with their shortcuts (Casier: Ctrl+Tab / Ctrl+Shift+Tab).
 - Sizes become tokens: `tab_bar_height = 40`, `tab_height = 28` (to add to `theme.toml` of each application with tabs).
 
