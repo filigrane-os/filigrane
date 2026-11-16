@@ -86,9 +86,14 @@
           "sep": true
         },
         {
-          "label": "Find…",
+          "label": "Find in Conversation…",
           "keys": "Ctrl+F",
           "exec": "fili-im ctl --pid %pid action search"
+        },
+        {
+          "label": "Search All Messages…",
+          "keys": "Ctrl+Shift+F",
+          "exec": "fili-im ctl --pid %pid action search-all"
         }
       ]
     },
@@ -99,6 +104,11 @@
           "label": "Write a Message",
           "keys": "Ctrl+L",
           "exec": "fili-im ctl --pid %pid action focus-composer"
+        },
+        {
+          "label": "Record a Voice Message",
+          "keys": "Ctrl+Shift+R",
+          "exec": "fili-im ctl --pid %pid action record-voice"
         },
         {
           "label": "Reply to Last Message",
