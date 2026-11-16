@@ -13,6 +13,7 @@ fn main() {
             .qml_files([
                 "qml/AlbumCard.qml",
                 "qml/AmbientColor.qml",
+                "qml/ArtistStrip.qml",
                 "qml/AlbumDetail.qml",
                 "qml/AlbumGrid.qml",
                 "qml/AlbumsView.qml",

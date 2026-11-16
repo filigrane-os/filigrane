@@ -10,6 +10,7 @@ Item {
     property var artists: []
     property var chosen: null
     property var albums: []
+    property var similar: []
     property bool busy: false
     property bool exhausted: false
     property int serial: 0
@@ -33,6 +34,11 @@ Item {
     function choose(artist) {
         chosen = artist;
         albums = [];
+        similar = [];
+        Store.callAsync("get_similar_artists", [artist.id], d => {
+            if (chosen && chosen.id === artist.id)
+                similar = d ? d.artists.slice(0, 20) : [];
+        });
         Store.callAsync("get_artist_albums", [artist.id], d => {
             if (chosen && chosen.id === artist.id)
                 albums = d ? d.albums : [];
@@ -203,8 +209,16 @@ Item {
                 }
             }
         }
+        ArtistStrip {
+            id: similarStrip
+            anchors.top: head.bottom
+            width: parent.width
+            title: Fili.tr("Similar artists")
+            artists: view.chosen ? view.similar : []
+            onOpened: artist => view.choose(artist)
+        }
         AlbumGrid {
-            anchors { top: head.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+            anchors { top: similarStrip.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
             visible: view.chosen !== null
             albums: view.albums
             onOpened: album => view.openAlbum(album)

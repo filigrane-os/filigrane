@@ -10,7 +10,9 @@ Item {
 
     ListModel { id: tracks }
     property real totalMs: 0
+    property var featuring: []
     function reload() {
+        Store.callAsync("get_album_featuring_artists", [album.id, album.artist_id], d => featuring = d ? d.artists : []);
         Store.callAsync("get_album_tracks", [album.id], d => {
             Store.fill(tracks, d ? d.tracks : [], false);
             let ms = 0;
@@ -115,9 +117,17 @@ Item {
             }
         }
     }
+    ArtistStrip {
+        id: featuringStrip
+        anchors.top: head.bottom
+        width: parent.width
+        title: Fili.tr("Also featuring")
+        artists: detail.featuring
+        onOpened: artist => Store.artistRequested(artist.id)
+    }
     TrackTable {
         id: table
-        anchors { top: head.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+        anchors { top: featuringStrip.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         model: tracks
         showAlbum: false
         showArtist: false
