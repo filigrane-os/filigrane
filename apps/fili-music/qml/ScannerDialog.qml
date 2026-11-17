@@ -473,6 +473,12 @@ Rectangle {
                             label: Fili.tr("Open the last report")
                             onClicked: Fili.openPath(dlg.reportFile)
                         }
+                        TextButton {
+                            visible: !dlg.fetching && dlg.missing !== null && dlg.missing.length > 0
+                            label: Fili.tr("Try the missing covers again")
+                            primary: true
+                            onClicked: dlg.fetchArtwork(false)
+                        }
                         TextButton { label: Fili.tr("Refresh"); onClicked: dlg.loadMissing() }
                     }
                 }

@@ -524,10 +524,11 @@ ApplicationWindow {
             Accessible.role: Accessible.Button
             Accessible.name: Fili.tr("Window")
         }
-        TextButton {
+        IconButton {
             id: scanButton
-            anchors { right: search.left; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
-            label: Fili.tr("Scan the library…")
+            anchors { right: search.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+            glyph: "\uf021"
+            Accessible.name: Fili.tr("Scan the library…")
             onClicked: scanner.open(false)
         }
         Rectangle {
