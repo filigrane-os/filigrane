@@ -102,7 +102,13 @@ Item {
                         }
                     }
                 }
-                MouseArea { id: cardArea; anchors.fill: parent; hoverEnabled: true; onClicked: view.choose(cell.modelData) }
+                DragArea {
+                    id: cardArea
+                    anchors.fill: parent
+                    label: cell.modelData.name
+                    payload: ({ genreId: cell.modelData.id })
+                    onActivated: view.choose(cell.modelData)
+                }
             }
             Column {
                 anchors { top: mosaic.bottom; topMargin: FiliTheme.space2; left: mosaic.left; right: mosaic.right }

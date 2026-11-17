@@ -39,7 +39,7 @@ ApplicationWindow {
     property bool failed: false
     property var confirm: null
     readonly property bool typing: searchInput.activeFocus || prompt.visible || tagEditor.visible
-    readonly property bool modal: aboutOpen || prompt.visible || scanner.visible || tagEditor.visible
+    readonly property bool modal: aboutOpen || welcome.visible || prompt.visible || scanner.visible || tagEditor.visible
     readonly property bool headerShown: showHeader || searchInput.activeFocus || query !== ""
     readonly property bool footerShown: showFooter || message !== "" || confirm !== null || scanner.scanning || scanner.fetching
 
@@ -184,7 +184,13 @@ ApplicationWindow {
         loadStats();
         Store.refreshQueue();
         Music.tick();
-        // First launch: an empty library starts with the scanner
+        // First launch: the welcome card, then an empty library starts with the scanner
+        if (Fili.uiState("welcomed") !== "1")
+            welcome.visible = true;
+        else
+            win.openScannerIfEmpty();
+    }
+    function openScannerIfEmpty() {
         const s = Store.call("get_library_stats");
         if (s && s.track_count === 0)
             scanner.open(true);
@@ -329,6 +335,8 @@ ApplicationWindow {
     readonly property var actions: ({
         "about": { on: () => true, run: () => win.aboutOpen = !win.aboutOpen },
         "view-search": { on: () => true, run: () => win.openSearch() },
+        "focus-filter": { on: () => !win.modal, run: () => Store.focusFilter() },
+        "refresh": { on: () => true, run: () => { Store.forget(); Store.libraryRev++; win.loadStats(); win.loadPlaylists(); } },
         "fetch-artwork": { on: () => !scanner.fetching && !scanner.scanning, run: () => { scanner.open(false); scanner.fetchArtwork(false); } },
         "back": { on: () => win.canBack, run: () => win.walk(-1) },
         "forward": { on: () => win.canForward, run: () => win.walk(1) },
@@ -405,7 +413,11 @@ ApplicationWindow {
     // ---- Shortcuts -----------------------------------------------------------------------------------------------
     Shortcut { sequence: "Ctrl+W"; onActivated: win.quit() }
     Shortcut { sequence: "Ctrl+Q"; onActivated: win.quit() }
-    Shortcut { sequence: "Ctrl+F"; onActivated: win.openSearch() }
+    Shortcut { sequence: "Ctrl+F"; onActivated: win.runAction("focus-filter") }
+    Shortcut { sequence: "Ctrl+Shift+F"; onActivated: win.openSearch() }
+    Shortcut { sequence: "Ctrl+R"; onActivated: win.runAction("refresh") }
+    Shortcut { sequence: "Ctrl+Up"; onActivated: win.runAction("volume-up") }
+    Shortcut { sequence: "Ctrl+Down"; onActivated: win.runAction("volume-down") }
     Shortcut { sequence: "Ctrl+N"; onActivated: win.newPlaylist() }
     Shortcut { sequence: "Alt+Left"; enabled: win.canBack && !win.typing; onActivated: win.walk(-1) }
     Shortcut { sequence: "Alt+Right"; enabled: win.canForward && !win.typing; onActivated: win.walk(1) }
@@ -1090,6 +1102,11 @@ ApplicationWindow {
     TagEditor {
         id: tagEditor
     }
+    WelcomeDialog {
+        id: welcome
+        visible: false
+        onClosed: win.openScannerIfEmpty()
+    }
     ScannerDialog {
         id: scanner
         onImportRequested: path => win.importPlaylist(path)
@@ -1185,6 +1202,10 @@ ApplicationWindow {
                 return;
             if (payload.ids)
                 Store.addToQueue(payload.ids);
+            else if (payload.artistId !== undefined)
+                Store.artistTrackIds(payload.artistId, ids => Store.addToQueue(ids));
+            else if (payload.genreId !== undefined)
+                Store.callAsync("get_genre_tracks", [payload.genreId], d => Store.addToQueue(d ? d.tracks.map(t => t.id) : []));
             else
                 Store.callAsync("get_album_tracks", [payload.albumId], d => Store.addToQueue(d ? d.tracks.map(t => t.id) : []));
         }

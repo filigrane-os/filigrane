@@ -70,7 +70,9 @@ Item {
         } catch (e) {}
         return ["format"];
     }
-    readonly property var cols: catalog.filter(c => (c.always && (!c.need || table[c.need])) || (!c.always && !c.need && optional.indexOf(c.key) >= 0) || (c.need && table[c.need]))
+    readonly property var wanted: catalog.filter(c => (c.always && (!c.need || table[c.need])) || (!c.always && !c.need && optional.indexOf(c.key) >= 0) || (c.need && table[c.need]))
+    // A narrow window drops the optional columns so that the titles keep room
+    readonly property var cols: width - 2 * FiliTheme.margin - wanted.reduce((n, c) => n + (c.w || 0), 0) < 360 ? wanted.filter(c => c.always || c.need) : wanted
     readonly property real fixedWidth: cols.reduce((n, c) => n + (c.w || 0), 0)
     readonly property real totalWeight: cols.reduce((n, c) => n + (c.weight || 0), 0)
     function widthOf(c) {

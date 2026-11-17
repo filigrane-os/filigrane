@@ -37,6 +37,8 @@ QtObject {
     signal albumRequested(int albumId)
     signal artistRequested(int artistId)
     // The album or artist shown in its view changed (-1: none): Main keeps the history. closeDetails: back to the list
+    // Ctrl+F: the filter field of the view on screen takes the keyboard
+    signal focusFilter()
     signal detailChanged(string kind, int id)
     signal closeDetails(string kind)
     // A context menu is asked at window coordinates: Main draws it and calls handler(id) with the entry chosen
@@ -271,6 +273,38 @@ QtObject {
             return;
         call("add_tracks_to_queue", [JSON.stringify(trackIds)]);
         refreshQueue();
+    }
+    // The tracks of an artist: those of its albums in album order, then the ones without an album (found by paging the library)
+    function artistSingles(artistId, done) {
+        const found = [];
+        const page = offset => callAsync("get_tracks_page", [offset, 1000, "title", "asc"], d => {
+            const tracks = d ? d.tracks : [];
+            for (const t of tracks)
+                if (t.artist_id === artistId && (t.album_id === null || t.album_id === undefined))
+                    found.push(t);
+            if (tracks.length === 1000)
+                page(offset + 1000);
+            else
+                done(found);
+        });
+        page(0);
+    }
+    function artistTrackIds(artistId, done) {
+        callAsync("get_artist_albums", [artistId], d => {
+            const albums = d ? d.albums : [];
+            const parts = new Array(albums.length);
+            let left = albums.length;
+            const finish = () => artistSingles(artistId, singles => done([].concat(...parts, singles.map(t => t.id))));
+            if (left === 0) {
+                finish();
+                return;
+            }
+            albums.forEach((al, i) => callAsync("get_album_tracks", [al.id], t => {
+                parts[i] = t ? t.tracks.map(x => x.id) : [];
+                if (--left === 0)
+                    finish();
+            }));
+        });
     }
     // A double click plays the track, Alt adds it to the queue; `invert_queue = true` in the settings swaps them
     function wantsPlay(alt) {

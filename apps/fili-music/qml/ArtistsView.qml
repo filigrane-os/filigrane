@@ -147,7 +147,13 @@ Item {
                     font.weight: row.sel ? FiliTheme.weightAccent : Font.Normal
                     color: FiliTheme.text
                 }
-                MouseArea { id: rowArea; anchors.fill: parent; hoverEnabled: true; onClicked: view.choose(row.modelData) }
+                DragArea {
+                    id: rowArea
+                    anchors.fill: parent
+                    label: row.modelData.name
+                    payload: ({ artistId: row.modelData.id })
+                    onActivated: view.choose(row.modelData)
+                }
             }
         }
         FiliScrollBar { flick: list; anchors { top: list.top; bottom: list.bottom; right: list.right } }
@@ -161,20 +167,10 @@ Item {
     function loadSingles(artist) {
         const mine = ++singlesSerial;
         singleTracks.clear();
-        const found = [];
-        const page = offset => Store.callAsync("get_tracks_page", [offset, 1000, "title", "asc"], d => {
-            if (mine !== singlesSerial)
-                return;
-            const tracks = d ? d.tracks : [];
-            for (const t of tracks)
-                if (t.artist_id === artist.id && (t.album_id === null || t.album_id === undefined))
-                    found.push(t);
-            if (tracks.length === 1000)
-                page(offset + 1000);
-            else
+        Store.artistSingles(artist.id, found => {
+            if (mine === singlesSerial)
                 Store.fill(singleTracks, found, false);
         });
-        page(0);
     }
     Item {
         anchors { left: left.right; right: parent.right; top: parent.top; bottom: parent.bottom }

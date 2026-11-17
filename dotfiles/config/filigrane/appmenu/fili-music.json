@@ -50,6 +50,11 @@
           "sep": true
         },
         {
+          "label": "Refresh Library",
+          "keys": "Ctrl+R",
+          "exec": "fili-music ctl --pid %pid action refresh"
+        },
+        {
           "label": "Scan the Library…",
           "exec": "fili-music ctl --pid %pid action scan"
         },
@@ -98,10 +103,12 @@
         },
         {
           "label": "Volume Up",
+          "keys": "Ctrl+Up",
           "exec": "fili-music ctl --pid %pid action volume-up"
         },
         {
           "label": "Volume Down",
+          "keys": "Ctrl+Down",
           "exec": "fili-music ctl --pid %pid action volume-down"
         },
         {
@@ -177,8 +184,13 @@
           "sep": true
         },
         {
-          "label": "Search",
+          "label": "Filter",
           "keys": "Ctrl+F",
+          "exec": "fili-music ctl --pid %pid action focus-filter"
+        },
+        {
+          "label": "Search",
+          "keys": "Ctrl+Shift+F",
           "exec": "fili-music ctl --pid %pid action search"
         }
       ]

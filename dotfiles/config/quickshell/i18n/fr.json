@@ -748,5 +748,15 @@
  "The playlist could not be exported": "La playlist n'a pas pu être exportée",
  "Add all to queue": "Tout ajouter à la file",
  "Added": "Ajouté",
- "Path": "Chemin"
+ "Path": "Chemin",
+ "Here's how playback works in Baladeur.": "Voici comment fonctionne la lecture dans Baladeur.",
+ "Double-click a track": "Double-clic sur une piste",
+ "Plays it immediately, jumping the queue.": "La lit tout de suite, en passant devant la file.",
+ "Alt + double-click": "Alt + double-clic",
+ "Adds it to the queue without interrupting what's playing.": "L'ajoute à la file sans interrompre la lecture.",
+ "Want it the other way around?": "Vous préférez l'inverse ?",
+ "Set invert_queue in the settings (File → Settings…).": "Activez invert_queue dans les réglages (Fichier → Réglages…).",
+ "Get started": "Commencer",
+ "Refresh Library": "Actualiser la bibliothèque",
+ "Filter": "Filtrer"
 }

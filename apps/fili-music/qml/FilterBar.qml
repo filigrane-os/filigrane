@@ -15,6 +15,13 @@ Rectangle {
         height: FiliTheme.borderWidth
         color: FiliTheme.border
     }
+    Connections {
+        target: Store
+        function onFocusFilter() {
+            if (bar.visible && bar.height > 0)
+                input.forceActiveFocus();
+        }
+    }
     Text {
         id: lens
         x: FiliTheme.margin
