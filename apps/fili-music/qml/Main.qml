@@ -1098,6 +1098,13 @@ ApplicationWindow {
                 id: cardColumn
                 anchors { left: parent.left; right: parent.right; top: parent.top; margins: FiliTheme.space6 }
                 spacing: FiliTheme.space2
+                Image {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 72
+                    height: 72
+                    source: "qrc:/qt/qml/Fili/Baladeur/icons/fili-music.svg"
+                    sourceSize: Qt.size(144, 144)
+                }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "Baladeur"

@@ -48,7 +48,7 @@ fn main() {
             .depend("QtQuick.Controls"),
     )
     // Fonts of the interface travel with the binary: the application looks the same on any distribution
-    .qrc_resources(["fonts/Jost-Variable.ttf", "fonts/JetBrainsMono-Variable.ttf", "fonts/FiliIcons.ttf"])
+    .qrc_resources(["fonts/Jost-Variable.ttf", "fonts/JetBrainsMono-Variable.ttf", "fonts/FiliIcons.ttf", "icons/fili-music.svg"])
     .qt_module("Quick")
     .files(["src/bridge.rs"])
     .build();
