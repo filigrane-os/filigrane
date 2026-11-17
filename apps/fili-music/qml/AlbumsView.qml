@@ -50,8 +50,13 @@ Item {
             Store.pendingAlbumId = -1;
         }
     }
+    onOpenedChanged: Store.detailChanged("albums", opened ? opened.id : -1)
     Connections {
         target: Store
+        function onCloseDetails(kind) {
+            if (kind === "albums")
+                view.opened = null;
+        }
         function onAlbumRequested(id) {
             view.openById(id);
             Store.pendingAlbumId = -1;

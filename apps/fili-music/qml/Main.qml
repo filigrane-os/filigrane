@@ -53,12 +53,58 @@ ApplicationWindow {
     readonly property var playlist: playlists.find(p => p.id === playlistId) || null
     readonly property string viewTitle: view === "playlist" ? (playlist ? playlist.name : Fili.tr("Playlist")) : (views.find(v => v.id === view) || { label: "" }).label
 
-    function show(v) {
+    // History of the places visited (view, playlist, album or artist opened): the back/forward buttons of the header, Alt+Left,
+    // Alt+Right and the mouse buttons walk it. A place is recorded when it is shown, unless it is the one the walk just chose.
+    // (started empty and filled once: a binding on `view` would start the trail over at every change of view)
+    property var trail: []
+    property int historyIndex: 0
+    readonly property bool canBack: historyIndex > 0
+    readonly property bool canForward: historyIndex < trail.length - 1
+    function record(entry) {
+        const cur = trail[historyIndex] || { view: "", playlistId: -2, detail: -2 };
+        if (cur.view === entry.view && cur.playlistId === entry.playlistId && cur.detail === entry.detail)
+            return;
+        // Opening an album from the list of albums that was just shown replaces that step: one Back returns to where we were
+        const replace = cur.view === entry.view && cur.detail === -1 && entry.detail !== -1 && cur.playlistId === entry.playlistId && opening;
+        const kept = trail.slice(0, historyIndex + (replace ? 0 : 1));
+        trail = kept.concat([entry]);
+        historyIndex = trail.length - 1;
+    }
+    // True between the request of an album or artist and its arrival in the view
+    property bool opening: false
+    property bool walking: false
+    function walk(step) {
+        const i = historyIndex + step;
+        if (i < 0 || i >= trail.length)
+            return;
+        const e = trail[i];
+        walking = true;
+        historyIndex = i;
+        playlistId = e.playlistId;
+        showView(e.view);
+        if (e.view === "albums" || e.view === "artists") {
+            if (e.detail >= 0)
+                e.view === "albums" ? Store.albumRequested(e.detail) : Store.artistRequested(e.detail);
+            else
+                Store.closeDetails(e.view);
+        }
+        walking = false;
+    }
+    function showView(v) {
         if (v !== "playlist")
             Fili.setUiState("view", v === "search" ? "tracks" : v);
         view = v;
         if (v !== "search")
             searchInput.text = "";
+    }
+    function show(v) {
+        showView(v);
+        if (!walking)
+            record({ view: v, playlistId: v === "playlist" ? playlistId : -1, detail: -1 });
+    }
+    function showPlaylist(id) {
+        playlistId = id;
+        show("playlist");
     }
     function loadPlaylists() {
         Store.callAsync("get_playlists", [], d => playlists = d ? d.playlists : []);
@@ -133,6 +179,7 @@ ApplicationWindow {
     }
 
     Component.onCompleted: {
+        trail = [{ view: view, playlistId: -1, detail: -1 }];
         loadPlaylists();
         loadStats();
         Store.refreshQueue();
@@ -152,12 +199,19 @@ ApplicationWindow {
             win.loadPlaylists();
         }
         function onAlbumRequested(id) {
+            win.opening = !win.walking;
             Store.pendingAlbumId = id;
             win.show("albums");
         }
         function onArtistRequested(id) {
+            win.opening = !win.walking;
             Store.pendingArtistId = id;
             win.show("artists");
+        }
+        function onDetailChanged(kind, id) {
+            if (!win.walking && win.view === kind)
+                win.record({ view: kind, playlistId: -1, detail: id });
+            win.opening = false;
         }
         function onMenuRequested(x, y, items, handler) {
             win.menuHandler = handler;
@@ -269,6 +323,8 @@ ApplicationWindow {
     readonly property var actions: ({
         "about": { on: () => true, run: () => win.aboutOpen = !win.aboutOpen },
         "view-search": { on: () => true, run: () => win.openSearch() },
+        "back": { on: () => win.canBack, run: () => win.walk(-1) },
+        "forward": { on: () => win.canForward, run: () => win.walk(1) },
         "view-tracks": { on: () => true, run: () => win.show("tracks") },
         "view-albums": { on: () => true, run: () => win.show("albums") },
         "view-artists": { on: () => true, run: () => win.show("artists") },
@@ -330,11 +386,20 @@ ApplicationWindow {
         }
     }
 
+    // Back/forward buttons of the mouse, everywhere in the window
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.BackButton | Qt.ForwardButton
+        onClicked: e => win.walk(e.button === Qt.BackButton ? -1 : 1)
+    }
+
     // ---- Shortcuts -----------------------------------------------------------------------------------------------
     Shortcut { sequence: "Ctrl+W"; onActivated: win.quit() }
     Shortcut { sequence: "Ctrl+Q"; onActivated: win.quit() }
     Shortcut { sequence: "Ctrl+F"; onActivated: win.openSearch() }
     Shortcut { sequence: "Ctrl+N"; onActivated: win.newPlaylist() }
+    Shortcut { sequence: "Alt+Left"; enabled: win.canBack && !win.typing; onActivated: win.walk(-1) }
+    Shortcut { sequence: "Alt+Right"; enabled: win.canForward && !win.typing; onActivated: win.walk(1) }
     Shortcut { sequence: "Ctrl+1"; onActivated: win.show("tracks") }
     Shortcut { sequence: "Ctrl+2"; onActivated: win.show("albums") }
     Shortcut { sequence: "Ctrl+3"; onActivated: win.show("artists") }
@@ -372,8 +437,37 @@ ApplicationWindow {
             height: FiliTheme.borderWidth
             color: FiliTheme.border
         }
+        // Back/forward buttons gathered in a capsule
+        Rectangle {
+            x: FiliTheme.margin
+            anchors.verticalCenter: nav.verticalCenter
+            width: nav.width + 2 * FiliTheme.space1 + 2
+            height: 30
+            radius: 8
+            color: FiliTheme.surface
+            border.width: FiliTheme.borderWidth
+            border.color: FiliTheme.border
+        }
+        Row {
+            id: nav
+            x: FiliTheme.margin + FiliTheme.space1 + 1
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: FiliTheme.space1
+            IconButton {
+                glyph: "\uf053"
+                enabledState: win.canBack
+                onClicked: win.walk(-1)
+                Accessible.name: Fili.tr("Back")
+            }
+            IconButton {
+                glyph: "\uf054"
+                enabledState: win.canForward
+                onClicked: win.walk(1)
+                Accessible.name: Fili.tr("Forward")
+            }
+        }
         Text {
-            anchors { left: parent.left; leftMargin: FiliTheme.margin; right: search.left; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
+            anchors { left: nav.right; leftMargin: FiliTheme.space3 + FiliTheme.space1; right: scanButton.left; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
             text: win.viewTitle
             elide: Text.ElideRight
             font.family: FiliTheme.font
@@ -428,6 +522,12 @@ ApplicationWindow {
             }
             Accessible.role: Accessible.Button
             Accessible.name: Fili.tr("Window")
+        }
+        TextButton {
+            id: scanButton
+            anchors { right: search.left; rightMargin: FiliTheme.space3; verticalCenter: parent.verticalCenter }
+            label: Fili.tr("Scan the library…")
+            onClicked: scanner.open(false)
         }
         Rectangle {
             id: search
@@ -625,8 +725,7 @@ ApplicationWindow {
                                                     { id: "delete", label: Fili.tr("Delete playlist") }
                                                 ], act => {
                                                     if (act === "show") {
-                                                        win.playlistId = id;
-                                                        win.view = "playlist";
+                                                        win.showPlaylist(id);
                                                     } else if (act === "play")
                                                         Store.playNow(pl.tracks.map(t => t.track_id), 0);
                                                     else if (act === "rename")
@@ -635,8 +734,7 @@ ApplicationWindow {
                                                         win.deletePlaylist(pl);
                                                 });
                                             } else {
-                                                win.playlistId = id;
-                                                win.view = "playlist";
+                                                win.showPlaylist(id);
                                             }
                                         } else if (srow.modelData.id === "search")
                                             win.openSearch();
@@ -657,11 +755,12 @@ ApplicationWindow {
                 }
             }
         }
-        // Scan: the button, and the progress of what runs in the background
+        // Progress of what runs in the background (the scan button is in the header)
         Item {
             id: scanRow
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: scanner.scanning || scanner.fetching ? 76 : 40
+            visible: scanner.scanning || scanner.fetching
+            height: visible ? 76 : 0
             Rectangle {
                 anchors.top: parent.top
                 width: parent.width
@@ -706,11 +805,6 @@ ApplicationWindow {
                             Rectangle { width: parent.width * modelData.value; height: parent.height; radius: 2; color: FiliTheme.accentColor }
                         }
                     }
-                }
-                TextButton {
-                    visible: !scanner.scanning && !scanner.fetching
-                    label: Fili.tr("Scan the library…")
-                    onClicked: scanner.open(false)
                 }
             }
             MouseArea {
@@ -858,13 +952,14 @@ ApplicationWindow {
         width: parent.width
         height: win.footerShown ? FiliTheme.statusHeight : 0
         visible: win.footerShown
-        // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill)
-        color: FiliTheme.backgroundDeep
-        // Line above the footer: the accent while the window has the focus (2 px), the plain border otherwise
+        // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill); the focused window fills it with the
+        // accent and the text takes the background colour. A confirmation, an error or a notice keep the neutral footer.
+        readonly property bool lit: win.active && win.confirm === null && win.message === ""
+        color: lit ? FiliTheme.accentColor : FiliTheme.backgroundDeep
         Rectangle {
             width: parent.width
-            height: win.active ? 2 : FiliTheme.borderWidth
-            color: win.active ? FiliTheme.accentColor : FiliTheme.border
+            height: FiliTheme.borderWidth
+            color: FiliTheme.border
         }
         // An inline confirmation takes the whole bar: the action on the right, Cancel to its left
         Item {
@@ -917,7 +1012,7 @@ ApplicationWindow {
             text: win.stats.track_count + " " + Fili.tr("tracks") + " · " + win.stats.album_count + " " + Fili.tr("albums") + " · " + win.stats.artist_count + " " + Fili.tr("artists") + " · " + Store.longDuration(win.stats.total_duration_seconds)
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.sizeSmall
-            color: FiliTheme.textSecondary
+            color: statusbar.lit ? FiliTheme.background : FiliTheme.textSecondary
         }
         Text {
             anchors { right: parent.right; rightMargin: FiliTheme.margin; left: parent.horizontalCenter; top: parent.top; topMargin: 1; bottom: parent.bottom }
@@ -928,7 +1023,7 @@ ApplicationWindow {
             text: Store.queueIds.length > 0 ? Store.queueIds.length + " " + Fili.tr("in the queue") : ""
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.sizeSmall
-            color: FiliTheme.textSecondary
+            color: statusbar.lit ? FiliTheme.background : FiliTheme.textSecondary
         }
     }
 

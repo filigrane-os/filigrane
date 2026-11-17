@@ -133,6 +133,19 @@
       "label": "View",
       "children": [
         {
+          "label": "Back",
+          "keys": "Alt+Left",
+          "exec": "fili-music ctl --pid %pid action back"
+        },
+        {
+          "label": "Forward",
+          "keys": "Alt+Right",
+          "exec": "fili-music ctl --pid %pid action forward"
+        },
+        {
+          "sep": true
+        },
+        {
           "label": "Tracks",
           "keys": "Ctrl+1",
           "exec": "fili-music ctl --pid %pid action view-tracks"

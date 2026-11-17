@@ -36,6 +36,9 @@ QtObject {
     property int pendingArtistId: -1
     signal albumRequested(int albumId)
     signal artistRequested(int artistId)
+    // The album or artist shown in its view changed (-1: none): Main keeps the history. closeDetails: back to the list
+    signal detailChanged(string kind, int id)
+    signal closeDetails(string kind)
     // A context menu is asked at window coordinates: Main draws it and calls handler(id) with the entry chosen
     signal menuRequested(real x, real y, var items, var handler)
     // Drag and drop between views: a source calls dragMove while the pointer is down past a few pixels and dragDrop on release

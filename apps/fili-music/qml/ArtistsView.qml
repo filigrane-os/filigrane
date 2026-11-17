@@ -71,8 +71,15 @@ Item {
             Store.pendingArtistId = -1;
         }
     }
+    onChosenChanged: Store.detailChanged("artists", chosen ? chosen.id : -1)
     Connections {
         target: Store
+        function onCloseDetails(kind) {
+            if (kind === "artists") {
+                view.chosen = null;
+                view.albums = [];
+            }
+        }
         function onArtistRequested(id) {
             view.chooseById(id);
             Store.pendingArtistId = -1;
