@@ -953,10 +953,8 @@ ApplicationWindow {
         width: parent.width
         height: win.footerShown ? FiliTheme.statusHeight : 0
         visible: win.footerShown
-        // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill); the focused window fills it with the
-        // accent and the text takes the background colour. A confirmation, an error or a notice keep the neutral footer.
-        readonly property bool lit: win.active && win.confirm === null && win.message === ""
-        color: lit ? FiliTheme.accentColor : FiliTheme.backgroundDeep
+        // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill)
+        color: FiliTheme.backgroundDeep
         Rectangle {
             width: parent.width
             height: FiliTheme.borderWidth
@@ -1013,7 +1011,7 @@ ApplicationWindow {
             text: win.stats.track_count + " " + Fili.tr("tracks") + " · " + win.stats.album_count + " " + Fili.tr("albums") + " · " + win.stats.artist_count + " " + Fili.tr("artists") + " · " + Store.longDuration(win.stats.total_duration_seconds)
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.sizeSmall
-            color: statusbar.lit ? FiliTheme.background : FiliTheme.textSecondary
+            color: FiliTheme.textSecondary
         }
         Text {
             anchors { right: parent.right; rightMargin: FiliTheme.margin; left: parent.horizontalCenter; top: parent.top; topMargin: 1; bottom: parent.bottom }
@@ -1024,7 +1022,7 @@ ApplicationWindow {
             text: Store.queueIds.length > 0 ? Store.queueIds.length + " " + Fili.tr("in the queue") : ""
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.sizeSmall
-            color: statusbar.lit ? FiliTheme.background : FiliTheme.textSecondary
+            color: FiliTheme.textSecondary
         }
     }
 
