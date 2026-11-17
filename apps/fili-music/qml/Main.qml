@@ -323,6 +323,7 @@ ApplicationWindow {
     readonly property var actions: ({
         "about": { on: () => true, run: () => win.aboutOpen = !win.aboutOpen },
         "view-search": { on: () => true, run: () => win.openSearch() },
+        "fetch-artwork": { on: () => !scanner.fetching && !scanner.scanning, run: () => { scanner.open(false); scanner.fetchArtwork(false); } },
         "back": { on: () => win.canBack, run: () => win.walk(-1) },
         "forward": { on: () => win.canForward, run: () => win.walk(1) },
         "view-tracks": { on: () => true, run: () => win.show("tracks") },

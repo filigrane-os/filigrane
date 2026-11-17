@@ -18,6 +18,9 @@ Rectangle {
     property string importedName: ""
     property string cleanResult: ""
     property var stats: null
+    // Albums that still have no cover (null until asked), and the file of the report the core wrote for the last fetch
+    property var missing: null
+    property string reportFile: ""
     property bool welcome: false
     property bool quiet: false
     readonly property real scanFraction: scanProgress.total_files > 0 ? scanProgress.processed_files / scanProgress.total_files : 0
@@ -41,6 +44,7 @@ Rectangle {
         error = "";
         artAsk = false;
         loadStats();
+        reportFile = Fili.reportPath("artwork");
         visible = true;
     }
     // `fili-music ctl action scan PATH`: scan that folder now
@@ -118,6 +122,41 @@ Rectangle {
         artDone = true;
         Store.forget();
         loadStats();
+        reveal = true;
+        loadMissing();
+        // The core writes its report just after the last item: looked up a moment later
+        reportTimer.restart();
+    }
+    // Albums with neither an embedded nor an online cover, read page after page
+    property int missingSerial: 0
+    property bool reveal: false
+    function loadMissing() {
+        const mine = ++missingSerial;
+        const found = [];
+        const page = offset => Store.callAsync("get_albums_page", [offset, 500], d => {
+            if (mine !== missingSerial)
+                return;
+            const albums = d ? d.albums : [];
+            for (const a of albums)
+                if (!a.artwork_path && !a.online_artwork_path)
+                    found.push({ id: a.id, text: a.artist_name + " — " + a.title });
+            if (albums.length === 500)
+                page(offset + 500);
+            else {
+                missing = found;
+                // After a fetch the list is brought into view
+                if (reveal) {
+                    reveal = false;
+                    Qt.callLater(() => body.contentY = Math.max(0, Math.min(missingBlock.y - FiliTheme.space4, body.contentHeight - body.height)));
+                }
+            }
+        });
+        page(0);
+    }
+    Timer {
+        id: reportTimer
+        interval: 1500
+        onTriggered: dlg.reportFile = Fili.reportPath("artwork")
     }
     Timer {
         interval: 250
@@ -131,10 +170,14 @@ Rectangle {
             }
             if (dlg.fetching) {
                 const p = Store.call("get_artwork_fetch_progress");
+                // The core keeps the last progress after the end (processed = total) and has nothing before the first fetch
                 if (p) {
                     dlg.artProgress = p;
                     dlg.seenProgress = true;
-                    dlg.idleTicks = 0;
+                    // Nothing to do (every album has its cover): the total stays 0, so it is given 3 s to move
+                    dlg.idleTicks = p.processedItems >= p.totalItems ? dlg.idleTicks + 1 : 0;
+                    if (dlg.idleTicks >= (p.totalItems > 0 ? 2 : 12))
+                        dlg.endArtwork();
                 } else if (++dlg.idleTicks >= (dlg.seenProgress ? 2 : 12))
                     dlg.endArtwork();
             }
@@ -384,6 +427,53 @@ Rectangle {
                             label: Fili.tr("Cancel")
                             onClicked: dlg.cancelArtwork()
                         }
+                        TextButton {
+                            visible: !dlg.fetching && !dlg.artAsk && dlg.missing === null
+                            label: Fili.tr("Albums without a cover")
+                            onClicked: dlg.loadMissing()
+                        }
+                    }
+                }
+                // Covers not found
+                Block {
+                    id: missingBlock
+                    visible: !dlg.welcome && dlg.missing !== null
+                    Heading { text: dlg.missing ? (dlg.missing.length === 0 ? Fili.tr("Every album has a cover") : Fili.tr("%1 albums without a cover").replace("%1", dlg.missing.length)) : "" }
+                    Rectangle {
+                        visible: dlg.missing !== null && dlg.missing.length > 0
+                        width: parent.width
+                        height: Math.min(180, (dlg.missing ? dlg.missing.length : 0) * 22 + 2 * FiliTheme.space1)
+                        radius: FiliTheme.radiusControl
+                        color: FiliTheme.surface
+                        clip: true
+                        ListView {
+                            id: missingList
+                            anchors { fill: parent; margins: FiliTheme.space1 }
+                            model: dlg.missing || []
+                            boundsBehavior: Flickable.StopAtBounds
+                            KineticScroll {}
+                            delegate: Text {
+                                required property var modelData
+                                width: missingList.width - 12
+                                height: 22
+                                verticalAlignment: Text.AlignVCenter
+                                elide: Text.ElideRight
+                                text: modelData.text
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.sizeSmall
+                                color: FiliTheme.textSecondary
+                            }
+                        }
+                        FiliScrollBar { flick: missingList; anchors { top: missingList.top; bottom: missingList.bottom; right: missingList.right } }
+                    }
+                    Row {
+                        spacing: FiliTheme.space2
+                        TextButton {
+                            visible: dlg.reportFile !== ""
+                            label: Fili.tr("Open the last report")
+                            onClicked: Fili.openPath(dlg.reportFile)
+                        }
+                        TextButton { label: Fili.tr("Refresh"); onClicked: dlg.loadMissing() }
                     }
                 }
                 // Cleanup

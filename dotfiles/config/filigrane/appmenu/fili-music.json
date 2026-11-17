@@ -39,6 +39,10 @@
           "exec": "fili-music ctl --pid %pid action import-playlist"
         },
         {
+          "label": "Fetch Artwork",
+          "exec": "fili-music ctl --pid %pid action fetch-artwork"
+        },
+        {
           "label": "Edit Metadata of the Current Track…",
           "exec": "fili-music ctl --pid %pid action edit-metadata"
         },

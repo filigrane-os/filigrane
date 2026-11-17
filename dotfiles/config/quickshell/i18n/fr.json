@@ -716,5 +716,11 @@
  "Covers": "Pochettes",
  "Done": "Terminé",
  "Back": "Précédent",
- "Forward": "Suivant"
+ "Forward": "Suivant",
+ "Every album has a cover": "Tous les albums ont une pochette",
+ "%1 albums without a cover": "%1 albums sans pochette",
+ "Open the last report": "Ouvrir le dernier rapport",
+ "Refresh": "Actualiser",
+ "Albums without a cover": "Albums sans pochette",
+ "Fetch Artwork": "Récupérer les pochettes"
 }

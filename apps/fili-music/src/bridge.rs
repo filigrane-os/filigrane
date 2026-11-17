@@ -79,6 +79,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "dirExists"]
         fn dir_exists(self: &Fili, path: &QString) -> bool;
+        // The newest report the core wrote for "artwork" or "scan" (reports folder of the core): its path, "" when none
+        #[qinvokable]
+        #[cxx_name = "reportPath"]
+        fn report_path(self: &Fili, kind: &QString) -> QString;
+        // Opens a file with the default application (xdg-open)
+        #[qinvokable]
+        #[cxx_name = "openPath"]
+        fn open_path(self: &Fili, path: &QString);
     }
 
     extern "RustQt" {
@@ -308,6 +316,23 @@ impl qobject::Fili {
         let items: Vec<String> =
             rows.iter().map(|(k, v)| format!("[{},{}]", music::json_str(k), music::json_str(v))).collect();
         QString::from(&format!("[{}]", items.join(",")))
+    }
+
+    pub fn report_path(&self, kind: &QString) -> QString {
+        let prefix = format!("{}_", kind);
+        let dir = tornade_core::utils::AppPaths::new().map(|p| p.reports_dir()).ok();
+        let newest = dir
+            .and_then(|d| std::fs::read_dir(d).ok())
+            .into_iter()
+            .flatten()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().starts_with(&prefix))
+            .max_by_key(|e| e.file_name());
+        QString::from(&newest.map(|e| e.path().display().to_string()).unwrap_or_default())
+    }
+
+    pub fn open_path(&self, path: &QString) {
+        let _ = std::process::Command::new("xdg-open").arg(path.to_string()).spawn();
     }
 
     pub fn dir_exists(&self, path: &QString) -> bool {
