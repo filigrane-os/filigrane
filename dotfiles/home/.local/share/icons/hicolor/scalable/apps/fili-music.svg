@@ -1,14 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Baladeur (fili-music), a portable player in the Filigrane colours: night body, veil screen with the play mark, slate wheel, sand button -->
+<!-- Baladeur (fili-music), an album sleeve with its record sliding out, in the Filigrane colours: night sleeve with a veil cover, slate record, sand label -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
   <title>Baladeur</title>
-  <!-- body -->
-  <rect x="24" y="8" width="48" height="80" rx="10" fill="#232b36" stroke="#3c4858" stroke-width="2"/>
-  <!-- screen -->
-  <rect x="31" y="15" width="34" height="28" rx="4" fill="#9dbbd6" stroke="#3c4858" stroke-width="1"/>
-  <path d="M43 22v14l11-7z" fill="#1c222b"/>
-  <!-- wheel -->
-  <circle cx="48" cy="63" r="15" fill="#1c222b" stroke="#3c4858" stroke-width="1.5"/>
-  <circle cx="48" cy="63" r="5.5" fill="#d2bf92" stroke="#3c4858" stroke-width="1"/>
-  <path d="M48 52.5v3M48 70.5v3M37.5 63h3M55.5 63h3" stroke="#5f7894" stroke-width="1.6" stroke-linecap="round"/>
+  <!-- record, behind the sleeve -->
+  <circle cx="60" cy="48" r="31" fill="#1c222b" stroke="#3c4858" stroke-width="2"/>
+  <circle cx="60" cy="48" r="24" fill="none" stroke="#3c4858" stroke-width="1"/>
+  <circle cx="60" cy="48" r="18" fill="none" stroke="#3c4858" stroke-width="1"/>
+  <path d="M60 24a24 24 0 0 1 21 12" fill="none" stroke="#5f7894" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="60" cy="48" r="9" fill="#d2bf92" stroke="#3c4858" stroke-width="1"/>
+  <circle cx="60" cy="48" r="2" fill="#1c222b"/>
+  <!-- sleeve -->
+  <rect x="8" y="16" width="56" height="64" rx="8" fill="#232b36" stroke="#3c4858" stroke-width="2"/>
+  <rect x="14" y="22" width="44" height="44" rx="4" fill="#9dbbd6" stroke="#3c4858" stroke-width="1"/>
+  <path d="M30 56V36l16-4v20" fill="none" stroke="#1c222b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="26" cy="56" r="4" fill="#1c222b"/>
+  <circle cx="42" cy="52" r="4" fill="#1c222b"/>
+  <path d="M14 72h24" stroke="#5f7894" stroke-width="3" stroke-linecap="round"/>
 </svg>
