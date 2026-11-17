@@ -8,6 +8,9 @@ Item {
     readonly property int cell: 150
     readonly property int columns: Math.max(1, Math.floor((width - 2 * FiliTheme.margin + FiliTheme.space4) / (cell + FiliTheme.space4)))
     property alias view: gv
+    // Optional blocks above and below the covers, scrolled with them
+    property Component header
+    property Component footer
     signal opened(var album)
     signal albumMenu(var album, real x, real y)
     signal more()
@@ -23,6 +26,8 @@ Item {
         leftMargin: FiliTheme.margin
         topMargin: FiliTheme.space4
         bottomMargin: FiliTheme.space4
+        header: grid.header
+        footer: grid.footer
         KineticScroll {}
         onAtYEndChanged: if (atYEnd && count > 0)
             grid.more()

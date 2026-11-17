@@ -87,7 +87,7 @@ Item {
         }
         onLoadMore: if (filter.text === "")
             view.load(true)
-        onActivated: (row, alt) => alt ? Store.addToQueue([tracks.get(row).id]) : Store.addAndPlay(tracks.get(row).id)
+        onActivated: (row, alt) => Store.wantsPlay(alt) ? Store.addAndPlay(tracks.get(row).id) : Store.addToQueue([tracks.get(row).id])
         onMenuRequested: (row, x, y) => view.trackMenu(selectedCount > 1 ? selectedIds() : [tracks.get(row).id], x, y)
         onDeleteRequested: view.trackMenu(selectedIds(), width / 2, height / 2)
     }

@@ -71,6 +71,13 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "openSettings"]
         fn open_settings(self: &Fili);
+        // A plain setting of fili-music.toml ("" when absent): section, key
+        #[qinvokable]
+        fn setting(self: &Fili, section: &QString, key: &QString) -> QString;
+        // Writes a text file (a playlist exported as M3U); false when it cannot be written
+        #[qinvokable]
+        #[cxx_name = "writeText"]
+        fn write_text(self: &Fili, path: &QString, text: &QString) -> bool;
         // The music folder of the user (xdg-user-dir MUSIC, else ~/Music): where a first scan starts
         #[qinvokable]
         #[cxx_name = "musicDir"]
@@ -350,7 +357,26 @@ impl qobject::Fili {
         QString::from(&from_xdg.unwrap_or_else(|| format!("{}/Music", home())))
     }
 
+    pub fn setting(&self, section: &QString, key: &QString) -> QString {
+        QString::from(theme::setting(&section.to_string(), &key.to_string()).unwrap_or_default())
+    }
+
+    pub fn write_text(&self, path: &QString, text: &QString) -> bool {
+        std::fs::write(path.to_string(), text.to_string()).is_ok()
+    }
+
     pub fn open_settings(&self) {
+        // The file is optional: a first opening writes a commented one so that there is something to edit
+        let file = theme::path();
+        if !file.exists() {
+            if let Some(dir) = file.parent() {
+                let _ = std::fs::create_dir_all(dir);
+            }
+            let _ = std::fs::write(
+                &file,
+                "# Baladeur settings (optional). The theme keys live in [theme], see ~/.config/filigrane/theme.toml.\n\n[behavior]\n# A double click on a track adds it to the queue instead of playing it (Alt then plays)\n# invert_queue = true\n",
+            );
+        }
         let _ = std::process::Command::new("xdg-open")
             .arg(theme::path())
             .stdin(std::process::Stdio::null())

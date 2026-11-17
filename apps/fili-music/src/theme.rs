@@ -11,6 +11,15 @@ pub fn path() -> PathBuf {
     PathBuf::from(dir).join("filigrane/fili-music.toml")
 }
 
+// A plain setting of fili-music.toml: `[section] key = value` (no theme layers); None when the file or the key is absent
+pub fn setting(section: &str, key: &str) -> Option<String> {
+    let text = std::fs::read_to_string(path()).ok()?;
+    match parse_sections(&text).get(section)?.get(key)? {
+        Val::Str(v) => Some(v.clone()),
+        Val::List(l) => Some(l.join(",")),
+    }
+}
+
 // `[window] header = false` / `footer = false` (written by `fili-theme header|footer off`) in fili-file.toml, which takes
 // precedence, or in the shared ~/.config/filigrane/theme.toml; the command-line flags --no-header / --header and
 // --no-footer / --footer win over both. Absent or invalid: the part is shown.

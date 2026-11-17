@@ -130,16 +130,25 @@ Item {
                 }
             }
             // Tracks
-            Text {
-                x: FiliTheme.margin
+            Item {
                 visible: tracks.count > 0
-                height: visible ? implicitHeight + FiliTheme.space3 : 0
-                topPadding: FiliTheme.space3
-                text: Fili.tr("Tracks")
-                font.family: FiliTheme.font
-                font.pixelSize: FiliTheme.sizeSmall
-                font.weight: FiliTheme.weightAccent
-                color: FiliTheme.muted
+                width: parent.width
+                height: visible ? 28 + FiliTheme.space3 : 0
+                Text {
+                    x: FiliTheme.margin
+                    y: FiliTheme.space3 + 4
+                    text: Fili.tr("Tracks") + " (" + tracks.count + ")"
+                    font.family: FiliTheme.font
+                    font.pixelSize: FiliTheme.sizeSmall
+                    font.weight: FiliTheme.weightAccent
+                    color: FiliTheme.muted
+                }
+                Row {
+                    anchors { right: parent.right; rightMargin: FiliTheme.margin; bottom: parent.bottom }
+                    spacing: FiliTheme.space2
+                    TextButton { label: Fili.tr("Play all"); primary: true; onClicked: Store.playNow(Store.ids(tracks), 0) }
+                    TextButton { label: Fili.tr("Add all to queue"); onClicked: Store.addToQueue(Store.ids(tracks)) }
+                }
             }
             TrackTable {
                 id: table
@@ -148,7 +157,7 @@ Item {
                 visible: tracks.count > 0
                 model: tracks
                 Component.onCompleted: list.interactive = false
-                onActivated: (row, alt) => alt ? Store.addToQueue([tracks.get(row).id]) : Store.addAndPlay(tracks.get(row).id)
+                onActivated: (row, alt) => Store.wantsPlay(alt) ? Store.addAndPlay(tracks.get(row).id) : Store.addToQueue([tracks.get(row).id])
                 onMenuRequested: (row, x, y) => view.trackMenu(selectedCount > 1 ? selectedIds() : [tracks.get(row).id], x, y)
             }
         }

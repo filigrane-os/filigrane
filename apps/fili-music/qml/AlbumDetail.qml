@@ -148,7 +148,7 @@ Item {
                     id: table
                     width: parent.width
                     model: tracks
-                    onActivated: (row, alt) => alt ? Store.addToQueue([tracks.get(row).id]) : Store.playNow(Store.ids(tracks), row)
+                    onActivated: (row, alt) => Store.wantsPlay(alt) ? Store.playNow(Store.ids(tracks), row) : Store.addToQueue([tracks.get(row).id])
                     onMenuRequested: (row, x, y) => detail.trackMenu(selectedCount > 1 ? selectedIds() : [tracks.get(row).id], x, y)
                 }
             }

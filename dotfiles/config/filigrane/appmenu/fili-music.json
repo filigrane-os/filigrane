@@ -54,6 +54,10 @@
           "exec": "fili-music ctl --pid %pid action scan"
         },
         {
+          "label": "Settings…",
+          "exec": "fili-music ctl --pid %pid action settings"
+        },
+        {
           "sep": true
         },
         {

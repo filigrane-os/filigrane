@@ -261,6 +261,7 @@ ApplicationWindow {
     function trackMenu(ids, x, y, positions, playlistOf) {
         const items = [
             { id: "play", label: Fili.tr("Play") },
+            { id: "next", label: Fili.tr("Play next") },
             { id: "queue", label: Fili.tr("Add to queue") },
             { id: "playlist", label: Fili.tr("Add to playlist"), children: playlistChoices() },
             { id: "edit", label: Fili.tr("Edit metadata…") }
@@ -273,6 +274,8 @@ ApplicationWindow {
         Store.menuRequested(x, y, items, id => {
             if (id === "play")
                 several ? Store.playNow(ids, 0) : Store.call("play_track", [ids[0]]);
+            else if (id === "next")
+                Store.addNext(ids);
             else if (id === "queue")
                 Store.addToQueue(ids);
             else if (id === "edit")
@@ -297,6 +300,7 @@ ApplicationWindow {
     function albumMenu(album, x, y) {
         Store.menuRequested(x, y, [
             { id: "play", label: Fili.tr("Play") },
+            { id: "next", label: Fili.tr("Play next") },
             { id: "queue", label: Fili.tr("Add to queue") },
             { id: "playlist", label: Fili.tr("Add to playlist"), children: playlistChoices() },
             { id: "edit", label: Fili.tr("Edit metadata…") }
@@ -309,6 +313,8 @@ ApplicationWindow {
                 const ids = d ? d.tracks.map(t => t.id) : [];
                 if (id === "play")
                     Store.playNow(ids, 0);
+                else if (id === "next")
+                    Store.addNext(ids);
                 else if (id === "queue")
                     Store.addToQueue(ids);
                 else if (id === "pl:new")
@@ -819,6 +825,11 @@ ApplicationWindow {
         }
     }
 
+    function exportPlaylist(pl, text) {
+        prompt.mode = "export";
+        prompt.payload = text;
+        prompt.open(Fili.tr("Export the playlist"), Fili.musicDir() + "/" + pl.name.replace(/[\/]/g, "-") + ".m3u", [], Fili.tr("Export"), Fili.tr("Path of the .m3u file"));
+    }
     function renamePlaylist(pl) {
         prompt.mode = "rename";
         prompt.target = pl.id;
@@ -864,6 +875,7 @@ ApplicationWindow {
         Component {
             id: artistsView
             ArtistsView {
+                onTrackMenu: (ids, x, y) => win.trackMenu(ids, x, y)
                 onAlbumMenu: (album, x, y) => win.albumMenu(album, x, y)
                 onOpenAlbum: album => Store.albumRequested(album.id)
             }
@@ -880,6 +892,7 @@ ApplicationWindow {
             PlaylistView {
                 playlistId: win.playlistId
                 onTrackMenu: (ids, x, y, positions) => win.trackMenu(ids, x, y, positions, win.playlistId)
+                onExportRequested: (pl, text) => win.exportPlaylist(pl, text)
                 onRenameRequested: pl => win.renamePlaylist(pl)
                 onDeleteRequested: pl => win.deletePlaylist(pl)
             }
@@ -1041,7 +1054,16 @@ ApplicationWindow {
         property string mode: "new"
         property var ids: []
         property int target: -1
+        property string payload: ""
         onAccepted: (text, choiceId) => {
+            if (mode === "export") {
+                const file = text.trim();
+                if (Fili.writeText(file, payload))
+                    win.say(Fili.tr("Playlist exported") + ": " + file, false);
+                else
+                    win.say(Fili.tr("The playlist could not be exported"), true);
+                return;
+            }
             if (mode === "import") {
                 win.importPlaylist(text.trim());
                 return;

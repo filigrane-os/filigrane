@@ -47,14 +47,62 @@ Item {
         selected = next;
     }
 
-    // Column widths: number and time are fixed, the rest shares what is left
-    readonly property int numberWidth: 48
-    readonly property int timeWidth: 64
-    readonly property int textWidth: width - numberWidth - timeWidth - 2 * FiliTheme.margin
-    readonly property real titleShare: showArtist && showAlbum ? 0.4 : (showArtist || showAlbum ? 0.5 : 1)
-    readonly property int titleWidth: Math.floor(textWidth * titleShare)
-    readonly property int artistWidth: showArtist ? (showAlbum ? Math.floor(textWidth * 0.3) : textWidth - titleWidth) : 0
-    readonly property int albumWidth: showAlbum ? textWidth - titleWidth - artistWidth : 0
+    // Columns: the ones in `shown` (right click on the header chooses them, the choice is remembered). Fixed widths for the
+    // short ones, the text columns share the rest by weight.
+    readonly property var catalog: [
+        { key: "number", sort: "track_number", label: "#", w: 48, always: true },
+        { key: "title", sort: "title", label: Fili.tr("Title"), weight: 4, always: true },
+        { key: "artist", sort: "artist", label: Fili.tr("Artist"), weight: 3, need: "showArtist" },
+        { key: "album", sort: "album", label: Fili.tr("Album"), weight: 3, need: "showAlbum" },
+        { key: "duration", sort: "duration", label: Fili.tr("Time"), w: 64, right: true, always: true },
+        { key: "format", sort: "file_type", label: Fili.tr("Format"), w: 130 },
+        { key: "trackno", sort: "track_number", label: Fili.tr("Track"), w: 60 },
+        { key: "size", sort: "file_size", label: Fili.tr("Size"), w: 76, right: true },
+        { key: "added", sort: "created_at", label: Fili.tr("Added"), w: 96 },
+        { key: "path", sort: "file_path", label: Fili.tr("Path"), weight: 4 }
+    ]
+    property var optional: columnsChoice()
+    function columnsChoice() {
+        try {
+            const saved = JSON.parse(Fili.uiState("columns") || "null");
+            if (saved)
+                return saved;
+        } catch (e) {}
+        return ["format"];
+    }
+    readonly property var cols: catalog.filter(c => (c.always && (!c.need || table[c.need])) || (!c.always && !c.need && optional.indexOf(c.key) >= 0) || (c.need && table[c.need]))
+    readonly property real fixedWidth: cols.reduce((n, c) => n + (c.w || 0), 0)
+    readonly property real totalWeight: cols.reduce((n, c) => n + (c.weight || 0), 0)
+    function widthOf(c) {
+        return c.w ? c.w : Math.floor(Math.max(0, width - 2 * FiliTheme.margin - fixedWidth) * c.weight / Math.max(1, totalWeight));
+    }
+    // The columns after the time keep a gap from it
+    function spaced(c) {
+        return ["format", "trackno", "size", "added", "path"].indexOf(c.key) >= 0;
+    }
+    function toggleColumn(key) {
+        const next = optional.indexOf(key) >= 0 ? optional.filter(k => k !== key) : optional.concat([key]);
+        optional = next;
+        Fili.setUiState("columns", JSON.stringify(next));
+    }
+    function columnMenu(x, y) {
+        const items = catalog.filter(c => !c.always && !c.need).map(c => ({ id: c.key, label: (optional.indexOf(c.key) >= 0 ? "✓ " : "    ") + c.label }));
+        Store.menuRequested(x, y, items, id => table.toggleColumn(id));
+    }
+    function cellText(c, r) {
+        switch (c.key) {
+        case "title": return r.title;
+        case "artist": return r.artists !== "" ? r.artists : Store.artistName(r.artistId);
+        case "album": return Store.albumTitle(r.albumId >= 0 ? r.albumId : null);
+        case "duration": return Store.clock(r.duration);
+        case "format": return r.format;
+        case "trackno": return r.trackNumber > 0 ? (r.discNumber > 1 ? r.discNumber + "-" : "") + r.trackNumber : "";
+        case "size": return Store.sizeText(r.size);
+        case "added": return r.added.substring(0, 10);
+        case "path": return r.path;
+        }
+        return "";
+    }
 
     // Header
     Rectangle {
@@ -72,36 +120,38 @@ Item {
             x: FiliTheme.margin
             height: parent.height
             Repeater {
-                model: [
-                    { key: "track_number", label: "#", w: table.numberWidth, right: false },
-                    { key: "title", label: Fili.tr("Title"), w: table.titleWidth, right: false },
-                    { key: "artist", label: Fili.tr("Artist"), w: table.artistWidth, right: false },
-                    { key: "album", label: Fili.tr("Album"), w: table.albumWidth, right: false },
-                    { key: "duration", label: Fili.tr("Time"), w: table.timeWidth, right: true }
-                ]
+                model: table.cols
                 Item {
                     id: col
                     required property var modelData
-                    width: modelData.w
+                    width: table.widthOf(modelData)
                     height: head.height
-                    visible: width > 0
                     Text {
-                        anchors { fill: parent; rightMargin: FiliTheme.space2 }
+                        anchors { fill: parent; rightMargin: FiliTheme.space2; leftMargin: table.spaced(col.modelData) ? FiliTheme.space3 : 0 }
                         verticalAlignment: Text.AlignVCenter
                         horizontalAlignment: col.modelData.right ? Text.AlignRight : Text.AlignLeft
                         elide: Text.ElideRight
-                        text: col.modelData.label + (table.sortBy === col.modelData.key ? (table.sortDir === "asc" ? "  ▴" : "  ▾") : "")
+                        text: col.modelData.label + (table.sortBy === col.modelData.sort ? (table.sortDir === "asc" ? "  ▴" : "  ▾") : "")
                         font.family: FiliTheme.font
                         font.pixelSize: FiliTheme.sizeSmall
                         font.weight: FiliTheme.weightAccent
-                        color: table.sortBy === col.modelData.key ? FiliTheme.text : FiliTheme.muted
+                        color: table.sortBy === col.modelData.sort ? FiliTheme.text : FiliTheme.muted
                     }
                     MouseArea {
                         anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
                         enabled: table.sortable
-                        onClicked: table.sortRequested(col.modelData.key, table.sortBy === col.modelData.key && table.sortDir === "asc" ? "desc" : "asc")
+                        onClicked: table.sortRequested(col.modelData.sort, table.sortBy === col.modelData.sort && table.sortDir === "asc" ? "desc" : "asc")
                     }
                 }
+            }
+        }
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.RightButton
+            onClicked: e => {
+                const p = mapToItem(null, e.x, e.y);
+                table.columnMenu(p.x, p.y);
             }
         }
     }
@@ -149,6 +199,9 @@ Item {
             required property int trackNumber
             required property int discNumber
             required property string format
+            required property int size
+            required property string path
+            required property string added
             readonly property bool current: id === Store.currentTrackId
             readonly property bool picked: table.selected[id] === true
             width: list.width
@@ -158,61 +211,24 @@ Item {
             Row {
                 x: FiliTheme.margin
                 height: parent.height
-                Text {
-                    width: table.numberWidth
-                    height: parent.height
-                    verticalAlignment: Text.AlignVCenter
-                    text: rowItem.current ? (Store.playing ? "▶" : "▮▮") : String(table.trackNumbers ? (rowItem.trackNumber > 0 ? rowItem.trackNumber : "") : rowItem.index + 1)
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeList
-                    color: rowItem.current ? FiliTheme.accentColor : FiliTheme.muted
-                }
-                Text {
-                    width: table.titleWidth
-                    height: parent.height
-                    rightPadding: FiliTheme.space2
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                    text: rowItem.title
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeList
-                    font.weight: rowItem.current ? FiliTheme.weightAccent : Font.Normal
-                    color: rowItem.current ? FiliTheme.accentColor : FiliTheme.text
-                }
-                Text {
-                    width: table.artistWidth
-                    height: parent.height
-                    visible: width > 0
-                    rightPadding: FiliTheme.space2
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                    text: rowItem.artists !== "" ? rowItem.artists : Store.artistName(rowItem.artistId)
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeList
-                    color: FiliTheme.textSecondary
-                }
-                Text {
-                    width: table.albumWidth
-                    height: parent.height
-                    visible: width > 0
-                    rightPadding: FiliTheme.space2
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                    text: Store.albumTitle(rowItem.albumId >= 0 ? rowItem.albumId : null)
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeList
-                    color: FiliTheme.textSecondary
-                }
-                Text {
-                    width: table.timeWidth
-                    height: parent.height
-                    rightPadding: FiliTheme.space2
-                    verticalAlignment: Text.AlignVCenter
-                    horizontalAlignment: Text.AlignRight
-                    text: Store.clock(rowItem.duration)
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeList
-                    color: FiliTheme.muted
+                Repeater {
+                    model: table.cols
+                    Text {
+                        id: cell
+                        required property var modelData
+                        width: table.widthOf(modelData)
+                        height: rowItem.height
+                        rightPadding: FiliTheme.space2
+                        leftPadding: table.spaced(modelData) ? FiliTheme.space3 : 0
+                        verticalAlignment: Text.AlignVCenter
+                        horizontalAlignment: modelData.right ? Text.AlignRight : Text.AlignLeft
+                        elide: Text.ElideRight
+                        text: modelData.key === "number" ? (rowItem.current ? (Store.playing ? "▶" : "▮▮") : String(table.trackNumbers ? (rowItem.trackNumber > 0 ? rowItem.trackNumber : "") : rowItem.index + 1)) : table.cellText(modelData, rowItem)
+                        font.family: FiliTheme.font
+                        font.pixelSize: FiliTheme.sizeList
+                        font.weight: modelData.key === "title" && rowItem.current ? FiliTheme.weightAccent : Font.Normal
+                        color: rowItem.current && (modelData.key === "title" || modelData.key === "number") ? FiliTheme.accentColor : modelData.key === "title" ? FiliTheme.text : (modelData.key === "number" || modelData.key === "duration") ? FiliTheme.muted : FiliTheme.textSecondary
+                    }
                 }
             }
             MouseArea {

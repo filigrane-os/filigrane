@@ -228,7 +228,7 @@ QtObject {
             id: t.id, title: t.title || "", artistId: t.artist_id, albumId: t.album_id === null || t.album_id === undefined ? -1 : t.album_id,
             artists: t.artist_names ? t.artist_names.join(", ") : "", duration: t.duration || 0, trackNumber: t.track_number || 0,
             discNumber: t.disc_number || 1, fileType: t.file_type || "", rating: t.rating || 0, playCount: t.play_count || 0,
-            format: formatInfo(t), size: t.file_size || 0, path: t.file_path || ""
+            format: formatInfo(t), size: t.file_size || 0, path: t.file_path || "", added: t.created_at || ""
         };
     }
     function fill(model, tracks, append) {
@@ -270,6 +270,25 @@ QtObject {
         if (!trackIds || trackIds.length === 0)
             return;
         call("add_tracks_to_queue", [JSON.stringify(trackIds)]);
+        refreshQueue();
+    }
+    // A double click plays the track, Alt adds it to the queue; `invert_queue = true` in the settings swaps them
+    function wantsPlay(alt) {
+        return Fili.setting("behavior", "invert_queue") === "true" ? !!alt : !alt;
+    }
+    // Add tracks right after the one playing
+    function addNext(trackIds) {
+        if (!trackIds || trackIds.length === 0)
+            return;
+        const before = queueIds.length;
+        call("add_tracks_to_queue", [JSON.stringify(trackIds)]);
+        refreshQueue();
+        if (before === 0 || queueIndex < 0 || queueIndex + 1 >= before)
+            return;
+        const list = queueIds.slice();
+        const added = list.splice(before, trackIds.length);
+        list.splice(queueIndex + 1, 0, ...added);
+        call("reorder_queue", [JSON.stringify(list)]);
         refreshQueue();
     }
     // Add one track at the end of the queue and play it at once (a double click on a track of a list)

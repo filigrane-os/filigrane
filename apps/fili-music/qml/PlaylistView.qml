@@ -10,6 +10,16 @@ Item {
     signal trackMenu(var ids, real x, real y, var positions)
     signal renameRequested(var playlist)
     signal deleteRequested(var playlist)
+    signal exportRequested(var playlist, string text)
+    // The playlist as an extended M3U file
+    function m3u() {
+        let out = "#EXTM3U\n";
+        for (let i = 0; i < tracks.count; i++) {
+            const t = tracks.get(i);
+            out += "#EXTINF:" + Math.round(t.duration / 1000) + "," + (t.artists !== "" ? t.artists : Store.artistName(t.artistId)) + " - " + t.title + "\n" + t.path + "\n";
+        }
+        return out;
+    }
     ListModel { id: tracks }
 
     function reload() {
@@ -78,6 +88,7 @@ Item {
             spacing: FiliTheme.space2
             TextButton { label: Fili.tr("Play"); primary: true; onClicked: Store.playNow(Store.ids(tracks), 0) }
             TextButton { label: Fili.tr("Add to queue"); onClicked: Store.addToQueue(Store.ids(tracks)) }
+            TextButton { label: Fili.tr("Export as M3U…"); enabled: tracks.count > 0; onClicked: view.exportRequested(view.playlist, view.m3u()) }
             TextButton { label: Fili.tr("Rename…"); onClicked: view.renameRequested(view.playlist) }
             TextButton { label: Fili.tr("Delete"); onClicked: view.deleteRequested(view.playlist) }
         }
@@ -86,7 +97,7 @@ Item {
         id: table
         anchors { top: head.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
         model: tracks
-        onActivated: (row, alt) => alt ? Store.addToQueue([tracks.get(row).id]) : Store.playNow(Store.ids(tracks), row)
+        onActivated: (row, alt) => Store.wantsPlay(alt) ? Store.playNow(Store.ids(tracks), row) : Store.addToQueue([tracks.get(row).id])
         onMenuRequested: (row, x, y) => {
             const ids = selectedCount > 1 ? selectedIds() : [tracks.get(row).id];
             // Positions of the selected rows, from the last, so removing them one by one stays right

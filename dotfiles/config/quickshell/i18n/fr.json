@@ -734,5 +734,19 @@
  "Label": "Label",
  "Genre": "Genre",
  "by this artist": "de cet artiste",
- "same genre": "même genre"
+ "same genre": "même genre",
+ "Formed in %1": "Formé en %1",
+ "Born in %1": "Né en %1",
+ "Singles": "Titres hors album",
+ "Artists of this genre": "Artistes de ce genre",
+ "Play next": "Lire ensuite",
+ "Export as M3U…": "Exporter en M3U…",
+ "Export the playlist": "Exporter la playlist",
+ "Export": "Exporter",
+ "Path of the .m3u file": "Chemin du fichier .m3u",
+ "Playlist exported": "Playlist exportée",
+ "The playlist could not be exported": "La playlist n'a pas pu être exportée",
+ "Add all to queue": "Tout ajouter à la file",
+ "Added": "Ajouté",
+ "Path": "Chemin"
 }

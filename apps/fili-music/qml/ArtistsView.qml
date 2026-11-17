@@ -6,6 +6,7 @@ Item {
     id: view
     signal albumMenu(var album, real x, real y)
     signal openAlbum(var album)
+    signal trackMenu(var ids, real x, real y)
 
     property var artists: []
     property var chosen: null
@@ -35,6 +36,7 @@ Item {
         chosen = artist;
         albums = [];
         similar = [];
+        view.loadSingles(artist);
         Store.callAsync("get_similar_artists", [artist.id], d => {
             if (chosen && chosen.id === artist.id)
                 similar = d ? d.artists.slice(0, 20) : [];
@@ -151,7 +153,29 @@ Item {
         FiliScrollBar { flick: list; anchors { top: list.top; bottom: list.bottom; right: list.right } }
     }
 
-    // Detail
+    // Detail: the page of the artist is the grid of its albums with the header (photo, facts, biography, similar artists) above
+    // and the tracks without an album below, all scrolled together
+    property var singles: []
+    property int singlesSerial: 0
+    ListModel { id: singleTracks }
+    function loadSingles(artist) {
+        const mine = ++singlesSerial;
+        singleTracks.clear();
+        const found = [];
+        const page = offset => Store.callAsync("get_tracks_page", [offset, 1000, "title", "asc"], d => {
+            if (mine !== singlesSerial)
+                return;
+            const tracks = d ? d.tracks : [];
+            for (const t of tracks)
+                if (t.artist_id === artist.id && (t.album_id === null || t.album_id === undefined))
+                    found.push(t);
+            if (tracks.length === 1000)
+                page(offset + 1000);
+            else
+                Store.fill(singleTracks, found, false);
+        });
+        page(0);
+    }
     Item {
         anchors { left: left.right; right: parent.right; top: parent.top; bottom: parent.bottom }
         Text {
@@ -162,74 +186,165 @@ Item {
             font.pixelSize: FiliTheme.size
             color: FiliTheme.muted
         }
-        Rectangle {
-            id: head
-            visible: view.chosen !== null
-            width: parent.width
-            height: 120 + 2 * FiliTheme.space4
-            color: FiliTheme.background
-            Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: FiliTheme.borderWidth; color: FiliTheme.border }
-            Artwork {
-                id: bigPhoto
-                x: FiliTheme.margin
-                y: FiliTheme.space4
-                width: 120
-                height: 120
-                radius: 60
-                kind: "artist"
-                itemId: view.chosen ? view.chosen.id : -1
-            }
-            Column {
-                anchors { left: bigPhoto.right; leftMargin: FiliTheme.space4; right: parent.right; rightMargin: FiliTheme.margin; top: bigPhoto.top }
-                spacing: FiliTheme.space1
-                Text {
-                    width: parent.width
-                    elide: Text.ElideRight
-                    text: view.chosen ? view.chosen.name : ""
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeTitle + 6
-                    font.weight: Font.Light
-                    color: FiliTheme.text
-                }
-                Text {
-                    width: parent.width
-                    elide: Text.ElideRight
-                    text: view.chosen ? [view.chosen.genre, view.chosen.country, view.chosen.formed_year ? Fili.tr("Formed") + " " + view.chosen.formed_year : (view.chosen.born_year ? Fili.tr("Born") + " " + view.chosen.born_year : "")].filter(x => x).join(" · ") : ""
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeSmall
-                    color: FiliTheme.muted
-                }
-                Text {
-                    width: parent.width
-                    maximumLineCount: 3
-                    wrapMode: Text.Wrap
-                    elide: Text.ElideRight
-                    visible: text !== ""
-                    text: view.chosen && view.chosen.bio ? view.chosen.bio : ""
-                    font.family: FiliTheme.font
-                    font.pixelSize: FiliTheme.sizeSmall
-                    color: FiliTheme.textSecondary
-                }
-                Row {
-                    spacing: FiliTheme.space2
-                    TextButton { label: Fili.tr("Play all"); primary: true; onClicked: view.playAll() }
-                }
-            }
-        }
-        ArtistStrip {
-            id: similarStrip
-            anchors.top: head.bottom
-            width: parent.width
-            title: Fili.tr("Similar artists")
-            artists: view.chosen ? view.similar : []
-            onOpened: artist => view.choose(artist)
-        }
         AlbumGrid {
-            anchors { top: similarStrip.bottom; bottom: parent.bottom; left: parent.left; right: parent.right }
+            id: albumGrid
+            anchors.fill: parent
             visible: view.chosen !== null
-            albums: view.albums
+            albums: view.albums.slice().sort((a, b) => (b.year || 0) - (a.year || 0))
             onOpened: album => view.openAlbum(album)
             onAlbumMenu: (album, x, y) => view.albumMenu(album, x, y)
+            header: Item {
+                id: top
+                width: albumGrid.width - 2 * FiliTheme.margin
+                height: topColumn.implicitHeight + FiliTheme.space4
+                AmbientColor { id: ambient; source: bigPhoto.source }
+                Rectangle {
+                    x: -FiliTheme.margin
+                    width: albumGrid.width
+                    height: parent.height
+                    gradient: Gradient {
+                        orientation: Gradient.Vertical
+                        GradientStop { position: 0; color: FiliTheme.alpha(ambient.color, 0.30) }
+                        GradientStop { position: 1; color: FiliTheme.alpha(ambient.color, 0) }
+                    }
+                    opacity: ambient.color.a > 0 ? 1 : 0
+                }
+                Column {
+                    id: topColumn
+                    width: parent.width
+                    topPadding: FiliTheme.space4
+                    spacing: FiliTheme.space4
+                    Row {
+                        spacing: FiliTheme.space4
+                        Artwork {
+                            id: bigPhoto
+                            width: 120
+                            height: 120
+                            radius: 60
+                            kind: "artist"
+                            itemId: view.chosen ? view.chosen.id : -1
+                        }
+                        Column {
+                            width: top.width - 120 - FiliTheme.space4
+                            anchors.verticalCenter: bigPhoto.verticalCenter
+                            spacing: FiliTheme.space1
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: view.chosen ? view.chosen.name : ""
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.sizeTitle + 10
+                                font.weight: Font.Light
+                                color: FiliTheme.text
+                            }
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                visible: text !== ""
+                                text: view.chosen ? [view.chosen.country, view.chosen.genre, view.chosen.formed_year ? Fili.tr("Formed in %1").replace("%1", view.chosen.formed_year) : (view.chosen.born_year ? Fili.tr("Born in %1").replace("%1", view.chosen.born_year) : "")].filter(x => x).join(" · ") : ""
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.size
+                                color: FiliTheme.textSecondary
+                            }
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                visible: text !== ""
+                                text: view.chosen ? [view.chosen.style, view.chosen.mood].filter(x => x).join(" · ") : ""
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.sizeSmall
+                                color: FiliTheme.muted
+                            }
+                            Item { width: 1; height: FiliTheme.space1 }
+                            Row {
+                                spacing: FiliTheme.space2
+                                TextButton { label: Fili.tr("Play all"); primary: true; onClicked: view.playAll() }
+                            }
+                        }
+                    }
+                    Column {
+                        width: parent.width
+                        spacing: FiliTheme.space2
+                        visible: view.chosen !== null && !!view.chosen.bio
+                        Text {
+                            text: Fili.tr("About")
+                            font.family: FiliTheme.font
+                            font.pixelSize: FiliTheme.size
+                            font.weight: FiliTheme.weightAccent
+                            color: FiliTheme.text
+                        }
+                        ExpandableText {
+                            width: Math.min(parent.width, 760)
+                            text: view.chosen && view.chosen.bio ? view.chosen.bio : ""
+                            pixelSize: FiliTheme.size
+                        }
+                    }
+                    Carousel {
+                        title: Fili.tr("Similar artists")
+                        items: view.chosen ? view.similar : []
+                        pageSize: 5
+                        cardHeight: 156
+                        card: Item {
+                            id: chip
+                            required property var modelData
+                            width: 120
+                            height: 156
+                            Artwork {
+                                id: photo
+                                width: 120
+                                height: 120
+                                radius: 60
+                                kind: "artist"
+                                itemId: chip.modelData.id
+                                border.width: chipArea.containsMouse ? 2 : 0
+                                border.color: FiliTheme.accentColor
+                            }
+                            Text {
+                                anchors { top: photo.bottom; topMargin: FiliTheme.space1; left: parent.left; right: parent.right }
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.Wrap
+                                maximumLineCount: 2
+                                elide: Text.ElideRight
+                                text: chip.modelData.name
+                                font.family: FiliTheme.font
+                                font.pixelSize: FiliTheme.sizeSmall
+                                color: FiliTheme.text
+                            }
+                            MouseArea { id: chipArea; anchors.fill: parent; hoverEnabled: true; onClicked: view.choose(chip.modelData) }
+                        }
+                    }
+                    Text {
+                        visible: view.albums.length > 0
+                        text: Fili.tr("Albums")
+                        font.family: FiliTheme.font
+                        font.pixelSize: FiliTheme.size
+                        font.weight: FiliTheme.weightAccent
+                        color: FiliTheme.text
+                    }
+                }
+            }
+            footer: Column {
+                width: albumGrid.width - 2 * FiliTheme.margin
+                spacing: FiliTheme.space2
+                visible: singleTracks.count > 0
+                height: visible ? implicitHeight + FiliTheme.space4 : 0
+                Text {
+                    topPadding: FiliTheme.space2
+                    text: Fili.tr("Singles")
+                    font.family: FiliTheme.font
+                    font.pixelSize: FiliTheme.size
+                    font.weight: FiliTheme.weightAccent
+                    color: FiliTheme.text
+                }
+                TrackColumns {
+                    id: singlesTable
+                    width: parent.width
+                    model: singleTracks
+                    threshold: 100000
+                    onActivated: (row, alt) => Store.wantsPlay(alt) ? Store.playNow(Store.ids(singleTracks), row) : Store.addToQueue([singleTracks.get(row).id])
+                    onMenuRequested: (row, x, y) => view.trackMenu(selectedCount > 1 ? selectedIds() : [singleTracks.get(row).id], x, y)
+                }
+            }
         }
     }
 }
