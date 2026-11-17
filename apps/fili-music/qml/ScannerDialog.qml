@@ -477,7 +477,8 @@ Rectangle {
                             visible: !dlg.fetching && dlg.missing !== null && dlg.missing.length > 0
                             label: Fili.tr("Try the missing covers again")
                             primary: true
-                            onClicked: dlg.fetchArtwork(false)
+                            // The core marks every failed album (a 503 of MusicBrainz too) as attempted and skips it unless forced
+                            onClicked: dlg.fetchArtwork(true)
                         }
                         TextButton { label: Fili.tr("Refresh"); onClicked: dlg.loadMissing() }
                     }

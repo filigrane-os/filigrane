@@ -723,5 +723,16 @@
  "Refresh": "Actualiser",
  "Albums without a cover": "Albums sans pochette",
  "Fetch Artwork": "Récupérer les pochettes",
- "Try the missing covers again": "Réessayer les pochettes manquantes"
+ "Try the missing covers again": "Réessayer les pochettes manquantes",
+ "Show more": "Voir plus",
+ "Show less": "Voir moins",
+ "by %1": "par %1",
+ "About this album": "À propos de cet album",
+ "Folder": "Dossier",
+ "Country": "Pays",
+ "Type": "Type",
+ "Label": "Label",
+ "Genre": "Genre",
+ "by this artist": "de cet artiste",
+ "same genre": "même genre"
 }

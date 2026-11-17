@@ -332,6 +332,8 @@ ApplicationWindow {
         "view-genres": { on: () => true, run: () => win.show("genres") },
         "play-pause": { on: () => Store.hasTrack || Store.queueIds.length > 0, run: () => Store.togglePlay() },
         "play-track": { on: () => true, run: arg => Store.addAndPlay(Number(arg)) },
+        "open-album": { on: () => true, run: arg => Store.albumRequested(Number(arg)) },
+        "open-artist": { on: () => true, run: arg => Store.artistRequested(Number(arg)) },
         "next": { on: () => Store.hasTrack, run: () => Store.next() },
         "prev": { on: () => Store.hasTrack, run: () => Store.previous() },
         "seek-back": { on: () => Store.hasTrack, run: () => Store.seek(Math.max(0, (Store.player.position || 0) - 10)) },
