@@ -30,8 +30,14 @@ Singleton {
     // keyboard receives the focus and niri then announces no active window (null): this is not a change of application.
     readonly property var niriWin: Niri.focused
     property var win: null
+    // Same for a panel of the bar (it takes the focus too): the bar must not change under the click
     onNiriWinChanged: {
-        if (niriWin || !open)
+        if (niriWin || !(open || FiliShell.panelOpen))
+            win = niriWin;
+    }
+    readonly property bool panelOpen: FiliShell.panelOpen
+    onPanelOpenChanged: {
+        if (!panelOpen)
             win = niriWin;
     }
     Component.onCompleted: win = niriWin
