@@ -65,7 +65,9 @@
         { "label": "Show Preview", "keys": "Ctrl+Shift+P", "exec": "fili-file ctl --pid %pid action toggle-preview" },
         { "label": "Show Hidden Files", "keys": "Ctrl+H", "exec": "fili-file ctl --pid %pid action toggle-hidden" },
         { "sep": true },
-        { "label": "Reload", "keys": "F5", "exec": "fili-file ctl --pid %pid action reload" }
+        { "label": "Reload", "keys": "F5", "exec": "fili-file ctl --pid %pid action reload" },
+        { "sep": true },
+        { "label": "Debug Logs", "keys": "Ctrl+Shift+L", "exec": "fili-file ctl --pid %pid action debug" }
       ]
     },
     {
