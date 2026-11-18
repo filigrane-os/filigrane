@@ -48,12 +48,12 @@ done
 python3 - <<'PY' || rc=1
 import glob, json, re, sys
 keys = set()
-for f in glob.glob("dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("users/*/dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("apps/fili-recorder/qml/*.qml") + glob.glob("apps/fili-music/qml/*.qml"):
+for f in glob.glob("dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("users/*/dotfiles/config/quickshell/**/*.qml", recursive=True) + glob.glob("apps/fili-recorder/qml/*.qml"):
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\bFili(?:I18n)?\.tr\("((?:[^"\\]|\\.)*)"', open(f).read())}
 # Labels of the default fallback menu (appmenu/_default.json): translated by the bar from the same catalog
 for f in glob.glob("dotfiles/config/filigrane/appmenu/_default.json"):
     keys |= set(re.findall(r'"label":\s*"((?:[^"\\]|\\.)*)"', open(f).read()))
-for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs") + glob.glob("apps/fili-automount/src/*.rs") + glob.glob("apps/fili-recorder/src/*.rs") + glob.glob("apps/fili-music/src/*.rs"):
+for f in glob.glob("apps/bar-stats/src/*.rs") + glob.glob("apps/fili-ai-session/src/*.rs") + glob.glob("apps/fili-automount/src/*.rs") + glob.glob("apps/fili-recorder/src/*.rs"):
     src = open(f).read().split("#[cfg(test)]")[0]
     keys |= {json.loads('"' + k + '"') for k in re.findall(r'\btrf?\("((?:[^"\\]|\\.)*)"', src)}
 print(f"fili-shell: {len(keys)} messages")

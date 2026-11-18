@@ -1,5 +1,5 @@
 // fili-panel Baladeur: the player and the queue of Baladeur, drawn like its window (PlayerControls.qml, QueuePanel.qml,
-// VolumeDial.qml of apps/fili-music): the player on top (cover tinted with its colour, title, volume dial that follows the
+// VolumeDial.qml of fili-music repository): the player on top (cover tinted with its colour, title, volume dial that follows the
 // sound, transport and progress), the queue under it (filter, the whole list with a scroll bar, the bar of queue actions).
 // The player's state is Baladeur's MPRIS one plus `fili-music ctl queue`; the rows are read by pieces (`ctl tracks 3,4,5`) as
 // the list scrolls, like the window's virtual list, and `ctl filter` finds the places that match the filter field. The band
