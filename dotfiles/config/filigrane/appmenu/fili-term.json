@@ -50,6 +50,7 @@
         { "sep": true },
         { "label": "Show Command Journal", "keys": "Ctrl+Alt+J", "exec": "fili-term ctl --pid %pid action toggle-journal" },
         { "label": "Show Sidebar", "keys": "Ctrl+Shift+B", "exec": "fili-term ctl --pid %pid action toggle-sidebar" },
+        { "label": "Debug Logs", "keys": "Ctrl+Shift+L", "exec": "fili-term ctl --pid %pid action debug" },
         { "sep": true },
         { "label": "Page Up", "keys": "Shift+PgUp", "exec": "fili-term ctl --pid %pid action page-up" },
         { "label": "Page Down", "keys": "Shift+PgDown", "exec": "fili-term ctl --pid %pid action page-down" },
