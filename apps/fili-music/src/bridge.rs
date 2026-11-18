@@ -28,6 +28,9 @@ pub mod qobject {
         // Answer to a command (see Main.qml, onCommand)
         #[qinvokable]
         fn reply(self: &Fili, id: i32, answer: &QString);
+        // Ends the program (Qt.quit() does not stop the event loop once the last window is hidden)
+        #[qinvokable]
+        fn quit(self: &Fili);
 
         #[qinvokable]
         #[cxx_name = "themeJson"]
@@ -274,6 +277,11 @@ impl cxx_qt::Initialize for qobject::Fili {
 }
 
 impl qobject::Fili {
+    pub fn quit(&self) {
+        log::info!("quit");
+        std::process::exit(0);
+    }
+
     pub fn reply(&self, id: i32, answer: &QString) {
         crate::ctl::reply(id, &answer.to_string());
     }

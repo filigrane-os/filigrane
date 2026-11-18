@@ -69,6 +69,8 @@ MAP.update({0xF2F10: "cassette-tape"})
 # Cassette window: transport (previous, next, back, forward, stop), the recordings folder, a recording of both sides
 MAP.update({0xF2F11: "skip-back", 0xF2F12: "skip-forward", 0xF2F13: "rewind", 0xF2F14: "fast-forward", 0xF2F15: "square",
             0xF2F16: "folder-open", 0xF2F17: "audio-lines"})
+# Baladeur: the library (books on a shelf), the button that scans it
+MAP.update({0xF2F18: "library"})
 
 
 def fetch(dest):

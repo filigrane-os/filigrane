@@ -96,6 +96,7 @@ Rectangle {
         }
         VolumeDial {
             id: dial
+            levels: Store.levels
             volume: Store.player.volume === undefined ? 1 : Store.player.volume
             onChanged: v => Store.setVolume(v)
         }

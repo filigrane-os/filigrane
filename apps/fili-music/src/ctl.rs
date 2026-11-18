@@ -51,6 +51,16 @@ pub fn serve(on: impl Fn(i32, String, String) + Send + 'static) {
                 continue;
             }
             let (verb, arg) = line.trim_end().split_once(' ').unwrap_or((line.trim_end(), ""));
+            // `levels-stream`: one line of band levels every 70 ms until the client goes away (the panel of the fili-bar draws the
+            // volume dial with them); it does not go through the window
+            if verb == "levels-stream" {
+                std::thread::spawn(move || {
+                    while writeln!(writer, "{}", crate::music::levels_json()).is_ok() {
+                        std::thread::sleep(Duration::from_millis(70));
+                    }
+                });
+                continue;
+            }
             next += 1;
             on(next, verb.to_string(), arg.to_string());
             let r = replies();
@@ -102,6 +112,11 @@ pub fn client(args: &[String]) -> Result<String, String> {
     }
     if args.is_empty() {
         return Err("usage: fili-music ctl [--pid PID] action NAME [ARG] | state | actions".into());
+    }
+    // `socket`: where the window listens (a client that keeps the connection open, like the panel of the fili-bar)
+    if args[0] == "socket" {
+        let pid = pid.or_else(|| windows().first().copied()).ok_or("no Baladeur window is open")?;
+        return Ok(socket_path(pid).to_string_lossy().into_owned());
     }
     let pid = match pid {
         Some(p) => p,

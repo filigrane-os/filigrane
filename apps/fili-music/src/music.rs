@@ -163,6 +163,7 @@ pub fn dispatch(name: &str, args: &str) -> String {
         "get_scan_progress" => ffi::get_scan_progress(),
         "get_tracks_page" => ffi::get_tracks_page(int(a,0) as u32, int(a,1) as u32, text(a,2), text(a,3)),
         "get_track_by_id" => ffi::get_track_by_id(int(a,0)),
+        "get_audio_levels" => format!("{{\"success\":true,\"data\":{}}}", ffi::get_audio_levels()),
         "get_random_tracks" => ffi::get_random_tracks(int(a,0) as u32),
         "search_tracks" => ffi::search_tracks(text(a,0), int(a,1) as u32),
         "delete_tracks" => ffi::delete_tracks(text(a,0)),
@@ -239,4 +240,9 @@ pub fn dispatch(name: &str, args: &str) -> String {
         "write_multiple_tracks_file_tags" => ffi::write_multiple_tracks_file_tags(text(a,0)),
         _ => err(&format!("unknown call: {name}")),
     }
+}
+
+/// The level of the sound in 12 bands (JSON array of 0..1), read by the volume dial and streamed to the fili-bar panel
+pub fn levels_json() -> String {
+    ffi::get_audio_levels()
 }

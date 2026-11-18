@@ -69,6 +69,11 @@
           "label": "Close",
           "keys": "Ctrl+W",
           "exec": "fili-music ctl --pid %pid action close"
+        },
+        {
+          "label": "Quit Baladeur",
+          "keys": "Ctrl+Q",
+          "exec": "fili-music ctl --pid %pid action quit"
         }
       ]
     },

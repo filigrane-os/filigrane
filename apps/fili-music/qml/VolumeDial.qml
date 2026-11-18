@@ -12,7 +12,22 @@ Item {
 
     width: 80
     height: 80
-
+    // Band levels (0..1, low to high) and the colour of the tick at `fraction` of the arc
+    property var levels: []
+    function lit(fraction) {
+        if (levels.length === 0)
+            return FiliTheme.accentColor;
+        const at = fraction * (levels.length - 1);
+        const i = Math.floor(at), j = Math.min(levels.length - 1, i + 1);
+        const raw = levels[i] + (levels[j] - levels[i]) * (at - i);
+        // Music sits between 0.3 and 0.75 of the raw scale: stretched over the whole range and sharpened, the level goes from
+        // a very dark accent through the accent to a lightened one
+        const level = Math.pow(Math.max(0, Math.min(1, (raw - 0.3) / 0.45)), 1.5);
+        const dark = Qt.tint(FiliTheme.background, FiliTheme.alpha(FiliTheme.accentColor, 0.2));
+        if (level < 0.6)
+            return Qt.tint(dark, FiliTheme.alpha(FiliTheme.accentColor, level / 0.6));
+        return Qt.tint(FiliTheme.accentColor, FiliTheme.alpha(Qt.lighter(FiliTheme.accentBright, 1.35), (level - 0.6) / 0.4));
+    }
     Rectangle {
         anchors.fill: parent
         radius: width / 2
@@ -38,7 +53,9 @@ Item {
                 width: 2
                 height: 5
                 radius: 1
-                color: tick.fraction <= dial.shown ? FiliTheme.accentColor : FiliTheme.border
+                // An active tick follows the sound: its band (low to high along the arc) lights it from the accent colour towards
+                // the bright one, a calm one is dimmed; the ticks beyond the volume stay off
+                color: tick.fraction <= dial.shown ? dial.lit(tick.fraction) : FiliTheme.border
             }
         }
     }

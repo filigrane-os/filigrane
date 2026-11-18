@@ -126,6 +126,16 @@ QtObject {
             store.refreshQueue();
         }
     }
+    // Level of the sound per band (0..1), for the volume dial: read while something plays and the window is shown
+    property var levels: []
+    readonly property Timer meter: Timer {
+        interval: 60
+        repeat: true
+        running: store.playing && Qt.application.state === Qt.ApplicationActive
+        onTriggered: store.levels = store.call("get_audio_levels") || []
+        onRunningChanged: if (!running)
+            store.levels = []
+    }
     readonly property Timer settle: Timer {
         interval: 40
         onTriggered: store.rev++

@@ -11,6 +11,17 @@ mod window;
 
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 
+unsafe extern "C" {
+    // QGuiApplication::setQuitOnLastWindowClosed(bool): static, not wrapped by cxx-qt-lib, already in the linked QtGui
+    #[link_name = "_ZN15QGuiApplication25setQuitOnLastWindowClosedEb"]
+    fn qt_set_quit_on_last_window_closed(quit: bool);
+}
+
+fn quit_on_last_window_closed(quit: bool) {
+    // SAFETY: plain static setter, called once the application object exists
+    unsafe { qt_set_quit_on_last_window_closed(quit) }
+}
+
 fn main() {
     // The core logs through `log`: RUST_LOG=debug fili-music shows what the player does on stderr; the Debug panel and
     // ~/.local/state/filigrane/logs/fili-music.log keep info and above (FILI_LOG=debug for more)
@@ -57,14 +68,19 @@ fn main() {
         _ => {}
     }
     // One window: a second launch brings the open one to the front
-    if let Some(pid) = ctl::windows().first()
-        && window::focus_pid(*pid)
-    {
+    // The first instance stays alive when its window is closed (the music goes on, the bar's media module drives it): a
+    // later launch shows the hidden window again, or raises the visible one
+    if let Some(pid) = ctl::windows().first() {
+        if !window::focus_pid(*pid) {
+            let _ = ctl::client(&["--pid".into(), pid.to_string(), "action".into(), "show".into()]);
+        }
         return;
     }
     mpris::start();
     logs::capture_qt();
     let mut app = QGuiApplication::new();
+    // Closing the window hides it (Main.qml): the player must survive the last window
+    quit_on_last_window_closed(false);
     // Wayland app-id (niri rules, fili-music.desktop)
     QGuiApplication::set_desktop_file_name(&QString::from("fili-music"));
     let mut engine = QQmlApplicationEngine::new();

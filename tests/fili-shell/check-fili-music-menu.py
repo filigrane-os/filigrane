@@ -11,7 +11,8 @@ qml = (root / "apps/fili-music/qml/Main.qml").read_text()
 actions = set(re.findall(r'^\s+"([a-z-]+)": \{ on:', qml, re.M))
 shortcuts = set(re.findall(r'Shortcut \{ sequence: "([^"]+)"', qml)) | set(re.findall(r'sequence: "([^"]+)"', qml))
 # Actions only the assistant or a script uses (play-track ID, open-album ID, open-artist ID), and the duplicate of "search"
-without_menu = {"play-track", "open-album", "open-artist", "view-search"}
+# and the ones of the Baladeur module of the fili-bar (panel: queue rows, volume dial, progress bar, save, window shown again)
+without_menu = {"play-track", "open-album", "open-artist", "view-search", "play-queue-at", "remove-queue-at", "save-queue-window", "seek", "set-volume", "show"}
 errors = []
 
 def entries(items):

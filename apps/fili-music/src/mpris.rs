@@ -56,19 +56,30 @@ fn core(name: &str, args: &str) {
     dispatch(name, args);
 }
 
+fn spawn(args: &[&str]) {
+    if let Ok(exe) = std::env::current_exe() {
+        let _ = std::process::Command::new(exe).args(args).spawn().map(|mut c| thread::spawn(move || c.wait()));
+    }
+}
+
 struct Root;
 
 #[interface(name = "org.mpris.MediaPlayer2")]
 impl Root {
-    fn raise(&self) {}
-    fn quit(&self) {}
+    // The window may be hidden (the player lives on): a new launch shows it, `ctl action quit` ends the program
+    fn raise(&self) {
+        spawn(&[]);
+    }
+    fn quit(&self) {
+        spawn(&["ctl", "action", "quit"]);
+    }
     #[zbus(property)]
     fn can_quit(&self) -> bool {
-        false
+        true
     }
     #[zbus(property)]
     fn can_raise(&self) -> bool {
-        false
+        true
     }
     #[zbus(property)]
     fn has_track_list(&self) -> bool {

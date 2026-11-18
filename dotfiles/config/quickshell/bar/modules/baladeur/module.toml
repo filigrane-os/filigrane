@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Baladeur"
+description = "Artist - title of the music playing (Baladeur), with its player and queue in a panel"
+side = "right"
+order = 30

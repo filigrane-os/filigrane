@@ -7,6 +7,7 @@ Rectangle {
     property string glyph
     property string tip
     property bool enabledState: true
+    property int size: 14
     signal clicked()
 
     width: 28
@@ -19,7 +20,7 @@ Rectangle {
         anchors.centerIn: parent
         text: b.glyph
         font.family: FiliTheme.icons
-        font.pixelSize: 14
+        font.pixelSize: b.size
         color: b.enabledState ? FiliTheme.text : FiliTheme.muted
     }
     MouseArea {

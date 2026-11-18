@@ -119,8 +119,18 @@ ApplicationWindow {
         message = text;
         failed = bad === true;
     }
+    // Closing hides the window: the program stays alive with its player (module of the fili-bar, media keys), paused or
+    // playing, until Quit. With an empty queue there is nothing to keep, so it ends instead.
     function quit() {
-        Qt.quit();
+        if (Store.queueIds.length > 0 || Store.playing)
+            visible = false;
+        else
+            Fili.quit();
+    }
+    function reveal() {
+        visible = true;
+        raise();
+        requestActivate();
     }
     function openSearch() {
         searchInput.forceActiveFocus();
@@ -195,7 +205,10 @@ ApplicationWindow {
         if (s && s.track_count === 0)
             scanner.open(true);
     }
-    onClosing: close => Store.call("pause_playback")
+    onClosing: close => {
+        close.accepted = false;
+        win.quit();
+    }
     Connections {
         target: Store
         function onLibraryRevChanged() {
@@ -361,6 +374,8 @@ ApplicationWindow {
         "library-shuffled": { on: () => true, run: () => Store.playLibrary("random") },
         "library-ordered": { on: () => true, run: () => Store.playLibrary("ordered") },
         "top-up": { on: () => true, run: () => Store.setTopUp(!Store.topUp) },
+        // From the fili-bar panel: the name is asked in the window, shown first
+        "save-queue-window": { on: () => Store.queueIds.length > 0, run: () => { win.reveal(); win.saveQueue(); } },
         "save-queue": { on: () => Store.queueIds.length > 0, run: () => win.saveQueue() },
         "clear-queue": { on: () => Store.queueIds.length > 0, run: () => Store.clearQueue() },
         "import-playlist": { on: () => true, run: arg => win.importPlaylist(arg) },
@@ -373,7 +388,14 @@ ApplicationWindow {
         "toggle-footer": { on: () => true, run: () => win.showFooter = !win.showFooter },
         "toggle-window-buttons": { on: () => true, run: () => { win.windowButtons = !win.windowButtons; Fili.setWindowButtons(win.windowButtons); } },
         "window-actions": { on: () => win.windowButtons, run: () => windowPanel.visible ? windowPanel.close() : windowPanel.open() },
-        "close": { on: () => true, run: () => win.quit() }
+        "close": { on: () => true, run: () => win.quit() },
+        "quit": { on: () => true, run: () => Fili.quit() },
+        // Plays the place `arg` of the queue (the play order, as `fili-music ctl queue` numbers it): the panel of the fili-bar
+        "set-volume": { on: () => true, run: arg => Store.setVolume(Math.max(0, Math.min(1, Number(arg)))) },
+        "remove-queue-at": { on: () => Store.queueIds.length > 0, run: arg => Store.removeFromQueue(Number(arg)) },
+        "seek": { on: () => Store.hasTrack, run: arg => Store.seek(Number(arg)) },
+        "play-queue-at": { on: () => Store.queueIds.length > 0, run: arg => Store.playQueueAt(Number(arg)) },
+        "show": { on: () => true, run: () => win.reveal() }
     })
     function runAction(name, arg) {
         const a = actions[name];
@@ -391,11 +413,51 @@ ApplicationWindow {
             volume: Store.player.volume, shuffle: Store.player.shuffle === true, repeat: Store.player.repeat_mode, queue: Store.queueIds.length
         };
     }
+    // For the Baladeur module of the fili-bar: `queue` = the playing track and the state of the player (the list itself is read
+    // by pieces with `tracks`, like this window's virtual list), `tracks 3,4,5` = rows of the queue by place in the play
+    // order, `filter text` = the places that match (the library's search crossed with the queue, like the filter field)
+    function queueJson() {
+        const t = Store.currentTrack;
+        return {
+            current: Store.queueIndex, total: Store.queueIds.length, shuffle: Store.player.shuffle === true, repeat: Store.player.repeat_mode || "off",
+            playing: Store.playing, volume: Store.player.volume === undefined ? 1 : Store.player.volume, topUp: Store.topUp,
+            info: t ? Store.formatInfo(t) + ", " + Store.sizeText(t.file_size) : ""
+        };
+    }
+    function rowsJson(list) {
+        const rows = [];
+        for (const pos of list) {
+            const id = Store.queueIdAt(pos);
+            if (id === undefined)
+                continue;
+            const t = Store.call("get_track_by_id", [id]) || {};
+            rows.push({ pos: pos, id: id, title: t.title || "—", artist: Store.trackArtist(t), duration: t.duration || 0 });
+        }
+        return rows;
+    }
+    function filterJson(text) {
+        const found = Store.call("search_tracks", [text.toLowerCase(), 1000]);
+        const hit = {};
+        for (const t of found ? found.tracks : [])
+            hit[t.id] = true;
+        const order = Store.queuePlayOrder();
+        const places = [];
+        for (let i = 0; i < order.length; i++)
+            if (hit[order[i]])
+                places.push(i);
+        return places;
+    }
     Connections {
         target: Fili
         function onCommand(id, verb, arg) {
             let answer;
-            if (verb === "action")
+            if (verb === "queue")
+                answer = Object.assign({ ok: true }, win.queueJson());
+            else if (verb === "tracks")
+                answer = { ok: true, rows: win.rowsJson(arg.split(",").filter(x => x !== "").map(Number)) };
+            else if (verb === "filter")
+                answer = { ok: true, places: win.filterJson(arg) };
+            else if (verb === "action")
                 answer = win.runAction(arg.split(" ")[0], arg.split(" ").slice(1).join(" "));
             else if (verb === "actions")
                 answer = { ok: true, actions: Object.keys(win.actions).map(n => ({ name: n, enabled: win.actions[n].on() })) };
@@ -416,7 +478,7 @@ ApplicationWindow {
 
     // ---- Shortcuts -----------------------------------------------------------------------------------------------
     Shortcut { sequence: "Ctrl+W"; onActivated: win.quit() }
-    Shortcut { sequence: "Ctrl+Q"; onActivated: win.quit() }
+    Shortcut { sequence: "Ctrl+Q"; onActivated: Fili.quit() }
     Shortcut { sequence: "Ctrl+F"; onActivated: win.runAction("focus-filter") }
     Shortcut { sequence: "Ctrl+Shift+F"; onActivated: win.openSearch() }
     Shortcut { sequence: "Ctrl+R"; onActivated: win.runAction("refresh") }
@@ -552,7 +614,9 @@ ApplicationWindow {
         IconButton {
             id: scanButton
             anchors { right: search.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
-            glyph: "\uf021"
+            // The library (books on a shelf), not a refresh arrow: it scans the library
+            glyph: String.fromCodePoint(0xf2f18)
+            size: 18
             Accessible.name: Fili.tr("Scan the library…")
             onClicked: scanner.open(false)
         }

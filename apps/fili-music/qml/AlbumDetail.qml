@@ -124,8 +124,10 @@ Item {
             width: page.width - 2 * FiliTheme.margin - 10
             height: carousels.y + carousels.height
 
+            // A narrow view (small window) stacks the cover and the facts under the title and the tracks instead of beside them
+            readonly property bool narrow: width < 700
             readonly property real side: Math.max(180, Math.min(320, Math.round(width * 0.3)))
-            readonly property real main: width - side - FiliTheme.space6
+            readonly property real main: narrow ? width : width - side - FiliTheme.space6
 
             // Left: the title and the tracks
             Column {
@@ -165,7 +167,8 @@ Item {
                         color: FiliTheme.muted
                     }
                 }
-                Row {
+                Flow {
+                    width: parent.width
                     spacing: FiliTheme.space2
                     TextButton { label: Fili.tr("Play"); primary: true; onClicked: Store.playNow(Store.ids(tracks), 0) }
                     TextButton { label: Fili.tr("Add to queue"); onClicked: Store.addToQueue(Store.ids(tracks)) }
@@ -183,12 +186,13 @@ Item {
             // Right: the cover and the facts
             Column {
                 id: rightCol
-                x: content.main + FiliTheme.space6
-                width: content.side
+                x: content.narrow ? 0 : content.main + FiliTheme.space6
+                y: content.narrow ? leftCol.height + FiliTheme.space4 : 0
+                width: content.narrow ? content.width : content.side
                 spacing: FiliTheme.space4
                 Artwork {
                     id: art
-                    width: parent.width
+                    width: content.narrow ? Math.min(240, parent.width) : parent.width
                     height: width
                     radius: FiliTheme.radiusWindow
                     itemId: detail.album.id
@@ -255,7 +259,7 @@ Item {
             // Under both columns: the carousels
             Column {
                 id: carousels
-                y: Math.max(leftCol.height, rightCol.height) + FiliTheme.space6
+                y: (content.narrow ? rightCol.y + rightCol.height : Math.max(leftCol.height, rightCol.height)) + FiliTheme.space6
                 width: parent.width
                 spacing: FiliTheme.space5
                 Carousel {

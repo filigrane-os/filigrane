@@ -16,6 +16,7 @@ Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the work
 | `status` | screen recording, incoming SSH, airplane mode, VPN, pending updates (each hidden when idle) | recording: stop; airplane: turn off; updates: run them |
 | `tray` | system tray icons and the drawer chevron | chevron: show or fold the drawer |
 | `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output (each one optional), start / stop, Open Cassette (the window: recordings and player); middle: start / stop |
+| `baladeur` | "Artist - Title" of Baladeur (fili-music) with previous / next buttons, while it runs (it stays alive when its window is closed) | panel: the player and the whole queue (filter, volume dial, actions); middle: play / pause; wheel: previous / next; right: the window |
 | `media` | current player | play / pause; middle: next; wheel: previous / next |
 | `resources` | CPU and memory; temperature and disk only when high | monitor panel |
 | `agent` | the AI agent (waiting, done) | sessions panel |
