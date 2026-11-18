@@ -410,7 +410,9 @@ Rectangle {
                             text: dlg.artProgress.currentItem
                         }
                     }
-                    Row {
+                    // A Flow: the buttons wrap onto a second line when the translated labels do not fit the width
+                    Flow {
+                        width: parent.width
                         spacing: FiliTheme.space2
                         TextButton {
                             visible: !dlg.fetching && !dlg.artAsk
