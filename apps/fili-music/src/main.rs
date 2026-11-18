@@ -14,7 +14,12 @@ use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 fn main() {
     // The core logs through `log`: RUST_LOG=debug fili-music shows what the player does on stderr; the Debug panel and
     // ~/.local/state/filigrane/logs/fili-music.log keep info and above (FILI_LOG=debug for more)
-    logs::init("fili-music");
+    logs::init(
+        "fili-music",
+        "filigrane-os/filigrane",
+        option_env!("FILI_MUSIC_GIT").unwrap_or(env!("CARGO_PKG_VERSION")),
+        theme::setting("debug", "incidents").as_deref() != Some("off"),
+    );
     // MusicBrainz rate limits each application by its User-Agent and asks for a name and a way to reach its authors: the
     // generic one of the core is shared by every frontend of Tornade. Set here, before any thread exists.
     if std::env::var_os("TORNADE_USER_AGENT").is_none() {

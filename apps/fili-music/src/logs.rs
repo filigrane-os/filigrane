@@ -5,6 +5,10 @@
 // console.log) and panics, all of it in Rust (no C++ in the project). The module has no dependency on this application: the other fili-* apps copy it
 // with their name in `init` (see agents/skills/filigrane-ui/references/app-window.md, "Debug panel").
 // Level of the buffer and the file: info and above; FILI_LOG=debug (or trace) keeps more.
+// Incidents: a panic, a QML error (TypeError, ReferenceError, a binding loop...) or a critical message of Qt also writes an
+// incident file, ~/.local/state/filigrane/incidents/<id>.json, with its signature and the last log lines, and starts
+// `fili-incident notify` (a notification with "Ask Rob" and "Ignore"; see apps/fili-incident). One incident per signature a
+// day, three a run. Off with `[debug] incidents = "off"` in the settings file of the application. Nothing leaves the machine.
 use std::{
     collections::VecDeque,
     fs,
@@ -57,6 +61,12 @@ struct State {
     file: Option<fs::File>,
     written: u64,
     path: PathBuf,
+    app: String,
+    repo: String,
+    version: String,
+    incidents: bool,
+    /// Signatures of the incidents of this run
+    emitted: Vec<String>,
 }
 
 static STATE: OnceLock<Mutex<State>> = OnceLock::new();
@@ -156,7 +166,7 @@ impl Log for Logger {
 }
 
 /// Starts the log of application `app` (its file is <app>.log): `log` macros, Qt messages and panics all end up in it.
-pub fn init(app: &str) {
+pub fn init(app: &str, repo: &str, version: &str, incidents: bool) {
     let path = log_path(app);
     // A file left big by a previous run is rotated now
     if fs::metadata(&path).map(|m| m.len() > FILE_MAX).unwrap_or(false) {
@@ -164,7 +174,17 @@ pub fn init(app: &str) {
     }
     let file = open(&path);
     let written = file.as_ref().and_then(|f| f.metadata().ok()).map(|m| m.len()).unwrap_or(0);
-    let _ = STATE.set(Mutex::new(State { ring: Ring::default(), file, written, path }));
+    let _ = STATE.set(Mutex::new(State {
+        ring: Ring::default(),
+        file,
+        written,
+        path,
+        app: app.to_string(),
+        repo: repo.to_string(),
+        version: version.to_string(),
+        incidents,
+        emitted: Vec::new(),
+    }));
     let keep = match std::env::var("FILI_LOG").as_deref() {
         Ok("trace") => LevelFilter::Trace,
         Ok("debug") => LevelFilter::Debug,
@@ -179,9 +199,96 @@ pub fn init(app: &str) {
     let previous = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         push(ERROR, "panic", &info.to_string());
+        incident("panic", &info.to_string(), false);
         previous(info);
     }));
-    log::info!("{app} {} started", option_env!("FILI_MUSIC_GIT").unwrap_or(env!("CARGO_PKG_VERSION")));
+    log::info!("{app} {version} started");
+}
+
+const INCIDENTS_PER_RUN: usize = 3;
+const DAY: u64 = 24 * 3600;
+
+fn now() -> u64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+}
+
+/// Signature of a problem: its kind and its first line with the digits (lines, addresses, counters) levelled, so that the same
+/// problem has the same signature on every machine and every run. FNV-1a, 16 hex digits.
+pub fn signature(kind: &str, message: &str) -> String {
+    let first: String = message.lines().next().unwrap_or("").chars().map(|c| if c.is_ascii_digit() { '0' } else { c }).collect();
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for b in kind.bytes().chain([0]).chain(first.bytes()) {
+        hash ^= u64::from(b);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
+fn incidents_dir() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let state = std::env::var("XDG_STATE_HOME").unwrap_or_else(|_| format!("{home}/.local/state"));
+    PathBuf::from(state).join("filigrane/incidents")
+}
+
+fn system_line() -> String {
+    let os = fs::read_to_string("/etc/os-release")
+        .ok()
+        .and_then(|t| t.lines().find_map(|l| l.strip_prefix("PRETTY_NAME=").map(|v| v.trim_matches('"').to_string())))
+        .unwrap_or_else(|| "Linux".into());
+    let kernel = fs::read_to_string("/proc/sys/kernel/osrelease").unwrap_or_default();
+    format!("{os}, kernel {}", kernel.trim())
+}
+
+/// Records a problem (kind: "panic", "qml", "manual"...) as an incident and warns the user. Returns its id. Not recorded when
+/// incidents are off, when it already happened in the last day or when three were recorded in this run; `manual` (the user
+/// asked) skips those limits. Never logs, never blocks (it can run in a panic hook or in Qt's message handler).
+pub fn incident(kind: &str, message: &str, manual: bool) -> Option<String> {
+    let mut state = STATE.get()?.try_lock().ok()?;
+    if !manual && (!state.incidents || state.emitted.len() >= INCIDENTS_PER_RUN) {
+        return None;
+    }
+    let sig = signature(kind, message);
+    if !manual && state.emitted.contains(&sig) {
+        return None;
+    }
+    let dir = incidents_dir();
+    if !manual
+        && fs::read_dir(&dir).into_iter().flatten().flatten().any(|e| {
+            fs::read_to_string(e.path()).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()).is_some_and(|v| {
+                v["signature"] == sig.as_str() && now().saturating_sub(v["when"].as_u64().unwrap_or(0)) < DAY && v["state"] != "ignored"
+            })
+        })
+    {
+        return None;
+    }
+    state.emitted.push(sig.clone());
+    let id = format!("{}-{}-{}", state.app, now(), &sig[..8]);
+    let log: Vec<String> = state.ring.since(0).1.into_iter().rev().take(200).map(|(_, t)| t).collect::<Vec<_>>().into_iter().rev().collect();
+    let record = serde_json::json!({
+        "id": id, "app": state.app, "repo": state.repo, "version": state.version, "kind": kind, "signature": sig,
+        "message": message, "when": now(), "state": "new", "system": system_line(), "log": log,
+    });
+    drop(state);
+    fs::create_dir_all(&dir).ok()?;
+    fs::write(dir.join(format!("{id}.json")), serde_json::to_string_pretty(&record).ok()?).ok()?;
+    // The user is warned (or Rob asked, for a report the user asked for) by a separate process: this one may be dying
+    let verb = if manual { "ask" } else { "notify" };
+    let _ = std::process::Command::new("fili-incident")
+        .args([verb, &id])
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn();
+    Some(id)
+}
+
+/// Whether a message of Qt is a bug worth an incident: a critical message, or a QML error.
+fn is_bug(level: u8, message: &str) -> bool {
+    level == ERROR
+        || (level == WARN
+            && ["TypeError", "ReferenceError", "is not defined", "Cannot read property", "Cannot call method", "Unable to assign", "Binding loop detected"]
+                .iter()
+                .any(|p| message.contains(p)))
 }
 
 // Qt has no Rust API to install a message handler (cxx-qt-lib only formats messages), so the function is declared here by its
@@ -210,7 +317,11 @@ extern "C" fn qt_handler(kind: QtMsgType, context: &QMessageLogContext<'_>, mess
     } else {
         DEBUG
     };
-    push(level, &format!("qt/{category}"), &message.to_string());
+    let message = message.to_string();
+    push(level, &format!("qt/{category}"), &message);
+    if is_bug(level, &message) {
+        incident("qml", &message, false);
+    }
 }
 
 /// Routes the messages of Qt (QML errors and warnings, console.log) into the log; they still reach stderr.
@@ -252,6 +363,25 @@ mod tests {
         assert!(r.since(0).1.is_empty());
         r.push(INFO, "after".into());
         assert_eq!(r.since(last).1.len(), 1);
+    }
+
+    #[test]
+    fn a_signature_ignores_digits_and_only_the_first_line() {
+        let a = signature("qml", "Main.qml:12:5: TypeError at 0x7f1234\nmore");
+        let b = signature("qml", "Main.qml:99:1: TypeError at 0x7f9999\nother");
+        assert_eq!(a, b);
+        assert_ne!(a, signature("panic", "Main.qml:12:5: TypeError at 0x7f1234"));
+        assert_ne!(a, signature("qml", "Main.qml:12:5: ReferenceError"));
+        assert_eq!(a.len(), 16);
+    }
+
+    #[test]
+    fn only_bugs_make_an_incident() {
+        assert!(is_bug(ERROR, "anything critical"));
+        assert!(is_bug(WARN, "QML Rectangle: Binding loop detected for property \"info\""));
+        assert!(is_bug(WARN, "TypeError: Cannot read property 'x' of undefined"));
+        assert!(!is_bug(WARN, "QML Image: Cannot open: file:///x.png"));
+        assert!(!is_bug(INFO, "TypeError in a console.log"));
     }
 
     #[test]

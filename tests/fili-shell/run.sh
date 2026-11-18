@@ -86,6 +86,12 @@ python3 -I "$ROOT/tests/fili-shell/check-fili-recorder-menu.py" || exit 1
 FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$ROOT/apps/fili-recorder" || exit 1
 fi
+if want '^apps/fili-incident/'; then
+# fili-incident (problems reported by the apps, in this repository): the private details removed from what leaves the machine,
+# the signature in the issue, the GitHub search reply, incident ids that cannot leave their folder
+(cd "$ROOT/apps/fili-incident" && cargo test --release -q --locked >/dev/null 2>&1) \
+    && echo "ok - fili-incident passes its unit tests" || { echo "not ok - fili-incident: cd apps/fili-incident && cargo test"; exit 1; }
+fi
 if want '^apps/fili-music/|^dotfiles/config/quickshell/|appmenu/fili-music.json|^tests/fili-shell/check-fili-music-menu.py|^tests/fili-shell/check-app-window.py'; then
 # Baladeur (fili-music, in this repository): unit tests of the window glue (the shell parity tests compare its theme with the
 # shell's), the fili-bar menu in agreement with the window, the window anatomy of Casier

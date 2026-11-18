@@ -104,6 +104,11 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "clearLogs"]
         fn clear_logs(self: &Fili);
+        // "Report a problem" of the panel: records an incident with the last log lines and asks Rob to look at it; the id, "" when
+        // it could not be written
+        #[qinvokable]
+        #[cxx_name = "reportProblem"]
+        fn report_problem(self: &Fili, text: &QString) -> QString;
     }
 
     extern "RustQt" {
@@ -359,6 +364,12 @@ impl qobject::Fili {
 
     pub fn clear_logs(&self) {
         crate::logs::clear();
+    }
+
+    pub fn report_problem(&self, text: &QString) -> QString {
+        let said = text.to_string();
+        let message = if said.trim().is_empty() { "Problem reported from the Debug panel".to_string() } else { said };
+        QString::from(&crate::logs::incident("manual", &message, true).unwrap_or_default())
     }
 
     pub fn open_path(&self, path: &QString) {

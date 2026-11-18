@@ -90,6 +90,15 @@ Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row 
 - Theme and options in `~/.config/filigrane/<app>.toml` above `theme.toml` and the defaults of the repository (`hig.md` §7); state of use in `~/.local/state/filigrane/`.
 - Context for the assistant (`assistant.md`).
 
+## Debug panel and incidents
+
+Every application keeps a log and shows it on demand; a real bug reaches Rob. Model: Baladeur (`apps/fili-music/src/logs.rs`, `qml/DebugPanel.qml`).
+
+- **Log** (`logs.rs`, copy it and give `init` the application name, its GitHub repository, its version and the `[debug] incidents` setting): the `log` crate, the messages of Qt (QML errors, `console.log`, installed from Rust: no C++ in this project) and panics go to stderr, a ring buffer and `~/.local/state/filigrane/logs/<app>.log`. The Rust side gives the QML `Fili.logs(since)`, `Fili.logFile()`, `Fili.clearLogs()`, `Fili.reportProblem(text)` (and the `copyText` and `openPath` every application has).
+- **Panel** (`DebugPanel.qml`): a band above the footer, the height dragged from its top edge and kept (`debug_height`), selectable text, filter All / Warnings / Errors, Ask Rob, Copy, Clear, Open file. Menu entry **View > Debug Logs** (`action debug`, Ctrl+Shift+L) in the fallback menu and in the window actions.
+- **Incidents**: a panic, a QML error (TypeError, ReferenceError, binding loop...) or the user's "Ask Rob" writes `~/.local/state/filigrane/incidents/<id>.json` (signature, last 200 log lines, version, system) and starts `fili-incident notify ID`: a notification with the buttons Ask Rob and Ignore. One per signature a day, three a run, off with `[debug] incidents = "off"`.
+- **Rob** reads the incident (`fili-incident show`), finds the cause, checks GitHub for the same problem (`fili-incident check`, by signature, no account needed), and proposes a fix. The user decides what is sent: `fili-incident issue` shows the text (private details removed), `fili-incident submit --yes` creates the issue or adds a 👍 with `gh`; without `gh` or an account the prefilled issue form opens in the browser and the report is in the clipboard. Rob's instructions are in `agents/chat-prompt.md`.
+
 ## Check
 
 `tests/fili-shell/check-app-window.py SRC_DIR [SRC_DIR…]` checks an application source tree against this page: sizes in `theme.toml`, shared QML files identical to Casier's, `toolbarHeight`/`statusHeight`/`sidebarWidth` used instead of literals, window buttons present, `KineticScroll` + `FiliScrollBar` and no Qt `ScrollBar`, fallback menu with About, foldable sidebar headers, tab tokens when the application has tabs.
