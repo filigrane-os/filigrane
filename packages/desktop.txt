@@ -11,7 +11,8 @@ playerctl
 mpv
 yt-dlp  # video links (YouTube) in Conversations Quick Look, played by mpv
 opus-tools  # opusenc: voice messages of Conversations (recorded with pw-record, sent as Ogg Opus)
-qt6-multimedia  # video and audio playback in Qt Quick apps (Conversations Quick Look)
+qt6-multimedia  # video and audio playback in Qt Quick apps (Quick Look of Conversations and Casier)
+qt6-pdf  # PDF pages with selectable text in Casier's Quick Look (QtPdf, loaded only when a PDF is shown)
 pipewire
 alsa-pipewire  # ALSA default device routed to PipeWire (cpal/ALSA apps such as tornade-tui)
 wireplumber
