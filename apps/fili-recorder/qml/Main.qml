@@ -189,6 +189,7 @@ ApplicationWindow {
         "settings": { on: () => true, run: () => Fili.openSettings() },
         "toggle-header": { on: () => true, run: () => win.showHeader = !win.showHeader },
         "toggle-footer": { on: () => true, run: () => win.showFooter = !win.showFooter },
+        "debug": { on: () => true, run: () => debug.open = !debug.open },
         "toggle-window-buttons": { on: () => true, run: () => { win.windowButtons = !win.windowButtons; Fili.setWindowButtons(win.windowButtons); } },
         "window-actions": { on: () => win.windowButtons, run: () => windowPanel.visible ? windowPanel.close() : windowPanel.open() },
         "close": { on: () => true, run: () => win.quit() }
@@ -245,6 +246,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+2"; onActivated: win.setMode("record") }
     Shortcut { sequence: "Ctrl+R"; enabled: !cas.saving; onActivated: win.toggleRecord() }
     Shortcut { sequence: "Ctrl+F"; enabled: win.mode === "library"; onActivated: win.openSearch() }
+    Shortcut { sequence: "Ctrl+Shift+L"; onActivated: win.runAction("debug") }
     Shortcut { sequence: "Ctrl+Shift+W"; enabled: win.windowButtons; onActivated: windowPanel.visible ? windowPanel.close() : windowPanel.open() }
     Shortcut { sequence: "Space"; enabled: win.mode === "library" && !win.typing && !win.aboutOpen; onActivated: win.runAction("play-pause") }
     Shortcut { sequence: "Return"; enabled: win.mode === "library" && !win.typing && !win.aboutOpen; onActivated: win.playSelected() }
@@ -424,7 +426,7 @@ ApplicationWindow {
     // ---- Sidebar --------------------------------------------------------------------------------------------------
     Rectangle {
         id: side
-        anchors { top: toolbar.bottom; bottom: statusbar.top; left: parent.left }
+        anchors { top: toolbar.bottom; bottom: debug.top; left: parent.left }
         width: FiliTheme.sidebarWidth
         color: FiliTheme.backgroundDeep
         Rectangle {
@@ -556,7 +558,7 @@ ApplicationWindow {
         // Format and size only when there is room for them: the name keeps the rest
         readonly property bool wide: width > 760
         readonly property real nameWidth: Math.max(120, width - 2 * FiliTheme.margin - 28 - 140 - 80 - (wide ? 60 + 80 : 0))
-        anchors { top: toolbar.bottom; left: side.right; right: parent.right; bottom: statusbar.top }
+        anchors { top: toolbar.bottom; left: side.right; right: parent.right; bottom: debug.top }
 
         // Column headings
         Rectangle {
@@ -922,7 +924,7 @@ ApplicationWindow {
     Item {
         id: recorder
         visible: win.mode === "record"
-        anchors { top: toolbar.bottom; left: side.right; right: parent.right; bottom: statusbar.top }
+        anchors { top: toolbar.bottom; left: side.right; right: parent.right; bottom: debug.top }
         Column {
             width: Math.min(480, parent.width - 2 * FiliTheme.margin)
             anchors { top: parent.top; topMargin: FiliTheme.space6; horizontalCenter: parent.horizontalCenter }
@@ -1111,6 +1113,12 @@ ApplicationWindow {
                 onTriggered: elapsedRec.now = Date.now()
             }
         }
+    }
+
+    // Debug panel (View > Debug Logs): the log of the window above the footer, or at the bottom when it is hidden
+    DebugPanel {
+        id: debug
+        anchors { bottom: statusbar.top; left: parent.left; right: parent.right }
     }
 
     // ---- Footer ---------------------------------------------------------------------------------------------------

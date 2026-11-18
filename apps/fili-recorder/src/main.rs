@@ -6,6 +6,7 @@ mod codec;
 mod ctl;
 mod i18n;
 mod library;
+mod logs;
 mod player;
 mod recorder;
 mod theme;
@@ -48,6 +49,10 @@ fn main() {
     {
         return;
     }
+    // The log of the window (Debug panel, View > Debug Logs): ~/.local/state/filigrane/logs/fili-recorder.log, panics and
+    // QML errors become incidents (fili-incident)
+    logs::init("fili-recorder", "filigrane-os/filigrane", env!("CARGO_PKG_VERSION"), theme::incidents_on());
+    logs::capture_qt();
     let mut app = QGuiApplication::new();
     // Wayland app-id (niri rules, fili-recorder.desktop)
     QGuiApplication::set_desktop_file_name(&QString::from("fili-recorder"));

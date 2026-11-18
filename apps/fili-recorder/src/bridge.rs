@@ -67,6 +67,23 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "copyText"]
         fn copy_text(self: &Fili, text: &QString);
+        // Debug panel (src/logs.rs): the log entries after number `since` as JSON {"seq": last number, "entries": [[level,
+        // text], ...]} (level 0 debug, 1 info, 2 warning, 3 error), the file of the log, a way to empty the panel, the file
+        // opened by its application, and "Ask Rob": records an incident and asks Rob to look at it (its id, "" on failure)
+        #[qinvokable]
+        fn logs(self: &Fili, since: i32) -> QString;
+        #[qinvokable]
+        #[cxx_name = "logFile"]
+        fn log_file(self: &Fili) -> QString;
+        #[qinvokable]
+        #[cxx_name = "clearLogs"]
+        fn clear_logs(self: &Fili);
+        #[qinvokable]
+        #[cxx_name = "openPath"]
+        fn open_path(self: &Fili, path: &QString);
+        #[qinvokable]
+        #[cxx_name = "reportProblem"]
+        fn report_problem(self: &Fili, text: &QString) -> QString;
         // Opens the options file in the default editor
         #[qinvokable]
         #[cxx_name = "openSettings"]
@@ -353,6 +370,34 @@ impl qobject::Fili {
         let items: Vec<String> =
             rows.iter().map(|(k, v)| format!("[{},{}]", recorder::json_str(k), recorder::json_str(v))).collect();
         QString::from(&format!("[{}]", items.join(",")))
+    }
+
+    pub fn logs(&self, since: i32) -> QString {
+        let (seq, entries) = crate::logs::since(since.max(0) as u64);
+        QString::from(&serde_json::json!({ "seq": seq, "entries": entries }).to_string())
+    }
+
+    pub fn log_file(&self) -> QString {
+        QString::from(&crate::logs::path().display().to_string())
+    }
+
+    pub fn clear_logs(&self) {
+        crate::logs::clear();
+    }
+
+    pub fn open_path(&self, path: &QString) {
+        let _ = std::process::Command::new("xdg-open")
+            .arg(path.to_string())
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn();
+    }
+
+    pub fn report_problem(&self, text: &QString) -> QString {
+        let said = text.to_string();
+        let message = if said.trim().is_empty() { "Problem reported from the Debug panel".to_string() } else { said };
+        QString::from(&crate::logs::incident("manual", &message, true).unwrap_or_default())
     }
 
     pub fn open_settings(&self) {

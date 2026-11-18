@@ -18,7 +18,7 @@ TABS = {"tab_bar_height": 40, "tab_height": 28}
 SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml"]
 # Applications that have the Debug panel and the incident pipeline (app-window.md, "Debug panel and incidents"), with the
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
-DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L"}
+DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L"}
 ROOT = Path(__file__).resolve().parents[2]
 
 

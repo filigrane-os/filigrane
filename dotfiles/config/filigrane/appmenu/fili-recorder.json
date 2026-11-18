@@ -49,7 +49,9 @@
         { "label": "Recordings", "keys": "Ctrl+1", "exec": "fili-recorder ctl --pid %pid action mode-library" },
         { "label": "Record", "keys": "Ctrl+2", "exec": "fili-recorder ctl --pid %pid action mode-record" },
         { "sep": true },
-        { "label": "Search", "keys": "Ctrl+F", "exec": "fili-recorder ctl --pid %pid action search" }
+        { "label": "Search", "keys": "Ctrl+F", "exec": "fili-recorder ctl --pid %pid action search" },
+        { "sep": true },
+        { "label": "Debug Logs", "keys": "Ctrl+Shift+L", "exec": "fili-recorder ctl --pid %pid action debug" }
       ]
     }
   ]
