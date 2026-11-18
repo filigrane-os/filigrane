@@ -4,6 +4,7 @@ pragma Singleton
 // (dotfiles/config/filigrane/fili-bar.toml lists them):
 //   [taskbar]
 //   enabled = true         # false: no taskbar
+//   scale = 100            # size of the bar, its text and its icons, in percent (80 to 160)
 //   edge = "bottom"        # "bottom" (default) | "top" | "left" | "right"; the edge of the fili-bar is never shared (the taskbar takes the opposite one)
 //   screens = "all"        # "all" (default) or a list of output names, like [bar] screens
 //   autohide = false       # true: hidden until the pointer touches the edge, takes no room
@@ -25,6 +26,9 @@ Singleton {
     readonly property bool vertical: edge === "left" || edge === "right"
     // Hidden until the pointer touches its edge ([taskbar] autohide = true); it then takes no room: the windows use the whole screen
     readonly property bool autohide: String(conf.autohide ?? "false") === "true"
+    // Size in percent (80-160, 100 by default): the thickness, the text and the icons of the Quai
+    readonly property real scale: Math.max(0.8, Math.min(1.6, (parseFloat(conf.scale) || 100) / 100))
+    Binding { target: FiliTheme; property: "taskbarScale"; value: taskbar.scale }
     // Background, like the fili-bar: "solid" (default) | "translucent" | "transparent"
     readonly property string background: BarLayout.backgrounds[conf.background] !== undefined ? conf.background : "solid"
     readonly property real alpha: BarLayout.backgrounds[taskbar.background]

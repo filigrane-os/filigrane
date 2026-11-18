@@ -204,7 +204,14 @@ Singleton {
     readonly property color barAccent: toned(barTone, "accent")
     readonly property color barHover: toned(barTone, "hover")
     readonly property color barWarn: toned(barTone, "warn")
-    readonly property int taskbarHeight: ov("taskbar_height", 32)
+    // Size of the Quai ([taskbar] scale, percent, 80-160: set by TaskbarLayout): its thickness, its text and its icons follow
+    property real taskbarScale: 1
+    function tb(px) { return Math.round(px * taskbarScale); }
+    readonly property int taskbarHeight: tb(ov("taskbar_height", 32))
+    readonly property int tbSmall: tb(sizeSmall)
+    readonly property int tbList: tb(sizeList)
+    readonly property int tbLabel: tb(sizeLabel)
+    readonly property int tbIcon: tb(16)
     readonly property int taskbarWidth: taskbarHeight
     // Thickness of the Quai: its height on the top or the bottom, its width on the left or the right
     readonly property int taskbarThickness: taskbarEdge === "left" || taskbarEdge === "right" ? taskbarWidth : taskbarHeight

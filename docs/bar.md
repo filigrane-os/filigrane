@@ -79,6 +79,7 @@ Settings, all optional, in `fili-bar.toml`:
 ```toml
 [taskbar]
 enabled = true     # false: no taskbar
+scale = 100        # size of the bar, its text and its icons, in percent (80 to 160)
 edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the taskbar takes the other one
 screens = "all"    # "all" or a list of output names, like [bar] screens
 autohide = false   # true: hidden until the pointer touches its edge; it then takes no room (windows use the whole screen)
@@ -95,7 +96,7 @@ background = "solid"  # "solid" (default) | "translucent" | "transparent"
 
 With `autohide` only a 2 px line stays on the edge; the pointer on it, the number mode (Mod+Alt), an open menu or list, and the half second after the pointer left show the bar. `background` is the same choice as `[bar] background` for the fili-bar. All of it is in **Settings > Bar** (the fili-bar background, then the Quai: shown, edge, hiding, background, screens), and from the command line: `fili-bar background transparent`, `fili-bar taskbar autohide true`, `fili-bar taskbar` (shows the settings).
 
-Its height is `taskbar_height` of the theme (32 by default) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
+Its height is `taskbar_height` of the theme (32 by default) times `scale` (Settings > Quai > Size, or `fili-bar taskbar scale 120`; the text and the icons follow) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
 
 ## Choosing and ordering modules
 

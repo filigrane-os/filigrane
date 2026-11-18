@@ -435,6 +435,7 @@
  "BACKGROUND": "FOND",
  "QUAI POSITION": "POSITION DU QUAI",
  "BEHAVIOUR": "COMPORTEMENT",
+ "SIZE": "TAILLE",
  "The screens plugged in: where each one sits next to the others, its resolution, scale and rotation. Drag a screen in the drawing to move it.": "Les écrans branchés: la place de chacun par rapport aux autres, sa résolution, son échelle et sa rotation. Faites glisser un écran dans le dessin pour le déplacer.",
  "A workspace is a virtual desktop: a set of windows you switch to as a whole. Choose how they are numbered across your screens and which workspace each application opens on.": "Un espace de travail est un bureau virtuel: un ensemble de fenêtres où l'on passe d'un bloc. Choisissez comment ils sont numérotés entre vos écrans et sur quel espace chaque application s'ouvre.",
  "The look of the system and its applications: font, accent colour, and how windows are drawn (header and footer).": "L'aspect du système et de ses applications: police, couleur d'accent et dessin des fenêtres (en-tête et pied de page).",
