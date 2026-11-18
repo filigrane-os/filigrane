@@ -18,6 +18,8 @@ BarModule {
     function follow() {
         if (player && player.trackTitle)
             label = (player.trackArtist ? player.trackArtist + " - " : "") + player.trackTitle;
+            if (label.length > 36)
+                label = label.slice(0, 35) + "…";
         else if (!player)
             label = "";
     }
@@ -34,6 +36,7 @@ BarModule {
         BarItem {
             objectName: "baladeur-prev"
             text: mod.player ? String.fromCodePoint(0xf2f11) : ""
+            pad: 4
             color: FiliTheme.barText2
             tip: FiliI18n.tr("Previous")
             hover.onLeftClicked: if (mod.player) mod.player.previous()
@@ -44,7 +47,8 @@ BarModule {
             title: "Baladeur"
             panelNeedsVisible: true
             mclick: "fili-music ctl action play-pause"
-            value: mod.player && mod.label !== "" ? {
+            // A squeezed bar (compact_at) keeps the previous / next buttons and drops the title
+            value: mod.player && mod.label !== "" && !mod.compact ? {
                 text: mod.label,
                 "class": mod.player.isPlaying ? "playing" : "paused",
                 tooltip: { title: "Baladeur", text: mod.player.trackAlbum, hint: FiliI18n.tr("click: panel · middle click: play/pause · right click: window · wheel: previous / next") }
@@ -59,6 +63,7 @@ BarModule {
         BarItem {
             objectName: "baladeur-next"
             text: mod.player ? String.fromCodePoint(0xf2f12) : ""
+            pad: 4
             color: FiliTheme.barText2
             tip: FiliI18n.tr("Next")
             hover.onLeftClicked: if (mod.player) mod.player.next()

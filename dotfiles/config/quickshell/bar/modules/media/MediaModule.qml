@@ -6,7 +6,9 @@ import qs.bar
 
 BarItem {
     objectName: "media"
-    readonly property var player: Mpris.players.values.find(p => p.isPlaying) ?? Mpris.players.values[0] ?? null
+    // Baladeur (fili-music) has its own module, with its player and queue: not shown twice
+    readonly property var others: Mpris.players.values.filter(p => p.desktopEntry !== "fili-music" && p.dbusName.indexOf("fili_music") < 0)
+    readonly property var player: others.find(p => p.isPlaying) ?? others[0] ?? null
     text: {
         if (!player || !player.trackTitle)
             return "";

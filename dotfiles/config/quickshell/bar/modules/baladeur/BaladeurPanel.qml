@@ -42,7 +42,11 @@ ColumnLayout {
     Timer { interval: 3000; running: true; repeat: true; onTriggered: view.refresh() }
     Process { id: run }
     // `fili-music` alone shows the hidden window or brings the open one to the front
-    Process { id: openWindow; command: ["fili-music"] }
+    Process {
+        id: openWindow
+        command: ["fili-music"]
+        onExited: (code, status) => console.log("baladeur: fili-music exited", code, status)
+    }
     Process {
         id: read
         command: ["fili-music", "ctl", "queue"]
@@ -355,7 +359,10 @@ ColumnLayout {
             width: top.width - dial.width - top.spacing
             height: top.height
             cursorShape: Qt.PointingHandCursor
-            onClicked: openWindow.running = true
+            onClicked: {
+                console.log("baladeur: click on the player, opening the window");
+                openWindow.running = true;
+            }
             Accessible.role: Accessible.Button
             Accessible.name: FiliI18n.tr("Open Baladeur")
         }
@@ -463,6 +470,7 @@ ColumnLayout {
     property var rowsByPlace: ({})
     property int rowsRev: 0
     property var wanted: ({})
+    readonly property var flags: ({ scheduled: false })
     property var matches: null
     property string filter: ""
     readonly property real numberWidth: Math.ceil(numberMetrics.advanceWidth) + FiliTheme.space2
@@ -477,17 +485,27 @@ ColumnLayout {
         if (r !== undefined)
             return r;
         wanted[pos] = true;
-        if (!fetchTimer.running && !fetch.running)
+        // `flags` is a plain object: reading `fetchTimer.running` here would make the row's binding depend on what it starts
+        // (a binding loop on `info`)
+        if (!flags.scheduled) {
+            flags.scheduled = true;
             fetchTimer.start();
+        }
         return null;
     }
     Timer {
         id: fetchTimer
         interval: 40
         onTriggered: {
+            view.flags.scheduled = false;
             const places = Object.keys(view.wanted).slice(0, 80);
-            if (places.length === 0 || fetch.running)
+            if (places.length === 0)
                 return;
+            if (fetch.running) {
+                view.flags.scheduled = true;
+                fetchTimer.start();
+                return;
+            }
             for (const p of places)
                 delete view.wanted[p];
             fetch.command = ["fili-music", "ctl", "tracks", places.join(",")];
@@ -507,8 +525,10 @@ ColumnLayout {
                     }
                 } catch (e) {
                 }
-                if (Object.keys(view.wanted).length > 0)
+                if (Object.keys(view.wanted).length > 0 && !view.flags.scheduled) {
+                    view.flags.scheduled = true;
                     fetchTimer.start();
+                }
             }
         }
     }
