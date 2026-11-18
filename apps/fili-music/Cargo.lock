@@ -3658,7 +3658,7 @@ dependencies = [
 [[package]]
 name = "tornade-core"
 version = "1.6.0"
-source = "git+https://github.com/tornade-player/tornade-core?branch=expose-ffi-rust-api#09ea896b212f05b941c1cb8e0a530b0ecf8a7ea9"
+source = "git+https://github.com/tornade-player/tornade-core?branch=expose-ffi-rust-api#d5640d6c28f4a1394826e90db7c9795b4b1ba5e3"
 dependencies = [
  "chrono",
  "cpal",
