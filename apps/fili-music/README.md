@@ -29,7 +29,7 @@ Measured on the release binary, isolated session, 17 tracks, window open.
 | Version | Binary | RAM (resident) | CPU idle | CPU playing |
 |---------|--------|----------------|----------|-------------|
 | 0.1.0 (unreleased) | 12 MB | 162 MB (118 MB shared Qt libraries) | 0 % | 3.2 % of one core |
-| 0.1.0 (tag `baladeur-v0.1.0`) | 12 MB | 255 MB (57 MB shared), resident in the bar with the window closed, paused | 0.0-0.5 % | not measured (the visualiser polls the levels every 60 ms while playing) |
+| 0.1.0 (tag `baladeur-v0.1.0`) | 12 MB | 135 MB (48 MB shared) playing, 255 MB right after a pause, resident in the bar with the window closed | 0.0-0.5 % | 1.7 % of one core (visualiser included: levels polled every 60 ms) |
 
 ## Not done yet
 
