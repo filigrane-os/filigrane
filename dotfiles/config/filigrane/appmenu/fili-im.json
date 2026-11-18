@@ -169,6 +169,18 @@
           "label": "Unread",
           "keys": "Ctrl+U",
           "exec": "fili-im ctl --pid %pid action unread-box"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Debug Logs",
+          "keys": "Ctrl+Shift+L",
+          "exec": "fili-im ctl --pid %pid action debug"
+        },
+        {
+          "label": "Restart Service",
+          "exec": "fili-im ctl --pid %pid action restart-service"
         }
       ]
     },

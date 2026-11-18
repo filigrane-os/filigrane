@@ -18,7 +18,7 @@ TABS = {"tab_bar_height": 40, "tab_height": 28}
 SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml"]
 # Applications that have the Debug panel and the incident pipeline (app-window.md, "Debug panel and incidents"), with the
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
-DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L"}
+DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "fili-im": "Ctrl+Shift+L"}
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -58,7 +58,8 @@ def bare_views(text):
 def normalize(text):
     """Drops the module import and the singleton name, the only allowed differences between copies."""
     text = re.sub(r"^import Fili\.\w+\s*$", "", text, flags=re.M)
-    return re.sub(r"\b[A-Z][A-Za-z]*\.(?=(tr|window[A-Za-z]*)\b)", "APP.", text)
+    calls = r"tr|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
+    return re.sub(rf"\b[A-Z][A-Za-z]*\.(?=({calls})\b)", "APP.", text)
 
 
 def check(ref, src, name):
@@ -144,8 +145,9 @@ def check_debug(ref, src, name, menu):
     keys = DEBUG_PANEL[name]
     if not re.search(r"^\s*DebugPanel\s*\{", main, re.M):
         problems.append("Main.qml: no DebugPanel")
-    if f'"{keys}"' not in main:
-        problems.append(f"Main.qml: no {keys} shortcut for the Debug panel")
+    # The chord is in Main.qml, or in the Rust keymap of an application whose shortcuts are configurable (Aéroport)
+    if f'"{keys}"' not in main and f'"{keys}"' not in rust:
+        problems.append(f"no {keys} shortcut for the Debug panel (Main.qml, or the keymap)")
     if menu.is_file():
         entries = re.findall(r'\{[^{}]*"label":\s*"Debug Logs"[^{}]*\}', menu.read_text())
         if not entries:
