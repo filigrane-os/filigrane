@@ -16,6 +16,9 @@ SIZES = {"toolbar_height": 44, "sidebar_width": 200, "side_row_height": 28, "row
 # Tabs (Facteur): only for applications that have a tab row
 TABS = {"tab_bar_height": 40, "tab_height": 28}
 SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml"]
+# Applications that have the Debug panel and the incident pipeline (app-window.md, "Debug panel and incidents"), with the
+# chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
+DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L"}
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -114,6 +117,41 @@ def check(ref, src, name):
         problems.append(f"no bar menu fallback {menu.relative_to(ROOT)}")
     elif "action about" not in menu.read_text():
         problems.append(f"{menu.name}: no About entry")
+    if name in DEBUG_PANEL:
+        problems += check_debug(ref, src, name, menu)
+    return problems
+
+
+def check_debug(ref, src, name, menu):
+    """The log, the Debug panel and its menu entry (app-window.md, "Debug panel and incidents")."""
+    problems = []
+    rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
+    if not (src / "src" / "logs.rs").is_file():
+        problems.append("src/logs.rs missing (log, panics, incidents)")
+    if not re.search(r"\blogs::init\(", rust):
+        problems.append("logs::init is never called")
+    if not re.search(r"\blogs::capture_qt\(", rust):
+        problems.append("logs::capture_qt is never called (QML errors not logged)")
+    for inv in ("logs", "logFile", "clearLogs", "reportProblem"):
+        if not re.search(rf"\bfn {re.sub(r'([A-Z])', lambda m: '_' + m.group(1).lower(), inv)}\b", rust):
+            problems.append(f"no `{inv}` invokable for the Debug panel")
+    panel, theirs = src / "qml" / "DebugPanel.qml", ref / "qml" / "DebugPanel.qml"
+    if not panel.is_file():
+        problems.append("qml/DebugPanel.qml missing")
+    elif theirs.is_file() and normalize(panel.read_text()) != normalize(theirs.read_text()):
+        problems.append("qml/DebugPanel.qml differs from Casier's copy")
+    main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
+    keys = DEBUG_PANEL[name]
+    if not re.search(r"^\s*DebugPanel\s*\{", main, re.M):
+        problems.append("Main.qml: no DebugPanel")
+    if f'"{keys}"' not in main:
+        problems.append(f"Main.qml: no {keys} shortcut for the Debug panel")
+    if menu.is_file():
+        entries = re.findall(r'\{[^{}]*"label":\s*"Debug Logs"[^{}]*\}', menu.read_text())
+        if not entries:
+            problems.append(f"{menu.name}: no Debug Logs entry")
+        elif not any(f'"keys": "{keys}"' in e for e in entries):
+            problems.append(f"{menu.name}: Debug Logs is not on {keys}")
     return problems
 
 
