@@ -214,6 +214,7 @@ pub fn dispatch(name: &str, args: &str) -> String {
         "clear_unavailable_tracks" => ffi::clear_unavailable_tracks(),
         "import_files" => ffi::import_files(text(a,0)),
         "fetch_all_artwork" => ffi::fetch_all_artwork(flag(a,0), flag(a,1)),
+        "fetch_artist_photos" => ffi::fetch_artist_photos(flag(a,0)),
         "fetch_album_artwork" => ffi::fetch_album_artwork(int(a,0)),
         "get_artwork_fetch_progress" => ffi::get_artwork_fetch_progress(),
         "cancel_artwork_fetch" => ffi::cancel_artwork_fetch(),

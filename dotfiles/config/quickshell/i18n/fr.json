@@ -723,6 +723,7 @@
  "%1 of %2 albums have a cover": "%1 albums sur %2 ont une pochette",
  "New covers only": "Nouvelles pochettes seulement",
  "Everything again": "Tout refaire",
+ "Artists only": "Artistes seulement",
  "Clean up the library": "Ranger la bibliothèque",
  "Removes the albums and artists that no longer have any track.": "Supprime les albums et artistes qui n’ont plus aucun titre.",
  "The library is already clean": "La bibliothèque est déjà propre",

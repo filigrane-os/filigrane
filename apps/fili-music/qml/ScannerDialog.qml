@@ -94,7 +94,8 @@ Rectangle {
     // The core starts the fetch in the background and answers at once: the progress is polled until it has nothing to report
     property int idleTicks: 0
     property bool seenProgress: false
-    function fetchArtwork(force) {
+    // artistsOnly: the photos of the artists that have none (those with a photo and the albums are left alone)
+    function fetchArtwork(force, artistsOnly) {
         if (fetching)
             return;
         artAsk = false;
@@ -103,7 +104,7 @@ Rectangle {
         artProgress = { totalItems: 0, processedItems: 0, currentItem: "", successful: 0, failed: 0 };
         idleTicks = 0;
         seenProgress = false;
-        Store.callAsync("fetch_all_artwork", [true, force], d => {
+        Store.callAsync(artistsOnly === true ? "fetch_artist_photos" : "fetch_all_artwork", artistsOnly === true ? [force] : [true, force], d => {
             if (d === null) {
                 error = Store.lastError !== "" ? Store.lastError : Fili.tr("The artwork fetch failed");
                 return;
@@ -426,6 +427,11 @@ Rectangle {
                             visible: !dlg.fetching && dlg.artAsk
                             label: Fili.tr("Everything again")
                             onClicked: dlg.fetchArtwork(true)
+                        }
+                        TextButton {
+                            visible: !dlg.fetching && dlg.artAsk
+                            label: Fili.tr("Artists only")
+                            onClicked: dlg.fetchArtwork(true, true)
                         }
                         TextButton {
                             visible: !dlg.fetching && dlg.artAsk
