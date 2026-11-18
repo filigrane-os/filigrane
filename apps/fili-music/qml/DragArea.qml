@@ -13,6 +13,8 @@ MouseArea {
     property real py: 0
     property bool dragging: false
     hoverEnabled: true
+    // The list this sits in must not take the gesture over (a vertical move would scroll it and cancel the drag: no drop)
+    preventStealing: true
     acceptedButtons: Qt.LeftButton | Qt.RightButton
     onPressed: e => {
         px = e.x;

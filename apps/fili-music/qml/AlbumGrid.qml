@@ -1,10 +1,14 @@
-// Albums as a wrapping grid of covers (albums view, artist page, genre page). Gives `more` when the end is reached.
+// Albums as a wrapping grid of covers (albums view, artist page, genre page). Two ways to feed it: `albums`, an array, or for a
+// big library `total` and `albumAt(index)`, the grid then holds one cell per album and each asks for its album when drawn
+// (null while it loads), so the scrollbar covers the whole library and nothing jumps when pages arrive.
 import QtQuick
 import Fili.Baladeur
 
 Item {
     id: grid
     property var albums: []
+    property int total: -1
+    property var albumAt: null
     readonly property int cell: 150
     readonly property int columns: Math.max(1, Math.floor((width - 2 * FiliTheme.margin + FiliTheme.space4) / (cell + FiliTheme.space4)))
     property alias view: gv
@@ -20,7 +24,7 @@ Item {
         anchors.fill: parent
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        model: grid.albums
+        model: grid.total >= 0 ? grid.total : grid.albums
         cellWidth: Math.floor((width - 2 * FiliTheme.margin + FiliTheme.space4) / grid.columns)
         cellHeight: grid.cell + 44 + FiliTheme.space4
         leftMargin: FiliTheme.margin
@@ -33,14 +37,19 @@ Item {
             grid.more()
         delegate: Item {
             id: cellItem
+            required property int index
             required property var modelData
+            readonly property var info: grid.total >= 0 ? grid.albumAt(index) : modelData
             width: gv.cellWidth
             height: gv.cellHeight
-            AlbumCard {
-                album: cellItem.modelData
-                cover: grid.cell
-                onOpened: grid.opened(cellItem.modelData)
-                onMenuRequested: (x, y) => grid.albumMenu(cellItem.modelData, x, y)
+            Loader {
+                active: cellItem.info !== null && cellItem.info !== undefined
+                sourceComponent: AlbumCard {
+                    album: cellItem.info
+                    cover: grid.cell
+                    onOpened: grid.opened(cellItem.info)
+                    onMenuRequested: (x, y) => grid.albumMenu(cellItem.info, x, y)
+                }
             }
         }
     }

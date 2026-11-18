@@ -92,6 +92,62 @@ fn tracks_by_ids(ids: &str) -> String {
     serde_json::json!({ "success": true, "data": tracks }).to_string()
 }
 
+// Ids of the whole library, read straight from the core's database (read only): "random" in a random order, anything else
+// by artist, album year, album, disc and track. One query, so the ids never go through the interface (50 000 tracks are ~400 KB).
+fn library_ids(order: &str, exclude: &std::collections::HashSet<i64>, limit: usize) -> Result<Vec<i64>, String> {
+    use rusqlite::{Connection, OpenFlags};
+    let conn = Connection::open_with_flags(library_dir(), OpenFlags::SQLITE_OPEN_READ_ONLY).map_err(|e| e.to_string())?;
+    let sql = if order == "random" {
+        "SELECT id FROM tracks ORDER BY RANDOM()"
+    } else {
+        "SELECT t.id FROM tracks t JOIN artists ar ON ar.id = t.artist_id LEFT JOIN albums al ON al.id = t.album_id \
+         ORDER BY ar.name COLLATE NOCASE, al.year, al.title COLLATE NOCASE, t.disc_number, t.track_number, t.title COLLATE NOCASE"
+    };
+    let mut stmt = conn.prepare(sql).map_err(|e| e.to_string())?;
+    let rows = stmt.query_map([], |r| r.get::<_, i64>(0)).map_err(|e| e.to_string())?;
+    Ok(rows.filter_map(Result::ok).filter(|id| !exclude.contains(id)).take(limit).collect())
+}
+
+fn queue_items() -> std::collections::HashSet<i64> {
+    let reply: Value = serde_json::from_str(&ffi::get_queue()).unwrap_or(Value::Null);
+    reply["data"]["items"].as_array().map(|a| a.iter().filter_map(Value::as_i64).collect()).unwrap_or_default()
+}
+
+fn succeeded(reply: &str) -> bool {
+    serde_json::from_str::<Value>(reply).ok().and_then(|v| v["success"].as_bool()).unwrap_or(false)
+}
+
+// The whole library in the queue: `replace` puts it in place of the queue and starts the first track, else it goes at the end.
+// The reply carries the number of tracks added.
+fn queue_library(order: &str, replace: bool) -> String {
+    let ids = match library_ids(order, &Default::default(), usize::MAX) {
+        Ok(ids) => ids,
+        Err(e) => return err(&e),
+    };
+    let json = Value::from(ids.clone()).to_string();
+    let reply = if replace { ffi::set_queue(&json) } else { ffi::add_tracks_to_queue(&json) };
+    if !succeeded(&reply) {
+        return reply;
+    }
+    if replace && !ids.is_empty() {
+        ffi::jump_to_queue_index(0);
+    }
+    serde_json::json!({ "success": true, "data": { "count": ids.len() } }).to_string()
+}
+
+// `count` random tracks of the library that are not in the queue yet, added at the end of it
+fn add_random(count: i64) -> String {
+    let queued = queue_items();
+    let ids = match library_ids("random", &queued, count.clamp(0, 1000) as usize) {
+        Ok(ids) => ids,
+        Err(e) => return err(&e),
+    };
+    if !ids.is_empty() && !succeeded(&ffi::add_tracks_to_queue(&Value::from(ids.clone()).to_string())) {
+        return err("the tracks could not be added to the queue");
+    }
+    serde_json::json!({ "success": true, "data": { "count": ids.len() } }).to_string()
+}
+
 /// One call of the core: `name` of an entry point of tornade-core's FFI, `args` a JSON array
 pub fn dispatch(name: &str, args: &str) -> String {
     let Ok(Value::Array(a)) = serde_json::from_str::<Value>(args) else {
@@ -100,6 +156,8 @@ pub fn dispatch(name: &str, args: &str) -> String {
     let a = a.as_slice();
     match name {
         "tracks_by_ids" => tracks_by_ids(text(a, 0)),
+        "queue_library" => queue_library(text(a, 0), flag(a, 1)),
+        "add_random_to_queue" => add_random(int(a, 0)),
         "get_library_stats" => ffi::get_library_stats(),
         "scan_library" => ffi::scan_library(text(a,0)),
         "get_scan_progress" => ffi::get_scan_progress(),

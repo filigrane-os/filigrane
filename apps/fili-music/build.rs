@@ -15,6 +15,7 @@ fn main() {
                 "qml/AmbientColor.qml",
                 "qml/ArtistStrip.qml",
                 "qml/Carousel.qml",
+                "qml/DebugPanel.qml",
                 "qml/DragArea.qml",
                 "qml/ExpandableText.qml",
                 "qml/TrackColumns.qml",

@@ -8,43 +8,163 @@ Item {
     signal saveRequested()
     signal menuRequested(int index, real x, real y)
 
-    ListModel { id: tracks }
     property string filter: ""
     readonly property bool empty: Store.queueIds.length === 0
 
-    function reload() {
-        const ids = Store.queueIds;
-        if (ids.length === 0) {
-            tracks.clear();
-            return;
+    // Width of the number column: room for the biggest number of the queue ("12 345." is wider than "9.")
+    TextMetrics {
+        id: numberMetrics
+        font.family: FiliTheme.font
+        font.pixelSize: FiliTheme.size
+        font.weight: FiliTheme.weightAccent
+        text: "9".repeat(String(Store.queueIds.length).length) + "."
+    }
+    readonly property real numberWidth: Math.ceil(numberMetrics.advanceWidth) + FiliTheme.space2
+
+    // ---- Rows on demand -------------------------------------------------------------------------------------------------
+    // The list is virtual: only the rows on screen exist, and each one asks for its track the first time it is drawn (a
+    // queue of the whole library is never loaded). `rows` holds the tracks received, by id, and is emptied when it grows.
+    property var rows: ({})
+    property int rowsRev: 0
+    property int rowCount: 0
+    property var wanted: ({})
+    readonly property var flags: ({ scheduled: false })
+    function rowAt(pos) {
+        rowsRev;
+        const id = Store.queueIdAt(pos);
+        const r = rows[id];
+        if (r !== undefined)
+            return r;
+        wanted[id] = true;
+        // `flags` is a plain object: reading `fetchTimer.running` here would make this binding depend on what it starts
+        // (a binding loop on the row's `info`)
+        if (!flags.scheduled) {
+            flags.scheduled = true;
+            fetchTimer.start();
         }
-        Store.callAsync("tracks_by_ids", [JSON.stringify(ids)], list => {
-            tracks.clear();
-            if (!list)
-                return;
-            // A track the library lost keeps its place with the number it had
-            const byId = {};
-            for (const t of list)
-                byId[t.id] = t;
-            let i = 0;
-            for (const id of ids) {
-                const t = byId[id];
-                if (t) {
-                    const r = Store.row(t);
-                    r.position = i;
-                    tracks.append(r);
-                }
-                i++;
+        return null;
+    }
+    // Keep the rows of `list` (tracks of the core); an id the library lost keeps a blank row
+    function store(ids, list) {
+        if (rowCount > 3000) {
+            rows = ({});
+            rowCount = 0;
+        }
+        for (const t of list || []) {
+            if (rows[t.id] === undefined)
+                rowCount++;
+            rows[t.id] = Store.row(t);
+        }
+        for (const id of ids) {
+            if (rows[id] === undefined) {
+                rows[id] = { id: id, title: "—", artistId: -1, artists: "", missing: true };
+                rowCount++;
             }
+        }
+        rowsRev++;
+    }
+    function fetchRows(ids, done) {
+        Store.callAsync("tracks_by_ids", [JSON.stringify(ids)], list => {
+            panel.store(ids, list);
+            if (done)
+                done();
         });
+    }
+    Timer {
+        id: fetchTimer
+        interval: 30
+        onTriggered: {
+            panel.flags.scheduled = false;
+            const ids = Object.keys(panel.wanted).map(Number).slice(0, 200);
+            if (ids.length === 0)
+                return;
+            for (const id of ids)
+                delete panel.wanted[id];
+            panel.fetchRows(ids);
+            if (Object.keys(panel.wanted).length > 0) {
+                panel.flags.scheduled = true;
+                fetchTimer.start();
+            }
+        }
     }
     Connections {
         target: Store
+        // Tags or covers changed: the rows are asked again
+        function onLibraryRevChanged() {
+            panel.rows = ({});
+            panel.rowCount = 0;
+            panel.rowsRev++;
+        }
         function onQueueRevChanged() {
-            panel.reload();
+            if (panel.filter !== "")
+                filterTimer.restart();
+        }
+        // Names of artists arrive one by one: the filter looks again
+        function onRevChanged() {
+            if (panel.filter !== "")
+                filterTimer.restart();
         }
     }
     Component.onCompleted: Store.refreshQueue()
+
+    // ---- Filter ---------------------------------------------------------------------------------------------------------
+    // null: no filter, the whole queue is shown; else the places of the queue that match. A small queue is read in full; a big
+    // one is searched in the library (full-text search, the first 1000 matches) and crossed with the queue.
+    property var matches: null
+    onFilterChanged: {
+        if (filter === "")
+            matches = null;
+        else
+            filterTimer.restart();
+    }
+    Timer {
+        id: filterTimer
+        interval: 200
+        onTriggered: panel.runFilter()
+    }
+    function runFilter() {
+        const q = panel.filter;
+        if (q === "")
+            return;
+        const total = Store.queueIds.length;
+        const done = found => {
+            if (panel.filter === q)
+                panel.matches = found;
+        };
+        if (total <= 2000) {
+            const missing = Store.queueIds.filter(id => rows[id] === undefined);
+            const pick = () => {
+                const found = [];
+                for (let i = 0; i < total; i++) {
+                    const r = rows[Store.queueIdAt(i)];
+                    if (r && (r.title.toLowerCase().includes(q) || (r.artists !== "" ? r.artists : Store.artistName(r.artistId)).toLowerCase().includes(q)))
+                        found.push(i);
+                }
+                done(found);
+            };
+            if (missing.length === 0)
+                pick();
+            else
+                fetchRows(missing, pick);
+        } else {
+            Store.callAsync("search_tracks", [q, 1000], d => {
+                const hit = {};
+                for (const t of d ? d.tracks : []) {
+                    hit[t.id] = true;
+                    if (rows[t.id] === undefined) {
+                        rows[t.id] = Store.row(t);
+                        rowCount++;
+                    }
+                }
+                rowsRev++;
+                const found = [];
+                for (let i = 0; i < total; i++)
+                    if (hit[Store.queueIdAt(i)])
+                        found.push(i);
+                done(found);
+            });
+        }
+    }
 
     // Filter
     Rectangle {
@@ -133,7 +253,7 @@ Item {
         id: list
         anchors { top: filterBar.bottom; bottom: bar.top; left: parent.left; right: parent.right }
         visible: !panel.empty
-        model: tracks
+        model: panel.matches === null ? Store.queueIds.length : panel.matches
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         KineticScroll {}
@@ -153,31 +273,30 @@ Item {
         Connections {
             target: Store
             function onQueueIndexChanged() {
-                if (Store.queueIndex >= 0 && panel.filter === "")
+                if (Store.queueIndex >= 0 && panel.matches === null)
                     list.positionViewAtIndex(Math.max(0, Store.queueIndex - 2), ListView.Beginning);
             }
         }
         delegate: Rectangle {
             id: row
             required property int index
-            required property int id
-            required property string title
-            required property int artistId
-            required property string artists
-            required property int position
+            required property var modelData
+            // Place in the queue: the row number when the whole queue is shown, else the one the filter kept
+            readonly property int position: panel.matches === null ? index : modelData
+            readonly property var info: panel.rowAt(position)
+            readonly property int id: info ? info.id : -1
+            readonly property string title: info ? info.title : ""
             readonly property bool current: position === Store.queueIndex
             readonly property bool unavailable: (Store.player.skipped_track_ids || []).indexOf(id) >= 0
-            readonly property string artist: artists !== "" ? artists : Store.artistName(artistId)
-            readonly property bool shown: panel.filter === "" || title.toLowerCase().includes(panel.filter) || artist.toLowerCase().includes(panel.filter)
+            readonly property string artist: info ? (info.artists !== "" ? info.artists : Store.artistName(info.artistId)) : ""
             width: list.width
-            height: shown ? 44 : 0
-            visible: shown
+            height: 44
             color: current ? FiliTheme.alpha(FiliTheme.accentColor, 0.12) : area.containsMouse ? FiliTheme.alpha(FiliTheme.surfaceHover, 0.5) : "transparent"
 
             Text {
                 id: number
                 x: FiliTheme.space3
-                width: 34
+                width: panel.numberWidth
                 anchors.verticalCenter: parent.verticalCenter
                 text: (row.position + 1) + "."
                 font.family: FiliTheme.font
@@ -220,13 +339,13 @@ Item {
                     dragging = false;
                 }
                 onPositionChanged: e => {
-                    if (!pressed || panel.filter !== "")
+                    if (!pressed || panel.matches !== null || Store.player.shuffle === true)
                         return;
                     if (!dragging && Math.abs(e.y - pressY) > 6)
                         dragging = true;
                     if (dragging) {
                         const y = area.mapToItem(list.contentItem, e.x, e.y).y;
-                        list.dropIndex = Math.max(0, Math.min(tracks.count, Math.round(y / 44)));
+                        list.dropIndex = Math.max(0, Math.min(Store.queueIds.length, Math.round(y / 44)));
                     }
                 }
                 onReleased: {
@@ -289,7 +408,7 @@ Item {
             anchors.fill: parent
             Repeater {
                 model: [
-                    { key: "random", glyph: "⚄", tip: Fili.tr("Add 30 random tracks") },
+                    { key: "random", glyph: "⚄", tip: Fili.tr("Library and random tracks") },
                     { key: "repeat", glyph: "↻", tip: Fili.tr("Repeat") },
                     { key: "shuffle", glyph: "⇄", tip: Fili.tr("Shuffle") },
                     { key: "save", glyph: "≡+", tip: Fili.tr("Save the queue as a playlist") },
@@ -316,9 +435,29 @@ Item {
                         enabled: !qb.off
                         onClicked: {
                             switch (qb.modelData.key) {
-                            case "random":
-                                Store.callAsync("get_random_tracks", [30], ids => Store.addToQueue(ids || []));
+                            case "random": {
+                                const p = qb.mapToItem(null, 0, 0);
+                                Store.menuRequested(p.x, p.y, [
+                                    { id: "library-shuffled", label: Fili.tr("Play the whole library, shuffled") },
+                                    { id: "library-ordered", label: Fili.tr("Play the whole library, in order") },
+                                    { separator: true },
+                                    { id: "random-30", label: Fili.tr("Add 30 random tracks") },
+                                    { id: "random-50", label: Fili.tr("Add 50 random tracks") },
+                                    { id: "random-100", label: Fili.tr("Add 100 random tracks") },
+                                    { separator: true },
+                                    { id: "top-up", label: Fili.tr("Keep the queue going"), checked: Store.topUp }
+                                ], id => {
+                                    if (id === "library-shuffled")
+                                        Store.playLibrary("random");
+                                    else if (id === "library-ordered")
+                                        Store.playLibrary("ordered");
+                                    else if (id === "top-up")
+                                        Store.setTopUp(!Store.topUp);
+                                    else
+                                        Store.addRandom(Number(id.slice(7)));
+                                });
                                 break;
+                            }
                             case "repeat":
                                 Store.toggleRepeat();
                                 break;

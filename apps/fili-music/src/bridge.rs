@@ -94,6 +94,16 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "openPath"]
         fn open_path(self: &Fili, path: &QString);
+        // Debug panel: the log entries after number `since` as JSON {"seq": last number, "entries": [[level, text], ...]}
+        // (level 0 debug, 1 info, 2 warning, 3 error), the file of the log, and a way to empty the panel
+        #[qinvokable]
+        fn logs(self: &Fili, since: i32) -> QString;
+        #[qinvokable]
+        #[cxx_name = "logFile"]
+        fn log_file(self: &Fili) -> QString;
+        #[qinvokable]
+        #[cxx_name = "clearLogs"]
+        fn clear_logs(self: &Fili);
     }
 
     extern "RustQt" {
@@ -336,6 +346,19 @@ impl qobject::Fili {
             .filter(|e| e.file_name().to_string_lossy().starts_with(&prefix))
             .max_by_key(|e| e.file_name());
         QString::from(&newest.map(|e| e.path().display().to_string()).unwrap_or_default())
+    }
+
+    pub fn logs(&self, since: i32) -> QString {
+        let (seq, entries) = crate::logs::since(since.max(0) as u64);
+        QString::from(&serde_json::json!({ "seq": seq, "entries": entries }).to_string())
+    }
+
+    pub fn log_file(&self) -> QString {
+        QString::from(&crate::logs::path().display().to_string())
+    }
+
+    pub fn clear_logs(&self) {
+        crate::logs::clear();
     }
 
     pub fn open_path(&self, path: &QString) {

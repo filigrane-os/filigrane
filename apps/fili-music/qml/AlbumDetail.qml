@@ -3,6 +3,7 @@
 // the other albums of the artist, the artists who also appear on the album, and the artists of the same genre.
 // `back` returns to the grid; the artist name opens the artist.
 import QtQuick
+import QtQuick.Shapes
 import Fili.Baladeur
 
 Item {
@@ -64,21 +65,47 @@ Item {
         }
     }
 
-    // Ambient colour of the cover: a wash fading into the background
+    // The three main colours of the cover, each a wash fading from one corner of the view (top left, top right, bottom left)
+    // into the background; they meet towards the middle
     AmbientColor {
         id: ambient
         source: art.source
     }
-    Rectangle {
-        width: parent.width
-        height: Math.min(parent.height, 420)
-        gradient: Gradient {
-            orientation: Gradient.Vertical
-            GradientStop { position: 0; color: FiliTheme.alpha(ambient.color, 0.34) }
-            GradientStop { position: 1; color: FiliTheme.alpha(ambient.color, 0) }
-        }
+    Shape {
+        id: wash
+        anchors.fill: parent
         opacity: ambient.color.a > 0 ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: 250 } }
+        // Reach of a wash: a little past the middle of the view, seen from its corner
+        readonly property real reach: Math.hypot(width, height) * 0.55
+        component Corner: ShapePath {
+            id: corner
+            // An inline component sees nothing of the ids around it: the size and reach come as properties
+            property real w: 0
+            property real h: 0
+            property real reach: 0
+            property real cx: 0
+            property real cy: 0
+            property color tint: "transparent"
+            strokeWidth: -1
+            startX: 0
+            startY: 0
+            PathLine { x: corner.w; y: 0 }
+            PathLine { x: corner.w; y: corner.h }
+            PathLine { x: 0; y: corner.h }
+            fillGradient: RadialGradient {
+                centerX: corner.cx
+                centerY: corner.cy
+                centerRadius: corner.reach
+                focalX: corner.cx
+                focalY: corner.cy
+                GradientStop { position: 0; color: FiliTheme.alpha(corner.tint, 0.34) }
+                GradientStop { position: 1; color: FiliTheme.alpha(corner.tint, 0) }
+            }
+        }
+        Corner { w: wash.width; h: wash.height; reach: wash.reach; cx: 0; cy: 0; tint: ambient.colors[0] }
+        Corner { w: wash.width; h: wash.height; reach: wash.reach; cx: wash.width; cy: 0; tint: ambient.colors[1] }
+        Corner { w: wash.width; h: wash.height; reach: wash.reach; cx: 0; cy: wash.height; tint: ambient.colors[2] }
     }
 
     Flickable {

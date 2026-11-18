@@ -3,6 +3,7 @@
 mod bridge;
 mod ctl;
 mod i18n;
+mod logs;
 mod mpris;
 mod music;
 mod theme;
@@ -11,8 +12,20 @@ mod window;
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QString, QUrl};
 
 fn main() {
-    // The core logs through `log`: RUST_LOG=debug fili-music shows what the player does
-    env_logger::init();
+    // The core logs through `log`: RUST_LOG=debug fili-music shows what the player does on stderr; the Debug panel and
+    // ~/.local/state/filigrane/logs/fili-music.log keep info and above (FILI_LOG=debug for more)
+    logs::init("fili-music");
+    // MusicBrainz rate limits each application by its User-Agent and asks for a name and a way to reach its authors: the
+    // generic one of the core is shared by every frontend of Tornade. Set here, before any thread exists.
+    if std::env::var_os("TORNADE_USER_AGENT").is_none() {
+        // SAFETY: the program is still single-threaded
+        unsafe {
+            std::env::set_var(
+                "TORNADE_USER_AGENT",
+                format!("Filigrane-Baladeur/{} ( https://github.com/filigrane-os/filigrane )", env!("CARGO_PKG_VERSION")),
+            );
+        }
+    }
     let args: Vec<String> = std::env::args().collect();
     match args.get(1).map(String::as_str) {
         Some("-V" | "--version") => {
@@ -45,6 +58,7 @@ fn main() {
         return;
     }
     mpris::start();
+    logs::capture_qt();
     let mut app = QGuiApplication::new();
     // Wayland app-id (niri rules, fili-music.desktop)
     QGuiApplication::set_desktop_file_name(&QString::from("fili-music"));

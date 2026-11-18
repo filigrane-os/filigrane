@@ -15,6 +15,8 @@ serde_json = "1"
 env_logger = "0.11"
 log = "0.4"
 zbus = "5"
+# Same version and features as tornade-core (one SQLite in the binary): the library ids for the queue are read without the core
+rusqlite = { version = "0.32", features = ["bundled"] }
 # The core of the Tornade player (MIT). The branch makes its FFI entry points `pub`; it moves to `main` once merged there.
 tornade-core = { git = "https://github.com/tornade-player/tornade-core", branch = "expose-ffi-rust-api" }
 

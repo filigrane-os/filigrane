@@ -128,8 +128,26 @@
       "label": "Queue",
       "children": [
         {
-          "label": "Add 30 Random Tracks",
+          "label": "Play the Whole Library, Shuffled",
+          "exec": "fili-music ctl --pid %pid action library-shuffled"
+        },
+        {
+          "label": "Play the Whole Library, in Order",
+          "exec": "fili-music ctl --pid %pid action library-ordered"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Add Random Tracks",
           "exec": "fili-music ctl --pid %pid action add-random"
+        },
+        {
+          "label": "Keep the Queue Going",
+          "exec": "fili-music ctl --pid %pid action top-up"
+        },
+        {
+          "sep": true
         },
         {
           "label": "Save as Playlist…",
@@ -192,6 +210,14 @@
           "label": "Search",
           "keys": "Ctrl+Shift+F",
           "exec": "fili-music ctl --pid %pid action search"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Debug Logs",
+          "keys": "Ctrl+Shift+L",
+          "exec": "fili-music ctl --pid %pid action debug"
         }
       ]
     }

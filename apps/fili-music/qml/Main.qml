@@ -336,6 +336,7 @@ ApplicationWindow {
         "about": { on: () => true, run: () => win.aboutOpen = !win.aboutOpen },
         "view-search": { on: () => true, run: () => win.openSearch() },
         "focus-filter": { on: () => !win.modal, run: () => Store.focusFilter() },
+        "debug": { on: () => true, run: () => debug.open = !debug.open },
         "refresh": { on: () => true, run: () => { Store.forget(); Store.libraryRev++; win.loadStats(); win.loadPlaylists(); } },
         "fetch-artwork": { on: () => !scanner.fetching && !scanner.scanning, run: () => { scanner.open(false); scanner.fetchArtwork(false); } },
         "back": { on: () => win.canBack, run: () => win.walk(-1) },
@@ -356,7 +357,10 @@ ApplicationWindow {
         "volume-down": { on: () => true, run: () => Store.setVolume(Math.max(0, (Store.player.volume || 0) - 0.05)) },
         "shuffle": { on: () => true, run: () => Store.toggleShuffle() },
         "repeat": { on: () => true, run: () => Store.toggleRepeat() },
-        "add-random": { on: () => true, run: () => Store.callAsync("get_random_tracks", [30], ids => Store.addToQueue(ids || [])) },
+        "add-random": { on: () => true, run: () => Store.addRandom(Store.randomCount) },
+        "library-shuffled": { on: () => true, run: () => Store.playLibrary("random") },
+        "library-ordered": { on: () => true, run: () => Store.playLibrary("ordered") },
+        "top-up": { on: () => true, run: () => Store.setTopUp(!Store.topUp) },
         "save-queue": { on: () => Store.queueIds.length > 0, run: () => win.saveQueue() },
         "clear-queue": { on: () => Store.queueIds.length > 0, run: () => Store.clearQueue() },
         "import-playlist": { on: () => true, run: arg => win.importPlaylist(arg) },
@@ -416,6 +420,7 @@ ApplicationWindow {
     Shortcut { sequence: "Ctrl+F"; onActivated: win.runAction("focus-filter") }
     Shortcut { sequence: "Ctrl+Shift+F"; onActivated: win.openSearch() }
     Shortcut { sequence: "Ctrl+R"; onActivated: win.runAction("refresh") }
+    Shortcut { sequence: "Ctrl+Shift+L"; onActivated: win.runAction("debug") }
     Shortcut { sequence: "Ctrl+Up"; onActivated: win.runAction("volume-up") }
     Shortcut { sequence: "Ctrl+Down"; onActivated: win.runAction("volume-down") }
     Shortcut { sequence: "Ctrl+N"; onActivated: win.newPlaylist() }
@@ -605,7 +610,7 @@ ApplicationWindow {
     // ---- Sidebar -------------------------------------------------------------------------------------------------
     Rectangle {
         id: side
-        anchors { top: toolbar.bottom; bottom: statusbar.top; left: parent.left }
+        anchors { top: toolbar.bottom; bottom: debug.top; left: parent.left }
         width: FiliTheme.sidebarWidth
         color: FiliTheme.backgroundDeep
         Rectangle {
@@ -865,7 +870,7 @@ ApplicationWindow {
     // ---- Content ---------------------------------------------------------------------------------------------------
     Item {
         id: content
-        anchors { top: toolbar.bottom; bottom: statusbar.top; left: side.right; right: player.left }
+        anchors { top: toolbar.bottom; bottom: debug.top; left: side.right; right: player.left }
         clip: true
         // The view is rebuilt when it changes: each one loads its own data
         Loader {
@@ -924,7 +929,7 @@ ApplicationWindow {
     // ---- Player panel ----------------------------------------------------------------------------------------------
     Rectangle {
         id: player
-        anchors { top: toolbar.bottom; bottom: statusbar.top; right: parent.right }
+        anchors { top: toolbar.bottom; bottom: debug.top; right: parent.right }
         width: win.playerWidth
         color: FiliTheme.background
         Rectangle {
@@ -1052,6 +1057,12 @@ ApplicationWindow {
             font.pixelSize: FiliTheme.sizeSmall
             color: FiliTheme.textSecondary
         }
+    }
+
+    // ---- Debug panel: the log of the application, a band above the footer -----------------------------------------------
+    DebugPanel {
+        id: debug
+        anchors { bottom: statusbar.top; left: parent.left; right: parent.right }
     }
 
     // ---- Window actions, dialogs, About ---------------------------------------------------------------------------
@@ -1209,6 +1220,15 @@ ApplicationWindow {
             else
                 Store.callAsync("get_album_tracks", [payload.albumId], d => Store.addToQueue(d ? d.tracks.map(t => t.id) : []));
         }
+    }
+    // While something is dragged to the queue the wheel does nothing: this layer takes the wheel events before the lists under
+    // it (KineticScroll is shared with the shell and Casier, it cannot know about drags)
+    MouseArea {
+        anchors.fill: parent
+        z: 999
+        visible: Store.drag !== null
+        acceptedButtons: Qt.NoButton
+        onWheel: e => e.accepted = true
     }
     Rectangle {
         id: ghost

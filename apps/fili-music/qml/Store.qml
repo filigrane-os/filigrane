@@ -25,7 +25,10 @@ QtObject {
     readonly property bool playing: player.is_playing === true
     readonly property bool hasTrack: player.current_track_id !== null && player.current_track_id !== undefined
     readonly property int currentTrackId: hasTrack ? player.current_track_id : -1
+    // The queue as the core keeps it: `queueIds` in the order the tracks were added, `queueOrder` the order they play in when
+    // shuffle is on (positions in queueIds, empty otherwise). `queueIndex` is the place of the playing track in the play order.
     property var queueIds: []
+    property var queueOrder: []
     property int queueIndex: -1
     property var currentTrack: null
     // Counts the changes of the library (scan, tags, deletion, playlists): the views reload when it moves
@@ -252,8 +255,11 @@ QtObject {
         if (!q)
             return;
         queueIds = q.items || [];
+        const order = q.shuffle && q.shuffle_order ? q.shuffle_order : [];
+        queueOrder = order.length === queueIds.length ? order : [];
         queueIndex = q.current_index === undefined ? -1 : q.current_index;
         queueRev++;
+        topUpIfLow();
         const id = currentTrackId;
         if (id < 0)
             currentTrack = null;
@@ -261,6 +267,52 @@ QtObject {
             callAsync("get_track_by_id", [id], t => currentTrack = t);
     }
     property int queueRev: 0
+    // ---- Whole library and random tracks ------------------------------------------------------------------------------
+    // The Rust side builds the ids and fills the queue (they never pass through here)
+    function playLibrary(order) {
+        callAsync("queue_library", [order, true], () => {
+            Music.tick();
+            refreshQueue();
+        });
+    }
+    function addRandom(count) {
+        randomCount = count;
+        Fili.setUiState("random_count", String(count));
+        callAsync("add_random_to_queue", [count], () => refreshQueue());
+    }
+    // Number of random tracks the dice adds and the top-up keeps coming
+    property int randomCount: Number(Fili.uiState("random_count")) || 30
+    // Keeps the queue going: when few tracks remain after the playing one, random ones are added
+    property bool topUp: Fili.uiState("top_up") === "on"
+    property int topUpAt: -1   // queue length of the last top-up, so that a library with nothing left to add is not asked again
+    function setTopUp(on) {
+        topUp = on;
+        Fili.setUiState("top_up", on ? "on" : "off");
+        topUpAt = -1;
+        topUpIfLow();
+    }
+    function topUpIfLow() {
+        if (!topUp || queueIds.length === 0 || queueIndex < 0 || queueIds.length === topUpAt)
+            return;
+        if (queueIds.length - 1 - queueIndex >= Math.max(5, Math.floor(randomCount / 3)))
+            return;
+        topUpAt = queueIds.length;
+        callAsync("add_random_to_queue", [randomCount], d => {
+            if (d && d.count > 0)
+                refreshQueue();
+        });
+    }
+    // Track id and position in queueIds of the track played at place `pos` of the queue
+    function queueRawAt(pos) {
+        return queueOrder.length === queueIds.length && pos >= 0 && pos < queueOrder.length ? queueOrder[pos] : pos;
+    }
+    function queueIdAt(pos) {
+        return queueIds[queueRawAt(pos)];
+    }
+    // The ids in play order
+    function queuePlayOrder() {
+        return queueOrder.length === queueIds.length ? queueOrder.map(i => queueIds[i]) : queueIds.slice();
+    }
     function playNow(trackIds, start) {
         if (!trackIds || trackIds.length === 0)
             return;
@@ -333,7 +385,7 @@ QtObject {
         refreshQueue();
     }
     function playQueueAt(index) {
-        act("jump_to_queue_index", [index]);
+        act("jump_to_queue_index", [queueRawAt(index)]);
         refreshQueue();
     }
     function togglePlay() {
@@ -375,13 +427,12 @@ QtObject {
     }
     function removeFromQueue(index) {
         const keep = queueIds.slice();
-        keep.splice(index, 1);
-        const was = queueIndex;
+        keep.splice(queueRawAt(index), 1);
         call("reorder_queue", [JSON.stringify(keep)]);
         refreshQueue();
     }
     function moveInQueue(from, to) {
-        const list = queueIds.slice();
+        const list = queuePlayOrder();
         const [x] = list.splice(from, 1);
         list.splice(to, 0, x);
         call("reorder_queue", [JSON.stringify(list)]);

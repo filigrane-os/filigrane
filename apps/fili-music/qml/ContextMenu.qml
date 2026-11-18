@@ -25,7 +25,7 @@ Item {
         items = list;
         current = -1;
         subOpen = false;
-        panel.x = Math.max(FiliTheme.space1, Math.min(x, menu.width - menuWidth - FiliTheme.space1));
+        panel.x = Math.max(FiliTheme.space1, Math.min(x, menu.width - panel.width - FiliTheme.space1));
         // Height known in advance (the Repeater has not created its rows yet); too low: the menu opens upwards
         const h = list.reduce((a, i) => a + (i.separator ? 9 : menu.itemHeight), 0) + 2 * FiliTheme.space1;
         panel.y = Math.max(FiliTheme.space1, y + h > menu.height ? y - h : y);
@@ -94,7 +94,21 @@ Item {
         property int cur: -1
         signal hovered(int index)
         signal chosen(int index)
-        width: menu.menuWidth
+        // Wide enough for the longest label (and its shortcut), never narrower than menuWidth, never wider than 420
+        FontMetrics { id: fm; font.family: FiliTheme.font; font.pixelSize: FiliTheme.size }
+        FontMetrics { id: fmSmall; font.family: FiliTheme.font; font.pixelSize: FiliTheme.sizeSmall }
+        function fit(items) {
+            let w = 0;
+            for (const i of items) {
+                if (i.separator)
+                    continue;
+                const hint = i.children ? 12 : (i.hint ? fmSmall.advanceWidth(i.hint) : 0);
+                w = Math.max(w, fm.advanceWidth(i.label || "") + hint);
+            }
+            // Margins of the row, gutter of the check marks, space before the hint
+            return Math.ceil(w) + 2 * FiliTheme.space2 + (gutter ? 18 : 0) + 2 * FiliTheme.space1 + (w > 0 ? FiliTheme.space2 : 0);
+        }
+        width: Math.min(420, Math.max(menu.menuWidth, fit(model)))
         height: col.height + 2 * FiliTheme.space1
         radius: FiliTheme.radiusControl + 2
         color: FiliTheme.surface

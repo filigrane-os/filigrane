@@ -392,6 +392,16 @@ Rectangle {
                         spacing: FiliTheme.space1
                         Bar { visible: dlg.fetching; value: dlg.artFraction }
                         Note { text: dlg.artProgress.processedItems + " / " + dlg.artProgress.totalItems + "  ·  ✓ " + dlg.artProgress.successful + "  ·  ✗ " + dlg.artProgress.failed }
+                        // "New covers only" skips every album the core already tried (found or not): often nothing is left
+                        Note {
+                            visible: dlg.artDone && dlg.artProgress.totalItems === 0
+                            text: Fili.tr("Nothing new to fetch: the albums and artists still without a cover were already tried.")
+                        }
+                        TextButton {
+                            visible: dlg.artDone && dlg.artProgress.totalItems === 0
+                            label: Fili.tr("Everything again")
+                            onClicked: dlg.fetchArtwork(true)
+                        }
                         Note {
                             visible: dlg.fetching && dlg.artProgress.currentItem !== ""
                             elide: Text.ElideRight
