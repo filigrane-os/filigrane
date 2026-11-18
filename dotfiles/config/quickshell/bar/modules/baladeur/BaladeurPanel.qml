@@ -41,7 +41,7 @@ ColumnLayout {
     Timer { id: settle; interval: 350; onTriggered: view.refresh() }
     Timer { interval: 3000; running: true; repeat: true; onTriggered: view.refresh() }
     Process { id: run }
-    // `fili-music` again: it shows the hidden window of the running program, or raises the visible one
+    // `fili-music` alone shows the hidden window or brings the open one to the front
     Process { id: openWindow; command: ["fili-music"] }
     Process {
         id: read
@@ -348,17 +348,14 @@ ColumnLayout {
             }
         }
 
-        // The cover and the text open the window of Baladeur (the volume dial on the right keeps its own mouse)
+        // The cover and the texts open the window of Baladeur
         MouseArea {
             x: top.x
             y: top.y
             width: top.width - dial.width - top.spacing
             height: top.height
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                openWindow.running = true;
-                FiliPanel.close();
-            }
+            onClicked: openWindow.running = true
             Accessible.role: Accessible.Button
             Accessible.name: FiliI18n.tr("Open Baladeur")
         }
