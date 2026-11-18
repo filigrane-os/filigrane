@@ -108,6 +108,8 @@ fn redact(input: &str) -> String {
                 format!("<email>{tail}")
             } else if is_ipv4(word) || is_mac(word) {
                 format!("<address>{tail}")
+            } else if is_phone(word) {
+                format!("<phone>{tail}")
             } else {
                 chunk.to_string()
             }
@@ -120,6 +122,11 @@ fn is_email(w: &str) -> bool {
         Some((a, b)) => !a.is_empty() && b.contains('.') && !b.starts_with('.') && !b.ends_with('.') && !w.contains('/') && !w.contains(':'),
         None => false,
     }
+}
+
+// An international phone number (+ and 8 to 15 digits), as the messaging connectors may print one in an error
+fn is_phone(w: &str) -> bool {
+    w.strip_prefix('+').is_some_and(|d| (8..=15).contains(&d.len()) && d.chars().all(|c| c.is_ascii_digit()))
 }
 
 fn is_ipv4(w: &str) -> bool {
@@ -367,8 +374,11 @@ mod tests {
         assert!(!out.contains(&home) && out.contains("~/Music/Artist/a.flac"), "{out}");
         assert!(out.contains("<email>") && !out.contains("bob@"), "{out}");
         assert!(out.contains("<address>") && !out.contains("192.168") && !out.contains("aa:bb"), "{out}");
-        // Not an address: a version, a time, a QML location
-        assert_eq!(redact("v1.2.3 11:56:21.170 Main.qml:12:5"), "v1.2.3 11:56:21.170 Main.qml:12:5");
+        // Not an address: a version, a time, a QML location, a count
+        assert_eq!(redact("v1.2.3 11:56:21.170 Main.qml:12:5 +12"), "v1.2.3 11:56:21.170 Main.qml:12:5 +12");
+        // A phone number, alone or as a WhatsApp id
+        let out = redact("pair +33612345678 failed for 33612345678@s.whatsapp.net");
+        assert!(!out.contains("3361234"), "{out}");
     }
 
     #[test]
