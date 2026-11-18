@@ -446,6 +446,11 @@ Rectangle {
                             onClicked: dlg.cancelArtwork()
                         }
                         TextButton {
+                            visible: !dlg.fetching && !dlg.artAsk
+                            label: Fili.tr("Artist photos")
+                            onClicked: dlg.fetchArtwork(true, true)
+                        }
+                        TextButton {
                             visible: !dlg.fetching && !dlg.artAsk && dlg.missing === null
                             label: Fili.tr("Albums without a cover")
                             onClicked: dlg.loadMissing()
