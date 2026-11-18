@@ -16,12 +16,12 @@ BarModule {
     // What the bar shows: kept while the player has no title for a moment (between two tracks)
     property string label: ""
     function follow() {
-        if (player && player.trackTitle)
-            label = (player.trackArtist ? player.trackArtist + " - " : "") + player.trackTitle;
-            if (label.length > 36)
-                label = label.slice(0, 35) + "…";
-        else if (!player)
+        if (player && player.trackTitle) {
+            let t = (player.trackArtist ? player.trackArtist + " - " : "") + player.trackTitle;
+            label = t.length > 28 ? t.slice(0, 27) + "…" : t;
+        } else if (!player) {
             label = "";
+        }
     }
     onPlayerChanged: follow()
     Connections {
@@ -32,24 +32,15 @@ BarModule {
     Component.onCompleted: follow()
 
     BarRow {
-        // Previous (Fili Icons skip-back)
-        BarItem {
-            objectName: "baladeur-prev"
-            text: mod.player ? String.fromCodePoint(0xf2f11) : ""
-            pad: 4
-            color: FiliTheme.barText2
-            tip: FiliI18n.tr("Previous")
-            hover.onLeftClicked: if (mod.player) mod.player.previous()
-        }
         BarScript {
             id: item
             objectName: "baladeur"
             title: "Baladeur"
             panelNeedsVisible: true
             mclick: "fili-music ctl action play-pause"
-            // A squeezed bar (compact_at) keeps the previous / next buttons and drops the title
-            value: mod.player && mod.label !== "" && !mod.compact ? {
-                text: mod.label,
+            // The title stays when the bar is squeezed, only shorter
+            value: mod.player && mod.label !== "" ? {
+                text: mod.compact && mod.label.length > 18 ? mod.label.slice(0, 17) + "…" : mod.label,
                 "class": mod.player.isPlaying ? "playing" : "paused",
                 tooltip: { title: "Baladeur", text: mod.player.trackAlbum, hint: FiliI18n.tr("click: panel · middle click: play/pause · right click: window · wheel: previous / next") }
             } : { text: "" }
@@ -58,15 +49,6 @@ BarModule {
             hover.onLeftClicked: mod.togglePanel(hover)
             hover.onWheelUp: if (mod.player) mod.player.previous()
             hover.onWheelDown: if (mod.player) mod.player.next()
-        }
-        // Next (Fili Icons skip-forward)
-        BarItem {
-            objectName: "baladeur-next"
-            text: mod.player ? String.fromCodePoint(0xf2f12) : ""
-            pad: 4
-            color: FiliTheme.barText2
-            tip: FiliI18n.tr("Next")
-            hover.onLeftClicked: if (mod.player) mod.player.next()
         }
     }
 }
