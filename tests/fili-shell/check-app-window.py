@@ -22,7 +22,7 @@ DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "f
                "fili-term": "Ctrl+Shift+L"}
 # Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"). An application joins this list when
 # it gets the button; it can never leave it.
-ROB_BUTTON = ["fili-file", "fili-recorder"]
+ROB_BUTTON = ["fili-file", "fili-recorder", "fili-music"]
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -62,7 +62,7 @@ def bare_views(text):
 def normalize(text):
     """Drops the module import and the singleton name, the only allowed differences between copies."""
     text = re.sub(r"^import Fili\.\w+\s*$", "", text, flags=re.M)
-    calls = r"tr|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
+    calls = r"tr|askRob|robAvailable|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
     return re.sub(rf"\b[A-Z][A-Za-z]*\.(?=({calls})\b)", "APP.", text)
 
 

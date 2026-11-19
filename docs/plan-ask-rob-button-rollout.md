@@ -135,7 +135,7 @@ One application per session of work; after each one the user tests it live befor
 
 - [ ] Casier tagged with the button (version noted in its `CHANGELOG.md`, pin updated here, README figures)
 - [x] Cassette
-- [ ] Baladeur
+- [x] Baladeur (committed on feat/ask-rob-button, not tagged yet)
 - [ ] Conversations
 - [ ] Facteur
 - [ ] Aéroport
