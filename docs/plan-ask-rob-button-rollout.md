@@ -78,8 +78,9 @@ Reference application: **Casier**, repository `filigrane-os/fili-file`, branch `
    (`make check`).
 7. **Deploy locally and let the user test** (section 5 gives each application's command). Look at the header with a niri
    screenshot at normal and narrow widths: the button must not overlap the search field or the title, text must elide.
-8. After the user's OK: `CHANGELOG.md` section, version bump, tag `vX.Y.Z` (the tag naming of each repository is in section
-   5), then here: change `ref` in `apps/<app>/upstream`, run `tests/fili-shell/run.sh`, note version, CPU and RAM in the
+8. After the user's OK: `CHANGELOG.md` section and version bump in `Cargo.toml`, merged to `main`: the CI of the repository
+   (`.github/workflows/ci.yml`) then creates the tag `vX.Y.Z` (`facteur-vX.Y.Z` for Facteur) and the release by itself, never
+   tag by hand; then here: change `ref` in `apps/<app>/upstream`, run `tests/fili-shell/run.sh`, note version, CPU and RAM in the
    README (rule: every new application version records them), commit, and tick the box in section 7.
 
 ## 4. Work in this repository (once, before or with the first rollout)
