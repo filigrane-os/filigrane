@@ -501,7 +501,7 @@ setup_apps() {
         sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon third_party connectors -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         # Programs of the tool (BINS in package.env, e.g. fili-term and its session daemon), default: the one named like it
-        bins="$(BINS="" && . "$src/package.env" 2>/dev/null && echo "$BINS")"; bins="${bins:-$name}"
+        bins="$(BINS=""; [ -f "$src/package.env" ] && . "$src/package.env"; echo "$BINS")"; bins="${bins:-$name}"
         if ! (for bin in $bins; do [ -x "$dir/$bin" ] || exit 1; done); then
             log 'Building %s (%s)' "$name" "$sum"
             # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
