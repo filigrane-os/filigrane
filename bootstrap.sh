@@ -484,7 +484,11 @@ build_go_bins() {
 # With the <distro>-apps package (xbps repository of the distribution, see distro/), the binaries are already in /usr/bin.
 setup_apps() {
     local app name src sum dir alias bin bins
-    if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"; return 0; fi
+    if xbps-query "$DISTRO-apps" >/dev/null 2>&1; then
+        say 'SKIP: apps/ provided by the %s-apps package' "$DISTRO"
+        link_app_shell
+        return 0
+    fi
     for app in "$ROOT"/apps/*/; do
         app="${app%/}"; name="$(basename "$app")"
         if [ -f "$app/upstream" ]; then
@@ -522,8 +526,26 @@ setup_apps() {
         for alias in $(ALIASES="" && . "$src/package.env" 2>/dev/null && echo "$ALIASES"); do
             run_as_user ln -sfn "$dir/$name" "$TARGET_HOME/.local/bin/$alias"
         done
+        setup_app_shell "$src"
     done
     setup_apps_git
+    link_app_shell
+}
+
+# What an application ships for the shell (its shell/ folder: fili-bar/<module>/, appmenu/<app_id>.json, rob/<app_id>.md) is
+# linked into ~/.local/share/filigrane/shell, where a package would put it in /usr/share, then into the bar and the fallback
+# menus by fili-bar link-system. $1 = application name, $2 = its source folder (none: only the links are refreshed).
+setup_app_shell() {
+    local src="$1" data="$TARGET_HOME/.local/share/filigrane/shell" f kind
+    [ -d "$src/shell" ] || return 0
+    for f in "$src"/shell/*/*; do
+        [ -e "$f" ] || continue
+        kind="$(basename "$(dirname "$f")")"
+        run_as_user mkdir -p "$data/$kind" && run_as_user ln -sfn "$f" "$data/$kind/$(basename "$f")"
+    done
+}
+link_app_shell() {
+    run_as_user sh "$ROOT/dotfiles/home/.local/bin/fili-bar" link-system || warn 'fili-bar link-system failed'
 }
 
 # Third-party tools in Rust (apps/<name>/source: url, commit, bins): cloned at a precise commit, compiled in ~/.cache, installed
