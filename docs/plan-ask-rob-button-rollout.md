@@ -140,7 +140,7 @@ One application per session of work; after each one the user tests it live befor
 - [x] Facteur (committed on feat/ask-rob-button, not tagged yet, not yet tried by the user)
 - [x] Aéroport (committed on feat/ask-rob-button, not tagged yet, not yet tried by the user)
 - [ ] `check-app-window.py` checks `ROB_BUTTON` for every application above, and `tests/fili-shell/run.sh` passes
-- [ ] `app-window.md` lists the applications that have the button
+- [x] `app-window.md` lists the applications that have the button
 
 Check on each application, by hand: the bubble is at the left of the window button; a click shows the floating field titled
 "Rob, about <Name>" (the display name, e.g. "Casier"); Enter opens the chat on a new session that answers about this
