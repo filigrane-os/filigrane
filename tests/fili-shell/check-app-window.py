@@ -20,9 +20,11 @@ SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPa
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
 DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "fili-im": "Ctrl+Shift+L",
                "fili-term": "Ctrl+Shift+L"}
-# Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"). An application joins this list when
-# it gets the button; it can never leave it.
-ROB_BUTTON = ["fili-file", "fili-recorder", "fili-music", "fili-im", "fili-mail", "fili-term"]
+# Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"), with the first version that has
+# it: a pinned older version (apps/<name>/upstream) is not held to it, and the check starts by itself when the pin reaches
+# that version. An application joins this list when it gets the button; it can never leave it.
+ROB_BUTTON = {"fili-file": (1, 14, 0), "fili-recorder": (0, 1, 0), "fili-music": (0, 1, 1), "fili-im": (0, 1, 5),
+              "fili-mail": (1, 5, 0), "fili-term": (3, 2, 0)}
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -124,9 +126,16 @@ def check(ref, src, name):
         problems.append(f"{menu.name}: no About entry")
     if name in DEBUG_PANEL:
         problems += check_debug(ref, src, name, menu)
-    if name in ROB_BUTTON:
+    if name in ROB_BUTTON and version_of(src) >= ROB_BUTTON[name]:
         problems += check_rob(ref, src)
     return problems
+
+
+def version_of(src):
+    """Version of Cargo.toml as a tuple, (0,) when there is none (a source without it is held to every check)."""
+    cargo = src / "Cargo.toml"
+    m = re.search(r'^version\s*=\s*"(\d+)\.(\d+)\.(\d+)', cargo.read_text(), re.M) if cargo.is_file() else None
+    return tuple(int(x) for x in m.groups()) if m else (999,)
 
 
 def check_rob(ref, src):
