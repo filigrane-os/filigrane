@@ -11,6 +11,9 @@
 // fili-incident issue ID           the issue as it would be sent (title and body, with the private details removed)
 // fili-incident submit ID [--yes]  existing issue: +1 (with gh and --yes), else opens it; none: creates it (gh and --yes), else
 //                                  opens the prefilled form and copies the report
+// fili-incident pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes]
+//                                  proposes the fix as a pull request: the branch checked out in the clone PATH (default: the
+//                                  current folder) of the incident's repository; without --yes only the PR text is shown
 // fili-incident ignore ID | clear  forgets an incident | removes the ignored and reported ones older than 30 days
 // An incident is ~/.local/state/filigrane/incidents/<id>.json, written by the application (apps/fili-music/src/logs.rs):
 // {id, app, repo, version, kind, signature, message, when, state, log: [lines]}; state: new | notified | ignored | reported.
@@ -266,6 +269,101 @@ fn submit(id: &str, yes: bool) -> Result<(), String> {
     Ok(())
 }
 
+// ---- The fix as a pull request --------------------------------------------------------------------------------------------
+
+// Title and body of the PR: what Rob wrote (redacted like the issue), then the link to the issue and the incident signature
+fn pr_text(incident: &Value, title: Option<&str>, summary: &str, issue_number: Option<i64>) -> (String, String) {
+    let title = redact(title.unwrap_or_else(|| first_line(summary)));
+    let title = if title.trim().is_empty() { format!("Fix: {}", shorten(&redact(first_line(text(incident, "message"))), 80)) } else { shorten(&title, 100) };
+    let mut body = redact(summary.trim());
+    body.push_str("\n\n");
+    if let Some(n) = issue_number {
+        body.push_str(&format!("Fixes #{n}\n\n"));
+    }
+    body.push_str(&format!(
+        "<!-- fili-incident:{} -->\n_Prepared on the reporter's machine by its assistant from a fili-incident report; the private details were removed. Not reviewed by a maintainer yet._\n",
+        text(incident, "signature")
+    ));
+    (title, body)
+}
+
+fn git(dir: &str, args: &[&str]) -> Option<String> {
+    let mut a = vec!["-C", dir];
+    a.extend_from_slice(args);
+    run("git", &a).map(|s| s.trim().to_string())
+}
+
+fn read_body(file: Option<&str>) -> Result<String, String> {
+    match file {
+        None => Ok(String::new()),
+        Some("-") => {
+            let mut s = String::new();
+            std::io::Read::read_to_string(&mut std::io::stdin(), &mut s).map_err(|e| e.to_string())?;
+            Ok(s)
+        }
+        Some(f) => fs::read_to_string(f).map_err(|e| format!("{f}: {e}")),
+    }
+}
+
+fn pr(id: &str, dir: &str, title: Option<&str>, body_file: Option<&str>, yes: bool) -> Result<(), String> {
+    let incident = load(id)?;
+    let repo = text(&incident, "repo").to_string();
+    let branch = git(dir, &["rev-parse", "--abbrev-ref", "HEAD"]).ok_or("not a git clone: use --dir PATH")?;
+    if matches!(branch.as_str(), "main" | "master" | "develop" | "HEAD") {
+        return Err(format!("the fix must be on its own branch, not {branch}"));
+    }
+    let remote_ok = git(dir, &["remote", "get-url", "origin"]).is_some_and(|u| u.contains(&repo) || u.contains(repo.rsplit('/').next().unwrap_or("?")));
+    if !remote_ok {
+        return Err(format!("{dir} is not a clone of {repo}"));
+    }
+    let ahead = git(dir, &["rev-list", "--count", "origin/main..HEAD"]).unwrap_or_default();
+    if ahead == "0" || ahead.is_empty() {
+        return Err("the branch has no commit to propose (commit the fix first)".into());
+    }
+    let issue_number = find_existing(&incident).ok().flatten().and_then(|f| f["number"].as_i64());
+    let (title, body) = pr_text(&incident, title, &read_body(body_file)?, issue_number);
+    println!("Branch {branch} ({ahead} commit(s)) -> {repo}\n\n{title}\n\n{body}");
+    if let Some(files) = git(dir, &["diff", "--stat", "origin/main...HEAD"]) {
+        println!("{files}");
+    }
+    if !yes {
+        println!("Nothing was sent: run again with --yes to push the branch and open the pull request.");
+        return Ok(());
+    }
+    if !gh_ready() {
+        return Err("gh is missing or not logged in: a pull request needs a GitHub account (gh auth login)".into());
+    }
+    // Push access: the branch goes to the repository itself, else to the user's fork
+    let can_push = run("gh", &["api", &format!("repos/{repo}"), "--jq", ".permissions.push"]).is_some_and(|o| o.trim() == "true");
+    let head = if can_push {
+        git(dir, &["push", "-u", "origin", &branch]).ok_or("git push failed")?;
+        branch.clone()
+    } else {
+        run("gh", &["repo", "fork", &repo, "--clone=false"]);
+        let login = run("gh", &["api", "user", "--jq", ".login"]).ok_or("gh could not tell the account")?.trim().to_string();
+        let name = repo.rsplit('/').next().unwrap_or(&repo);
+        let fork = format!("https://github.com/{login}/{name}.git");
+        git(dir, &["push", &fork, &format!("{branch}:{branch}")]).ok_or("git push to the fork failed")?;
+        format!("{login}:{branch}")
+    };
+    let mut c = Command::new("gh")
+        .args(["pr", "create", "--repo", &repo, "--head", &head, "--base", "main", "--title", &title, "--body-file", "-"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    c.stdin.take().ok_or("no stdin")?.write_all(body.as_bytes()).map_err(|e| e.to_string())?;
+    let out = c.wait_with_output().map_err(|e| e.to_string())?;
+    if !out.status.success() {
+        return Err("gh could not create the pull request".into());
+    }
+    let url = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    println!("Pull request created: {url}");
+    set_state(id, "reported", Some(("pr", &url)));
+    Ok(())
+}
+
 // ---- Rob and the notification ---------------------------------------------------------------------------------------------
 
 fn ask(id: &str) -> Result<(), String> {
@@ -327,7 +425,15 @@ fn show(id: &str) -> Result<(), String> {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let yes = args.iter().any(|a| a == "--yes");
-    let rest: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--yes").collect();
+    let mut rest: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--yes").collect();
+    // Options with a value (pr): taken out of the positional words
+    let mut opt = |name: &str| -> Option<String> {
+        let i = rest.iter().position(|a| *a == name)?;
+        let v = rest.get(i + 1)?.to_string();
+        rest.drain(i..i + 2);
+        Some(v)
+    };
+    let (dir_opt, title_opt, body_opt) = (opt("--dir"), opt("--title"), opt("--body-file"));
     let result = match rest.as_slice() {
         ["list", flags @ ..] => {
             let all = flags.contains(&"--all");
@@ -345,6 +451,7 @@ fn main() {
             println!("{title}\n\n{body}");
         }),
         ["submit", id] => submit(id, yes),
+        ["pr", id] => pr(id, dir_opt.as_deref().unwrap_or("."), title_opt.as_deref(), body_opt.as_deref(), yes),
         ["ignore", id] => load(id).map(|_| set_state(id, "ignored", None)),
         ["clear"] => {
             println!("{} removed", clear());
@@ -354,7 +461,7 @@ fn main() {
             println!("fili-incident {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
-        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | check ID | issue ID | submit ID [--yes] | ignore ID | clear".into()),
+        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | check ID | issue ID | submit ID [--yes] | pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes] | ignore ID | clear".into()),
     };
     if let Err(e) = result {
         eprintln!("fili-incident: {e}");
@@ -396,6 +503,17 @@ mod tests {
         assert!(title.starts_with("[fili-music] TypeError in "), "{title}");
         assert!(body.starts_with("<!-- fili-incident:abc123 -->"));
         assert!(body.contains("line two") && !body.contains(&home()));
+    }
+
+    #[test]
+    fn the_pull_request_links_the_issue_and_hides_private_details() {
+        let incident = json!({ "app": "fili-file", "repo": "o/r", "signature": "abc123", "message": "boom" });
+        let summary = format!("Fix the crash\n\nSeen in {}/x.rs", home());
+        let (title, body) = pr_text(&incident, None, &summary, Some(7));
+        assert_eq!(title, "Fix the crash");
+        assert!(body.contains("Fixes #7") && body.contains("fili-incident:abc123") && !body.contains(&home()), "{body}");
+        let (title, _) = pr_text(&incident, None, "", None);
+        assert_eq!(title, "Fix: boom");
     }
 
     #[test]

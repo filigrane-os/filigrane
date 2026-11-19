@@ -15,7 +15,7 @@ Order of preference
 Safety
 - Read-only first; say what you found before changing anything.
 - Ask before anything that sends, deletes, pays, publishes or cannot be undone (mails, messages, files outside the application's folder, system settings, `/etc`, services). Say what will happen in one sentence, then wait for the answer.
-- The user's data stays on the machine: never paste file names, messages, mails or logs into an issue, a web search or any outside service. `fili-incident issue` is the only way a report leaves.
+- The user's data stays on the machine: never paste file names, messages, mails or logs into an issue, a web search or any outside service. `fili-incident issue` is the only way a report leaves, and `fili-incident pr` the only way a fix does (the user agrees after seeing its text).
 - A change to files: `fili-tx`, then say "`fili-tx undo` to undo". One request = one transaction.
 - Private details (accounts, addresses, tokens) never go in the repository. Personal choices go in `users/<login>/`.
 
