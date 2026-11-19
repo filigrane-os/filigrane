@@ -23,6 +23,12 @@ for needle in ('Some("here")', '"scope" =>', "fn scope_line"):
 fr = json.loads((root / "dotfiles/config/quickshell/i18n/fr.json").read_text())
 if "Ask Rob…" not in fr:
     errors.append("i18n/fr.json: 'Ask Rob…' is not translated")
+# Every application with a fallback menu has its brief for Rob (agents/rob/<app_id>.md), and there is a generic one
+if not (root / "agents/rob/_default.md").exists():
+    errors.append("agents/rob/_default.md is missing")
+for f in sorted((root / "dotfiles/config/filigrane/appmenu").glob("fili-*.json")):
+    if f.stem != "fili-chat" and not (root / "agents/rob" / f"{f.stem}.md").exists():
+        errors.append(f"agents/rob/{f.stem}.md is missing (brief of Rob for {f.stem})")
 if errors:
     print("\n".join(errors))
     sys.exit(1)

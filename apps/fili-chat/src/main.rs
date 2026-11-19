@@ -716,6 +716,25 @@ fn scope_line(link: &str) -> String {
     )
 }
 
+/// Hidden brief of a scoped session, sent with its first message: agents/rob/_default.md, then agents/rob/<app_id>.md of the
+/// repository (what the application's own commands are, what it must never do), then ~/.config/filigrane/rob/<app_id>.md
+/// (personal additions). The agent keeps it for the whole session (`--resume`).
+fn scope_brief(link: &str, dir: &str) -> String {
+    let app = link.split('\n').next().unwrap_or("");
+    // The app id names a file: nothing that could leave the folder
+    if app.is_empty() || !app.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')) || app.starts_with('.') {
+        return String::new();
+    }
+    let cfg = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
+    let files = [format!("{dir}/agents/rob/_default.md"), format!("{dir}/agents/rob/{app}.md"), format!("{cfg}/filigrane/rob/{app}.md")];
+    let text: Vec<String> = files.iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
+    if text.is_empty() {
+        String::new()
+    } else {
+        format!("[Consignes de la session « {app} » (invisibles pour l'utilisateur):\n{}]\n\n", text.join("\n\n"))
+    }
+}
+
 fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     if d.session(id).is_none() || text.trim().is_empty() {
         return;
@@ -740,7 +759,11 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     }
     let mut m = Json::obj();
     m.set("role", "user");
-    let scope = d.session(id).filter(|s| s.scoped && !s.link.is_empty()).map(|s| scope_line(&s.link)).unwrap_or_default();
+    let scope = d
+        .session(id)
+        .filter(|s| s.scoped && !s.link.is_empty())
+        .map(|s| if s.started { scope_line(&s.link) } else { format!("{}{}", scope_brief(&s.link, &conf().dir), scope_line(&s.link)) })
+        .unwrap_or_default();
     let ctx = if with_context { context_line().unwrap_or_default() } else { String::new() };
     let full = format!("{scope}{ctx}{text}");
     m.set("content", full);
@@ -1141,6 +1164,22 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn brief_reads_default_and_app_files_and_refuses_odd_names() {
+        let dir = env::temp_dir().join(format!("fili-chat-brief-{}", std::process::id()));
+        fs::create_dir_all(dir.join("agents/rob")).unwrap();
+        fs::write(dir.join("agents/rob/_default.md"), "GENERIC").unwrap();
+        fs::write(dir.join("agents/rob/fili-file.md"), "CASIER").unwrap();
+        let d = dir.display().to_string();
+        let b = scope_brief("fili-file\nDownloads", &d);
+        assert!(b.contains("GENERIC") && b.contains("CASIER"));
+        let other = scope_brief("fili-term", &d);
+        assert!(other.contains("GENERIC") && !other.contains("CASIER"));
+        assert_eq!(scope_brief("../etc/passwd", &d), "");
+        assert_eq!(scope_brief("", &d), "");
+        let _ = fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn scope_names_the_application_only() {
