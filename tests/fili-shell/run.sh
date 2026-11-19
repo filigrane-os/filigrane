@@ -30,6 +30,15 @@ cp -r "$ROOT/dotfiles/config/quickshell" "$T/config"
 cp "$ROOT/tests/fili-shell/TestShell.qml" "$T/config/shell.qml"
 # Repo scripts, and compiled apps/ binaries (bar-stats): $FILI_APPS (build in progress), else ~/.local/bin, then /usr/bin
 for f in "$ROOT"/dotfiles/home/.local/bin/*; do ln -s "$f" "$T/bin/"; done
+# bar-update counts the pending xbps updates of the machine: the answer depends on the system (a stale container image has
+# some), and an active indicator turns the status icon on and adds a panel to the keyboard ring. The bench has none.
+rm -f "$T/bin/bar-update"
+cat > "$T/bin/bar-update" <<'SH'
+#!/bin/sh
+[ "${1:-}" = run ] && exit 0
+printf '{"text":""}\n'
+SH
+chmod +x "$T/bin/bar-update"
 # Packaged tools (fili-apps) are in /usr/bin; a local build or ~/.local/bin wins when present
 for n in bar-stats fili-ai-session fili-appmenu fili-recorder fili-music; do
     for d in "${FILI_APPS:-$HOME/.local/bin}" /usr/bin; do [ -e "$d/$n" ] && { ln -sf "$d/$n" "$T/bin/"; break; }; done
