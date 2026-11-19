@@ -301,7 +301,15 @@ Singleton {
         tries = 0;
         retry.start();
     }
-    readonly property bool wantLink: open || busy || hereWant
+    // A question sent from the floating field (FiliAsk) keeps the link until the agent starts working (`busy` takes over):
+    // without it the link would drop before the daemon answered "created", and the question would never be sent
+    property bool awaiting: false
+    Timer {
+        id: awaitingTimer
+        interval: 30000
+        onTriggered: chat.awaiting = false
+    }
+    readonly property bool wantLink: open || busy || awaiting
     onWantLinkChanged: {
         if (wantLink) {
             ensure();
@@ -435,6 +443,8 @@ Singleton {
         followPending = false;
         hereWant = true;
         hereText = text;
+        awaiting = true;
+        awaitingTimer.restart();
         ctxReady = false;
         sessionsFresh = link.connected;
         if (!FiliTheme.testing) {
@@ -560,6 +570,8 @@ Singleton {
         const m = Object.assign({}, states);
         m[id] = st;
         states = m;
+        if (st !== "idle")
+            awaiting = false;
         if (st === "idle" && id === current)
             live = "";
         // Turn finished out of sight of the drawer: to read

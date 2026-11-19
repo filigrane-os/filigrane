@@ -1796,6 +1796,14 @@ ShellRoot {
                 FiliAsk.close();
                 ok(!FiliAsk.open, "fili-ask: close hides the field");
             },
+            // fili-ask: a question sent from the field keeps the link to the daemon until the agent works (the link used to
+            // drop before "created", so the question was never sent)
+            () => {
+                FiliChat.awaiting = true;
+                ok(FiliChat.wantLink && !FiliChat.open, "fili-ask: the link is wanted while a question from the field is awaited");
+                FiliChat.awaiting = false;
+                ok(!FiliChat.wantLink || FiliChat.busy, "fili-ask: and let go afterwards");
+            },
             // fili-chat: "About Rob" card (robot icon, name Rob), closed by another panel
             () => {
                 FiliChat.hide();

@@ -13,7 +13,7 @@ niri = (root / "dotfiles/config/niri/config.kdl").read_text()
 if not re.search(r'^\s*Mod\+Ctrl\+Y\b.*spawn-sh "fili-chat here"', niri, re.M):
     errors.append("niri: Mod+Ctrl+Y does not run 'fili-chat here'")
 qml = (root / "dotfiles/config/quickshell/FiliChat.qml").read_text()
-for needle in ('case "here":', 'op: "scope"', "function hereNow()", "function askHere(", "FiliAsk.show()"):
+for needle in ('case "here":', 'op: "scope"', "function hereNow()", "function askHere(", "FiliAsk.show()", "property bool awaiting"):
     if needle not in qml:
         errors.append(f"FiliChat.qml: missing {needle}")
 if "FiliAsk.open;" not in (root / "dotfiles/config/quickshell/shell.qml").read_text():
