@@ -28,6 +28,7 @@ ShellRoot {
         FiliLauncher.open;
         FiliChat.open;
         FiliChatAbout.open;
+        FiliAsk.open;
         FiliPlacement.columns;
         FiliAudioSwitch.open;
         FiliPolkit.open;

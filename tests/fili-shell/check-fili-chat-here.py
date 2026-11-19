@@ -13,14 +13,21 @@ niri = (root / "dotfiles/config/niri/config.kdl").read_text()
 if not re.search(r'^\s*Mod\+Ctrl\+Y\b.*spawn-sh "fili-chat here"', niri, re.M):
     errors.append("niri: Mod+Ctrl+Y does not run 'fili-chat here'")
 qml = (root / "dotfiles/config/quickshell/FiliChat.qml").read_text()
-for needle in ('case "here":', 'op: "scope"', "function hereNow()"):
+for needle in ('case "here":', 'op: "scope"', "function hereNow()", "function askHere(", "FiliAsk.show()"):
     if needle not in qml:
         errors.append(f"FiliChat.qml: missing {needle}")
+if "FiliAsk.open;" not in (root / "dotfiles/config/quickshell/shell.qml").read_text():
+    errors.append("shell.qml: FiliAsk is not instantiated at start")
+if not (root / "dotfiles/config/quickshell/FiliAsk.qml").exists():
+    errors.append("FiliAsk.qml is missing")
 rs = (root / "apps/fili-chat/src/main.rs").read_text()
 for needle in ('Some("here")', '"scope" =>', "fn scope_line"):
     if needle not in rs:
         errors.append(f"fili-chat main.rs: missing {needle}")
 fr = json.loads((root / "dotfiles/config/quickshell/i18n/fr.json").read_text())
+for k in ("Rob, about %1", "Ask anything about this application…"):
+    if k not in fr:
+        errors.append(f"i18n/fr.json: {k!r} is not translated")
 if "Ask Rob…" not in fr:
     errors.append("i18n/fr.json: 'Ask Rob…' is not translated")
 # Every application with a fallback menu has its brief for Rob (agents/rob/<app_id>.md), and there is a generic one

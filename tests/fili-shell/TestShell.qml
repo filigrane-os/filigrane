@@ -1783,6 +1783,18 @@ ShellRoot {
                 ok(AppMenu.appId !== "fili-chat", "fili-chat: without focus or an open menu, the bar goes back to the active window");
                 FiliChat.hide();
             },
+            // fili-ask: "Ask Rob…" without a text shows the small floating field, Esc / close hides it and keeps the draft
+            () => {
+                FiliChat.hide();
+                FiliChat.act("here");
+                ok(FiliAsk.open && !FiliChat.open, "fili-ask: `fili-chat here` shows the small field, not the drawer");
+                FiliAsk.text = "hello";
+                FiliShell.popupOpened("panel");
+                ok(!FiliAsk.open && FiliAsk.text === "hello", "fili-ask: another panel closes the field and keeps the draft");
+                FiliAsk.show();
+                FiliAsk.close();
+                ok(!FiliAsk.open, "fili-ask: close hides the field");
+            },
             // fili-chat: "About Rob" card (robot icon, name Rob), closed by another panel
             () => {
                 FiliChat.hide();

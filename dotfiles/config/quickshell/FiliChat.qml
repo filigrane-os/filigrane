@@ -301,7 +301,7 @@ Singleton {
         tries = 0;
         retry.start();
     }
-    readonly property bool wantLink: open || busy
+    readonly property bool wantLink: open || busy || hereWant
     onWantLinkChanged: {
         if (wantLink) {
             ensure();
@@ -414,10 +414,33 @@ Singleton {
     property string hereText: ""
     property bool pendingScope: false
     function here(text) {
+        // Without a text: the small floating field (FiliAsk) asks it
+        if (!text) {
+            FiliAsk.show();
+            return;
+        }
         show();
         followPending = false;
         hereWant = true;
         hereText = text;
+        hereNow();
+    }
+    // Question typed in the floating field (FiliAsk): sent to the scoped session of the application noted by
+    // `fili-chat here`; the drawer stays closed unless `drawer` (the finished turn is announced by a notification)
+    function askHere(text, drawer) {
+        if (drawer) {
+            here(text);
+            return;
+        }
+        followPending = false;
+        hereWant = true;
+        hereText = text;
+        ctxReady = false;
+        sessionsFresh = link.connected;
+        if (!FiliTheme.testing) {
+            ctxRead.running = false;
+            ctxRead.running = true;
+        }
         hereNow();
     }
     function hereNow() {
