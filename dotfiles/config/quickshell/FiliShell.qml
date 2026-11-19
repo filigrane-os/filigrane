@@ -28,6 +28,11 @@ Singleton {
     // A single fili-bar panel open at a time (fili-panel, fili-calendar, fili-notification-center): the one that
     // opens announces it ("panel", "calendar", "center"), the others close
     signal popupOpened(string who)
+    // Screen whose taskbar has a menu open ("" = none) and whether a menu or panel of any taskbar is open: every taskbar then
+    // shows the name of its screen (far right), to tell which screen an action is for
+    property string identifyBy: ""
+    // (set by FiliTaskbar for a menu, by FiliPanel for the menu of the taskbar background)
+    readonly property bool identify: identifyBy !== ""
     // A fili-panel is open (set by FiliPanel): the fili-tooltip is not shown
     property bool panelOpen: false
     // Instant of the last closing of a fili-panel (ms): the fili-tooltip waits a little after it, otherwise it pops up

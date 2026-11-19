@@ -17,7 +17,14 @@ import qs.controls
 Singleton {
     id: panel
     property string view: ""
-    onViewChanged: FiliShell.panelOpen = view !== ""
+    onViewChanged: {
+        FiliShell.panelOpen = view !== "";
+        // A panel hanging from a taskbar: every taskbar shows the name of its screen
+        if (view !== "" && hang !== "")
+            FiliShell.identifyBy = "panel";
+        else if (FiliShell.identifyBy === "panel")
+            FiliShell.identifyBy = "";
+    }
     property real anchorX: 0
     // Along a column of the bar (left, right): the middle of the item
     property real anchorY: 0

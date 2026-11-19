@@ -7,6 +7,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Quickshell.Io
 import Quickshell.Widgets
 import Quickshell.Wayland
 import qs
@@ -34,7 +35,7 @@ PanelWindow {
     // Automatic hiding ([taskbar] autohide): a thin strip on the edge that takes no room; the pointer on it, the hint mode, a
     // list or a menu open, or the moment after the pointer left (the timer) show the bar
     readonly property bool autohide: TaskbarLayout.autohide
-    readonly property bool shown: !autohide || hinting || hov.hovered || leave.running || listWins.length > 0 || menuItems.length > 0 || (FiliPanel.open && FiliPanel.hang !== "")
+    readonly property bool shown: !autohide || hinting || hov.hovered || leave.running || FiliShell.identify || listWins.length > 0 || menuItems.length > 0 || (FiliPanel.open && FiliPanel.hang !== "")
     HoverHandler {
         id: hov
         onHoveredChanged: if (!hovered) leave.restart()
@@ -209,6 +210,76 @@ PanelWindow {
         listWins = [];
         menuAnchor = item;
         menuItems = items.map(i => Object.assign(i, { output: ws.output }));
+    }
+    // Menu of a task (right click on its icon): move its windows to another screen, or make the application always open on a
+    // given screen (fili-app-output set / forget, niri window rule open-on-output). The saved screen is read first
+    // (connector name, "" = none) so that the menu shows a check mark on it.
+    property var taskPending: null
+    function openTaskMenu(item, entry) {
+        FiliTooltip.hide();
+        FiliShell.popupOpened("taskbar");
+        listWins = [];
+        menuItems = [];
+        const app = entry.app_id ?? "";
+        taskPending = { item, entry };
+        if (FiliTheme.testing || app === "") {
+            showTaskMenu("");
+            return;
+        }
+        savedOutput.command = ["sh", "-c", 'mon=$(' + FiliTheme.bin + '/fili-app-output list | awk -F"\t" -v a="$1" \'$1==a{print $2}\'); [ -n "$mon" ] && niri msg --json outputs | jq -r --arg m "$mon" \'to_entries[] | select("\(.value.make) \(.value.model) \(.value.serial // "Unknown")" == $m) | .key\'', "sh", app];
+        savedOutput.running = true;
+    }
+    function showTaskMenu(saved) {
+        const t = taskPending;
+        if (!t)
+            return;
+        taskPending = null;
+        const app = t.entry.app_id ?? "";
+        const q = v => "'" + String(v).replace(/'/g, "") + "'";
+        const items = [];
+        const here = Niri.workspaces.find(w => w.id === t.entry.wins[0].workspace_id)?.output ?? win.modelData.name;
+        for (const s of Quickshell.screens)
+            if (s.name !== here)
+                items.push({ text: FiliI18n.tr("Move to %1").replace("%1", s.name), sh: t.entry.wins.map(w => "niri msg action move-window-to-monitor --id " + Number(w.id) + " " + q(s.name)).join(" && ") });
+        if (app !== "") {
+            for (const s of Quickshell.screens)
+                items.push({ text: (saved === s.name ? "✓ " : "") + FiliI18n.tr("Always open on %1").replace("%1", s.name), sh: 'mon=$(niri msg --json outputs | jq -r --arg c ' + q(s.name) + ' \'.[$c] | "\\(.make) \\(.model) \\(.serial // "Unknown")"\') && ' + FiliTheme.bin + '/fili-app-output set ' + q(app) + ' "$mon"' });
+            if (saved !== "")
+                items.push({ text: FiliI18n.tr("Open wherever niri decides"), sh: FiliTheme.bin + "/fili-app-output forget " + q(app) });
+        }
+        if (items.length === 0)
+            return;
+        menuAnchor = t.item;
+        menuItems = items;
+    }
+    Process {
+        id: savedOutput
+        stdout: StdioCollector {
+            onStreamFinished: win.showTaskMenu(text.trim())
+        }
+    }
+    onMenuItemsChanged: {
+        if (menuItems.length > 0)
+            FiliShell.identifyBy = modelData.name;
+        else if (FiliShell.identifyBy === modelData.name)
+            FiliShell.identifyBy = "";
+    }
+    // Name of the screen, far right (bottom of a column) while a menu or panel of a taskbar is open
+    Text {
+        objectName: "taskbar-screen-name"
+        visible: FiliShell.identify && win.shown
+        anchors {
+            right: parent.right
+            rightMargin: FiliTheme.space2
+            verticalCenter: win.vertical ? undefined : parent.verticalCenter
+            bottom: win.vertical ? parent.bottom : undefined
+            bottomMargin: win.vertical ? FiliTheme.space1 : 0
+        }
+        width: Math.min(implicitWidth, win.vertical ? win.width - 4 : 200)
+        elide: Text.ElideRight
+        text: win.modelData.name
+        color: FiliTheme.toned(FiliTheme.taskbarTone, "accent")
+        font { family: FiliTheme.font; pixelSize: FiliTheme.tbList; weight: FiliTheme.weightAccent }
     }
     Connections {
         target: FiliShell
@@ -541,9 +612,9 @@ PanelWindow {
                             tip: {
                                 const e = cell.modelData;
                                 return {
-                                    title: TaskbarLayout.appName(e.app_id) + (e.tab ? " · " + FiliI18n.tr("Tab %1 of %2", e.tab.index, e.tab.count) : ""),
+                                    title: (cell.merged ? TaskbarLayout.appName(e.app_id) : ((e.wins[0].title ?? "") || TaskbarLayout.appName(e.app_id))) + (e.tab ? " · " + FiliI18n.tr("Tab %1 of %2", e.tab.index, e.tab.count) : ""),
                                     rows: e.wins.map(w => [(w.is_urgent ? FiliI18n.tr("URGENT") + " · " : "") + "#" + TaskbarNumbers.numberOf(w.id), w.title ?? ""]),
-                                    hint: cell.merged ? FiliI18n.tr("click: list of the windows") : FiliI18n.tr("click: go there · middle click: close")
+                                    hint: cell.merged ? FiliI18n.tr("click: list of the windows") : FiliI18n.tr("click: go there · middle click: close") + " · " + FiliI18n.tr("right click: screen")
                                 };
                             }
                             onLeftClicked: {
@@ -552,6 +623,7 @@ PanelWindow {
                                 else
                                     win.focusWindow(cell.modelData.wins[0].id);
                             }
+                            onRightClicked: win.openTaskMenu(cell, cell.modelData)
                             onMiddleClicked: {
                                 if (!cell.merged)
                                     Niri.action("close-window", "--id", String(cell.modelData.wins[0].id));
@@ -621,7 +693,10 @@ PanelWindow {
                             onClicked: {
                                 const it = mrow.modelData;
                                 win.closeList();
-                                Niri.onOutput(it.output, it.cmd);
+                                if (it.sh)
+                                    FiliTheme.run(it.sh);
+                                else
+                                    Niri.onOutput(it.output, it.cmd);
                             }
                         }
                     }

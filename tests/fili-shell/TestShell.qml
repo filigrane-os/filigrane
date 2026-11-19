@@ -872,8 +872,18 @@ ShellRoot {
                     "taskbar menu: the commands name the workspace (focus first for the ones that act on the focused workspace)", JSON.stringify(tb.menuItems.map(i => i.cmd)));
                 tb.openMenu(t.find(tr, "taskbar-ws-71"), Niri.workspaces.find(w => w.id === 71));
                 ok(tb.menuItems.every(i => i.text !== "Move the focused window here"), "taskbar menu: no move of the focused window to the workspace it is already in");
+                ok(FiliShell.identify && t.find(tr, "taskbar-screen-name") !== null && t.find(tr, "taskbar-screen-name").text !== "", "taskbar: a menu open -> the name of the screen shows far right of the taskbars");
                 tb.closeList();
                 ok(tb.menuItems.length === 0, "taskbar menu: closes with the list");
+                ok(!FiliShell.identify, "taskbar: the screen name goes away with the menu");
+                // Menu of a task: always open the application on a given screen (fili-app-output set), forget it
+                tb.openTaskMenu(t.find(tr, "task-w1"), { app_id: "org.example.app", wins: [Niri.windows[1]] });
+                const tk = tb.menuItems.map(i => i.text);
+                ok(tk.some(x => x.indexOf("Always open on") === 0) && tk.every(x => x !== "Open wherever niri decides"),
+                    "taskbar task menu: always open on a screen, no forget entry without a saved screen", tk.join("|"));
+                ok(tb.menuItems.find(i => i.text.indexOf("Always open on") === 0).sh.indexOf("fili-app-output set 'org.example.app'") > 0,
+                    "taskbar task menu: the choice is saved by fili-app-output set");
+                tb.closeList();
                 tb.level = 0;
                 Niri.setWindows({});
                 Niri.workspaces = [];
@@ -1898,7 +1908,13 @@ ShellRoot {
                 rec.apply({ text: String.fromCodePoint(0xf111) + " REC", "class": "recording" });
                 air.apply({ text: String.fromCodePoint(0xf072), "class": "" });
             },
-            wait(() => {}, () => BarState.statusRows.length === 2, 3000),
+            // bar-stats (real binary, isolated fifo) may send its own "air" state over the applied one: apply again while waiting
+            wait(() => {}, () => {
+                const air = t.find(t.bar.contentItem, "air");
+                if (air.text === "")
+                    air.apply({ text: String.fromCodePoint(0xf072), "class": "" });
+                return BarState.statusRows.length === 2;
+            }, 3000),
             () => {
                 const st = t.find(t.bar.contentItem, "status");
                 ok(FiliPanel.ring().indexOf("status") >= 0, "bar status: panel in the keyboard ring while an indicator is active");
