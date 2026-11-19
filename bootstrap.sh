@@ -565,7 +565,7 @@ setup_apps_git() {
         url="$(sed -n 's/^url=//p' "$src")"; commit="$(sed -n 's/^commit=//p' "$src")"; bins="$(sed -n 's/^bins=//p' "$src" | tr -d '"')"
         # Local patches (apps/<name>/patches/*.patch): applied after the checkout; their hash is part of the folder name,
         # so a modified patch recompiles
-        patches="$(ls "$ROOT/apps/$name/patches/"*.patch 2>/dev/null)"
+        patches="$(ls "$ROOT/apps/$name/patches/"*.patch 2>/dev/null || true)"
         sum=""; [ -z "$patches" ] || sum="-p$(cat $patches | sha256sum | cut -c1-8)"
         dir="$TARGET_HOME/.local/opt/$name-${commit:0:12}$sum"
         if [ ! -x "$dir/${bins%% *}" ]; then
