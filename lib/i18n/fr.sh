@@ -517,13 +517,10 @@ _t_lookup() {
     'Firewall: the rules were not loaded') _t_fmt='Pare-feu: les règles n'\''ont pas été chargées' ;;
     'Firewall: the rules were not loaded (%s)') _t_fmt='Pare-feu: les règles n'\''ont pas été chargées (%s)' ;;
     'go missing (packages/dev.txt): Go programs not built') _t_fmt='go absent (packages/dev.txt): programmes Go non construits' ;;
-    'Invalid choice\n') _t_fmt='Choix invalide\n' ;;
     'Invalid id: %s') _t_fmt='Identifiant invalide: %s' ;;
     'Invalid name.') _t_fmt='Nom invalide.' ;;
     'niri with the Filigrane patch (%s-niri)') _t_fmt='niri avec le correctif Filigrane (%s-niri)' ;;
-    'No config in %s (see the header of this script)\n') _t_fmt='Aucune configuration dans %s (voir l'\''en-tête de ce script)\n' ;;
     'No such item: %s (fili-login list)') _t_fmt='Élément introuvable: %s (fili-login list)' ;;
-    'Number: ') _t_fmt='Numéro: ' ;;
     'Sleep hooks (/etc/zzz.d, also run when elogind suspends)') _t_fmt='Crochets de mise en veille (/etc/zzz.d, lancés aussi quand elogind suspend)' ;;
     '%s-niri not installed: Void niri kept') _t_fmt='%s-niri non installé: niri de Void conservé' ;;
     'Terminals: tab them together') _t_fmt='Terminaux: les regrouper en onglets' ;;
@@ -539,8 +536,6 @@ _t_lookup() {
     'Usage: fili-internal-panel [apply|watch]') _t_fmt='Usage: fili-internal-panel [apply|watch]' ;;
     'Usage: fili-login add NAME COMMAND') _t_fmt='Usage: fili-login add NAME COMMAND' ;;
     'Usage: fili-login edit ID NAME COMMAND') _t_fmt='Usage: fili-login edit ID NAME COMMAND' ;;
-    'VPN off\n') _t_fmt='VPN désactivé\n' ;;
-    'VPN on: %s\n') _t_fmt='VPN activé: %s\n' ;;
     'Windows: go to by number (hold Mod+Alt, type it)') _t_fmt='Fenêtres: aller à une fenêtre par son numéro (maintenir Mod+Alt, la taper)' ;;
     esac
 }
