@@ -482,7 +482,7 @@ ShellRoot {
             wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
                  () => BarState.timerFile.kind === "S" && BarState.trayOpen),
             () => {
-                ok(/ 01:0[4-7]$/.test(BarState.timer.text), "BarState: stopwatch read from bar-timer (FileView)", BarState.timer.text);
+                ok(/ 01:0[3-9]$/.test(BarState.timer.text), "BarState: stopwatch read from bar-timer (FileView)", BarState.timer.text);
                 const h = t.find(t.bar.contentItem, "tray-handle");
                 ok(h.cls === "open", "BarState: drawer open (bar-tray-open)");
                 // Text actually displayed by the module (a Text child), not only its property

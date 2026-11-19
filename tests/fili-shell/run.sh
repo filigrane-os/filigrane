@@ -44,8 +44,23 @@ for n in bar-stats fili-ai-session fili-appmenu fili-recorder fili-music; do
     for d in "${FILI_APPS:-$HOME/.local/bin}" /usr/bin; do [ -e "$d/$n" ] && { ln -sf "$d/$n" "$T/bin/"; break; }; done
 done
 
+# What the pinned applications ship in their shell/ folder (bar modules, fallback menus), found as on a machine where their
+# packages are installed: the modules join the bench's bar, the menus the fallback menu folder (the repository's win)
+mkdir -p "$T/appmenu"
+cp "$ROOT"/dotfiles/config/filigrane/appmenu/*.json "$T/appmenu/"
+for pin in "$ROOT"/apps/*/upstream; do
+    [ -f "$pin" ] || continue
+    src="$("$ROOT/scripts/upstream-dir" "$(basename "$(dirname "$pin")")" 2>/dev/null)" || continue
+    for m in "$src"/shell/fili-bar/*/; do
+        { [ -f "${m}module.toml" ] && [ ! -e "$T/config/bar/modules/$(basename "$m")" ]; } && ln -s "${m%/}" "$T/config/bar/modules/$(basename "$m")"
+    done
+    for j in "$src"/shell/appmenu/*.json; do
+        { [ -f "$j" ] && [ ! -e "$T/appmenu/$(basename "$j")" ]; } && cp "$j" "$T/appmenu/"
+    done
+done
+
 if want '^dotfiles/config/quickshell/|^tests/fili-shell/TestShell.qml|^dotfiles/home/.local/bin/(bar-|fili-)|^dotfiles/config/filigrane/'; then
-FILI_TEST=1 FILI_APPMENU_DIR="$ROOT/dotfiles/config/filigrane/appmenu" FILI_NIRI_DIR="$ROOT/dotfiles/config/niri" LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
+FILI_TEST=1 FILI_APPMENU_DIR="$T/appmenu" FILI_NIRI_DIR="$ROOT/dotfiles/config/niri" LANG=C.UTF-8 LC_ALL= LC_MESSAGES= XDG_STATE_HOME="$T/state" FILI_BIN="$T/bin" FILI_EMOJI="$ROOT/dotfiles/home/.local/share/menu/emoji.txt" XDG_RUNTIME_DIR="$T/run" WAYLAND_DISPLAY="$wl" \
     dbus-run-session -- timeout 90 quickshell -p "$T/config" > "$T/log" 2>&1
 rc=$?
 RAN_QML=1

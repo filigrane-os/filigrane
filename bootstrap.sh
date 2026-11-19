@@ -532,11 +532,17 @@ setup_apps() {
     link_app_shell
 }
 
-# What an application ships for the shell (its shell/ folder: fili-bar/<module>/, appmenu/<app_id>.json, rob/<app_id>.md) is
-# linked into ~/.local/share/filigrane/shell, where a package would put it in /usr/share, then into the bar and the fallback
-# menus by fili-bar link-system. $1 = application name, $2 = its source folder (none: only the links are refreshed).
+# What an application ships for the desktop: its own `make install-data` when it has one (launcher, icon, licences and shell/
+# into ~/.local), else its shell/ folder (fili-bar/<module>/, appmenu/<app_id>.json, rob/<app_id>.md) linked into
+# ~/.local/share/filigrane/shell, where a package would put it in /usr/share. fili-bar link-system then links it into the bar and
+# the fallback menus. $1 = the source folder of the application.
 setup_app_shell() {
     local src="$1" data="$TARGET_HOME/.local/share/filigrane/shell" f kind
+    # An application with an install-data target brings everything but its binary (launcher, icon, licences, shell/) itself
+    if grep -q '^install-data:' "$src/Makefile" 2>/dev/null; then
+        run_as_user make -C "$src" -s install-data PREFIX="$TARGET_HOME/.local" >/dev/null || warn 'install-data of %s failed' "$src"
+        return 0
+    fi
     [ -d "$src/shell" ] || return 0
     for f in "$src"/shell/*/*; do
         [ -e "$f" ] || continue
