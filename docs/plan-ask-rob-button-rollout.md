@@ -137,7 +137,7 @@ One application per session of work; after each one the user tests it live befor
 - [x] Cassette
 - [x] Baladeur (committed on feat/ask-rob-button, not tagged yet)
 - [x] Conversations (committed on feat/ask-rob-button, not tagged yet)
-- [ ] Facteur
+- [x] Facteur (committed on feat/ask-rob-button, not tagged yet, not yet tried by the user)
 - [ ] Aéroport
 - [ ] `check-app-window.py` checks `ROB_BUTTON` for every application above, and `tests/fili-shell/run.sh` passes
 - [ ] `app-window.md` lists the applications that have the button
