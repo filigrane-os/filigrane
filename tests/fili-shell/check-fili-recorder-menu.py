@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """The fili-bar menu of Cassette (dotfiles/config/filigrane/appmenu/fili-recorder.json) stays in agreement with the window
-(apps/fili-recorder/qml/Main.qml): every `fili-recorder ctl --pid %pid action NAME` of the menu is an action of the window,
+(qml/Main.qml of the pinned Cassette, apps/fili-recorder/upstream): every `fili-recorder ctl --pid %pid action NAME` of the menu is an action of the window,
 every action of the window is in the menu (the few that have none are listed below), and every announced shortcut has its
 `Shortcut` in the window. Usage: check-fili-recorder-menu.py (from anywhere)."""
-import json, pathlib, re, sys
+import json, pathlib, re, subprocess, sys
 
 root = pathlib.Path(__file__).resolve().parents[2]
 menu = json.loads((root / "dotfiles/config/filigrane/appmenu/fili-recorder.json").read_text())
-qml = (root / "apps/fili-recorder/qml/Main.qml").read_text()
+src = pathlib.Path(subprocess.check_output([str(root / "scripts/upstream-dir"), "fili-recorder"], text=True).strip())
+qml = (src / "qml/Main.qml").read_text()
 actions = set(re.findall(r'^\s+"([a-z-]+)": \{ on:', qml, re.M))
 shortcuts = set(re.findall(r'Shortcut \{ sequence: "([^"]+)"', qml)) | set(re.findall(r'sequence: "([^"]+)"', qml))
 # Actions reachable only from the interface (context menu of a row)

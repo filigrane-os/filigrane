@@ -77,14 +77,16 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_TERM_SRC" || exit 1
 fi
 if want '^apps/fili-recorder/|^dotfiles/config/quickshell/|appmenu/fili-recorder.json|^tests/fili-shell/check-fili-recorder-menu.py|^tests/fili-shell/check-app-window.py'; then
-# Cassette (fili-recorder, in this repository): unit tests of the recorder, the mixing, the player and the window (the shell
-# parity tests compare its theme with the shell's), the fili-bar menu in agreement with the window, the window anatomy of Casier
+# Cassette (fili-recorder) lives in its own repository: the pinned version (apps/fili-recorder/upstream, or FILI_SRC_FILI_RECORDER
+# for a local checkout) passes its unit tests (the shell parity ones compare its theme with the shell's), the fili-bar menu
+# stays in agreement with its window, and the window follows the anatomy of Casier
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-(cd "$ROOT/apps/fili-recorder" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
-    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd apps/fili-recorder && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
+FILI_RECORDER_SRC="$("$ROOT/scripts/upstream-dir" fili-recorder)" || { echo "not ok - source of fili-recorder not available"; exit 1; }
+(cd "$FILI_RECORDER_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
+    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd $FILI_RECORDER_SRC && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-fili-recorder-menu.py" || exit 1
 FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
-python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$ROOT/apps/fili-recorder" || exit 1
+python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_RECORDER_SRC" || exit 1
 fi
 if want '^apps/fili-incident/'; then
 # fili-incident (problems reported by the apps, in this repository): the private details removed from what leaves the machine,
