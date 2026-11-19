@@ -20,10 +20,11 @@ BarModule {
             title: FiliI18n.tr("Messages")
             glyph: "󰖣"
             accent: FiliTheme.barWarn
-            openHint: FiliI18n.tr("click: panel · middle click: open Conversations")
+            openHint: FiliI18n.tr("click: panel · right click: menu · middle click: open Conversations")
             click: ""
             mclick: "fili-im"
             hover.onLeftClicked: mod.togglePanel(hover)
+            hover.onRightClicked: mod.contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open Conversations"), cmd: "fili-im", app: true }], item)
         }
     }
 }

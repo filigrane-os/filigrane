@@ -96,6 +96,16 @@ ShellRoot {
         ok(r !== null && r.indexOf(needle) >= 0, "fili-bar " + name + ", " + label + " -> " + needle, r === null ? "module introuvable" : JSON.stringify(r));
     }
 
+    // Right click on a module: its menu opens as a panel; it holds the command (or function) needle, the first row being the
+    // application when app is true
+    function expectMenu(name, needle, app) {
+        act(name, Qt.RightButton);
+        const items = FiliPanel.view === "ctxmenu" ? FiliPanel.ctxItems : null;
+        const hit = items !== null && items.some(i => (i.cmd ?? i.text).indexOf(needle) >= 0);
+        ok(hit && (!app || items[0].app === true), "fili-bar " + name + ", right click -> menu with " + needle, items === null ? "no menu: " + FiliPanel.view : JSON.stringify(items.map(i => i.text)));
+        FiliPanel.close();
+    }
+
     // Test shell command (fili-shell client, fili-net...), output and exit code collected
     property var shellOut: null
     Process {
@@ -222,7 +232,7 @@ ShellRoot {
                 t.findAll(ag, "agent-session")[0].press(L);
                 ok(FiliTheme.ran.join("\n").indexOf("fili-ai-session focus a1") >= 0 && FiliPanel.view === "", "fili-panel agent: click on a session -> its window, panel closed", JSON.stringify(FiliTheme.ran));
                 BarState.aiData = { sessions: [], limits: null };
-                expectClick("volume", R, "wiremix --tab output");
+                expectMenu("volume", "wiremix --tab output", true);
                 expectClick("keyboard", M, "switch-layout next");
                 expectClick("display", "up", "brightnessctl -q set 3%+");
                 expectClick("display", "down", "brightnessctl -q set 3%-");
@@ -233,7 +243,9 @@ ShellRoot {
                 t.find(t.bar.contentItem, "ai").hover.meta = true;
                 expectClick("ai", L, "fili-ai-session focus");
                 t.find(t.bar.contentItem, "ai").hover.meta = false;
-                expectClick("ai", R, "fili-ai pick");
+                expectMenu("ai", "fili-ai pick", false);
+                expectMenu("recorder", "fili-recorder", true);
+                expectMenu("baladeur", "fili-music", true);
                 // Global theme (~/.config/filigrane/theme.toml): the mode takes precedence over [theme], invalid value ignored, # inside quotes
                 const keep = FiliTheme.parsed;
                 const was0 = FiliTheme.mode;

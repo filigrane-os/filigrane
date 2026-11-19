@@ -264,4 +264,15 @@ ColumnLayout {
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
         }
     }
+    PanelButton {
+        Layout.topMargin: FiliTheme.space1
+        objectName: "open-app"
+        glyph: "\uf08e"
+        label: FiliI18n.tr("Open Conversations")
+        dim: true
+        onClicked: {
+            FiliPanel.close();
+            FiliTheme.run("fili-im");
+        }
+    }
 }

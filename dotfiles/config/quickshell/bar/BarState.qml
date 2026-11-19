@@ -182,7 +182,7 @@ Singleton {
         const card = {
             title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
             rows: rows,
-            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent")
+            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: menu")
         };
         if (calls.some(s => s.state === "waiting"))
             return { text: icon + " ASK", class: "waiting", tooltip: card };

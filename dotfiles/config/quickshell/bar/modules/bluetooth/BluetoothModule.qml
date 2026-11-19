@@ -46,4 +46,5 @@ BarItem {
         hint: FiliI18n.tr("click: Bluetooth panel (pair, connect, forget)")
     }
     hover.onLeftClicked: togglePanel()
+    hover.onRightClicked: contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open the Bluetooth manager"), cmd: FiliTheme.bin + "/bar-tui bluetui", app: true }])
 }

@@ -15,20 +15,22 @@ Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the work
 | `appmenu` | name and menus of the active application | open a menu (see below) |
 | `status` | screen recording, incoming SSH, airplane mode, VPN, pending updates (each hidden when idle) | recording: stop; airplane: turn off; updates: run them |
 | `tray` | system tray icons and the drawer chevron | chevron: show or fold the drawer |
-| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output (each one optional), start / stop, Open Cassette (the window: recordings and player); middle: start / stop |
-| `baladeur` | "Artist - Title" of Baladeur (fili-music) with previous / next buttons, while it runs (it stays alive when its window is closed) | panel: the player and the whole queue (filter, volume dial, actions); middle: play / pause; wheel: previous / next; right: the window |
-| `media` | current player | play / pause; middle: next; wheel: previous / next |
-| `resources` | CPU and memory; temperature and disk only when high | monitor panel |
-| `agent` | the AI agent (waiting, done) | sessions panel |
-| `audio` | output volume | sound panel; middle: mute; wheel: volume; right: mixer |
+| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output (each one optional), start / stop, Open Cassette (the window: recordings and player); middle: start / stop; right: menu (open Cassette, start / stop, recordings folder) |
+| `baladeur` | "Artist - Title" of Baladeur (fili-music) with previous / next buttons, while it runs (it stays alive when its window is closed) | panel: the player and the whole queue (filter, volume dial, actions); middle: play / pause; wheel: previous / next; right: menu (open Baladeur, play / pause, previous / next) |
+| `media` | current player | play / pause; middle: next; wheel: previous / next; right: menu (player window, controls) |
+| `resources` | CPU and memory; temperature and disk only when high | monitor panel; right: menu (open the process monitor) |
+| `agent` | the AI agent (waiting, done) | sessions panel; right: menu (open the agent, choose it) |
+| `audio` | output volume | sound panel; middle: mute; wheel: volume; right: menu (open the mixer, mute) |
 | `keyboard` | layout | panel; middle: next layout |
 | `display` | screens | panel; wheel: brightness |
-| `bluetooth` | adapter and devices | panel |
+| `bluetooth` | adapter and devices | panel; right: menu (open the Bluetooth manager) |
 | `network` | Wi-Fi | panel; right: network menu |
-| `mail` | unread mail over every account (Facteur); hidden when there is none | open Facteur |
+| `mail` | unread mail over every account (Facteur); hidden when there is none | open Facteur; right: menu (open Facteur) |
 | `notifications` | notification count | history; right: do not disturb |
 | `clock` | date and time | pinned calendar |
 | `power` | battery | panel; right: system menu |
+
+**One rule for every module**: click = the panel (the main action when there is no panel), right click = the module's menu (a small panel, `BarModule.contextMenu(items)`; its first row opens the module's application when it has one), middle click = a quick action also shown in the tooltip, wheel = the module's value. The application is also reachable from the panel itself (the cover of Baladeur, "Open Cassette", "Open" of Messages).
 
 A click that opens a panel opens a **fili-panel** under the item. `Esc`, a click elsewhere or another click closes it. `Mod+A` opens the panels from the keyboard, and the arrows move from one module to the next, in the order of the bar.
 

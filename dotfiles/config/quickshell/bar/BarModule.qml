@@ -40,6 +40,11 @@ Item {
     function togglePanel(item) {
         FiliPanel.toggle(item ?? anchorItem, panel, bar);
     }
+    // Right click: the commands of the module as a small panel (FiliPanel.openContext); the first one opens the
+    // application of the module when it has one ({ app: true })
+    function contextMenu(items, item) {
+        FiliPanel.openContext(item ?? anchorItem, items, bar);
+    }
     Component.onCompleted: if (panel)
         FiliPanel.register(panel, anchorItem, bar, panelSource)
     Component.onDestruction: if (panel)

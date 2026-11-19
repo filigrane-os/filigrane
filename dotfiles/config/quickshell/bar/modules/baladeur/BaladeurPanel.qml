@@ -129,6 +129,7 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.margins: FiliTheme.space2
         text: FiliI18n.tr("Baladeur is not running")
+        wrapMode: Text.Wrap
         color: FiliTheme.ardoise
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
@@ -618,6 +619,7 @@ ColumnLayout {
         Layout.margins: FiliTheme.space3
         horizontalAlignment: Text.AlignHCenter
         text: FiliI18n.tr("The queue is empty")
+        wrapMode: Text.Wrap
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeTitle; weight: FiliTheme.weightAccent }
         color: FiliTheme.brume
     }

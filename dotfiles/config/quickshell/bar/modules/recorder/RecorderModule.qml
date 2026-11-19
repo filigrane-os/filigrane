@@ -69,14 +69,17 @@ BarModule {
                     title: "Cassette",
                     rows: [[FiliI18n.tr("Since"), Qt.formatTime(new Date(rec.info.start * 1000), "HH:mm")],
                            [FiliI18n.tr("Input"), rec.label(rec.info.input)], [FiliI18n.tr("Output"), rec.label(rec.info.output)]],
-                    hint: FiliI18n.tr("click: panel · middle click: stop")
+                    hint: FiliI18n.tr("click: panel · right click: menu · middle click: stop")
                 }
             } : {
                 text: rec.mark,
                 "class": "idle",
-                tooltip: { title: "Cassette", text: FiliI18n.tr("Not recording"), hint: FiliI18n.tr("click: panel · middle click: record") }
+                tooltip: { title: "Cassette", text: FiliI18n.tr("Not recording"), hint: FiliI18n.tr("click: panel · right click: menu · middle click: record") }
             }
             hover.onLeftClicked: rec.togglePanel(hover)
+            hover.onRightClicked: rec.contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open Cassette"), cmd: "fili-recorder", app: true },
+                                                   { glyph: "\uf111", text: rec.recording ? FiliI18n.tr("Stop recording") : FiliI18n.tr("Start recording"), cmd: FiliTheme.bin + "/fili-recorder toggle" },
+                                                   { glyph: "\uf07c", text: FiliI18n.tr("Open recordings folder"), cmd: FiliTheme.bin + "/fili-recorder folder" }], item)
         }
     }
 }

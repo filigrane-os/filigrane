@@ -110,6 +110,23 @@ Singleton {
         screen = win?.screen ?? null;
         view = "barmenu";
     }
+    // Right click on a fili-bar module: its commands as a small panel under the item (items: see ContextMenuPanel.qml)
+    property var ctxItems: []
+    function openContext(item, items, win) {
+        FiliTooltip.hide();
+        if (view === "ctxmenu") {
+            close();
+            return;
+        }
+        hang = "";
+        ctxItems = items;
+        FiliShell.popupOpened("panel");
+        sources["ctxmenu"] = Qt.resolvedUrl("ContextMenuPanel.qml");
+        anchorX = item.mapToItem(null, item.width / 2, 0).x;
+        anchorY = item.mapToItem(null, 0, item.height / 2).y;
+        screen = win?.screen ?? null;
+        view = "ctxmenu";
+    }
     // Command `fili-shell panel NAME|toggle|close` (keyboard shortcuts): under the module of the panel
     function summon(name) {
         if (name === "toggle") {
