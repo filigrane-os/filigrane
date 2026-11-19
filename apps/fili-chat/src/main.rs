@@ -4,8 +4,8 @@
 // fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
 // fili-chat ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
 //                           application's button, e.g. Aéroport's "Ask Rob": the details are in its context)
-// fili-chat here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then opens
-//                           (or creates) the session scoped to it, with TEXT sent if given
+// fili-chat here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then creates
+//                           a new session scoped to it, with TEXT sent if given
 // fili-chat status          sessions as JSON (the daemon must be running)
 // fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
 // fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of

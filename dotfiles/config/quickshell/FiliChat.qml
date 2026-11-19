@@ -408,7 +408,7 @@ Singleton {
         send_({ op: "new" });
     }
     // "Ask Rob" of an application (`fili-chat here [TEXT]`, Mod+Ctrl+Y, entry of every application menu): the session
-    // scoped to the active application is opened (created and linked the first time), TEXT is sent to it if given.
+    // scoped to the active application is created (linked to it), TEXT is sent to it if given.
     // The daemon adds the scope instruction to each message of a scoped session.
     property bool hereWant: false
     property string hereText: ""
@@ -456,13 +456,8 @@ Singleton {
                 ask(text);
             return;
         }
-        const s = sessions.find(x => x.link === key && x.scoped);
-        if (s) {
-            openSession(s.id);
-            if (text)
-                send(text);
-            return;
-        }
+        // Each request opens a session of its own (linked to the application, scoped to it): topics do not pile up in one
+        // conversation. To go on with an answer, the drawer follows the most recent session linked to the application.
         pendingLink = key;
         pendingScope = true;
         pending = text;
