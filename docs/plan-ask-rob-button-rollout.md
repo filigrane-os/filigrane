@@ -136,7 +136,7 @@ One application per session of work; after each one the user tests it live befor
 - [ ] Casier tagged with the button (version noted in its `CHANGELOG.md`, pin updated here, README figures)
 - [x] Cassette
 - [x] Baladeur (committed on feat/ask-rob-button, not tagged yet)
-- [ ] Conversations
+- [x] Conversations (committed on feat/ask-rob-button, not tagged yet)
 - [ ] Facteur
 - [ ] Aéroport
 - [ ] `check-app-window.py` checks `ROB_BUTTON` for every application above, and `tests/fili-shell/run.sh` passes

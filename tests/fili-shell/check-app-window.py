@@ -22,7 +22,7 @@ DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "f
                "fili-term": "Ctrl+Shift+L"}
 # Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"). An application joins this list when
 # it gets the button; it can never leave it.
-ROB_BUTTON = ["fili-file", "fili-recorder", "fili-music"]
+ROB_BUTTON = ["fili-file", "fili-recorder", "fili-music", "fili-im"]
 ROOT = Path(__file__).resolve().parents[2]
 
 
