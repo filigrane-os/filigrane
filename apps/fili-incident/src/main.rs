@@ -11,6 +11,8 @@
 // fili-incident issue ID           the issue as it would be sent (title and body, with the private details removed)
 // fili-incident submit ID [--yes]  existing issue: +1 (with gh and --yes), else opens it; none: creates it (gh and --yes), else
 //                                  opens the prefilled form and copies the report
+// fili-incident submit ID --pr [--dir PATH] [--title T] [--body-file F|-] [--yes]
+//                                  the issue and the pull request that fixes it, in one go
 // fili-incident pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes]
 //                                  proposes the fix as a pull request: the branch checked out in the clone PATH (default: the
 //                                  current folder) of the incident's repository; without --yes only the PR text is shown
@@ -320,7 +322,12 @@ fn pr(id: &str, dir: &str, title: Option<&str>, body_file: Option<&str>, yes: bo
     if ahead == "0" || ahead.is_empty() {
         return Err("the branch has no commit to propose (commit the fix first)".into());
     }
-    let issue_number = find_existing(&incident).ok().flatten().and_then(|f| f["number"].as_i64());
+    // The issue just created (its URL is in the incident; the search index lags behind), else the one the search finds
+    let issue_number = text(&incident, "issue")
+        .rsplit('/')
+        .next()
+        .and_then(|n| n.parse::<i64>().ok())
+        .or_else(|| find_existing(&incident).ok().flatten().and_then(|f| f["number"].as_i64()));
     let (title, body) = pr_text(&incident, title, &read_body(body_file)?, issue_number);
     println!("Branch {branch} ({ahead} commit(s)) -> {repo}\n\n{title}\n\n{body}");
     if let Some(files) = git(dir, &["diff", "--stat", "origin/main...HEAD"]) {
@@ -425,7 +432,8 @@ fn show(id: &str) -> Result<(), String> {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let yes = args.iter().any(|a| a == "--yes");
-    let mut rest: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--yes").collect();
+    let pr_flag = args.iter().any(|a| a == "--pr");
+    let mut rest: Vec<&str> = args.iter().map(String::as_str).filter(|a| *a != "--yes" && *a != "--pr").collect();
     // Options with a value (pr): taken out of the positional words
     let mut opt = |name: &str| -> Option<String> {
         let i = rest.iter().position(|a| *a == name)?;
@@ -450,6 +458,8 @@ fn main() {
             let (title, body) = issue(&i);
             println!("{title}\n\n{body}");
         }),
+        // --pr: the issue and the fix go together (the issue first, then the pull request that fixes it)
+        ["submit", id] if pr_flag => submit(id, yes).and_then(|_| pr(id, dir_opt.as_deref().unwrap_or("."), title_opt.as_deref(), body_opt.as_deref(), yes)),
         ["submit", id] => submit(id, yes),
         ["pr", id] => pr(id, dir_opt.as_deref().unwrap_or("."), title_opt.as_deref(), body_opt.as_deref(), yes),
         ["ignore", id] => load(id).map(|_| set_state(id, "ignored", None)),
@@ -461,7 +471,7 @@ fn main() {
             println!("fili-incident {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
-        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | check ID | issue ID | submit ID [--yes] | pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes] | ignore ID | clear".into()),
+        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | check ID | issue ID | submit ID [--yes] [--pr ...] | pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes] | ignore ID | clear".into()),
     };
     if let Err(e) = result {
         eprintln!("fili-incident: {e}");
