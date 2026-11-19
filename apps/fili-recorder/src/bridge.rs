@@ -83,6 +83,14 @@ pub mod qobject {
         #[qinvokable]
         #[cxx_name = "openPath"]
         fn open_path(self: &Fili, path: &QString);
+        // "Ask Rob" header button: `fili-chat here` shows the small field of Rob scoped to this application; the button
+        // shows only where `fili-chat` is installed
+        #[qinvokable]
+        #[cxx_name = "askRob"]
+        fn ask_rob(self: &Fili);
+        #[qinvokable]
+        #[cxx_name = "robAvailable"]
+        fn rob_available(self: &Fili) -> bool;
         #[qinvokable]
         #[cxx_name = "reportProblem"]
         fn report_problem(self: &Fili, text: &QString) -> QString;
@@ -399,6 +407,22 @@ impl qobject::Fili {
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn();
+    }
+
+    pub fn ask_rob(&self) {
+        let child = std::process::Command::new("fili-chat")
+            .arg("here")
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn();
+        if let Ok(mut child) = child {
+            std::thread::spawn(move || child.wait());
+        }
+    }
+
+    pub fn rob_available(&self) -> bool {
+        std::env::var_os("PATH").is_some_and(|p| std::env::split_paths(&p).any(|d| d.join("fili-chat").is_file()))
     }
 
     pub fn report_problem(&self, text: &QString) -> QString {

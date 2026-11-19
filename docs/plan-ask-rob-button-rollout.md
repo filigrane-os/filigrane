@@ -134,7 +134,7 @@ One application per session of work; after each one the user tests it live befor
 ## 7. Done when
 
 - [ ] Casier tagged with the button (version noted in its `CHANGELOG.md`, pin updated here, README figures)
-- [ ] Cassette
+- [x] Cassette
 - [ ] Baladeur
 - [ ] Conversations
 - [ ] Facteur

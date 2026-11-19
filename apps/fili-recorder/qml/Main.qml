@@ -422,10 +422,16 @@ ApplicationWindow {
             Accessible.role: Accessible.Button
             Accessible.name: Fili.tr("Window")
         }
+        RobButton {
+            id: robButton
+            visible: Fili.robAvailable()
+            anchors { right: windowButton.visible ? windowButton.left : closeButton.visible ? closeButton.left : parent.right; rightMargin: windowButton.visible || closeButton.visible ? FiliTheme.space1 : FiliTheme.margin; verticalCenter: parent.verticalCenter }
+            ink: win.attending ? win.onAccent : FiliTheme.text
+        }
         Rectangle {
             id: search
             visible: win.mode === "library"
-            anchors { right: windowButton.visible ? windowButton.left : closeButton.visible ? closeButton.left : parent.right; rightMargin: windowButton.visible || closeButton.visible ? FiliTheme.space3 : FiliTheme.margin; verticalCenter: parent.verticalCenter }
+            anchors { right: robButton.visible ? robButton.left : windowButton.visible ? windowButton.left : closeButton.visible ? closeButton.left : parent.right; rightMargin: robButton.visible || windowButton.visible || closeButton.visible ? FiliTheme.space3 : FiliTheme.margin; verticalCenter: parent.verticalCenter }
             width: visible ? 180 : 0
             height: 26
             radius: FiliTheme.radiusControl

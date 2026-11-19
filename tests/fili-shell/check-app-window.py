@@ -20,6 +20,9 @@ SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPa
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
 DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "fili-im": "Ctrl+Shift+L",
                "fili-term": "Ctrl+Shift+L"}
+# Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"). An application joins this list when
+# it gets the button; it can never leave it.
+ROB_BUTTON = ["fili-file", "fili-recorder"]
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -121,6 +124,28 @@ def check(ref, src, name):
         problems.append(f"{menu.name}: no About entry")
     if name in DEBUG_PANEL:
         problems += check_debug(ref, src, name, menu)
+    if name in ROB_BUTTON:
+        problems += check_rob(ref, src)
+    return problems
+
+
+def check_rob(ref, src):
+    """The "Ask Rob" header button: shared file, listed in build.rs, instantiated, `askRob` exposed."""
+    problems = []
+    button, theirs = src / "qml" / "RobButton.qml", ref / "qml" / "RobButton.qml"
+    if not button.is_file():
+        return ["qml/RobButton.qml missing"]
+    if theirs.is_file() and normalize(button.read_text()) != normalize(theirs.read_text()):
+        problems.append("qml/RobButton.qml differs from Casier's copy")
+    build = src / "build.rs"
+    if build.is_file() and "qml/RobButton.qml" not in build.read_text():
+        problems.append("build.rs: qml/RobButton.qml is not in qml_files")
+    main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
+    if not re.search(r"^\s*RobButton\s*\{", main, re.M):
+        problems.append("Main.qml: no RobButton")
+    rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
+    if not re.search(r"\bfn ask_rob\b", rust):
+        problems.append("no `askRob` invokable for the Ask Rob button")
     return problems
 
 
