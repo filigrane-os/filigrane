@@ -15,6 +15,7 @@
 # fili-bar autostart [--force]        start the autostart commands of the enabled plugins (niri runs it at login, once per session)
 # fili-bar remove NAME                remove a plugin installed by `new` or `install`
 # fili-bar sync                       clone the plugins of bar-plugins.toml (pinned to a commit) on a new machine
+# fili-bar link-system                link what the applications ship (module folders, fallback menus; autostart does it too)
 # A plugin is a folder with a module.toml and, optionally, an install.sh (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
 # (never in the repository) and are linked into ~/.config/quickshell/bar/modules/NAME, where the bar finds them.
 # The settings go to ~/.config/filigrane/fili-bar.toml, which the bar re-reads as soon as it changes (when that file is a
@@ -92,7 +93,7 @@ cmd_list() {
     for n in $(names); do
         state=on; [ "$(val "$n" enabled true)" = false ] && state=off
         kind=qml; [ -n "$(mval "$mods/$n/module.toml" cmd)" ] && kind=script
-        origin=; [ -L "$mods/$n" ] && origin=" (plugin)"
+        origin=; if [ -L "$mods/$n" ]; then if ours "$mods/$n"; then origin=" (app)"; else origin=" (plugin)"; fi; fi
         printf '%-16s %-6s %5s  %-9s %-7s %s%s\n' "$n" "$(val "$n" side right)" "$(val "$n" order 50)" "$state" "$kind" "$(mval "$mods/$n/module.toml" title)" "$origin"
     done | sort -b -k2,2 -k3,3n
 }
@@ -318,7 +319,45 @@ cmd_sync() {
 # Start, detached and from the folder of the plugin, the autostart commands of every enabled plugin. Once per session
 # (stamp in the runtime directory, per niri instance: a niri restart without logout keeps the runtime directory but
 # has killed the daemons) unless --force; the commands must tolerate a second instance (a lock, a loop).
+# What the packages of the applications ship (docs/bar.md, "Shipped by an application"): share/filigrane/shell/fili-bar/NAME/
+# (a module folder) and appmenu/APP_ID.json (a fallback menu), in /usr/share and in ~/.local/share (applications built from
+# source by bootstrap.sh). FILI_SHELL_DIRS (colon separated) replaces both (tests).
+shell_dirs() { printf '%s\n' "${FILI_SHELL_DIRS:-/usr/share/filigrane/shell:${XDG_DATA_HOME:-$HOME/.local/share}/filigrane/shell}" | tr ':' '\n'; }
+# Is $1 a link made for something an application ships?
+ours() {
+    [ -L "$1" ] || return 1
+    tgt="$(readlink "$1")"
+    for d in $(shell_dirs); do
+        case "$tgt" in "$d"/*) return 0 ;; esac
+    done
+    return 1
+}
+# Links them into the bar and the fallback menus, never over a module, a plugin or a file of the user's own (the repository's
+# copy and a personal one win over what a package ships), and forgets the links of what a package no longer ships
+cmd_link_system() {
+    for l in "$mods"/* "$cfg/filigrane/appmenu"/*; do
+        [ -L "$l" ] && [ ! -e "$l" ] && ours "$l" && rm -f "$l"
+    done
+    for d in $(shell_dirs); do
+        for m in "$d"/fili-bar/*/; do
+            [ -f "${m}module.toml" ] || continue
+            n="$(basename "$m")"; valid_name "$n" || continue
+            dest="$mods/$n"
+            if [ -e "$dest" ] || [ -L "$dest" ]; then ours "$dest" || continue; fi
+            mkdir -p "$mods" && ln -sfn "${m%/}" "$dest"
+        done
+        for j in "$d"/appmenu/*.json; do
+            [ -f "$j" ] || continue
+            dest="$cfg/filigrane/appmenu/$(basename "$j")"
+            if [ -e "$dest" ] || [ -L "$dest" ]; then ours "$dest" || continue; fi
+            mkdir -p "$(dirname "$dest")" && ln -sfn "$j" "$dest"
+        done
+    done
+    return 0
+}
+
 cmd_autostart() {
+    cmd_link_system
     niri_id="${NIRI_SOCKET##*/}"
     stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-bar-autostart${niri_id:+.$niri_id}.done"
     [ "${1:-}" = --force ] || [ ! -e "$stamp" ] || return 0
@@ -420,6 +459,7 @@ case "${1:-list}" in
     setup) cmd_setup "${2:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
+    link-system) cmd_link_system ;;
     -h | --help | help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
     *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

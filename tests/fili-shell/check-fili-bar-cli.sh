@@ -93,5 +93,22 @@ rm -rf "$XDG_CONFIG_HOME/menu/entries.d"; "$FB" sync > /dev/null 2>&1
 check "sync links the extras again" '[ -L "$XDG_CONFIG_HOME/menu/entries.d/ext" ]'
 "$FB" remove xtra > /dev/null 2>&1
 check "remove unlinks the extras and keeps the files of the user" '[ ! -e "$XDG_CONFIG_HOME/menu/entries.d/ext" ] && [ ! -e "$XDG_CONFIG_HOME/filigrane/appmenu/ext.json" ]'
+# What the packages of the applications ship: share/filigrane/shell/fili-bar/NAME/ and appmenu/APP_ID.json
+SH="$T/shell"; export FILI_SHELL_DIRS="$SH"
+mkdir -p "$SH/fili-bar/shipped" "$SH/appmenu"
+printf 'title = "Shipped"\napi = 1\nside = "right"\n' > "$SH/fili-bar/shipped/module.toml"
+printf '{"menus":[]}\n' > "$SH/appmenu/shipped.json"
+"$FB" link-system
+check "link-system links a module folder and a fallback menu" '[ "$(readlink "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped")" = "$SH/fili-bar/shipped" ] && [ "$(readlink "$XDG_CONFIG_HOME/filigrane/appmenu/shipped.json")" = "$SH/appmenu/shipped.json" ]'
+check "list marks it as shipped by an application" '"$FB" list | grep "^shipped" | grep -q "(app)"'
+mkdir -p "$SH/fili-bar/clock"; printf 'title = "Other clock"\n' > "$SH/fili-bar/clock/module.toml"
+printf '{"menus":["mine"]}\n' > "$XDG_CONFIG_HOME/filigrane/appmenu/own.json"; printf '{"menus":["shipped"]}\n' > "$SH/appmenu/own.json"
+"$FB" link-system
+check "link-system never replaces a module of the repository" '[ -d "$XDG_CONFIG_HOME/quickshell/bar/modules/clock" ] && [ ! -L "$XDG_CONFIG_HOME/quickshell/bar/modules/clock" ]'
+check "link-system never replaces a file of the user" '[ ! -L "$XDG_CONFIG_HOME/filigrane/appmenu/own.json" ] && grep -q mine "$XDG_CONFIG_HOME/filigrane/appmenu/own.json"'
+rm -rf "$SH/fili-bar/shipped" "$SH/appmenu/shipped.json"
+"$FB" link-system
+check "link-system forgets what a package no longer ships" '[ ! -e "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped" ] && [ ! -L "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped" ] && [ ! -L "$XDG_CONFIG_HOME/filigrane/appmenu/shipped.json" ]'
+unset FILI_SHELL_DIRS
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"
