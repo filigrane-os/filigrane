@@ -1,5 +1,7 @@
 {
   "app": [
+    { "label": "Ask Rob…", "exec": "fili-chat here" },
+    { "sep": true },
     { "label": "Quit %1", "niri": ["close-window"] },
     { "sep": true },
     { "label": "Always open on this monitor", "exec": "fili-app-output here" }

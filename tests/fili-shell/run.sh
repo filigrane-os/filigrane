@@ -104,9 +104,11 @@ python3 -I "$ROOT/tests/fili-shell/check-fili-music-menu.py" || exit 1
 FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_MUSIC_SRC" || exit 1
 fi
-if want 'fili-chat|chat'; then
+if want 'fili-chat|chat|appmenu/_default.json|niri/config.kdl'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
+python3 -I "$ROOT/tests/fili-shell/check-fili-chat-here.py" || exit 1
+(cd "$ROOT/apps/fili-chat" && cargo test --release --quiet) || exit 1
 fi
 if want 'fili-bar|bar/modules/'; then
 # The fili-bar command (modules, plugins)

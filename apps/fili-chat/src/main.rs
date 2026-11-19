@@ -4,6 +4,8 @@
 // fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
 // fili-chat ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
 //                           application's button, e.g. Aéroport's "Ask Rob": the details are in its context)
+// fili-chat here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then opens
+//                           (or creates) the session scoped to it, with TEXT sent if given
 // fili-chat status          sessions as JSON (the daemon must be running)
 // fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
 // fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
@@ -13,6 +15,7 @@
 // {"op":"rename","id","title"} {"op":"archive","id"} (keeps the history: archived)
 // {"op":"restore","id"}  {"op":"agent"} (asks {"ev":"agent","ok":bool}: is the agent installed) {"op":"answer","rid","allow"}
 // {"op":"link","id","key"} links the session to an application (empty key: unlinks; see "follow" of the drawer)
+// {"op":"scope","id","on"} scopes the session to its linked application: each message carries the instruction to stay in it
 // {"op":"send",…,"context":true} attaches the context noted by Mod+Y (context.json) to the message to the agent
 // {"op":"ask","id","rid","tool","input"} (MCP server: permission request, the connection waits for the answer)
 // daemon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link,archived,icon}]} {"ev":"history","id","items":[...]}
@@ -122,6 +125,7 @@ struct Session {
     updated: i64,
     started: bool, // the agent has already received a message: resume with --resume
     link: String,  // application (or window) the session is linked to, "" = none
+    scoped: bool,  // "Ask Rob" of an application: the agent works only on that application
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     epoch: u64, // number of the current process (the end of an old process is ignored)
@@ -183,6 +187,7 @@ impl Daemon {
                         j.set("state", s.state);
                         j.set("updated", s.updated);
                         j.set("link", s.link.as_str());
+                        j.set("scoped", s.scoped);
                         j.set("archived", s.archived);
                         j.set("icon", s.icon);
                         j
@@ -217,6 +222,7 @@ fn save_index(d: &Daemon) {
                 j.set("updated", s.updated);
                 j.set("started", s.started);
                 j.set("link", s.link.as_str());
+                j.set("scoped", s.scoped);
                 j.set("archived", s.archived);
                 j.set("icon", s.icon);
                 j
@@ -241,6 +247,7 @@ fn load_index() -> Vec<Session> {
                 updated: j.get("updated").int().unwrap_or(0),
                 started: j.get("started").truthy(),
                 link: j.get("link").str().unwrap_or("").to_string(),
+                scoped: j.get("scoped").truthy(),
                 child: None,
                 stdin: None,
                 epoch: 0,
@@ -699,6 +706,16 @@ fn context_line() -> Option<String> {
         .then(|| format!("[Contexte noté à l'ouverture du chat (application active): {j}]\n\n"))
 }
 
+/// Instruction of a scoped session ("Ask Rob" of an application): the link key is the app_id, then the window title
+fn scope_line(link: &str) -> String {
+    let app = link.split('\n').next().unwrap_or("");
+    format!(
+        "[Périmètre: cette session est limitée à l'application « {app} ». Ne lis et ne modifie que ce qui la concerne \
+         (son code dans apps/ ou son dépôt, sa configuration dans dotfiles/config/filigrane/, son menu, son thème). \
+         Pour toute demande qui sort de ce cadre, dis-le en une phrase et propose de la traiter dans une session normale (Mod+Y).]\n\n"
+    )
+}
+
 fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     if d.session(id).is_none() || text.trim().is_empty() {
         return;
@@ -723,7 +740,9 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     }
     let mut m = Json::obj();
     m.set("role", "user");
-    let full = if with_context { format!("{}{text}", context_line().unwrap_or_default()) } else { text.to_string() };
+    let scope = d.session(id).filter(|s| s.scoped && !s.link.is_empty()).map(|s| scope_line(&s.link)).unwrap_or_default();
+    let ctx = if with_context { context_line().unwrap_or_default() } else { String::new() };
+    let full = format!("{scope}{ctx}{text}");
     m.set("content", full);
     let mut line = Json::obj();
     line.set("type", "user");
@@ -786,6 +805,7 @@ fn handle(client: u64, line: &str) {
                 updated: now(),
                 started: false,
                 link: String::new(),
+                scoped: false,
                 child: None,
                 stdin: None,
                 epoch: 0,
@@ -849,6 +869,12 @@ fn handle(client: u64, line: &str) {
         "link" => {
             if let Some(s) = d.session(&id) {
                 s.link = req.get("key").str().unwrap_or("").chars().take(200).collect();
+            }
+            d.publish_sessions();
+        }
+        "scope" => {
+            if let Some(s) = d.session(&id) {
+                s.scoped = req.get("on").truthy();
             }
             d.publish_sessions();
         }
@@ -1077,6 +1103,10 @@ fn main() {
             let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
             note_context().and_then(|_| shell_chat(&["ask", &text]))
         }
+        Some("here") => {
+            let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+            note_context().and_then(|_| if text.is_empty() { shell_chat(&["here"]) } else { shell_chat(&["here", &text]) })
+        }
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("status") => connect().and_then(|s| {
             let mut l = String::new();
@@ -1100,10 +1130,24 @@ fn main() {
             }
             Ok(())
         }),
-        _ => Err("usage: fili-chat daemon | toggle | ask TEXT | status | send ID TEXT".into()),
+        _ => Err("usage: fili-chat daemon | toggle | ask TEXT | here [TEXT] | status | send ID TEXT".into()),
     };
     if let Err(e) = r {
         eprintln!("fili-chat: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scope_names_the_application_only() {
+        let l = scope_line("fili-file");
+        assert!(l.contains("« fili-file »"));
+        // Window mode: the key is "app_id\ntitle", only the application is named
+        let l = scope_line("fili-file\nDownloads");
+        assert!(l.contains("« fili-file »") && !l.contains("Downloads"));
     }
 }

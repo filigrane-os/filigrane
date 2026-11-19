@@ -271,6 +271,7 @@ Singleton {
         case "close": hide(); break;
         case "new": show(); newSession(); break;
         case "ask": ask(args ? args.join(" ") : ""); break;
+        case "here": here(args ? args.join(" ") : ""); break;
         case "new-here": show(); pendingLink = linkKey(ctx, true); newSession(); break;
         case "unlink": if (current) send_({ op: "link", id: current, key: "" }); break;
         case "sessions": show(); tabsOpen = !tabsOpen; break;
@@ -346,6 +347,7 @@ Singleton {
                 chat.ctxReady = true;
                 chat.tryFollow();
                 chat.askNow();
+                chat.hereNow();
             }
         }
     }
@@ -403,6 +405,44 @@ Singleton {
             return;
         pending = pendingAsk;
         pendingAsk = "";
+        send_({ op: "new" });
+    }
+    // "Ask Rob" of an application (`fili-chat here [TEXT]`, Mod+Ctrl+Y, entry of every application menu): the session
+    // scoped to the active application is opened (created and linked the first time), TEXT is sent to it if given.
+    // The daemon adds the scope instruction to each message of a scoped session.
+    property bool hereWant: false
+    property string hereText: ""
+    property bool pendingScope: false
+    function here(text) {
+        show();
+        followPending = false;
+        hereWant = true;
+        hereText = text;
+        hereNow();
+    }
+    function hereNow() {
+        if (!hereWant || !(ctxReady || FiliTheme.testing) || !(sessionsFresh || FiliTheme.testing))
+            return;
+        hereWant = false;
+        const text = hereText;
+        hereText = "";
+        const key = linkKey(ctx, true);
+        if (!key) {
+            // No application to scope to: an ordinary new session
+            if (text)
+                ask(text);
+            return;
+        }
+        const s = sessions.find(x => x.link === key && x.scoped);
+        if (s) {
+            openSession(s.id);
+            if (text)
+                send(text);
+            return;
+        }
+        pendingLink = key;
+        pendingScope = true;
+        pending = text;
         send_({ op: "new" });
     }
     function openSession(id) {
@@ -574,6 +614,7 @@ Singleton {
                     send_({ op: "open", id: current });
             }
             tryFollow();
+            hereNow();
         } else if (ev.ev === "created") {
             const m = Object.assign({}, items);
             m[ev.id] = [];
@@ -583,6 +624,10 @@ Singleton {
             if (pendingLink) {
                 send_({ op: "link", id: ev.id, key: pendingLink });
                 pendingLink = "";
+            }
+            if (pendingScope) {
+                send_({ op: "scope", id: ev.id, on: true });
+                pendingScope = false;
             }
             if (pending) {
                 const t = pending;
