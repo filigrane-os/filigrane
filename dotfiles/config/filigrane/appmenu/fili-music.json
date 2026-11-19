@@ -1,0 +1,230 @@
+{
+  "name": "Baladeur",
+  "app": [
+    {
+      "label": "About Baladeur",
+      "exec": "fili-music ctl --pid %pid action about"
+    }
+  ],
+  "window": [
+    {
+      "label": "Window Actions…",
+      "keys": "Ctrl+Shift+W",
+      "exec": "fili-music ctl --pid %pid action window-actions"
+    },
+    {
+      "label": "Show Window Buttons",
+      "exec": "fili-music ctl --pid %pid action toggle-window-buttons"
+    },
+    {
+      "label": "Show Header",
+      "exec": "fili-music ctl --pid %pid action toggle-header"
+    },
+    {
+      "label": "Show Status Bar",
+      "exec": "fili-music ctl --pid %pid action toggle-footer"
+    }
+  ],
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        {
+          "label": "New Playlist…",
+          "keys": "Ctrl+N",
+          "exec": "fili-music ctl --pid %pid action new-playlist"
+        },
+        {
+          "label": "Import Playlist…",
+          "exec": "fili-music ctl --pid %pid action import-playlist"
+        },
+        {
+          "label": "Fetch Artwork",
+          "exec": "fili-music ctl --pid %pid action fetch-artwork"
+        },
+        {
+          "label": "Edit Metadata of the Current Track…",
+          "exec": "fili-music ctl --pid %pid action edit-metadata"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Refresh Library",
+          "keys": "Ctrl+R",
+          "exec": "fili-music ctl --pid %pid action refresh"
+        },
+        {
+          "label": "Scan the Library…",
+          "exec": "fili-music ctl --pid %pid action scan"
+        },
+        {
+          "label": "Settings…",
+          "exec": "fili-music ctl --pid %pid action settings"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Close",
+          "keys": "Ctrl+W",
+          "exec": "fili-music ctl --pid %pid action close"
+        },
+        {
+          "label": "Quit Baladeur",
+          "keys": "Ctrl+Q",
+          "exec": "fili-music ctl --pid %pid action quit"
+        }
+      ]
+    },
+    {
+      "label": "Playback",
+      "children": [
+        {
+          "label": "Play or Pause",
+          "keys": "Space",
+          "exec": "fili-music ctl --pid %pid action play-pause"
+        },
+        {
+          "label": "Previous",
+          "keys": "Ctrl+Left",
+          "exec": "fili-music ctl --pid %pid action prev"
+        },
+        {
+          "label": "Next",
+          "keys": "Ctrl+Right",
+          "exec": "fili-music ctl --pid %pid action next"
+        },
+        {
+          "label": "Back 10 Seconds",
+          "exec": "fili-music ctl --pid %pid action seek-back"
+        },
+        {
+          "label": "Forward 10 Seconds",
+          "exec": "fili-music ctl --pid %pid action seek-forward"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Volume Up",
+          "keys": "Ctrl+Up",
+          "exec": "fili-music ctl --pid %pid action volume-up"
+        },
+        {
+          "label": "Volume Down",
+          "keys": "Ctrl+Down",
+          "exec": "fili-music ctl --pid %pid action volume-down"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Shuffle",
+          "exec": "fili-music ctl --pid %pid action shuffle"
+        },
+        {
+          "label": "Repeat",
+          "exec": "fili-music ctl --pid %pid action repeat"
+        }
+      ]
+    },
+    {
+      "label": "Queue",
+      "children": [
+        {
+          "label": "Play the Whole Library, Shuffled",
+          "exec": "fili-music ctl --pid %pid action library-shuffled"
+        },
+        {
+          "label": "Play the Whole Library, in Order",
+          "exec": "fili-music ctl --pid %pid action library-ordered"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Add Random Tracks",
+          "exec": "fili-music ctl --pid %pid action add-random"
+        },
+        {
+          "label": "Keep the Queue Going",
+          "exec": "fili-music ctl --pid %pid action top-up"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Save as Playlist…",
+          "exec": "fili-music ctl --pid %pid action save-queue"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Clear the Queue",
+          "exec": "fili-music ctl --pid %pid action clear-queue"
+        }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        {
+          "label": "Back",
+          "keys": "Alt+Left",
+          "exec": "fili-music ctl --pid %pid action back"
+        },
+        {
+          "label": "Forward",
+          "keys": "Alt+Right",
+          "exec": "fili-music ctl --pid %pid action forward"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Tracks",
+          "keys": "Ctrl+1",
+          "exec": "fili-music ctl --pid %pid action view-tracks"
+        },
+        {
+          "label": "Albums",
+          "keys": "Ctrl+2",
+          "exec": "fili-music ctl --pid %pid action view-albums"
+        },
+        {
+          "label": "Artists",
+          "keys": "Ctrl+3",
+          "exec": "fili-music ctl --pid %pid action view-artists"
+        },
+        {
+          "label": "Genres",
+          "keys": "Ctrl+4",
+          "exec": "fili-music ctl --pid %pid action view-genres"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Filter",
+          "keys": "Ctrl+F",
+          "exec": "fili-music ctl --pid %pid action focus-filter"
+        },
+        {
+          "label": "Search",
+          "keys": "Ctrl+Shift+F",
+          "exec": "fili-music ctl --pid %pid action search"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Debug Logs",
+          "keys": "Ctrl+Shift+L",
+          "exec": "fili-music ctl --pid %pid action debug"
+        }
+      ]
+    }
+  ]
+}

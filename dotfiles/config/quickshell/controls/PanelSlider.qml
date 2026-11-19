@@ -7,9 +7,17 @@ import qs
 RowLayout {
     id: s
     property real value: 0
+    // Real range shown in the percentage on the right (0..1 by default: volume); `value` stays 0..1 along the track
+    property real from: 0
+    property real to: 1
     property string glyph
     property bool muted: false
     property string label
+    // steps > 0: the value snaps to steps + 1 positions (0, 1/steps ... 1); `dragging` while the mouse button is down;
+    // `released` when the drag ends (apply a heavy change there, not at each `moved`)
+    property int steps: 0
+    readonly property bool dragging: area.pressed
+    signal released
     signal moved(real v)
     signal glyphClicked
 
@@ -22,13 +30,17 @@ RowLayout {
     Keys.onReturnPressed: s.activate()
     Keys.onEnterPressed: s.activate()
     Keys.onSpacePressed: s.activate()
+    function snap(v) {
+        v = Math.max(0, Math.min(1, v));
+        return s.steps > 0 ? Math.round(v * s.steps) / s.steps : v;
+    }
     function nudge(e, d) {
         if (e && e.modifiers & Qt.ShiftModifier) {
             e.accepted = false;
             return;
         }
         FiliShell.keyNav = true;
-        s.moved(Math.max(0, Math.min(1, s.value + d)));
+        s.moved(s.snap(s.value + (s.steps > 0 ? Math.sign(d) / s.steps : d)));
     }
     function activate() {
         FiliShell.keyNav = true;
@@ -66,16 +78,18 @@ RowLayout {
             color: s.muted ? FiliTheme.ardoise : FiliTheme.brume
         }
         MouseArea {
+            id: area
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor
-            function at(x) { s.moved(Math.max(0, Math.min(1, x / width))); }
+            function at(x) { s.moved(s.snap(x / width)); }
             onPressed: m => at(m.x)
             onPositionChanged: m => { if (pressed) at(m.x); }
-            onWheel: w => s.moved(Math.max(0, Math.min(1, s.value + (w.angleDelta.y > 0 ? 0.05 : -0.05))))
+            onReleased: s.released()
+            onWheel: w => s.moved(s.snap(s.value + (s.steps > 0 ? (w.angleDelta.y > 0 ? 1 : -1) / s.steps : (w.angleDelta.y > 0 ? 0.05 : -0.05))))
         }
     }
     Text {
-        text: Math.round(s.value * 100) + "%"
+        text: Math.round((s.from + s.value * (s.to - s.from)) * 100) + "%"
         color: FiliTheme.ardoise
         Layout.preferredWidth: 36
         horizontalAlignment: Text.AlignRight

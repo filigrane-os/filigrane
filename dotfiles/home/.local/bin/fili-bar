@@ -1,16 +1,21 @@
 #!/bin/sh
-# Manage the modules of the fili-bar (Barre). Usage:
+# Manage the modules of the fili-bar (Passerelle). Usage:
 # fili-bar list                       modules: name, side, order, state, kind, title
 # fili-bar enable NAME | disable NAME show or hide a module (fili-bar.toml)
 # fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)
 # fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on (shows it without argument)
 # fili-bar screens [all|NAME...]      screens that get a bar: all, or output names (niri msg outputs)
+# fili-bar background [solid|translucent|transparent]   background of the fili-bar (shows it without argument)
+# fili-bar taskbar [KEY [VALUE...]]   the taskbar (Quai): scale 80-160 (percent), enabled true|false, edge top|bottom|left|right, autohide true|false, background
+#                                     solid|translucent|transparent, screens all|NAME... (shows the settings without argument)
 # fili-bar new NAME [--qml]           skeleton of a plugin (script, or QML module) in the home of the user
 # fili-bar check DIR|NAME             check the manifest and the script of a module
 # fili-bar install URL [--commit REV] [--yes]   clone a plugin (shows its manifest first; --yes to confirm)
+# fili-bar setup NAME                run the install.sh of a plugin again (idempotent: credentials, daemons, first-run steps)
+# fili-bar autostart [--force]        start the autostart commands of the enabled plugins (niri runs it at login, once per session)
 # fili-bar remove NAME                remove a plugin installed by `new` or `install`
 # fili-bar sync                       clone the plugins of bar-plugins.toml (pinned to a commit) on a new machine
-# A plugin is a folder with a module.toml (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
+# A plugin is a folder with a module.toml and, optionally, an install.sh (see docs/bar.md). Plugins live in ~/.local/share/filigrane/bar/plugins/NAME/
 # (never in the repository) and are linked into ~/.config/quickshell/bar/modules/NAME, where the bar finds them.
 # The settings go to ~/.config/filigrane/fili-bar.toml, which the bar re-reads as soon as it changes (when that file is a
 # link to the repository, the file of the repository is edited). A plugin runs with your rights: read it before adding it.
@@ -35,6 +40,15 @@ mval() {
         /^[ \t]*\[/ { exit }
         { line = $0; sub(/[ \t]*#[^"]*$/, "", line) }
         match(line, "^[ \t]*" key "[ \t]*=[ \t]*") { v = substr(line, RLENGTH + 1); gsub(/^"|"[ \t]*$/, "", v); gsub(/[ \t]+$/, "", v); print v; exit }
+    ' "$1" 2>/dev/null
+}
+# Items of a top-level list of a manifest (autostart = ["cmd one", "cmd two"]), one per line
+mlist() {
+    awk -v key="$2" '
+        /^[ \t]*\[/ { exit }
+        { line = $0; sub(/[ \t]*#[^"]*$/, "", line) }
+        match(line, "^[ \t]*" key "[ \t]*=[ \t]*\\[") { v = substr(line, RLENGTH + 1); sub(/\][ \t]*$/, "", v); gsub(/^[ \t]*"|"[ \t]*$/, "", v)
+            n = split(v, a, /"[ \t]*,[ \t]*"/); for (i = 1; i <= n; i++) { gsub(/\\"/, "\"", a[i]); gsub(/\\\\/, "\\", a[i]); print a[i] } exit }
     ' "$1" 2>/dev/null
 }
 # Value of a key of [modules.NAME] in fili-bar.toml ("" if absent)
@@ -142,6 +156,24 @@ EOF
 
 link() { mkdir -p "$mods" && ln -sfn "$share/$1" "$mods/$1"; }
 
+# Small files a plugin ships in extras/config/PATH (a fallback app menu, an icon, a menu entry in menu/entries.d/):
+# linked one by one to ~/.config/PATH, never over a file of the user
+link_extras() {
+    d="$share/$1/extras/config"; [ -d "$d" ] || return 0
+    ( cd "$d" && find . -type f ) | while IFS= read -r f; do
+        f="${f#./}"; dest="$cfg/$f"
+        if [ -e "$dest" ] && [ ! -L "$dest" ]; then echo "$(t '%s: %s exists, left alone' "$1" "$dest")" >&2; continue; fi
+        mkdir -p "$(dirname "$dest")" && ln -sfn "$d/$f" "$dest"
+    done
+}
+unlink_extras() {
+    d="$share/$1/extras/config"; [ -d "$d" ] || return 0
+    ( cd "$d" && find . -type f ) | while IFS= read -r f; do
+        f="${f#./}"; [ "$(readlink "$cfg/$f" 2> /dev/null)" = "$d/$f" ] && rm -f "$cfg/$f"
+    done
+    return 0
+}
+
 cmd_check() {
     target="${1:-}"
     [ -n "$target" ] || die "$(t 'Usage: fili-bar check DIR|NAME')"
@@ -182,6 +214,7 @@ cmd_check() {
 cmd_remove() {
     name="${1:-}"; valid_name "$name" || die "$(t 'Usage: fili-bar remove NAME')"
     [ -d "$share/$name" ] || die "$(t '%s is not a plugin of the home (see fili-bar list)' "$name")"
+    unlink_extras "$name"
     gio trash "$share/$name" 2> /dev/null || die "$(t 'Could not move %s to the trash' "$share/$name")"
     rm -f "$mods/$name"
     echo "$(t 'Removed %s (in the trash)' "$name")"
@@ -198,18 +231,64 @@ cmd_install() {
     git clone -q "$url" "$tmp/p" 2> /dev/null || die "$(t 'Could not clone %s' "$url")"
     [ -z "$rev" ] || git -C "$tmp/p" checkout -q "$rev" 2> /dev/null || die "$(t 'No such revision: %s' "$rev")"
     rev="$(git -C "$tmp/p" rev-parse HEAD)"
-    name="$(basename "$url" .git)"
+    name="$(basename "$url" .git)"; name="${name#fili-bar-}"   # repository fili-bar-NAME installs as NAME
     valid_name "$name" || die "$(t 'The plugin name (%s) must be lowercase letters, digits and hyphens' "$name")"
     [ -f "$tmp/p/module.toml" ] || die "$(t 'No module.toml in this repository')"
     api="$(mval "$tmp/p/module.toml" api)"
     if [ -n "$api" ] && [ "$api" -gt "$API" ] 2> /dev/null; then die "$(t 'This plugin needs api %s, this bar has api %s' "$api" "$API")"; fi
     echo "$(t 'Plugin %s at %s' "$name" "$rev")"
     sed 's/^/  /' "$tmp/p/module.toml"
+    missing="$(missing_packages "$tmp/p/module.toml")"
+    if [ -n "$(mlist "$tmp/p/module.toml" packages)" ]; then
+        echo "$(t 'packages: %s' "$(mlist "$tmp/p/module.toml" packages | tr '\n' ' ')")"
+        [ -z "$missing" ] || echo "$(t 'to install with xbps (sudo): %s' "$(echo $missing)")"
+    fi
+    if [ -f "$tmp/p/install.sh" ]; then
+        echo "$(t 'install.sh (runs once installed, with your rights):')"
+        sed 's/^/  | /' "$tmp/p/install.sh"
+    fi
+    if [ -d "$tmp/p/extras/config" ]; then
+        echo "$(t 'extras (linked in ~/.config):')"
+        ( cd "$tmp/p/extras/config" && find . -type f | sed 's|^\./|  |' | sort )
+    fi
     [ "$yes" = 1 ] || { echo "$(t 'It runs with your rights. Read it, then run again with --yes.')"; exit 2; }
     [ -e "$share/$name" ] && die "$(t 'Already there: %s' "$share/$name")"
-    mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name"
+    mkdir -p "$share" && mv "$tmp/p" "$share/$name" && link "$name" && link_extras "$name"
     pin "$name" "$url@$rev"
+    install_packages "$name"
     echo "$(t 'Installed %s' "$name")"
+    run_setup "$name"
+}
+
+# Packages of a manifest (packages = ["socat", "go"]) that xbps does not have yet, one per line
+missing_packages() {
+    mlist "$1" packages | while IFS= read -r pkg; do
+        [ -n "$pkg" ] || continue
+        xbps-query "$pkg" > /dev/null 2>&1 || echo "$pkg"
+    done
+}
+# Install the missing packages of an installed plugin with xbps (sudo); a failure is reported, the plugin stays installed
+install_packages() {
+    m="$(missing_packages "$share/$1/module.toml")"
+    [ -n "$m" ] || return 0
+    echo "$(t 'Installing packages: %s' "$(echo $m)")"
+    # shellcheck disable=SC2086
+    sudo xbps-install -y $m || { echo "$(t '%s: packages not installed (run: fili-bar setup %s)' "$1" "$1")" >&2; return 1; }
+}
+
+# Run the install.sh of an installed plugin, in its folder (a failure is reported, the plugin stays installed)
+run_setup() {
+    [ -f "$share/$1/install.sh" ] || return 0
+    echo "$(t 'Setting up %s' "$1")"
+    ( cd "$share/$1" && FILI_BAR_PLUGIN="$1" FILI_BAR_OPTIONS="${FILI_BAR_OPTIONS:-$cfg/filigrane/bar/$1.toml}" sh ./install.sh ) \
+        || { echo "$(t '%s: install.sh failed (run: fili-bar setup %s)' "$1" "$1")" >&2; return 1; }
+}
+
+cmd_setup() {
+    valid_name "${1:-}" && [ -d "$share/$1" ] || die "$(t 'No such plugin: %s' "${1:-}")"
+    install_packages "$1"
+    [ -f "$share/$1/install.sh" ] || { echo "$(t '%s has no install.sh' "$1")"; return 0; }
+    run_setup "$1"
 }
 
 # Record NAME = "url@commit" in bar-plugins.toml
@@ -229,8 +308,29 @@ cmd_sync() {
             git -C "$share/$name" fetch -q 2> /dev/null; git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $rev" || echo "$name: $(t 'could not reach %s' "$rev")"
         else
             mkdir -p "$share" && git clone -q "$url" "$share/$name" 2> /dev/null && git -C "$share/$name" checkout -q "$rev" 2> /dev/null && echo "$name: $(t 'installed')" || echo "$name: $(t 'failed')"
+            [ -d "$share/$name" ] && install_packages "$name"
+            [ -d "$share/$name" ] && run_setup "$name"
         fi
-        [ -d "$share/$name" ] && link "$name"
+        [ -d "$share/$name" ] && link "$name" && link_extras "$name"
+    done
+}
+
+# Start, detached and from the folder of the plugin, the autostart commands of every enabled plugin. Once per session
+# (stamp in the runtime directory, per niri instance: a niri restart without logout keeps the runtime directory but
+# has killed the daemons) unless --force; the commands must tolerate a second instance (a lock, a loop).
+cmd_autostart() {
+    niri_id="${NIRI_SOCKET##*/}"
+    stamp="${XDG_RUNTIME_DIR:-/tmp}/fili-bar-autostart${niri_id:+.$niri_id}.done"
+    [ "${1:-}" = --force ] || [ ! -e "$stamp" ] || return 0
+    : > "$stamp"
+    for n in $(names); do
+        [ "$(val "$n" enabled true)" = false ] && continue
+        dir="$(readlink -f "$mods/$n")"
+        mlist "$dir/module.toml" autostart | while IFS= read -r c; do
+            [ -n "$c" ] || continue
+            ( cd "$dir" && setsid -f sh -c "$c" > /dev/null 2>&1 < /dev/null )
+            echo "$n: $c"
+        done
     done
 }
 
@@ -262,8 +362,52 @@ cmd_screens() {
     fi
     echo "screens: $*"
 }
+# Value of KEY in a section of fili-bar.toml, without quotes ("" when it is not set)
+secval() {
+    awk -v sec="$1" -v key="$2" '/^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); next }
+        cur && $0 ~ "^[ \t]*" key "[ \t]*=" { sub(/^[^=]*=[ \t]*/, ""); sub(/[ \t]*#.*$/, ""); gsub(/"/, ""); print; exit }' "$conf" 2>/dev/null
+}
+cmd_background() {
+    if [ -z "${1:-}" ]; then
+        echo "$(secval "[bar]" background)" | sed 's/^$/solid/'
+        return
+    fi
+    case "$1" in solid | translucent | transparent) ;; *) die "$(t 'Usage: fili-bar background solid|translucent|transparent')" ;; esac
+    setsec "[bar]" background "\"$1\""
+    echo "background: $1"
+}
+# The taskbar: [taskbar] of fili-bar.toml
+cmd_taskbar() {
+    if [ "$#" -eq 0 ]; then
+        for k in enabled edge autohide background scale screens; do
+            v="$(secval "[taskbar]" "$k")"
+            [ -n "$v" ] || case "$k" in enabled) v=true ;; edge) v=bottom ;; autohide) v=false ;; background) v=solid ;; scale) v=100 ;; *) v=all ;; esac
+            echo "$k = $v"
+        done
+        return
+    fi
+    key="$1"; shift
+    usage="$(t 'Usage: fili-bar taskbar enabled|autohide true|false, edge top|bottom|left|right, scale 80-160, background solid|translucent|transparent, screens all|NAME...')"
+    case "$key" in
+        enabled | autohide) case "${1:-}" in true | false) setsec "[taskbar]" "$key" "$1" ;; *) die "$usage" ;; esac ;;
+        scale) case "${1:-}" in '' | *[!0-9]*) die "$usage" ;; *) [ "$1" -ge 80 ] && [ "$1" -le 160 ] || die "$usage"; setsec "[taskbar]" scale "$1" ;; esac ;;
+        edge) case "${1:-}" in top | bottom | left | right) setsec "[taskbar]" edge "\"$1\"" ;; *) die "$usage" ;; esac ;;
+        background) case "${1:-}" in solid | translucent | transparent) setsec "[taskbar]" background "\"$1\"" ;; *) die "$usage" ;; esac ;;
+        screens)
+            [ "$#" -gt 0 ] || die "$usage"
+            for n in "$@"; do printf '%s' "$n" | grep -Eq '^[A-Za-z0-9._-]+$' || die "$usage"; done
+            if [ "$1" = all ]; then setsec "[taskbar]" screens '"all"'; else
+                list=""; for n in "$@"; do list="$list${list:+, }\"$n\""; done
+                setsec "[taskbar]" screens "[$list]"
+            fi ;;
+        *) die "$usage" ;;
+    esac
+    echo "taskbar $key: $*"
+}
 case "${1:-list}" in
     list) cmd_list ;;
+    background) cmd_background "${2:-}" ;;
+    taskbar) shift; cmd_taskbar "$@" ;;
     enable) cmd_enable "${2:-}" "" ;;
     disable) cmd_enable "${2:-}" false ;;
     move) cmd_move "${2:-}" "${3:-}" "${4:-}" ;;
@@ -272,8 +416,10 @@ case "${1:-list}" in
     new) cmd_new "${2:-}" "${3:-}" ;;
     check) cmd_check "${2:-}" ;;
     install) shift; cmd_install "$@" ;;
+    autostart) cmd_autostart "${2:-}" ;;
+    setup) cmd_setup "${2:-}" ;;
     remove) cmd_remove "${2:-}" ;;
     sync) cmd_sync ;;
-    -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' ;;
-    *) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
+    -h | --help | help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' ;;
+    *) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 1 ;;
 esac

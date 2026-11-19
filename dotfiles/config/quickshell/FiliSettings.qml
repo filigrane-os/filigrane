@@ -23,10 +23,17 @@ Singleton {
     // id, label (translated), page file; the order is the one of the bar modules
     readonly property var pages: [
         { id: "display", label: FiliI18n.tr("Display"), source: "SettingsDisplay.qml" },
+        { id: "workspaces", label: FiliI18n.tr("Workspaces"), source: "SettingsWorkspaces.qml" },
+        { id: "appearance", label: FiliI18n.tr("Appearance"), source: "SettingsAppearance.qml" },
+        { id: "wallpaper", label: FiliI18n.tr("Wallpaper"), source: "SettingsWallpaper.qml" },
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
-        { id: "bar", label: "Barre", source: "SettingsBar.qml" },
+        { id: "login", label: FiliI18n.tr("Login"), source: "SettingsLogin.qml" },
+        { id: "firewall", label: FiliI18n.tr("Firewall"), source: "SettingsFirewall.qml" },
+        { id: "bar", label: "Passerelle", source: "SettingsBar.qml" },
+        { id: "quai", label: "Quai", source: "SettingsQuai.qml" },
         { id: "files", label: "Casier", source: "SettingsFiles.qml" },
+        { id: "term", label: "Aéroport", source: "SettingsTerminal.qml" },
         { id: "about", label: FiliI18n.tr("About"), source: "SettingsAbout.qml" }
     ]
     readonly property var current: pages.find(p => p.id === page) ?? pages[0]

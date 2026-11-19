@@ -1,0 +1,5 @@
+# fili-bar module manifest (see docs/bar.md)
+title = "Mail"
+description = "Unread mail across every account (Facteur)"
+side = "right"
+order = 105

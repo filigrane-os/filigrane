@@ -2,6 +2,10 @@
 // open session) so that the conversation stays when the drawer (FiliChat.qml) hides; the drawer connects to it.
 // fili-chat daemon          daemon (started by the drawer on first display; it stops without a client or an agent)
 // fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
+// fili-chat ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
+//                           application's button, e.g. Aéroport's "Ask Rob": the details are in its context)
+// fili-chat here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then creates
+//                           a new session scoped to it, with TEXT sent if given
 // fili-chat status          sessions as JSON (the daemon must be running)
 // fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
 // fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
@@ -11,6 +15,7 @@
 // {"op":"rename","id","title"} {"op":"archive","id"} (keeps the history: archived)
 // {"op":"restore","id"}  {"op":"agent"} (asks {"ev":"agent","ok":bool}: is the agent installed) {"op":"answer","rid","allow"}
 // {"op":"link","id","key"} links the session to an application (empty key: unlinks; see "follow" of the drawer)
+// {"op":"scope","id","on"} scopes the session to its linked application: each message carries the instruction to stay in it
 // {"op":"send",…,"context":true} attaches the context noted by Mod+Y (context.json) to the message to the agent
 // {"op":"ask","id","rid","tool","input"} (MCP server: permission request, the connection waits for the answer)
 // daemon -> clients: {"ev":"sessions","sessions":[{id,title,state,updated,link,archived,icon}]} {"ev":"history","id","items":[...]}
@@ -67,6 +72,7 @@ fn chat_dir() -> PathBuf {
 // ───── settings (ai.env) ─────
 struct Conf {
     model: String,
+    rob_model: String, // model of the sessions scoped to an application ("Ask Rob"): short requests, speed matters
     args: Vec<String>,
     dir: String,
 }
@@ -90,7 +96,13 @@ fn conf() -> Conf {
         .split_whitespace()
         .map(|a| if let Some(r) = a.strip_prefix('~') { format!("{}{r}", home()) } else { a.to_string() })
         .collect();
-    Conf { model: get("FILI_AI_MODEL"), args, dir }
+    // Absent = sonnet; "default" = the model of the agent (same as FILI_AI_MODEL)
+    let rob_model = match kv.get("FILI_ROB_MODEL").map(String::as_str) {
+        None => "sonnet".to_string(),
+        Some("default") => get("FILI_AI_MODEL"),
+        Some(m) => m.to_string(),
+    };
+    Conf { model: get("FILI_AI_MODEL"), rob_model, args, dir }
 }
 
 // Value of a shell file: 'abc', "abc" or abc\ def
@@ -120,6 +132,7 @@ struct Session {
     updated: i64,
     started: bool, // the agent has already received a message: resume with --resume
     link: String,  // application (or window) the session is linked to, "" = none
+    scoped: bool,  // "Ask Rob" of an application: the agent works only on that application
     child: Option<Child>,
     stdin: Option<ChildStdin>,
     epoch: u64, // number of the current process (the end of an old process is ignored)
@@ -181,6 +194,7 @@ impl Daemon {
                         j.set("state", s.state);
                         j.set("updated", s.updated);
                         j.set("link", s.link.as_str());
+                        j.set("scoped", s.scoped);
                         j.set("archived", s.archived);
                         j.set("icon", s.icon);
                         j
@@ -215,6 +229,7 @@ fn save_index(d: &Daemon) {
                 j.set("updated", s.updated);
                 j.set("started", s.started);
                 j.set("link", s.link.as_str());
+                j.set("scoped", s.scoped);
                 j.set("archived", s.archived);
                 j.set("icon", s.icon);
                 j
@@ -239,6 +254,7 @@ fn load_index() -> Vec<Session> {
                 updated: j.get("updated").int().unwrap_or(0),
                 started: j.get("started").truthy(),
                 link: j.get("link").str().unwrap_or("").to_string(),
+                scoped: j.get("scoped").truthy(),
                 child: None,
                 stdin: None,
                 epoch: 0,
@@ -368,6 +384,7 @@ fn uuid() -> String {
 fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     let c = conf();
     let started = d.session(id).map(|s| s.started).unwrap_or(false);
+    let scoped = d.session(id).map(|s| s.scoped && !s.link.is_empty()).unwrap_or(false);
     d.next_epoch += 1;
     let epoch = d.next_epoch;
     let mut cmd = Command::new("claude");
@@ -392,8 +409,9 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     let mut mcp = Json::obj();
     mcp.set("mcpServers", servers);
     cmd.arg("--mcp-config").arg(mcp.to_string()).args(["--permission-prompt-tool", "mcp__fili__approve"]);
-    if !c.model.is_empty() {
-        cmd.args(["--model", &c.model]);
+    let model = if scoped { &c.rob_model } else { &c.model };
+    if !model.is_empty() {
+        cmd.args(["--model", model]);
     }
     if c.args.is_empty() {
         cmd.args(["--permission-mode", "acceptEdits"]);
@@ -697,6 +715,36 @@ fn context_line() -> Option<String> {
         .then(|| format!("[Contexte noté à l'ouverture du chat (application active): {j}]\n\n"))
 }
 
+/// Instruction of a scoped session ("Ask Rob" of an application): the link key is the app_id, then the window title
+fn scope_line(link: &str) -> String {
+    let app = link.split('\n').next().unwrap_or("");
+    format!(
+        "[Périmètre: cette session est limitée à l'application « {app} ». Ne lis et ne modifie que ce qui la concerne \
+         (son code dans apps/ ou son dépôt, sa configuration dans dotfiles/config/filigrane/, son menu, son thème). \
+         Pour toute demande qui sort de ce cadre, dis-le en une phrase et propose de la traiter dans une session normale (Mod+Y).]\n\n"
+    )
+}
+
+/// Hidden brief of a scoped session, sent with its first message: agents/rob/_default.md, then agents/rob/<app_id>.md of the
+/// repository (what the application's own commands are, what it must never do), then ~/.config/filigrane/rob/<app_id>.md
+/// (personal additions). The agent keeps it for the whole session (`--resume`).
+fn scope_brief(link: &str, dir: &str) -> String {
+    let app = link.split('\n').next().unwrap_or("");
+    // The app id names a file: nothing that could leave the folder
+    if app.is_empty() || !app.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')) || app.starts_with('.') {
+        return String::new();
+    }
+    let cfg = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
+    let files =
+        [format!("{dir}/agents/rob/_default.md"), format!("{dir}/agents/rob/{app}.md"), format!("{cfg}/filigrane/rob/{app}.md")];
+    let text: Vec<String> = files.iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
+    if text.is_empty() {
+        String::new()
+    } else {
+        format!("[Consignes de la session « {app} » (invisibles pour l'utilisateur):\n{}]\n\n", text.join("\n\n"))
+    }
+}
+
 fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     if d.session(id).is_none() || text.trim().is_empty() {
         return;
@@ -721,7 +769,15 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     }
     let mut m = Json::obj();
     m.set("role", "user");
-    let full = if with_context { format!("{}{text}", context_line().unwrap_or_default()) } else { text.to_string() };
+    let scope = d
+        .session(id)
+        .filter(|s| s.scoped && !s.link.is_empty())
+        .map(|s| {
+            if s.started { scope_line(&s.link) } else { format!("{}{}", scope_brief(&s.link, &conf().dir), scope_line(&s.link)) }
+        })
+        .unwrap_or_default();
+    let ctx = if with_context { context_line().unwrap_or_default() } else { String::new() };
+    let full = format!("{scope}{ctx}{text}");
     m.set("content", full);
     let mut line = Json::obj();
     line.set("type", "user");
@@ -784,6 +840,7 @@ fn handle(client: u64, line: &str) {
                 updated: now(),
                 started: false,
                 link: String::new(),
+                scoped: false,
                 child: None,
                 stdin: None,
                 epoch: 0,
@@ -847,6 +904,12 @@ fn handle(client: u64, line: &str) {
         "link" => {
             if let Some(s) = d.session(&id) {
                 s.link = req.get("key").str().unwrap_or("").chars().take(200).collect();
+            }
+            d.publish_sessions();
+        }
+        "scope" => {
+            if let Some(s) = d.session(&id) {
+                s.scoped = req.get("on").truthy();
             }
             d.publish_sessions();
         }
@@ -1043,25 +1106,41 @@ fn ask_user(sid: &str, args: &Json) -> Json {
     deny("The request was cancelled")
 }
 
-// ───── commandes de l'utilisateur ─────
+// ───── user commands ─────
+/// Context of the active application (fili-context), for the next message of the drawer
+fn note_context() -> Result<(), String> {
+    let ctx = format!("{}/context.json", state_dir().display());
+    let _ = fs::create_dir_all(state_dir());
+    let out = Command::new(format!("{}/.local/bin/fili-context", home())).output();
+    fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default()).map_err(|e| e.to_string())
+}
+
+fn shell_chat(args: &[&str]) -> Result<(), String> {
+    Command::new(format!("{}/.local/bin/fili-shell", home()))
+        .arg("chat")
+        .args(args)
+        .status()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
+}
+
 fn connect() -> Result<UnixStream, String> {
-    UnixStream::connect(sock_path()).map_err(|_| "fili-chat: le démon ne tourne pas (le tiroir le lance)".to_string())
+    UnixStream::connect(sock_path()).map_err(|_| "fili-chat: the daemon is not running (the drawer starts it)".to_string())
 }
 
 fn main() {
     let a: Vec<String> = env::args().skip(1).collect();
     let r = match a.first().map(String::as_str) {
         Some("daemon") => daemon(),
-        Some("toggle") => {
-            let ctx = format!("{}/context.json", state_dir().display());
-            let _ = fs::create_dir_all(state_dir());
-            let out = Command::new(format!("{}/.local/bin/fili-context", home())).output();
-            let _ = fs::write(ctx, out.map(|o| o.stdout).unwrap_or_default());
-            Command::new(format!("{}/.local/bin/fili-shell", home()))
-                .args(["chat", "toggle"])
-                .status()
-                .map(|_| ())
-                .map_err(|e| e.to_string())
+        Some("toggle") => note_context().and_then(|_| shell_chat(&["toggle"])),
+        Some("ask") if a.len() >= 2 => {
+            // One line: the shell pipe takes one command per line
+            let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+            note_context().and_then(|_| shell_chat(&["ask", &text]))
+        }
+        Some("here") => {
+            let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+            note_context().and_then(|_| if text.is_empty() { shell_chat(&["here"]) } else { shell_chat(&["here", &text]) })
         }
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("status") => connect().and_then(|s| {
@@ -1086,10 +1165,40 @@ fn main() {
             }
             Ok(())
         }),
-        _ => Err("usage: fili-chat daemon | toggle | status | send ID TEXTE".into()),
+        _ => Err("usage: fili-chat daemon | toggle | ask TEXT | here [TEXT] | status | send ID TEXT".into()),
     };
     if let Err(e) = r {
         eprintln!("fili-chat: {e}");
         std::process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn brief_reads_default_and_app_files_and_refuses_odd_names() {
+        let dir = env::temp_dir().join(format!("fili-chat-brief-{}", std::process::id()));
+        fs::create_dir_all(dir.join("agents/rob")).unwrap();
+        fs::write(dir.join("agents/rob/_default.md"), "GENERIC").unwrap();
+        fs::write(dir.join("agents/rob/fili-file.md"), "CASIER").unwrap();
+        let d = dir.display().to_string();
+        let b = scope_brief("fili-file\nDownloads", &d);
+        assert!(b.contains("GENERIC") && b.contains("CASIER"));
+        let other = scope_brief("fili-term", &d);
+        assert!(other.contains("GENERIC") && !other.contains("CASIER"));
+        assert_eq!(scope_brief("../etc/passwd", &d), "");
+        assert_eq!(scope_brief("", &d), "");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn scope_names_the_application_only() {
+        let l = scope_line("fili-file");
+        assert!(l.contains("« fili-file »"));
+        // Window mode: the key is "app_id\ntitle", only the application is named
+        let l = scope_line("fili-file\nDownloads");
+        assert!(l.contains("« fili-file »") && !l.contains("Downloads"));
     }
 }

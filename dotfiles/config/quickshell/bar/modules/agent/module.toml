@@ -3,3 +3,4 @@ title = "AI agent"
 description = "The AI agent of the machine"
 side = "right"
 order = 50
+compact_at = 2

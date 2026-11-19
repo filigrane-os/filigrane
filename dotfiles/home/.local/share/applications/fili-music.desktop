@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Baladeur
+GenericName=Music player
+GenericName[fr]=Lecteur de musique
+Comment=Play your music library: albums, artists, genres, playlists and a queue
+Comment[fr]=Lire votre bibliothèque musicale : albums, artistes, genres, playlists et file d'attente
+Exec=fili-music
+Icon=fili-music
+Keywords=baladeur;fili-music;music;player;audio;flac;mp3;albums;artists;playlist;musique;lecteur;
+Categories=AudioVideo;Audio;Player;
+MimeType=audio/flac;audio/mpeg;audio/mp4;
+Terminal=false

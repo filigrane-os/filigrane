@@ -17,7 +17,14 @@ import qs.controls
 Singleton {
     id: panel
     property string view: ""
-    onViewChanged: FiliShell.panelOpen = view !== ""
+    onViewChanged: {
+        FiliShell.panelOpen = view !== "";
+        // A panel hanging from a taskbar: every taskbar shows the name of its screen
+        if (view !== "" && hang !== "")
+            FiliShell.identifyBy = "panel";
+        else if (FiliShell.identifyBy === "panel")
+            FiliShell.identifyBy = "";
+    }
     property real anchorX: 0
     // Along a column of the bar (left, right): the middle of the item
     property real anchorY: 0
@@ -68,11 +75,20 @@ Singleton {
         const path = {};
         for (const n in m)
             path[n] = treePath(m[n].item);
-        return Object.keys(m).sort((a, b) => compareTree(path[a], path[b]));
+        // A panel whose item is hidden (the status icon with no active indicator) is not in the ring
+        return Object.keys(m).filter(n => !m[n].item.panelNeedsVisible || m[n].item.visible).sort((a, b) => compareTree(path[a], path[b]));
     }
+
+    // Bar the panel hangs from: "" = the fili-bar, else the edge of the Quai (right click on it: openBarMenu(win, x, y, "taskbar"))
+    property string hang: ""
+    property string menuTarget: "bar"
+    readonly property string hangEdge: hang !== "" ? hang : FiliTheme.barEdge
+    readonly property bool hangVertical: hangEdge === "left" || hangEdge === "right"
+    readonly property int hangSize: hang !== "" ? FiliTheme.taskbarThickness : FiliTheme.barThickness
 
     function toggle(item, name, win) {
         FiliTooltip.hide();
+        hang = "";
         if (view === name) {
             close();
             return;
@@ -84,19 +100,39 @@ Singleton {
         view = name;
         last = name;
     }
-    // Right click on the bar background: the position of the bar and its settings, at the pointer (x, y in the bar window)
-    function openBarMenu(win, x, y) {
+    // Right click on the background of the fili-bar or of the Quai (target "bar" | "taskbar"): its position, background, screens
+    // and settings, at the pointer (x, y in the bar window)
+    function openBarMenu(win, x, y, target) {
         FiliTooltip.hide();
         if (view === "barmenu") {
             close();
             return;
         }
+        menuTarget = target ?? "bar";
+        hang = menuTarget === "taskbar" ? TaskbarLayout.edge : "";
         FiliShell.popupOpened("panel");
         sources["barmenu"] = Qt.resolvedUrl("BarMenuPanel.qml");
         anchorX = x;
         anchorY = y;
         screen = win?.screen ?? null;
         view = "barmenu";
+    }
+    // Right click on a fili-bar module: its commands as a small panel under the item (items: see ContextMenuPanel.qml)
+    property var ctxItems: []
+    function openContext(item, items, win) {
+        FiliTooltip.hide();
+        if (view === "ctxmenu") {
+            close();
+            return;
+        }
+        hang = "";
+        ctxItems = items;
+        FiliShell.popupOpened("panel");
+        sources["ctxmenu"] = Qt.resolvedUrl("ContextMenuPanel.qml");
+        anchorX = item.mapToItem(null, item.width / 2, 0).x;
+        anchorY = item.mapToItem(null, 0, item.height / 2).y;
+        screen = win?.screen ?? null;
+        view = "ctxmenu";
     }
     // Command `fili-shell panel NAME|toggle|close` (keyboard shortcuts): under the module of the panel
     function summon(name) {
@@ -122,6 +158,7 @@ Singleton {
     // Opening from the keyboard: under the bar module of the current screen (first screen by default), first item chosen
     function openKeyed(name) {
         FiliTooltip.hide();
+        hang = "";
         const s = screen?.name ?? Quickshell.screens[0]?.name ?? "";
         const m = (modules[s] ?? Object.values(modules)[0] ?? {})[name];
         if (name === "center") {
@@ -173,15 +210,15 @@ Singleton {
         screen: panel.screen
         // Beside the bar: under it (top), above it (bottom), or next to the clicked item (left, right)
         anchors {
-            top: FiliTheme.barEdge !== "bottom"
-            bottom: FiliTheme.barEdge === "bottom"
-            left: FiliTheme.barEdge !== "right"
-            right: FiliTheme.barEdge === "right"
+            top: panel.hangEdge !== "bottom"
+            bottom: panel.hangEdge === "bottom"
+            left: panel.hangEdge !== "right"
+            right: panel.hangEdge === "right"
         }
-        margins.top: FiliTheme.barVertical ? Math.max(8, Math.min((panel.screen?.height ?? 0) - card.height - 8, panel.anchorY - card.height / 2)) : FiliTheme.barGap("top", FiliTheme.barHeight + 6)
-        margins.bottom: FiliTheme.barGap("bottom", FiliTheme.barHeight + 6)
-        margins.left: FiliTheme.barEdge === "left" ? FiliTheme.barWidth + 6 : FiliTheme.barVertical ? 0 : Math.max(8, Math.min((panel.screen?.width ?? 0) - card.width - 8, panel.anchorX - card.width / 2))
-        margins.right: FiliTheme.barGap("right", FiliTheme.barWidth + 6)
+        margins.top: panel.hangVertical ? Math.max(8, Math.min((panel.screen?.height ?? 0) - card.height - 8, panel.anchorY - card.height / 2)) : panel.hangEdge === "top" ? panel.hangSize + 6 : 0
+        margins.bottom: panel.hangEdge === "bottom" ? panel.hangSize + 6 : 0
+        margins.left: panel.hangEdge === "left" ? panel.hangSize + 6 : panel.hangVertical ? 0 : Math.max(8, Math.min((panel.screen?.width ?? 0) - card.width - 8, panel.anchorX - card.width / 2))
+        margins.right: panel.hangEdge === "right" ? panel.hangSize + 6 : 0
         implicitWidth: card.width
         implicitHeight: card.height
         exclusionMode: ExclusionMode.Ignore

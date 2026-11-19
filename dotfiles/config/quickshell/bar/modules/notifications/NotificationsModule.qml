@@ -7,7 +7,7 @@ BarItem {
     objectName: "notifications"
     panel: "center"
     text: FiliNotification.dnd ? " MUTE" : (FiliNotification.history.length + FiliNotification.popups.length > 0 ? "" : "") + " " + (FiliNotification.history.length + FiliNotification.popups.length)
-    color: FiliNotification.dnd ? FiliTheme.sable : FiliTheme.brume
+    color: FiliNotification.dnd ? FiliTheme.barWarn : FiliTheme.barText
     tip: ({
         title: FiliNotification.dnd ? FiliI18n.tr("Do not disturb") : FiliI18n.tr("Notifications"),
         rows: [[FiliI18n.tr("Pop-ups"), FiliNotification.dnd ? FiliI18n.tr("hidden") : FiliI18n.tr("shown")], [FiliI18n.tr("History"), FiliI18n.tr("%1 notification(s)", FiliNotification.history.length)]],

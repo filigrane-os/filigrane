@@ -1,12 +1,12 @@
-# Profil machine physique, tout matériel (firmware et pilotes propres au CPU/GPU: cpu-*.txt, gpu-*.txt)
-# Les paquets absents du dépôt (autre architecture) sont ignorés avec un avertissement.
+# Physical machine profile, any hardware (CPU/GPU-specific firmware and drivers: cpu-*.txt, gpu-*.txt)
+# Packages missing from the repository (other architecture) are skipped with a warning.
 linux-firmware-network
 brightnessctl
 
-# Sauvegarde vers le NAS (dotfiles/home/.local/bin/watch-backup)
+# Backup to the NAS (dotfiles/home/.local/bin/watch-backup)
 restic
 
-# Impression (cupsd résident ~10 Mo; filtres PDF et IPP sans pilote, ghostscript ~150 Mo disque)
+# Printing (resident cupsd ~10 MB; PDF filters and driverless IPP, ghostscript ~150 MB disk)
 cups
 cups-filters
 psutils

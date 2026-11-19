@@ -1,6 +1,6 @@
-# Mac Intel à puce T2 (installés par hardware/mac-t2/setup.sh)
+# Intel Mac with a T2 chip (installed by hardware/mac-t2/setup.sh)
 dkms
-zstd  # dkms compresse les modules comme ceux du noyau
+zstd  # dkms compresses modules like the kernel's
 linux-headers
 pciutils
 alsa-ucm-conf
@@ -9,6 +9,6 @@ curl
 python3
 dmg2img
 cargo
-keyd  # touche Command façon macOS (hardware/mac-t2/keyd.conf)
-bankstown  # DSP haut-parleurs (hardware/mac-t2/audio): basse psychoacoustique
-lsp-plugins-lv2  # DSP haut-parleurs: loudness, compresseurs, limiteurs
+keyd  # macOS-style Command key (hardware/mac-t2/keyd.conf)
+bankstown  # speaker DSP (hardware/mac-t2/audio): psychoacoustic bass
+lsp-plugins-lv2  # speaker DSP: loudness, compressors, limiters

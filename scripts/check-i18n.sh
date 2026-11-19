@@ -8,16 +8,23 @@
 # an entry with the same number of placeholders (%s). The niri shortcut titles (hotkey-overlay-title of
 # dotfiles/config/niri/config.kdl) too: fili-hotkeys and the menu translate them.
 # fili-shell (dotfiles/config/quickshell/i18n/*.json): each FiliI18n.tr("...") of the QML files and each tr("...") or
-# trf("...") of bar-stats, fili-ai-session and fili-automount (apps/*/src, tests excluded; Fili.tr("...") of its QML). Each catalog needs an entry with the same %1, %2...
+# trf("...") of bar-stats, fili-ai-session, and fili-automount (apps/*/src, tests excluded). Each catalog needs an entry with the same %1, %2...
 # Both kinds also report catalog entries nothing uses any more.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-mapfile -t scripts < <(grep -rlE '(^|[[:space:]])\. "\$FILI_LIB/i18n\.sh"' --exclude-dir=.git --exclude-dir=target --exclude='*.md' . | sort)
+# Tracked files only: a local checkout also holds untracked scripts and __pycache__ that the CI never sees, and the check
+# has to give the same answer in both (outside a git repository, every file)
+if git rev-parse --git-dir >/dev/null 2>&1; then
+    mapfile -t files < <(git ls-files)
+else
+    mapfile -t files < <(find . -type f -not -path './.git/*' -not -path '*/target/*' | sed 's|^\./||')
+fi
+mapfile -t scripts < <(printf '%s\n' "${files[@]}" | grep -v '\.md$' | xargs -d '\n' grep -lE '(^|[[:space:]])\. "\$FILI_LIB/i18n\.sh"' 2>/dev/null | sort)
 [ ${#scripts[@]} -gt 0 ] || { echo "no script sources lib/i18n.sh"; exit 1; }
 
 # English messages: the first single-quoted argument of the message functions
-mapfile -t python < <(grep -rlE '^def t\(fmt' --exclude-dir=.git --exclude-dir=target dotfiles users 2>/dev/null | sort)
+mapfile -t python < <(printf '%s\n' "${files[@]}" | grep '^dotfiles/' | xargs -d '\n' grep -lE '^def t\(fmt' 2>/dev/null | sort)
 mapfile -t messages < <({ grep -ohP "(?<![\\w./-])(t|log|warn|die|say|note|item) '\\K[^']*(?=')" "${scripts[@]}"
     grep -hP "(?<![\\w./-])choose [\"']" "${scripts[@]}" | sed 's/.*choose //' | grep -oP "'[^']*'" | sed "s/^'//; s/'\$//"
     grep -ohP 'hotkey-overlay-title="\K[^"]*(?=")' dotfiles/config/niri/config.kdl

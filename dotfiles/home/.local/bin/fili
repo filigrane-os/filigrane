@@ -1,0 +1,173 @@
+#!/bin/sh
+# Install, list and remove what extends Filigrane, from an index. Usage:
+# fili list [app|plugin|webapp] [--installed]   what the index offers, with the state of each entry
+# fili search TEXT                              entries whose name, title or description match
+# fili info NAME                                everything the index says about an entry
+# fili install NAME [--yes]                     shows what will happen; --yes does it
+# fili remove NAME [--yes]                      the inverse
+# fili update                                   fetch the published index (git clone or pull of FILI_INDEX_URL)
+# fili sync                                     on a new machine: the apps of apps.toml, then the pinned plugins
+# Three kinds of entries (docs/index.md):
+#   app      a program with its own window, an xbps package (sudo xbps-install), recorded in ~/.config/filigrane/apps.toml
+#   plugin   a module of the bar, a git repository (fili-bar install: manifest shown, packages, install.sh)
+#   webapp   a web application in the launcher (webapp-add)
+# The index is every *.toml of ~/.config/filigrane/index.d/ (distribution and layers) and of ~/.local/share/filigrane/index/.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+here="$(dirname "$(readlink -f "$0")")"
+cfg="${XDG_CONFIG_HOME:-$HOME/.config}"
+data="${XDG_DATA_HOME:-$HOME/.local/share}"
+apps="$cfg/filigrane/apps.toml"
+# Precedence of a name: files of the user layers (index.d, except 00-core), then the published index, then 00-core
+FILES="$({ ls "$cfg"/filigrane/index.d/*.toml 2> /dev/null | grep -v '/00-core\.toml$'; ls "$data"/filigrane/index/*.toml 2> /dev/null; ls "$cfg"/filigrane/index.d/00-core.toml 2> /dev/null; } )"
+INDEX_URL="${FILI_INDEX_URL:-https://github.com/filigrane-os/fili-index}"
+
+die() { printf '%s\n' "$*" >&2; exit 1; }
+
+# Names of the entries, one per line (a later file overrides an earlier one: the first definition is kept)
+names() { [ -n "$FILES" ] || return 0; for f in $FILES; do sed -n 's/^\[\([a-z][a-z0-9-]*\)\][ \t]*$/\1/p' "$f"; done | awk '!seen[$0]++'; }
+# field NAME KEY: value of KEY in the section [NAME] (first file that has it), without quotes
+field() {
+    [ -n "$FILES" ] || return 0
+    for f in $FILES; do
+        v="$(awk -v sec="[$1]" -v key="$2" '
+            /^[ \t]*\[/ { h = $0; sub(/^[ \t]*/, "", h); sub(/[ \t]*#.*$/, "", h); sub(/[ \t]+$/, "", h); cur = (h == sec); next }
+            cur { line = $0; sub(/[ \t]*#[^"]*$/, "", line)
+                  if (match(line, "^[ \t]*" key "[ \t]*=[ \t]*")) { v = substr(line, RLENGTH + 1); gsub(/^"|"[ \t]*$/, "", v); print v; exit } }
+        ' "$f")"
+        [ -n "$v" ] && { printf '%s' "$v"; return 0; }
+    done
+}
+need() { [ -n "$(field "$1" kind)" ] || die "$(t 'Not in the index: %s (see: fili list)' "$1")"; }
+
+# is_installed NAME: 0 when installed
+is_installed() {
+    case "$(field "$1" kind)" in
+        app) xbps-query "$(field "$1" package)" > /dev/null 2>&1 ;;
+        plugin) [ -d "$data/filigrane/bar/plugins/$1" ] ;;
+        webapp) grep -qiE "^[[:space:]]*$(printf '%s' "$(field "$1" title)" | sed 's/[][\.*^$/]/\\&/g')[[:space:]]*\|" "$cfg/webapps/list" 2> /dev/null ;;
+        *) return 1 ;;
+    esac
+}
+
+cmd_list() {
+    kind=""; only=0
+    for a in "$@"; do case "$a" in --installed) only=1 ;; app | plugin | webapp) kind="$a" ;; *) die "$(t 'Usage: fili list [app|plugin|webapp] [--installed]')" ;; esac; done
+    for n in $(names); do
+        k="$(field "$n" kind)"; [ -z "$kind" ] || [ "$k" = "$kind" ] || continue
+        st="-"; is_installed "$n" && st="installed"
+        [ "$only" = 0 ] || [ "$st" = installed ] || continue
+        printf '%-20s %-7s %-10s %s\n' "$n" "$k" "$st" "$(field "$n" title)"
+    done
+}
+
+cmd_search() {
+    [ -n "${1:-}" ] || die "$(t 'Usage: fili search TEXT')"
+    for n in $(names); do
+        printf '%s %s %s\n' "$n" "$(field "$n" title)" "$(field "$n" description)" | grep -qi -- "$1" || continue
+        printf '%-20s %-7s %s\n' "$n" "$(field "$n" kind)" "$(field "$n" title)"
+    done
+}
+
+cmd_info() {
+    need "${1:-}"; n="$1"
+    echo "$n ($(field "$n" kind)): $(field "$n" title)"
+    d="$(field "$n" description)"; [ -z "$d" ] || echo "$d"
+    for key in package url icon weight; do v="$(field "$n" $key)"; [ -z "$v" ] || echo "$key: $v"; done
+    if is_installed "$n"; then echo "$(t 'state: installed')"; else echo "$(t 'state: not installed')"; fi
+}
+
+# Record NAME = "package" in apps.toml
+record() {
+    mkdir -p "$(dirname "$apps")"
+    [ -f "$apps" ] || printf '[apps]\n' > "$apps"
+    tmp="$(mktemp)"
+    awk -v n="$1" -v v="$2" '$0 ~ "^" n "[ \t]*=" { next } { print } END { if (v != "") print n " = \"" v "\"" }' "$apps" > "$tmp" && cat "$tmp" > "$apps"
+    rm -f "$tmp"
+}
+
+cmd_install() {
+    need "${1:-}"; n="$1"; shift; yes=0
+    for a in "$@"; do [ "$a" = --yes ] && yes=1; done
+    k="$(field "$n" kind)"; title="$(field "$n" title)"
+    if is_installed "$n"; then echo "$(t '%s is already installed' "$title")"; return 0; fi
+    case "$k" in
+        app)
+            pkg="$(field "$n" package)"; [ -n "$pkg" ] || die "$(t 'The index entry %s has no package' "$n")"
+            size="$(xbps-query -R -p installed_size "$pkg" 2> /dev/null)"
+            echo "$(t 'Application %s: xbps package %s%s' "$title" "$pkg" "${size:+ ($size)}")"
+            [ "$(field "$n" weight)" != heavy ] || echo "$(t 'Heavy: check the resource budget (budget save before, budget diff after).')"
+            [ "$yes" = 1 ] || { echo "$(t 'Installed with sudo xbps-install. Run again with --yes.')"; exit 2; }
+            sudo xbps-install -y "$pkg" || exit 1
+            record "$n" "$pkg"
+            echo "$(t 'Installed %s' "$title")" ;;
+        plugin)
+            url="$(field "$n" url)"; [ -n "$url" ] || die "$(t 'The index entry %s has no url' "$n")"
+            if [ "$yes" = 1 ]; then "$here/fili-bar" install "$url" --yes; else "$here/fili-bar" install "$url"; fi ;;
+        webapp)
+            url="$(field "$n" url)"; [ -n "$url" ] || die "$(t 'The index entry %s has no url' "$n")"
+            echo "$(t 'Web application %s: %s' "$title" "$url")"
+            [ "$yes" = 1 ] || { echo "$(t 'Added to the launcher. Run again with --yes.')"; exit 2; }
+            icon="$(field "$n" icon)"
+            webapp-add "$title" "$url" ${icon:+"$icon"} ;;
+        *) die "$(t 'Unknown kind of %s: %s' "$n" "$k")" ;;
+    esac
+}
+
+cmd_remove() {
+    need "${1:-}"; n="$1"; shift; yes=0
+    for a in "$@"; do [ "$a" = --yes ] && yes=1; done
+    k="$(field "$n" kind)"; title="$(field "$n" title)"
+    is_installed "$n" || { echo "$(t '%s is not installed' "$title")"; return 0; }
+    case "$k" in
+        app)
+            pkg="$(field "$n" package)"
+            [ "$yes" = 1 ] || { echo "$(t 'This removes %s with sudo xbps-remove. Run again with --yes.' "$pkg")"; exit 2; }
+            sudo xbps-remove -y "$pkg" || exit 1
+            record "$n" "" ;;
+        plugin) "$here/fili-bar" remove "$n" ;;
+        webapp)
+            [ "$yes" = 1 ] || { echo "$(t 'This removes %s from the launcher. Run again with --yes.' "$title")"; exit 2; }
+            webapp-remove "$title" ;;
+    esac
+}
+
+# Fetch the published index into ~/.local/share/filigrane/index (data only: nothing in it runs by itself;
+# an entry still shows its plan, manifest and install.sh before anything is installed)
+cmd_update() {
+    dir="$data/filigrane/index"
+    if [ -d "$dir/.git" ]; then
+        git -C "$dir" pull -q --ff-only || die "$(t 'Could not update the index from %s' "$INDEX_URL")"
+    else
+        mkdir -p "$data/filigrane"
+        git clone -q --depth 1 "$INDEX_URL" "$dir" 2> /dev/null || die "$(t 'Could not clone %s' "$INDEX_URL")"
+    fi
+    echo "$(t 'Index up to date: %s entries' "$(FILES="$(ls "$dir"/*.toml 2> /dev/null)" names | wc -l | tr -d ' ')")"
+}
+
+# New machine: the apps recorded in apps.toml, then the pinned plugins
+cmd_sync() {
+    if [ -r "$apps" ]; then
+        missing=""
+        for pkg in $(sed -n 's/^[a-z][a-z0-9-]*[ \t]*=[ \t]*"\(.*\)"[ \t]*$/\1/p' "$apps"); do
+            xbps-query "$pkg" > /dev/null 2>&1 || missing="$missing $pkg"
+        done
+        # shellcheck disable=SC2086
+        [ -z "$missing" ] || { echo "$(t 'Installing apps:%s' "$missing")"; sudo xbps-install -y $missing; }
+    fi
+    "$here/fili-bar" sync
+}
+
+case "${1:-list}" in
+    list) shift; cmd_list "$@" ;;
+    search) cmd_search "${2:-}" ;;
+    info) cmd_info "${2:-}" ;;
+    install) shift; cmd_install "$@" ;;
+    remove) shift; cmd_remove "$@" ;;
+    update) cmd_update ;;
+    sync) cmd_sync ;;
+    *) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

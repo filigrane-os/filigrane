@@ -1,4 +1,4 @@
-# GPU NVIDIA: pilote libre nouveau (le pilote propriétaire nvidia est lourd, à ajouter à la main si besoin)
+# NVIDIA GPU: free nouveau driver (the proprietary nvidia driver is heavy, add it by hand if needed)
 linux-firmware-nvidia
 mesa-nouveau-dri
 mesa-vulkan-nouveau

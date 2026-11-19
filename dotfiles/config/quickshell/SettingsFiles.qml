@@ -31,6 +31,13 @@ ColumnLayout {
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
     }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("Casier is the file manager (fili-file). Choose how it starts.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
     PanelSection { divided: false; text: FiliI18n.tr("STARTUP") }
     RowLayout {
         Layout.fillWidth: true

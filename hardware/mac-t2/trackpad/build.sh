@@ -2,7 +2,8 @@
 # Multitouch trackpad of the T2 Macs: hid-apple (ignores the trackpad) and hid-magicmouse (the driver), out of tree.
 # Called by DKMS:  ./build.sh <kernelver> <kernel_source_dir>
 # Base v6.18.7 + t2linux/linux-t2-patches (4001 HID part, 4003-4005, pinned revision)
-# + 9001 (port of the stable fixes up to v6.18.57). Everything verified against SHA256SUMS. 6.18 series only.
+# + 9001 (port of the stable fixes up to v6.18.57) + 9002 (swap_fn_leftctrl limited to one product, the internal keyboard).
+# The downloaded files are verified against SHA256SUMS. 6.18 series only.
 set -eu
 kver="$1" ksrc="$2"
 BASE=v6.18.7
@@ -36,7 +37,7 @@ for p in $(find "$w/split" -type f | sort); do
     git -C "$w/tree" apply --include=drivers/hid/hid-apple.c --include=drivers/hid/hid-magicmouse.c \
         --include=drivers/hid/hid-ids.h "$p"
 done
-for p in $T2PATCHES 9001-stable-6.18.57-fixes.patch; do
+for p in $T2PATCHES 9001-stable-6.18.57-fixes.patch 9002-swap-fn-leftctrl-one-product.patch; do
     git -C "$w/tree" apply --whitespace=nowarn "$PWD/$p"
 done
 cp "$w/tree/drivers/hid/hid-apple.c" "$w/tree/drivers/hid/hid-magicmouse.c" "$w/tree/drivers/hid/hid-ids.h" .

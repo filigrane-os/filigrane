@@ -22,9 +22,71 @@ PanelWindow {
     }
     implicitHeight: vertical ? 0 : FiliTheme.barHeight
     implicitWidth: vertical ? FiliTheme.barWidth : 0
-    color: FiliTheme.nuit
+    // The window stays "transparent" (so its surface has an alpha channel from the start: it cannot be added once the
+    // surface exists); the background is a rectangle, solid or not ([bar] background)
+    color: "transparent"
     visible: !FiliTheme.testing
     WlrLayershell.namespace: "fili-bar"
+    // The luminance of the wallpaper under the bar is measured while a bar is see-through (BarTone)
+    readonly property bool toneMeasured: BarTone.needed
+    Rectangle {
+        objectName: "bar-fill"
+        z: -3
+        anchors.fill: parent
+        color: Qt.alpha(FiliTheme.nuit, BarLayout.alpha)
+    }
+
+    // Squeeze level (BarLayout.nextLevel): raised one step at a time while the right row does not fit next to the left
+    // row, lowered when it fits again. seen[l] = width of the right row measured at level l. A column never squeezes.
+    property int level: 0
+    property var seen: []
+    // Tests drive the level by hand unless they ask for the measure
+    property bool measure: !FiliTheme.testing
+    // Width the left row keeps: its modules, the application menu (all its titles up to BarLayout.menuWant, at least
+    // BarLayout.menuMin), the gaps: the right row gives up its details before the menu loses titles
+    function leftNeed() {
+        let w = 0;
+        for (let i = 0; i < leftRep.count; i++) {
+            const slot = leftRep.itemAt(i);
+            if (!slot || !slot.item)
+                continue;
+            w += slot.modelData === "appmenu" ? (slot.item.shown ? Math.max(BarLayout.menuMin, Math.min(slot.item.wanted, BarLayout.menuWant)) : 0) : slot.implicitWidth;
+        }
+        return w;
+    }
+    function fit() {
+        if (!measure || vertical || width <= 0) {
+            if (level !== 0)
+                level = 0;
+            return;
+        }
+        const right = rightRow.implicitWidth;
+        const s = seen.slice();
+        s[level] = right;
+        seen = s;
+        const avail = width - leftNeed() - rightRow.anchors.rightMargin - FiliTheme.space3;
+        const next = BarLayout.nextLevel(level, avail, right, s);
+        if (next !== level) {
+            level = next;
+            settle.restart();
+        }
+    }
+    // Measured after the layout settled (a level change moves the widths), not on every width signal
+    Timer {
+        id: settle
+        interval: 150
+        onTriggered: barWin.fit()
+    }
+    onWidthChanged: settle.restart()
+    onVerticalChanged: settle.restart()
+    Connections {
+        target: rightRow
+        function onImplicitWidthChanged() { settle.restart(); }
+    }
+    Connections {
+        target: leftRow
+        function onImplicitWidthChanged() { settle.restart(); }
+    }
 
     // Click on the bar background (outside the modules): closes fili-panel, the pinned calendar and the notification center;
     // right click: the position of the bar and its settings
@@ -40,9 +102,10 @@ PanelWindow {
         }
     }
 
-    // Thin line on the inner edge of the bar
+    // Thin line on the inner edge of the bar (none when the background is transparent)
     Rectangle {
         z: -1
+        visible: BarLayout.background !== "transparent"
         x: FiliTheme.barEdge === "left" ? parent.width - 1 : 0
         y: FiliTheme.barEdge === "top" ? parent.height - 1 : 0
         width: barWin.vertical ? 1 : parent.width
@@ -57,6 +120,7 @@ PanelWindow {
         anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
         spacing: 0
         Repeater {
+            id: leftRep
             model: BarLayout.ready && !barWin.vertical ? BarLayout.left : []
             BarSlot { bar: barWin; free: rightRow.x - leftRow.x }
         }

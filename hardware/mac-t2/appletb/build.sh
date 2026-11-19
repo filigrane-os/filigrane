@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds out of tree the Touch Bar drivers (disabled in the Void kernel config) for a given kernel.
 # Called by DKMS:  ./build.sh <kernelver> <kernel_source_dir>
-# Sources taken at the stable tag v<version> of the kernel on git.kernel.org, verified against SHA256SUMS.
+# Sources taken at the stable tag v<version> of the kernel on git.kernel.org, verified against SHA256SUMS (drivers) and a check of the IDs used (hid-ids.h).
 set -eu
 kver="$1" ksrc="$2"
 base="${kver%%_*}"                       # 6.18.57_1 -> 6.18.57
@@ -17,6 +17,16 @@ for p in drivers/hid/hid-appletb-kbd.c drivers/hid/hid-appletb-bl.c drivers/gpu/
         mv "$cache/$f.tmp" "$cache/$f"
     fi
     cp "$cache/$f" "./$f"
+done
+
+# hid-ids.h changes with almost every kernel release (new devices only): it is not pinned. The drivers
+# only use these three IDs, which must be present with the expected values.
+for d in "USB_VENDOR_ID_APPLE 0x05ac" "USB_DEVICE_ID_APPLE_TOUCHBAR_BACKLIGHT 0x8102" "USB_DEVICE_ID_APPLE_TOUCHBAR_DISPLAY 0x8302"; do
+    set -- $d
+    if ! grep -qE "^#define[[:space:]]+$1[[:space:]]+$2([[:space:]]|\$)" hid-ids.h; then
+        echo "appletb: hid-ids.h of $tag no longer defines $1 as $2." >&2
+        exit 1
+    fi
 done
 
 if ! sha256sum -c --quiet SHA256SUMS; then

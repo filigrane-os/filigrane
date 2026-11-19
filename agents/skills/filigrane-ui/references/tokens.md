@@ -43,6 +43,7 @@ Jetons `FiliTheme.space1` à `space6` (valeurs ci-dessous) ; rayons `radiusMark`
 
 - Haut d'une fenêtre : premiers contrôles 14 px sous la barre de titre (10 px en contrôles mini). **[Apple]**
 - Barre inférieure : 32 px en contrôles normaux, 22 px en petits ; 8 px entre contrôles et depuis le bord gauche. **[Apple]**
+- Fenêtre d'application `fili-*` : en-tête `toolbar_height` 44, barre latérale `sidebar_width` 200 (lignes `side_row_height` 28), en-têtes de section repliables 44 (`side_row_height` + `space_4`), lignes de liste `row_height` 24, pied `status_height` 28 sur `backgroundDeep`, bande d'onglets `tab_bar_height` 40 et onglets `tab_height` 28, boutons de fenêtre 28 × 24 (glyphe 16), champ de recherche 180 × 26 ; détail `app-window.md`. **[Filigrane]**
 - fili-bar : hauteur 24, marge par module `pad` 7 (écart entre deux textes 14), cellule d'icône seule 24, étiquette → valeur 5 (`FiliTheme.qml`). **[Filigrane]**
 - La cohérence prime sur la valeur exacte : un écart régulier se remarque moins qu'un écart irrégulier. **[Apple]**
 
@@ -77,6 +78,7 @@ Couleurs de marque (`papier`, `nuit`, `ardoise`, `voile`, `brume`) et contrastes
 - Les noms gardent leur rôle d'un mode à l'autre (`nuit` = fond, `brume` = texte, `voile` = accent). Mode clair optionnel : `fili-theme light|dark`, choisi dans le fili-panel écrans (APPARENCE). Contraste des états clairs ≥ 4,8:1 sur papier.
 - Valeurs dans `dotfiles/config/quickshell/FiliTheme.qml`, `[colors-light]` de `foot.ini`, `filigrane-light.css` (GTK3), `gtk-4.0/gtk.css`, latte de nvim, `theme.kdl` généré pour niri ; fond clair `filigrane-clair.png`. zellij, swaylock et Plymouth restent sombres.
 - Palette 16 couleurs du terminal : `dotfiles/config/foot/foot.ini` (reprise par nvim via catppuccin `color_overrides`, zellij).
+- System font: `[theme] font` of `~/.config/filigrane/theme.toml` (default Jost), chosen in Settings > Appearance (or `fili-theme font NAME|default`). `fili-theme font` regenerates what the shell cannot reach by itself: GTK `settings.ini`, the gsettings `font-name` (Chrome, GTK apps) and the fontconfig `sans-serif` / `system-ui` aliases (`62-fili-font.conf`); the fili-shell and the fili-* applications re-read the file live. The accent colour is chosen in the same page.
 - Couleur d'accentuation (`fili-theme accent <nom>`, fili-panel écrans, état `~/.local/state/filigrane/accent`): `voile` et `voileVif` suivent `FiliTheme.accentTones`. Choix: `default` (sable en sombre, ardoise en clair), `voile`, `ardoise`, `sauge`, `sable`, `cendre`, `brume`. Elle colore aussi l'anneau de focus niri (`theme.kdl` généré), les dossiers et la barre latérale de fili-file. Elle colore aussi le curseur de foot (fenêtres nouvelles), le verrou et la sélection GTK3/GTK4 (accent.css, relu au redémarrage des applications GTK4).
 - Icônes: thème `Filigrane-Icons` (`scripts/icon-theme.sh`: dossiers et glyphes de Nordic-Slot-Dark-Icons, le reste d'Adwaita en symboliques recolorés par fili-file). Pas de Papirus.
 - Un composant prend un token ; jamais une couleur littérale quand un token convient.

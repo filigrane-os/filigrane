@@ -12,6 +12,14 @@ BarModule {
     property real maxWidth: Infinity
     readonly property int count: AppMenu.menus.length
     readonly property bool shown: count > 0
+    // Width of all the titles (the bar squeezes its right row to leave this much, up to BarLayout.menuWant)
+    readonly property real wanted: {
+        void rep.count;
+        let sum = 0;
+        for (let i = 0; i < count; i++)
+            sum += rep.itemAt(i)?.implicitWidth ?? 0;
+        return sum;
+    }
 
     // Titles shown (at least the first) and width used. Everything fits: no "…". Otherwise "…" takes the place of the
     // last titles that no longer fit with it. The width of a title does not depend on its visibility.
@@ -63,13 +71,13 @@ BarModule {
         implicitHeight: FiliTheme.barHeight
         Rectangle {
             anchors.fill: parent
-            color: title.current || area.containsMouse ? FiliTheme.nuit3 : "transparent"
+            color: title.current || area.containsMouse ? FiliTheme.barHover : "transparent"
         }
         Text {
             id: label
             anchors.centerIn: parent
             text: title.text
-            color: title.current || area.containsMouse ? FiliTheme.brume : FiliTheme.brume2
+            color: title.current || area.containsMouse ? FiliTheme.barText : FiliTheme.barText2
             font {
                 family: FiliTheme.font
                 pixelSize: FiliTheme.size

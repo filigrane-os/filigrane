@@ -15,6 +15,11 @@ ShellRoot {
         model: BarLayout.barScreens
         FiliBar {}
     }
+    // Taskbar (Quai): one per screen, every window by workspace (bar/FiliTaskbar.qml, settings [taskbar] of fili-bar.toml)
+    Variants {
+        model: TaskbarLayout.screens
+        FiliTaskbar {}
+    }
 
     // Instantiated at start (singletons are otherwise loaded on first use)
     Component.onCompleted: {
@@ -23,7 +28,10 @@ ShellRoot {
         FiliLauncher.open;
         FiliChat.open;
         FiliChatAbout.open;
+        FiliAsk.open;
+        FiliPlacement.columns;
         FiliAudioSwitch.open;
+        FiliPolkit.open;
         FiliShell.fifo;
         FiliHotkeys.startup();
     }
@@ -43,6 +51,12 @@ ShellRoot {
                 FiliAbout.toggle();
             else if (target === "settings")
                 FiliSettings.toggle(action);
+            else if (target === "taskbar") {
+                if (action === "hint")
+                    TaskbarHint.begin();
+                else
+                    TaskbarHint.type(action);
+            }
             else if (target === "reload")
                 Quickshell.reload(false);
         }

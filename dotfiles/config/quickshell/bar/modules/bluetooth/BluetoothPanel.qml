@@ -93,10 +93,32 @@ ColumnLayout {
             label: modelData.name
             sel: modelData.connected
             dim: !modelData.paired && !modelData.connected
+            // BlueZ publishes no battery for classic HID devices (Apple Magic Keyboard, Trackpad, Mouse), but the
+            // kernel does: /sys/class/power_supply/hid-<address>-battery. -1: none
+            property int sysBattery: -1
+            function readBattery() {
+                bat.reload();
+                const c = parseInt(bat.text());
+                sysBattery = isNaN(c) ? -1 : c;
+            }
+            FileView {
+                id: bat
+                path: "/sys/class/power_supply/hid-" + modelData.address.toLowerCase() + "-battery/capacity"
+                blockLoading: true
+                printErrors: false
+            }
+            Timer {
+                running: modelData.connected && !modelData.batteryAvailable
+                repeat: true
+                interval: 30000
+                triggeredOnStart: true
+                onTriggered: readBattery()
+            }
             detail: modelData.pairing ? FiliI18n.tr("pairing…")
                 : modelData.state === BluetoothDeviceState.Connecting ? FiliI18n.tr("connecting…")
                 : modelData.state === BluetoothDeviceState.Disconnecting ? FiliI18n.tr("disconnecting…")
-                : modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %" : FiliI18n.tr("connected"))
+                : modelData.connected ? (modelData.batteryAvailable ? Math.round(modelData.battery * 100) + " %"
+                    : sysBattery >= 0 ? sysBattery + " %" : FiliI18n.tr("connected"))
                 : modelData.paired ? FiliI18n.tr("paired") : FiliI18n.tr("new")
             onClicked: b => view.activate(modelData, b)
         }

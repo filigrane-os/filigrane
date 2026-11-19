@@ -1,15 +1,19 @@
 // Settings page "Display" (fili-settings): the outputs on a canvas (drag to place them, snapping to edges), then for
-// the chosen output power, resolution, refresh rate, scale, rotation and VRR, the kanshi profile and the accent
-// colour. Changes go through `niri msg output` (temporary, applied at once); resolution, rotation and power-off must
+// the chosen output power, resolution, refresh rate, scale, rotation and VRR, the kanshi profile.
+// Changes go through `niri msg output` (temporary, applied at once); resolution, rotation and power-off must
 // be confirmed within 15 s (or when the window closes), else the previous state comes back. Scale applies without
 // confirmation: it never makes the screen unusable and can be picked again with one click. Dragging only stages the
 // layout; "Apply" commits it (the screens do not move at each drag), "Reset" lines the screens up again and
-// "Identify" shows each output's name on its own screen, "Rescan" reads the connected outputs again. All connected outputs are listed, on or off; turning one on
-// beyond what the graphics card drives shows a message (turn another one off first). "Save" writes the kanshi
-// profile (display-save), re-applied whenever a display is plugged in. Brightness, appearance and night light stay in
+// "Identify" shows each output's name on its own screen, "Rescan" reads the connected outputs again (the page also does
+// it by itself when a screen appears or goes away). All connected outputs are listed, on or off, including those niri
+// has no output for (no graphics pipe left): they can be turned on too; turning one on beyond what the graphics card
+// drives shows a message (turn another one off first). "Save" writes the kanshi
+// profile (display-save), re-applied whenever a display is plugged in. Workspaces and applications per display have
+// their own page (SettingsWorkspaces). Brightness, appearance and night light stay in
 // the fili-panel (DisplayPanel): they are frequent, instant and reversible.
 import QtQuick
 import QtQuick.Layouts
+import Quickshell
 import Quickshell.Io
 import qs.controls
 
@@ -29,7 +33,16 @@ ColumnLayout {
     property var ghost: null
     // Positions staged by dragging, not applied yet: name -> {x, y}
     property var pending: ({})
-    readonly property bool dirty: Object.keys(pending).length > 0
+    // Staged moves, or an output touching no other one (the pointer cannot cross a gap): Apply has something to do
+    readonly property bool dirty: Object.keys(pending).length > 0 || gapped.length > 0
+    readonly property var gapped: {
+        if (active.length < 2)
+            return [];
+        const rs = active.map(o => rect(o));
+        const touch = (a, b) => ((a.x + a.w === b.x || b.x + b.w === a.x) && a.y < b.y + b.h && b.y < a.y + a.h)
+            || ((a.y + a.h === b.y || b.y + b.h === a.y) && a.x < b.x + b.w && b.x < a.x + a.w);
+        return active.filter((o, i) => !rs.some((r, j) => j !== i && touch(rs[i], r))).map(o => o.name);
+    }
     // Message under the canvas (e.g. too many outputs for the graphics card), and the number of outputs found
     // drivable at once (0 = not known yet)
     property string notice: ""
@@ -73,6 +86,9 @@ ColumnLayout {
             if (eo && !eo.logical && view.active.length > 0) {
                 view.limit = view.active.length;
                 view.notice = FiliI18n.tr("Only %1 display(s) can be on at once with this graphics card: turn one off first", view.active.length);
+            } else if (e && !eo) {
+                // Connected without an output: niri found no graphics pipe for it
+                view.notice = FiliI18n.tr("No graphics pipe is free for %1: turn another display off first, then turn it on again", e);
             }
         });
     }
@@ -90,6 +106,13 @@ ColumnLayout {
         id: reread
         interval: 500
         onTriggered: view.read()
+    }
+    // A screen appears or goes away (plugged, turned on or off from elsewhere: niri msg, kanshi, the lid): read again
+    Connections {
+        target: Quickshell
+        function onScreensChanged() {
+            reread.restart();
+        }
     }
     // Applies `niri msg output` arguments; risky = to be confirmed (back to the previous state after 15 s)
     function apply(name, args, risky) {
@@ -134,6 +157,14 @@ ColumnLayout {
         }
     }
 
+    // Turns on a connected output niri has no output for: niri gives it a free graphics pipe, or that of a display
+    // turned off
+    function turnOnUndetected(name) {
+        notice = "";
+        enabling = name;
+        FiliTheme.run(cmd(name, "on"));
+        reread.restart();
+    }
     function setPower(o, on) {
         notice = "";
         if (on && limit > 0 && active.length >= limit) {
@@ -167,22 +198,37 @@ ColumnLayout {
         apply(o.name, "transform " + t, true);
     }
 
-    // Snapping: edges stuck or aligned to the other outputs within 40 logical px
+    // Snapping: the output always ends up touching another one (the pointer cannot cross a gap), on the side nearest
+    // to where it was dropped, keeping at least `m` px of shared edge; then edges align to the others within 40 logical px
     function snapPos(o, x, y) {
         const r = rect(o);
         const T = 40;
-        let bx = x, by = y, dx = T, dy = T;
-        for (const p of active) {
-            if (p.name === o.name)
-                continue;
-            const q = rect(p);
-            q.width = q.w;
-            q.height = q.h;
-            for (const c of [q.x + q.width, q.x - r.w, q.x, q.x + q.width - r.w]) {
-                if (Math.abs(c - x) < dx) { dx = Math.abs(c - x); bx = c; }
+        const others = active.filter(p => p.name !== o.name).map(p => rect(p));
+        if (!others.length)
+            return { x: Math.round(x), y: Math.round(y) };
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        let best = null, bd = Infinity;
+        for (const q of others) {
+            const mx = Math.min(100, r.w, q.w), my = Math.min(100, r.h, q.h);
+            const cx = clamp(x, q.x - r.w + mx, q.x + q.w - mx), cy = clamp(y, q.y - r.h + my, q.y + q.h - my);
+            for (const c of [{ x: q.x + q.w, y: cy }, { x: q.x - r.w, y: cy }, { x: cx, y: q.y + q.h }, { x: cx, y: q.y - r.h }]) {
+                // not overlapping any output
+                if (others.some(z => c.x < z.x + z.w && c.x + r.w > z.x && c.y < z.y + z.h && c.y + r.h > z.y))
+                    continue;
+                const d = Math.hypot(c.x - x, c.y - y);
+                if (d < bd) { bd = d; best = c; }
             }
-            for (const c of [q.y + q.height, q.y - r.h, q.y, q.y + q.height - r.h]) {
-                if (Math.abs(c - y) < dy) { dy = Math.abs(c - y); by = c; }
+        }
+        if (!best)
+            return { x: Math.round(x), y: Math.round(y) };
+        // Align edges on the free axis (only if it keeps the contact)
+        let bx = best.x, by = best.y;
+        const vertical = others.some(q => best.y === q.y + q.h || best.y === q.y - r.h);
+        for (const q of others) {
+            const cs = vertical ? [q.x, q.x + q.w - r.w] : [q.y, q.y + q.h - r.h];
+            for (const c of cs) {
+                if (vertical && Math.abs(c - bx) < T && c < q.x + q.w && c + r.w > q.x) bx = c;
+                if (!vertical && Math.abs(c - by) < T && c < q.y + q.h && c + r.h > q.y) by = c;
             }
         }
         return { x: Math.round(bx), y: Math.round(by) };
@@ -198,11 +244,22 @@ ColumnLayout {
         pending = m;
         return p;
     }
-    // Commits the staged positions in one go
+    // Commits the layout in one go. Every output that is on gets an explicit position (staged or current): niri keeps
+    // re-placing the outputs without one whenever another output moves, which scrambled the layout after Apply.
     function applyLayout() {
         if (!dirty)
             return;
-        const c = Object.keys(pending).map(n => cmd(n, "position set " + pending[n].x + " " + pending[n].y));
+        // Close the gaps first (snapPos reads the staged positions of the others)
+        for (const o of active.filter(x => gapped.indexOf(x.name) >= 0)) {
+            const r = rect(o);
+            const m = Object.assign({}, pending);
+            m[o.name] = snapPos(o, r.x, r.y);
+            pending = m;
+        }
+        const c = active.map(o => {
+            const p = pending[o.name] ?? o.logical;
+            return cmd(o.name, "position set " + p.x + " " + p.y);
+        });
         pending = ({});
         FiliTheme.run(c.join("; "));
         reread.restart();
@@ -221,26 +278,6 @@ ColumnLayout {
         if (c.length)
             FiliTheme.run(c.join("; "));
         reread.restart();
-    }
-    // Workspaces of an output (niri: each output has its own stack), with their windows
-    function workspacesOf(name) {
-        return Niri.workspaces.filter(w => w.output === name);
-    }
-    function wsLabel(w) {
-        const apps = Object.values(Niri.windows).filter(x => x.workspace_id === w.id).map(x => x.app_id ?? x.title ?? "");
-        return FiliI18n.tr("Workspace %1", w.idx) + " · " + (apps.length ? apps.join(", ") : FiliI18n.tr("no window"));
-    }
-    // Brings the active workspace of another output here (niri has no workspace-by-id action: focus its output, then move
-    // the focused workspace)
-    function bringHere(from) {
-        if (cur)
-            FiliTheme.run("niri msg action focus-monitor '" + from + "'; niri msg action move-workspace-to-monitor '" + cur.name + "'");
-    }
-    // Pins the active workspace of this output to it (named workspace, open-on-output): it stays there and comes back when the
-    // display is plugged in again
-    function pinHere() {
-        if (cur)
-            FiliTheme.run("niri msg action focus-monitor '" + cur.name + "'; fili-app-output pin");
     }
     // Re-reads the connected outputs (a display plugged in or woken up after the page opened)
     function rescan() {
@@ -293,6 +330,13 @@ ColumnLayout {
         text: FiliI18n.tr("Displays")
         color: FiliTheme.voile
         font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+    }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("The screens plugged in: where each one sits next to the others, its resolution, scale and rotation. Drag a screen in the drawing to move it.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
 
     // Canvas: outputs that are on, to scale; drag to move
@@ -349,6 +393,8 @@ ColumnLayout {
                 MouseArea {
                     anchors.fill: parent
                     cursorShape: Qt.SizeAllCursor
+                    // The page scrolls (Flickable): without this it steals the drag and the screen does not move
+                    preventStealing: true
                     property point from
                     property var start
                     onPressed: m => {
@@ -417,12 +463,29 @@ ColumnLayout {
         current: view.sel
         onPicked: v => view.sel = v
     }
+    // Connected output niri has no output for: same row as a known output (name and power), then why it is off
+    RowLayout {
+        visible: view.cur === null && view.undetectedNames.indexOf(view.sel) >= 0
+        Layout.fillWidth: true
+        Text {
+            text: view.sel
+            color: FiliTheme.brume
+            Layout.fillWidth: true
+            elide: Text.ElideRight
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: FiliTheme.weightAccent }
+        }
+        PanelSwitch {
+            objectName: "undetectedPower"
+            checked: false
+            onToggled: view.turnOnUndetected(view.sel)
+        }
+    }
     Text {
         objectName: "undetected"
         visible: view.cur === null && view.undetectedNames.indexOf(view.sel) >= 0
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
-        text: FiliI18n.tr("%1 is connected to the graphics card but the compositor has no output for it, so it cannot be turned on here. Try Rescan, unplug and replug it, or close the lid to free a graphics pipe.", view.sel)
+        text: FiliI18n.tr("%1 is connected but has no graphics pipe: the graphics card drives a limited number of displays. Turning it on takes the pipe of a display that is off; if none is free, turn another display off first.", view.sel)
         color: FiliTheme.sable
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
@@ -448,35 +511,6 @@ ColumnLayout {
         }
     }
 
-    // Workspaces of the chosen output; those of the other outputs can be brought here
-    PanelSection { visible: view.cur !== null && view.cur.logical !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("WORKSPACES") }
-    Repeater {
-        model: view.cur && view.cur.logical ? view.workspacesOf(view.cur.name) : []
-        Text {
-            required property var modelData
-            objectName: "workspace-row"
-            Layout.fillWidth: true
-            elide: Text.ElideRight
-            text: view.wsLabel(modelData)
-            color: modelData.is_active ? FiliTheme.brume : FiliTheme.ardoise
-            font { family: FiliTheme.font; pixelSize: FiliTheme.size; weight: modelData.is_active ? FiliTheme.weightAccent : Font.Normal }
-        }
-    }
-    PanelChips {
-        objectName: "pin-workspace"
-        visible: view.cur !== null && view.cur.logical !== null
-        model: [{ label: FiliI18n.tr("Keep the active workspace on this display"), value: "pin" }]
-        current: ""
-        onPicked: view.pinHere()
-    }
-    PanelChips {
-        objectName: "bring-workspace"
-        readonly property var others: view.cur && view.cur.logical ? Niri.workspaces.filter(w => w.output !== view.cur.name && w.is_active) : []
-        visible: others.length > 0
-        model: others.map(w => ({ label: FiliI18n.tr("Bring %1 here", w.output), value: w.output }))
-        current: ""
-        onPicked: v => view.bringHere(v)
-    }
     PanelSection { visible: view.curMode !== null; divided: false; Layout.topMargin: FiliTheme.space1; text: FiliI18n.tr("RESOLUTION") }
     PanelChips {
         objectName: "resolution"
@@ -559,60 +593,12 @@ ColumnLayout {
         detail: "kanshi"
         onClicked: { view.keep(); FiliTheme.run(FiliTheme.bin + "/display-save"); }
     }
-    // Accent colour (fili-theme accent): niri window focus, selections in the shell and fili-file
-    PanelSection { text: FiliI18n.tr("ACCENT COLOR") }
-    Row {
-        id: accents
-        objectName: "accent"
-        spacing: FiliTheme.space2
-        readonly property var names: ["voile", "ardoise", "sauge", "sable", "cendre", "brume"]
-        readonly property var labels: ({ voile: FiliI18n.tr("Veil"), ardoise: FiliI18n.tr("Slate"), sauge: FiliI18n.tr("Sage"), sable: FiliI18n.tr("Sand"), cendre: FiliI18n.tr("Ash"), brume: FiliI18n.tr("Mist") })
-        property int cursor: Math.max(0, names.indexOf(FiliTheme.accentName))
-        function pick(n) {
-            FiliTheme.accent = n;
-            FiliTheme.run(FiliTheme.bin + "/fili-theme accent " + n);
-        }
-        activeFocusOnTab: true
-        Keys.onLeftPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.max(0, cursor - 1); }
-        Keys.onRightPressed: e => { if (e.modifiers & Qt.ShiftModifier) { e.accepted = false; return; } FiliShell.keyNav = true; cursor = Math.min(names.length - 1, cursor + 1); }
-        Keys.onReturnPressed: pick(names[cursor])
-        Keys.onSpacePressed: pick(names[cursor])
-        Repeater {
-            model: accents.names
-            Rectangle {
-                id: dot
-                required property string modelData
-                required property int index
-                readonly property bool on: modelData === FiliTheme.accentName
-                width: 22
-                height: 22
-                radius: width / 2
-                color: "transparent"
-                border.width: on ? 2 : 0
-                border.color: FiliTheme.brume
-                Rectangle {
-                    anchors.centerIn: parent
-                    width: 14
-                    height: 14
-                    radius: 7
-                    color: FiliTheme.accentTones[dot.modelData][FiliTheme.light ? 2 : 0]
-                }
-                FocusRing {
-                    shown: accents.activeFocus && accents.cursor === dot.index
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: accents.pick(dot.modelData)
-                }
-            }
-        }
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: accents.labels[FiliTheme.accentName]
-            color: FiliTheme.brume2
-            font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
-        }
+    // Workspaces and applications per display: their own page
+    PanelButton {
+        objectName: "workspaces-page"
+        glyph: "→"
+        label: FiliI18n.tr("Workspaces and applications per display…")
+        onClicked: FiliSettings.page = "workspaces"
     }
 
     // Closed with a change pending confirmation: go back rather than leave an unusable screen

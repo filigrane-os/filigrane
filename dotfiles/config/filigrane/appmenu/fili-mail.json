@@ -1,0 +1,69 @@
+{
+  "name": "Facteur",
+  "app": [
+    { "label": "About Facteur", "exec": "fili-mail ctl --pid %pid action about" }
+  ],
+  "window": [
+    { "label": "Window Actions…", "keys": "Ctrl+Shift+W", "exec": "fili-mail ctl --pid %pid action window-actions" },
+    { "label": "Show Window Buttons", "exec": "fili-mail ctl --pid %pid action toggle-window-buttons" },
+    { "label": "Show Header", "exec": "fili-mail ctl --pid %pid action toggle-header" },
+    { "label": "Show Status Bar", "exec": "fili-mail ctl --pid %pid action toggle-footer" },
+    { "label": "Debug Logs", "keys": "Ctrl+Alt+L", "exec": "fili-mail ctl --pid %pid action debug" }
+  ],
+  "menus": [
+    {
+      "label": "File",
+      "children": [
+        { "label": "New Message", "keys": "Ctrl+N", "exec": "fili-mail ctl --pid %pid action new-message" },
+        { "label": "Add Account…", "keys": "Ctrl+Shift+A", "exec": "fili-mail ctl --pid %pid action add-account" },
+        { "sep": true },
+        { "label": "Settings…", "exec": "xdg-open ~/.config/filigrane/fili-mail.toml" },
+        { "sep": true },
+        { "label": "Close", "keys": "Ctrl+W", "exec": "fili-mail ctl --pid %pid action close" }
+      ]
+    },
+    {
+      "label": "Edit",
+      "children": [
+        { "label": "Copy", "keys": "Ctrl+C", "exec": "fili-mail ctl --pid %pid action copy" },
+        { "label": "Select All", "keys": "Ctrl+A", "exec": "fili-mail ctl --pid %pid action select-all" }
+      ]
+    },
+    {
+      "label": "Message",
+      "children": [
+        { "label": "Next Message", "exec": "fili-mail ctl --pid %pid action next-message" },
+        { "label": "Previous Message", "exec": "fili-mail ctl --pid %pid action previous-message" },
+        { "sep": true },
+        { "label": "Reply", "keys": "Ctrl+Shift+R", "exec": "fili-mail ctl --pid %pid action reply" },
+        { "label": "Reply All", "keys": "Ctrl+Alt+R", "exec": "fili-mail ctl --pid %pid action reply-all" },
+        { "label": "Forward", "keys": "Ctrl+Shift+F", "exec": "fili-mail ctl --pid %pid action forward" },
+        { "sep": true },
+        { "label": "Archive", "keys": "E", "exec": "fili-mail ctl --pid %pid action archive" },
+        { "label": "Move to Trash", "keys": "Delete", "exec": "fili-mail ctl --pid %pid action trash" },
+        { "label": "Mark as Spam", "exec": "fili-mail ctl --pid %pid action spam" },
+        { "sep": true },
+        { "label": "Star", "keys": "S", "exec": "fili-mail ctl --pid %pid action star" },
+        { "label": "Remove Star", "exec": "fili-mail ctl --pid %pid action unstar" },
+        { "label": "Mark as Read", "exec": "fili-mail ctl --pid %pid action read" },
+        { "label": "Mark as Unread", "keys": "U", "exec": "fili-mail ctl --pid %pid action unread" }
+      ]
+    },
+    {
+      "label": "Mailbox",
+      "children": [
+        { "label": "Refresh", "keys": "F5", "exec": "fili-mail ctl --pid %pid action refresh" },
+        { "label": "Show Tabs", "exec": "fili-mail ctl --pid %pid action toggle-category-tabs" },
+        { "sep": true },
+        { "label": "Inbox", "exec": "fili-mail ctl --pid %pid action inbox" },
+        { "label": "Unread", "exec": "fili-mail ctl --pid %pid action unread-box" },
+        { "label": "Starred", "exec": "fili-mail ctl --pid %pid action starred" },
+        { "label": "Sent", "exec": "fili-mail ctl --pid %pid action sent" },
+        { "label": "Drafts", "exec": "fili-mail ctl --pid %pid action drafts" },
+        { "label": "Archive", "exec": "fili-mail ctl --pid %pid action archive-box" },
+        { "label": "Spam", "exec": "fili-mail ctl --pid %pid action spam-box" },
+        { "label": "Trash", "exec": "fili-mail ctl --pid %pid action trash-box" }
+      ]
+    }
+  ]
+}

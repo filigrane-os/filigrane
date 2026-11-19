@@ -13,7 +13,10 @@ pragma Singleton
 // the input, attached to the next message). AI dot of the fili-bar: ASK (permission), DONE (unread answer).
 // Two layouts: "dock" (default: to the right of every window, the drawer reserves its place and niri shrinks the
 // windows) or "float" (above the windows, without touching them). Chosen from the View menu (state ~/.local/state/filigrane/
-// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width).
+// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width). The left edge of the drawer
+// is a resize handle (drag: free width, kept like the View menu widths; double click: back to 440).
+// Permission asked out of sight of the drawer: notification with Allow / Deny (answered here, like the card) and a click
+// that opens the session; the bubble closes once the request is settled, wherever it was answered.
 // fili-bar menu: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml shows it when the drawer has the keyboard
 // focus); its commands are `fili-shell chat ACTION` (act() below), tests/fili-shell/check-fili-chat-menu.py
 // keeps the menu and act() in agreement.
@@ -54,7 +57,7 @@ Singleton {
     property bool agentOk: true
     function installAgent() {
         if (!FiliTheme.testing)
-            Quickshell.execDetached(["foot", "--hold", "-e", "fili-ai", "install", "claude"]);
+            Quickshell.execDetached(["fili-terminal", "--hold", "-e", "fili-ai", "install", "claude"]);
     }
     Timer {
         interval: 2000
@@ -235,9 +238,14 @@ Singleton {
         stWidth = viewWidth;
         saveView();
     }
+    readonly property int minWidth: 300
+    readonly property int maxWidth: 900
+    function clampWidth(w) {
+        return Math.round(Math.min(maxWidth, Math.max(minWidth, w)));
+    }
     function setWidth(w) {
         stMode = mode;
-        stWidth = w;
+        stWidth = clampWidth(w);
         saveView();
     }
     function startRename() {
@@ -262,6 +270,8 @@ Singleton {
         case "show": show(); break;
         case "close": hide(); break;
         case "new": show(); newSession(); break;
+        case "ask": ask(args ? args.join(" ") : ""); break;
+        case "here": here(args ? args.join(" ") : ""); break;
         case "new-here": show(); pendingLink = linkKey(ctx, true); newSession(); break;
         case "unlink": if (current) send_({ op: "link", id: current, key: "" }); break;
         case "sessions": show(); tabsOpen = !tabsOpen; break;
@@ -276,6 +286,8 @@ Singleton {
         case "width-narrow": setWidth(360); break;
         case "width-medium": setWidth(440); break;
         case "width-wide": setWidth(560); break;
+        // Answer from the permission notification: "RID:yes" or "RID:no"
+        case "answer": if (args && args[0]) answerArg(String(args[0])); break;
         }
     }
     onWorkingChanged: if (!working) focusInput()
@@ -289,7 +301,15 @@ Singleton {
         tries = 0;
         retry.start();
     }
-    readonly property bool wantLink: open || busy
+    // A question sent from the floating field (FiliAsk) keeps the link until the agent starts working (`busy` takes over):
+    // without it the link would drop before the daemon answered "created", and the question would never be sent
+    property bool awaiting: false
+    Timer {
+        id: awaitingTimer
+        interval: 30000
+        onTriggered: chat.awaiting = false
+    }
+    readonly property bool wantLink: open || busy || awaiting
     onWantLinkChanged: {
         if (wantLink) {
             ensure();
@@ -334,6 +354,8 @@ Singleton {
                 chat.ctxOn = chat.ctx !== null;
                 chat.ctxReady = true;
                 chat.tryFollow();
+                chat.askNow();
+                chat.hereNow();
             }
         }
     }
@@ -345,6 +367,7 @@ Singleton {
                 retry.stop();
                 if (chat.current)
                     chat.send_({ op: "open", id: chat.current });
+                chat.askNow();
             } else if (chat.wantLink) {
                 // Daemon stopped while it is awaited: restarted
                 chat.ensure();
@@ -372,6 +395,82 @@ Singleton {
     // ───── actions ─────
     function newSession() {
         followPending = false;
+        send_({ op: "new" });
+    }
+    // Question asked from an application (`fili-chat ask TEXT`, e.g. Aéroport's "Ask Rob" on a failed command): a new
+    // session gets it, with the context of the application noted just before (the details are in that context)
+    property string pendingAsk: ""
+    function ask(text) {
+        if (!text)
+            return;
+        show();
+        followPending = false;
+        pendingAsk = text;
+        askNow();
+    }
+    function askNow() {
+        if (!pendingAsk || !(ctxReady || FiliTheme.testing) || !(link.connected || FiliTheme.testing))
+            return;
+        pending = pendingAsk;
+        pendingAsk = "";
+        send_({ op: "new" });
+    }
+    // "Ask Rob" of an application (`fili-chat here [TEXT]`, Mod+Ctrl+Y, entry of every application menu): the session
+    // scoped to the active application is created (linked to it), TEXT is sent to it if given.
+    // The daemon adds the scope instruction to each message of a scoped session.
+    property bool hereWant: false
+    property string hereText: ""
+    property bool pendingScope: false
+    function here(text) {
+        // Without a text: the small floating field (FiliAsk) asks it
+        if (!text) {
+            FiliAsk.show();
+            return;
+        }
+        show();
+        followPending = false;
+        hereWant = true;
+        hereText = text;
+        hereNow();
+    }
+    // Question typed in the floating field (FiliAsk): sent to the scoped session of the application noted by
+    // `fili-chat here`; the drawer stays closed unless `drawer` (the finished turn is announced by a notification)
+    function askHere(text, drawer) {
+        if (drawer) {
+            here(text);
+            return;
+        }
+        followPending = false;
+        hereWant = true;
+        hereText = text;
+        awaiting = true;
+        awaitingTimer.restart();
+        ctxReady = false;
+        sessionsFresh = link.connected;
+        if (!FiliTheme.testing) {
+            ctxRead.running = false;
+            ctxRead.running = true;
+        }
+        hereNow();
+    }
+    function hereNow() {
+        if (!hereWant || !(ctxReady || FiliTheme.testing) || !(sessionsFresh || FiliTheme.testing))
+            return;
+        hereWant = false;
+        const text = hereText;
+        hereText = "";
+        const key = linkKey(ctx, true);
+        if (!key) {
+            // No application to scope to: an ordinary new session
+            if (text)
+                ask(text);
+            return;
+        }
+        // Each request opens a session of its own (linked to the application, scoped to it): topics do not pile up in one
+        // conversation. To go on with an answer, the drawer follows the most recent session linked to the application.
+        pendingLink = key;
+        pendingScope = true;
+        pending = text;
         send_({ op: "new" });
     }
     function openSession(id) {
@@ -443,6 +542,11 @@ Singleton {
     function answer(rid, allow) {
         send_({ op: "answer", rid, allow });
     }
+    function answerArg(a) {
+        const i = a.lastIndexOf(":");
+        if (i > 0)
+            answer(a.slice(0, i), a.slice(i + 1) === "yes");
+    }
     function answerFirst(allow) {
         const a = log.find(i => i.kind === "ask" && i.status === "pending");
         if (a)
@@ -466,6 +570,8 @@ Singleton {
         const m = Object.assign({}, states);
         m[id] = st;
         states = m;
+        if (st !== "idle")
+            awaiting = false;
         if (st === "idle" && id === current)
             live = "";
         // Turn finished out of sight of the drawer: to read
@@ -474,9 +580,30 @@ Singleton {
             u[id] = true;
             unread = u;
             notify(id, FiliI18n.tr("Rob has finished"), "normal");
-        } else if (st === "waiting" && was !== "waiting" && !(open && id === current)) {
-            notify(id, FiliI18n.tr("Rob needs you"), "critical");
         }
+    }
+    // Permission notification: Allow / Deny answer through the drawer (`fili-shell chat answer RID:yes`), the
+    // default action (click) opens the session; the rid travels as a hint so the bubble closes once settled
+    function notifyAsk(id, rid, tool, summary) {
+        const title = sessions.find(s => s.id === id)?.title || "Rob";
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["notify-ask " + id + " " + rid]);
+            return;
+        }
+        Quickshell.execDetached(["setsid", "-f", "sh", "-c",
+            'r="$(notify-send -a fili-chat -i fili-chat -u critical -t 120000 -h "string:x-fili-chat-rid:$2" -A allow="$5" -A deny="$6" -A default="$7" "$3" "$4")"\n'
+            + 'case "$r" in allow) exec "$0" chat answer "$2:yes" ;; deny) exec "$0" chat answer "$2:no" ;; default) exec "$0" chat open "$1" ;; esac',
+            FiliTheme.bin + "/fili-shell", id, rid, FiliI18n.tr("Rob needs you") + " · " + title, (tool ? tool + ": " : "") + summary,
+            FiliI18n.tr("Allow"), FiliI18n.tr("Deny"), FiliI18n.tr("Open")]);
+    }
+    function closeAskNotification(rid) {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(["notify-close " + rid]);
+            return;
+        }
+        for (const p of FiliNotification.popups.slice())
+            if (p.n.appName === "fili-chat" && p.n.hints && p.n.hints["x-fili-chat-rid"] === rid)
+                FiliNotification.close(p.n, "dismiss");
     }
     // Notification of a session out of sight of the drawer; its "Open" button (or a click) shows the drawer on it
     function notify(id, summary, urgency) {
@@ -517,6 +644,7 @@ Singleton {
                     send_({ op: "open", id: current });
             }
             tryFollow();
+            hereNow();
         } else if (ev.ev === "created") {
             const m = Object.assign({}, items);
             m[ev.id] = [];
@@ -526,6 +654,10 @@ Singleton {
             if (pendingLink) {
                 send_({ op: "link", id: ev.id, key: pendingLink });
                 pendingLink = "";
+            }
+            if (pendingScope) {
+                send_({ op: "scope", id: ev.id, on: true });
+                pendingScope = false;
             }
             if (pending) {
                 const t = pending;
@@ -554,6 +686,10 @@ Singleton {
                 return;
             const a = items[ev.id].slice();
             const i = a.findIndex(x => x.kind === "ask" && x.rid === ev.rid);
+            if (ev.status === "pending" && i < 0 && !(open && ev.id === current))
+                notifyAsk(ev.id, ev.rid, ev.tool, ev.summary);
+            else if (ev.status !== "pending")
+                closeAskNotification(ev.rid);
             if (i >= 0)
                 a[i] = askItem(ev);
             else
@@ -1218,12 +1354,29 @@ Singleton {
                             }
                         }
                     }
+                    // Input: grows with the text up to 40% of the drawer, then scrolls (follows the cursor)
                     Item {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(140, Math.max(44, input.implicitHeight + 2 * FiliTheme.space3))
+                        Layout.preferredHeight: Math.min(Math.max(140, drawer.height * 0.4), Math.max(44, input.implicitHeight + 2 * FiliTheme.space3))
+                        Flickable {
+                            id: inputFlick
+                            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: FiliTheme.space3 + 32 }
+                            clip: true
+                            contentWidth: width
+                            contentHeight: input.implicitHeight
+                            boundsBehavior: Flickable.StopAtBounds
+                            interactive: contentHeight > height
+                            function follow(r) {
+                                if (r.y < contentY)
+                                    contentY = r.y;
+                                else if (r.y + r.height > contentY + height)
+                                    contentY = r.y + r.height - height;
+                            }
                         TextEdit {
                             id: input
-                            anchors { fill: parent; margins: FiliTheme.space3; rightMargin: FiliTheme.space3 + 32 }
+                            width: inputFlick.width
+                            height: Math.max(implicitHeight, inputFlick.height)
+                            onCursorRectangleChanged: inputFlick.follow(cursorRectangle)
                             wrapMode: TextEdit.Wrap
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.voile
@@ -1249,6 +1402,7 @@ Singleton {
                                 color: FiliTheme.ardoise
                                 font: input.font
                             }
+                        }
                         }
                         // Send (like Enter); greyed out while there is nothing to send
                         Rectangle {
@@ -1429,6 +1583,24 @@ Singleton {
                         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList }
                     }
                 }
+            }
+
+            // Resize handle on the left edge: the right edge stays put, the width follows the pointer
+            MouseArea {
+                anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+                width: FiliTheme.space1 + 4
+                cursorShape: Qt.SizeHorCursor
+                hoverEnabled: true
+                property real pressX: 0
+                onPressed: m => pressX = m.x
+                onPositionChanged: m => {
+                    if (pressed) {
+                        chat.stMode = chat.mode;
+                        chat.stWidth = chat.clampWidth(chat.viewWidth - (m.x - pressX));
+                    }
+                }
+                onReleased: chat.saveView()
+                onDoubleClicked: chat.setWidth(440)
             }
         }
     }

@@ -1,0 +1,7 @@
+#%PAM-1.0
+# What polkit asks when an administrator must confirm (the authentication window of the fili-shell shows PAM's
+# questions). Same rules as a login: the password. A fingerprint reader: add `auth sufficient pam_fprintd.so` above.
+auth		include		system-auth
+account		include		system-auth
+password	include		system-auth
+session		include		system-auth

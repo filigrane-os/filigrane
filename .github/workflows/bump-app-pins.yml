@@ -1,0 +1,50 @@
+name: Bump application pins
+
+# Every hour (and on demand): when the repository of an application pinned in apps/<name>/upstream has a newer release tag,
+# open a pull request on develop that moves `ref` to it (one pull request per application and tag). The CI of each
+# application repository creates the tag when a new version reaches its main. The pull request is the place to run
+# tests/fili-shell/run.sh and to note the version, CPU and RAM in the README before merging. Scheduled workflows run from
+# the default branch: this file has to be on main to start by itself. Needs "Allow GitHub Actions to create and approve
+# pull requests" in the repository settings.
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-app-pins
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: develop
+      - name: Open a pull request for each newer tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mapfile -t bumps < <(scripts/bump-app-pins.sh)
+          for line in "${bumps[@]}"; do
+            read -r name old new <<< "$line"
+            branch="bump/$name-$new"
+            if git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
+              echo "$branch already exists: nothing to do"
+              continue
+            fi
+            git switch -q -c "$branch" origin/develop
+            scripts/bump-app-pins.sh --apply "$name" >/dev/null
+            git commit -q -am "Pin $name to $new"
+            git push -q origin "$branch"
+            gh pr create --base develop --head "$branch" --title "Pin $name to $new" \
+              --body "Moves \`apps/$name/upstream\` from \`$old\` to \`$new\`. Before merging: run \`tests/fili-shell/run.sh\` (it builds the pinned version) and note the version, CPU and RAM in the README."
+            git switch -q --detach origin/develop
+          done

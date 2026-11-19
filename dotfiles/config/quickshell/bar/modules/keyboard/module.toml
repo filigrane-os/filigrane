@@ -3,3 +3,4 @@ title = "Keyboard"
 description = "Keyboard layout"
 side = "right"
 order = 70
+drawer_at = 3

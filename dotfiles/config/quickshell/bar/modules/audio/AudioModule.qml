@@ -1,4 +1,4 @@
-// Audio output: click = sound panel, middle click = mute, wheel = volume, right click = mixer (wiremix)
+// Audio output: click = sound panel, middle click = mute, wheel = volume, right click = menu (mixer, mute)
 import QtQuick
 import Quickshell.Services.Pipewire
 import qs
@@ -16,16 +16,18 @@ BarItem {
     PwObjectTracker { objects: [sink, source] }
     text: !audio ? "" : (kind || (audio.muted ? "" : vol < 34 ? "" : vol < 67 ? "" : ""))
         + (audio.muted ? " " + FiliI18n.tr("muted") : " " + vol + "%")
-    color: audio?.muted ? FiliTheme.ardoise : FiliTheme.brume
+    color: audio?.muted ? FiliTheme.barMuted : FiliTheme.barText
     tip: !audio ? "" : {
         title: audio.muted ? FiliI18n.tr("Sound muted") : FiliI18n.tr("Sound"),
         rows: [[FiliI18n.tr("Output"), sink.description || sink.nickname || sink.name], [FiliI18n.tr("Volume"), vol + " %"],
                [FiliI18n.tr("Input"), source ? (source.description || source.name) : ""]].filter(r => r[1]),
-        hint: FiliI18n.tr("click: sound panel · middle click: mute · wheel: volume · right click: mixer")
+        hint: FiliI18n.tr("click: sound panel · middle click: mute · wheel: volume · right click: menu")
     }
     hover.onLeftClicked: togglePanel()
     hover.onMiddleClicked: audio.muted = !audio.muted
     hover.onWheelUp: audio.volume = Math.min(1, audio.volume + 0.03)
     hover.onWheelDown: audio.volume = Math.max(0, audio.volume - 0.03)
-    hover.rclick: FiliTheme.bin + "/bar-tui wiremix --tab output"
+    hover.onRightClicked: contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open the mixer"), cmd: FiliTheme.bin + "/bar-tui wiremix --tab output", app: true },
+                                       { glyph: "\uf026", text: audio?.muted ? FiliI18n.tr("Unmute") : FiliI18n.tr("Mute"), run: () => { audio.muted = !audio.muted; } },
+                                       { glyph: "\uf013", text: FiliI18n.tr("Sound settings…"), cmd: FiliTheme.bin + "/bar-tui sound-tune" }])
 }

@@ -21,7 +21,7 @@ BarModule {
     property bool hideEmpty: true
     // Colour by class (key "" = default)
     property var colors: ({})
-    property color color: FiliTheme.brume
+    property color color: FiliTheme.barText
     // Class that blinks (backup running)
     property string blinkClass: ""
     property string click
@@ -141,7 +141,7 @@ BarModule {
         Text {
             visible: mod.tag !== ""
             text: mod.tag
-            color: FiliTheme.ardoise
+            color: FiliTheme.barMuted
             font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall; letterSpacing: 1 }
         }
         Text {

@@ -1,0 +1,21 @@
+# Cassette (fili-recorder): options of the sound recorder. Everything is optional, commented lines are the defaults.
+# The sources (input and output) are chosen in the panel of the bar; that choice is kept in
+# ~/.local/state/filigrane/fili-recorder.toml.
+
+# Where the recordings go
+# dir = "~/Music/Recordings"
+
+# Format of the recordings: "opus" (default, about 29 MB an hour, best for voice), "mp3" (about 43 MB, plays everywhere) or
+# "wav" (lossless, about 690 MB). The choice made in the window wins over this line.
+# format = "opus"
+
+# "mix": one stereo WAV file with the input and the output together (default); both are brought to a comparable
+# level first, so a quiet microphone is not buried under the voices of a call.
+# "separate": one untouched WAV file per source, "(input)" and "(output)" in their names.
+# mode = "mix"
+
+# Look of the window: the same sections as ~/.config/filigrane/theme.toml ([theme], [theme.dark], [theme.light],
+# [theme.accents]; every key is listed in apps/fili-recorder/theme.toml) override the shared theme for Cassette only.
+# [window]
+# header = true   # false: no header (`--no-header` for one window)
+# footer = true   # false: no status bar (it still shows what it has to say)

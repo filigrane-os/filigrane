@@ -34,7 +34,7 @@ exec 8>"$STATE/backup.lock"
 flock -n 8 || { [ "$manual" = 1 ] && notify-send -u low -a backup "$(t 'Backup')" "$(t 'Already running')"; exit 0; }
 "$HOME/.local/bin/fili-shell" bar refresh 18
 
-if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$HOME/.config/watch/backup-excludes" \
+if ionice -c3 nice -n19 restic backup "$HOME" --exclude-caches --exclude-file="$HOME/.config/watch/backup-excludes" $(for f in "$HOME"/.config/watch/backup-excludes.d/*; do [ -f "$f" ] && printf -- '--exclude-file=%s ' "$f"; done) \
         --tag auto >"$STATE/backup.log" 2>>"$STATE/backup.err"; then
     # Forget old snapshots: prune (heavy over SFTP) only on Sunday
     if [ "$(date +%u)" = 7 ]; then

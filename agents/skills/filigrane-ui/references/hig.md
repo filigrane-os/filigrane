@@ -21,13 +21,13 @@ Les questions de la section 23 de la source ont leur réponse :
 | Toolkit du shell | Quickshell (QML, Qt Quick en rendu logiciel) : fili-bar, fili-tooltip, fili-panel, fili-launcher, notifications, fili-about |
 | Outils maison | binaires natifs (Rust, `apps/`) ; une interface graphique éventuelle passe par le fili-shell |
 | Applications tierces | gardent leur interface ; Filigrane fournit le thème (GTK3/4, foot, nvim, niri) |
-| Fenêtres | niri, colonnes défilantes en mosaïque, pas de barres de titre ni de boutons de fenêtre |
+| Fenêtres | niri, colonnes défilantes en mosaïque, pas de barres de titre ; les applications `fili-*` ont les boutons Fenêtre et Fermer à droite de leur en-tête (`app-window.md`) |
 | Police | Jost (interface), JetBrains Mono (code, terminaux) ; échelle d'Apple (`tokens.md`) |
 | Échelle | échelle de sortie de niri (HiDPI, fractionnaire) ; le shell travaille en pixels logiques |
 | Thèmes | sombre par défaut, clair optionnel (`fili-theme`), même sémantique |
 | Palette | `FiliTheme.qml`, tokens sémantiques dans `tokens.md` |
 | Icônes | « Fili Icons » (Lucide, trait fin, jamais pleines) ; Nerd Fonts dans le terminal |
-| Raccourcis | `Mod+…` pour niri (bépo main droite, flèches aussi), liste `Mod+K` ; Esc / Entrée / Tab / flèches dans le shell |
+| Raccourcis | `Mod+…` pour niri (flèches et chiffres; les touches propres à une disposition comme le bépo vont dans la couche utilisateur), liste `Mod+K` ; Esc / Entrée / Tab / flèches dans le shell |
 | Langue | anglais dans le code, `FiliI18n.tr()`, catalogue `i18n/<lang>.json` |
 
 Reste **[À valider]** : la taille minimale des cibles, la prise en charge des technologies d'assistance (le shell n'expose pas encore d'accessibilité AT-SPI), une préférence de réduction des animations.
@@ -46,7 +46,8 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 
 ## 4. Fenêtres, panneaux et dialogues
 
-- niri place les fenêtres : pas de déplacement libre, de minimisation ni de boutons de fenêtre ; la fenêtre active se reconnaît au contour de focus de niri (1 px). **[Filigrane]**
+- niri place les fenêtres : pas de déplacement libre ni de barre de titre ; la fenêtre active se reconnaît au contour de focus de niri (1 px). **[Filigrane]**
+- Fenêtre d'une application `fili-*` : même anatomie partout (`app-window.md`) : en-tête 44 avec les boutons Fenêtre et Fermer tout à droite (masquables par `window_buttons = false`), barre latérale 200, pied 36, `KineticScroll` + `FiliScrollBar` sur toute vue défilante, menu complet dans la fili-bar. Tailles de Casier, pied de Facteur. **[Filigrane]** The header and the footer can each be left out (headless windows, Settings > Appearance, `[window] header|footer = false`, `--no-header` / `--no-footer`), followed live; nothing may be reachable only from them (`app-window.md`). **[Filigrane]**
 - Le shell ne crée que des fenêtres de couche à la taille de leur contenu (moins de mémoire) : fili-panel sous son module, fili-tooltip au survol, fili-about centré, notifications en haut à droite. Seule exception : le fili-launcher, plein écran pour son fond flou, sa boîte centrée. **[Filigrane]**
 - Fermeture : Esc, un clic hors du panneau (perte de focus) ou sur la barre. Un panneau ne vole pas le focus d'une application sans action de l'utilisateur. **[Filigrane]**
 - Dialogue : pour une décision ou une saisie liée au contexte, proportionné à son contenu, jamais empilé sur un autre. **[Apple]**
@@ -75,6 +76,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 - Commandes groupées par fonction, séparateurs entre groupes réellement distincts, libellés courts, indisponible = désactivé. **[Apple]**
 - Raccourcis affichés quand ils existent ; jamais deux actions pour un même raccourci dans un contexte. **[Apple]**
 - Menu contextuel (clic droit) : les commandes de l'élément ; aucune commande importante seulement là. **[Apple]**
+- **Le texte ne dépasse jamais de son conteneur** (menu, carte, bouton, ligne de liste, pied). **[Filigrane]** Un menu se dimensionne sur son libellé le plus long (`TextMetrics`/`advanceWidth`, plancher 190, plafond la largeur de la fenêtre), jamais une largeur fixe; en dernier recours le texte s'élide (`elide: Text.ElideRight`). Tout nouveau libellé (surtout les traductions, plus longues) se contrôle en capture niri avant de rendre la main. Modèle: `PopupMenu.qml` de Facteur.
 - Raccourcis Filigrane documentés dans `FiliHotkeys.qml` (Mod+K) et le skill `filigrane` (`references/niri.md`).
 - **Les applications `fili-*` exposent leur menu**: toute application Filigrane à fenêtre expose toutes ses commandes et leurs raccourcis au menu global (jamais seulement des boutons ou un menu contextuel). Le menu vit dans la fili-bar: inutile de le dessiner dans la fenêtre. Soit une barre de menus du toolkit lue par AT-SPI (`GtkMenuBar`; contrôle: `fili-appmenu menu PID` rend du JSON, pas `null`; la `MenuBar` de Qt Quick Controls apparaît dans AT-SPI avec ses titres mais sans aucune entrée, inutilisable), soit un repli `dotfiles/config/filigrane/appmenu/<app_id>.json`, qui ne lance que des commandes: l'application expose ses actions par une commande de contrôle (`fili-file ctl --pid PID action NOM`; `%pid` vise la fenêtre active), pas par des frappes simulées. Un repli passe devant AT-SPI.
 - **Fiche « À propos » de chaque application `fili-*`** (règle Filigrane): ouverte par « About <Nom> » (commande `about`), première entrée du menu de l'application dans la fili-bar. Au centre de l'écran, fermée par Échap ou un clic dehors. Contenu: l'icône de l'application (celle de son module ou de son lanceur: glyphe Nerd Font / Fili Icons, ou logo), son nom d'usage (Casier, Rob), une phrase qui dit ce qu'elle est, puis les lignes « libellé / valeur »: **Also known as** (« Aussi connu sous le nom de », le *aka*: le nom du programme `fili-…`, de la commande, du dépôt; le nom d'usage reste le nom partout ailleurs dans l'OS), **Part of** Filigrane, puis les infos utiles à connaître (version, ce qu'elle lit ou utilise, état courant, fichier de réglages `~/.config/filigrane/<app>.toml`). Modèles: `fili-file/src/about.rs` (Casier, fiche dans l'application) et `FiliChatAbout.qml` (Rob, aka fili-chat, fiche du shell).
@@ -95,6 +97,7 @@ Reste **[À valider]** : la taille minimale des cibles, la prise en charge des t
 - Liste ou tableau dès qu'il faut comparer ou parcourir ; jamais des cartes pour des données tabulaires. **[Apple]**
 - Colonnes et valeurs alignées (chiffres à droite), en-têtes précis, sélection distincte du survol, parcours au clavier.
 - Liste longue : recherche, tri ou filtre ; état vide qui dit ce qui manque et comment commencer.
+- **Tout champ de recherche ou de filtre a une croix (×)** à droite, visible dès qu'il contient du texte : un clic l'efface, annule la recherche ou le filtre en cours et rend la vue complète ; Échap fait la même chose. Valable pour le champ de l'en-tête, un filtre de liste, une barre « chercher dans la vue » et les sélecteurs à recherche (emoji, aller à…). **[Filigrane]**
 
 ## 10. Typographie
 
@@ -147,6 +150,8 @@ Sauf demande explicite ou nécessité démontrée : grandes cartes par groupe, r
 ## 19. Checklist de revue
 
 **Fonction et structure** : la fonction de la vue se comprend tout de suite ; le contenu important domine ; contrôles groupés par fonction ; aucun décor qui prend de la place ; même structure que les autres vues (fiche titre à gauche / contenu à droite, intertitres de panneau).
+
+**Fenêtre d'application** : en-tête, barre latérale, pied, défilement et boutons de fenêtre conformes à `app-window.md` ; `tests/fili-shell/check-app-window.py` passe.
 
 **Densité et alignement** : espacements de `tokens.md` et réguliers ; libellés près des contrôles ; tailles justifiées ; aucun contrôle minuscule.
 
