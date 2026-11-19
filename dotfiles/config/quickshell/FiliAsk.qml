@@ -2,8 +2,8 @@ pragma Singleton
 // fili-ask: the small floating field of "Ask Rob…" (Mod+Ctrl+Y, the entry of every application menu, the header button of
 // the applications): a line to ask Rob about the active application without opening the drawer. The application is the one
 // noted by `fili-chat here` just before (context.json); Rob's session scoped to it gets the question (FiliChat.askHere).
-// Enter = send and stay where you are (the bar's AI dot shows the work, a notification says "Rob has finished" with an
-// Open button), Shift+Enter = send and open the chat, Escape or click outside = close (the draft is kept). Without an application in the
+// Enter = send and open the chat on the new session (so one sees what happens), Shift+Enter = send and stay where you
+// are (the bar's AI dot shows the work, a notification says "Rob has finished" with an Open button), Escape or click outside = close (the draft is kept). Without an application in the
 // context, the field is not shown (an ordinary drawer opens).
 import QtQuick
 import QtQuick.Layouts
@@ -130,14 +130,14 @@ Singleton {
                         if (k.key === Qt.Key_Escape) {
                             ask.close();
                         } else if (k.key === Qt.Key_Return || k.key === Qt.Key_Enter) {
-                            ask.submit(k.modifiers & Qt.ShiftModifier);
+                            ask.submit(!(k.modifiers & Qt.ShiftModifier));
                             k.accepted = true;
                         }
                     }
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: FiliI18n.tr("Enter to send · Shift+Enter to send and open the chat · Esc to cancel")
+                    text: FiliI18n.tr("Enter to send · Shift+Enter to send without opening the chat · Esc to cancel")
                     elide: Text.ElideRight
                     color: FiliTheme.ardoise
                     font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }

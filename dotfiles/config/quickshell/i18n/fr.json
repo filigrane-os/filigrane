@@ -366,7 +366,7 @@
  "Ask Rob…": "Demander à Rob…",
  "Rob, about %1": "Rob, à propos de %1",
  "Ask anything about this application…": "Demandez ce que vous voulez sur cette application…",
- "Enter to send · Shift+Enter to send and open the chat · Esc to cancel": "Entrée pour envoyer · Maj+Entrée pour envoyer et ouvrir le chat · Échap pour annuler",
+ "Enter to send · Shift+Enter to send without opening the chat · Esc to cancel": "Entrée pour envoyer · Maj+Entrée pour envoyer sans ouvrir le chat · Échap pour annuler",
  "Forget the monitor of this app": "Oublier le moniteur de cette app",
  "Centre column": "Centrer la colonne",
  "Close window": "Fermer la fenêtre",
