@@ -725,19 +725,39 @@ fn scope_line(link: &str) -> String {
     )
 }
 
-/// Hidden brief of a scoped session, sent with its first message: agents/rob/_default.md, then agents/rob/<app_id>.md of the
-/// repository (what the application's own commands are, what it must never do), then ~/.config/filigrane/rob/<app_id>.md
-/// (personal additions). The agent keeps it for the whole session (`--resume`).
+/// Folders where the packages of the applications ship what the shell reads (`rob/<app_id>.md`, `fili-bar/`, `appmenu/`):
+/// /usr/share/filigrane/shell, then ~/.local/share/filigrane/shell (applications built from source). FILI_SHELL_DIRS
+/// (colon separated) replaces both, like for `fili-bar link-system`.
+fn shipped_dirs() -> Vec<String> {
+    if let Ok(v) = env::var("FILI_SHELL_DIRS") {
+        return v.split(':').filter(|d| !d.is_empty()).map(String::from).collect();
+    }
+    let data = env::var("XDG_DATA_HOME").unwrap_or_else(|_| format!("{}/.local/share", home()));
+    vec!["/usr/share/filigrane/shell".to_string(), format!("{data}/filigrane/shell")]
+}
+
+/// Hidden brief of a scoped session, sent with its first message: agents/rob/_default.md, then the brief of the application
+/// (what its own commands are, what it must never do): agents/rob/<app_id>.md of the repository, else the one the application
+/// ships (rob/<app_id>.md of the shipped folders, the last one wins), then ~/.config/filigrane/rob/<app_id>.md (personal
+/// additions). The agent keeps it for the whole session (`--resume`).
 fn scope_brief(link: &str, dir: &str) -> String {
+    scope_brief_in(link, dir, &shipped_dirs())
+}
+
+fn scope_brief_in(link: &str, dir: &str, shipped: &[String]) -> String {
     let app = link.split('\n').next().unwrap_or("");
     // The app id names a file: nothing that could leave the folder
     if app.is_empty() || !app.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.')) || app.starts_with('.') {
         return String::new();
     }
     let cfg = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
-    let files =
-        [format!("{dir}/agents/rob/_default.md"), format!("{dir}/agents/rob/{app}.md"), format!("{cfg}/filigrane/rob/{app}.md")];
-    let text: Vec<String> = files.iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
+    let read = |f: &str| fs::read_to_string(f).ok();
+    let own = read(&format!("{dir}/agents/rob/{app}.md"))
+        .or_else(|| shipped.iter().rev().find_map(|d| read(&format!("{d}/rob/{app}.md"))));
+    let text: Vec<String> = [read(&format!("{dir}/agents/rob/_default.md")), own, read(&format!("{cfg}/filigrane/rob/{app}.md"))]
+        .into_iter()
+        .flatten()
+        .collect();
     if text.is_empty() {
         String::new()
     } else {
@@ -1190,6 +1210,29 @@ mod tests {
         assert!(other.contains("GENERIC") && !other.contains("CASIER"));
         assert_eq!(scope_brief("../etc/passwd", &d), "");
         assert_eq!(scope_brief("", &d), "");
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn brief_falls_back_on_the_one_the_application_ships() {
+        let dir = env::temp_dir().join(format!("fili-chat-shipped-{}", std::process::id()));
+        let (sys, user) = (dir.join("sys"), dir.join("user"));
+        for d in [&sys, &user, &dir.join("agents/rob")] {
+            fs::create_dir_all(if d.ends_with("rob") { d.clone() } else { d.join("rob") }).unwrap();
+        }
+        fs::write(dir.join("agents/rob/_default.md"), "GENERIC").unwrap();
+        fs::write(sys.join("rob/fili-music.md"), "SHIPPED-SYSTEM").unwrap();
+        fs::write(user.join("rob/fili-music.md"), "SHIPPED-USER").unwrap();
+        let (d, shipped) = (dir.display().to_string(), [sys.display().to_string(), user.display().to_string()]);
+        // No brief in the repository: the shipped one (the last folder wins), with the generic one
+        let b = scope_brief_in("fili-music", &d, &shipped);
+        assert!(b.contains("GENERIC") && b.contains("SHIPPED-USER") && !b.contains("SHIPPED-SYSTEM"));
+        // A brief in the repository wins over the shipped one (no duplicate while an application moves its brief)
+        fs::write(dir.join("agents/rob/fili-music.md"), "REPO").unwrap();
+        let b = scope_brief_in("fili-music", &d, &shipped);
+        assert!(b.contains("REPO") && !b.contains("SHIPPED"));
+        // An odd name never reaches a shipped folder
+        assert_eq!(scope_brief_in("../x", &d, &shipped), "");
         let _ = fs::remove_dir_all(dir);
     }
 
