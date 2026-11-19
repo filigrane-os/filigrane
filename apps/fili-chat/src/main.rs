@@ -735,7 +735,8 @@ fn scope_brief(link: &str, dir: &str) -> String {
         return String::new();
     }
     let cfg = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
-    let files = [format!("{dir}/agents/rob/_default.md"), format!("{dir}/agents/rob/{app}.md"), format!("{cfg}/filigrane/rob/{app}.md")];
+    let files =
+        [format!("{dir}/agents/rob/_default.md"), format!("{dir}/agents/rob/{app}.md"), format!("{cfg}/filigrane/rob/{app}.md")];
     let text: Vec<String> = files.iter().filter_map(|f| fs::read_to_string(f).ok()).collect();
     if text.is_empty() {
         String::new()
@@ -771,7 +772,9 @@ fn op_send(d: &mut Daemon, id: &str, text: &str, with_context: bool) {
     let scope = d
         .session(id)
         .filter(|s| s.scoped && !s.link.is_empty())
-        .map(|s| if s.started { scope_line(&s.link) } else { format!("{}{}", scope_brief(&s.link, &conf().dir), scope_line(&s.link)) })
+        .map(|s| {
+            if s.started { scope_line(&s.link) } else { format!("{}{}", scope_brief(&s.link, &conf().dir), scope_line(&s.link)) }
+        })
         .unwrap_or_default();
     let ctx = if with_context { context_line().unwrap_or_default() } else { String::new() };
     let full = format!("{scope}{ctx}{text}");

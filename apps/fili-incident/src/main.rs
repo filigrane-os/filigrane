@@ -107,7 +107,8 @@ fn redact(input: &str) -> String {
     // Words that look like an address, one by one: simple and enough for a log line
     s.split_inclusive(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '<' | '>' | '(' | ')' | ',' | ';'))
         .map(|chunk| {
-            let word = chunk.trim_end_matches(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '<' | '>' | '(' | ')' | ',' | ';'));
+            let word = chunk
+                .trim_end_matches(|c: char| c.is_whitespace() || matches!(c, '"' | '\'' | '<' | '>' | '(' | ')' | ',' | ';'));
             let tail = &chunk[word.len()..];
             if is_email(word) {
                 format!("<email>{tail}")
@@ -124,7 +125,9 @@ fn redact(input: &str) -> String {
 
 fn is_email(w: &str) -> bool {
     match w.split_once('@') {
-        Some((a, b)) => !a.is_empty() && b.contains('.') && !b.starts_with('.') && !b.ends_with('.') && !w.contains('/') && !w.contains(':'),
+        Some((a, b)) => {
+            !a.is_empty() && b.contains('.') && !b.starts_with('.') && !b.ends_with('.') && !w.contains('/') && !w.contains(':')
+        }
         None => false,
     }
 }
@@ -137,7 +140,10 @@ fn is_phone(w: &str) -> bool {
 fn is_ipv4(w: &str) -> bool {
     let w = w.split(':').next().unwrap_or(w);
     let parts: Vec<&str> = w.split('.').collect();
-    parts.len() == 4 && parts.iter().all(|p| !p.is_empty() && p.len() <= 3 && p.chars().all(|c| c.is_ascii_digit()) && p.parse::<u16>().is_ok_and(|n| n <= 255))
+    parts.len() == 4
+        && parts.iter().all(|p| {
+            !p.is_empty() && p.len() <= 3 && p.chars().all(|c| c.is_ascii_digit()) && p.parse::<u16>().is_ok_and(|n| n <= 255)
+        })
 }
 
 fn is_mac(w: &str) -> bool {
@@ -157,10 +163,8 @@ fn url_encode(s: &str) -> String {
 // Title and body of the issue; the signature in a comment lets the next report of the same problem find it
 fn issue(incident: &Value) -> (String, String) {
     let title = format!("[{}] {}", text(incident, "app"), shorten(&redact(first_line(text(incident, "message"))), 90));
-    let log: Vec<String> = incident["log"]
-        .as_array()
-        .map(|a| a.iter().filter_map(Value::as_str).map(redact).collect())
-        .unwrap_or_default();
+    let log: Vec<String> =
+        incident["log"].as_array().map(|a| a.iter().filter_map(Value::as_str).map(redact).collect()).unwrap_or_default();
     let tail = log[log.len().saturating_sub(60)..].join("\n");
     let body = format!(
         "<!-- fili-incident:{sig} -->\n**{app}** {version}: {kind}\n\n```\n{message}\n```\n\n<details><summary>Last lines of the log</summary>\n\n```\n{tail}\n```\n\n</details>\n\nSystem: {system}\n\n_Reported with fili-incident; the private details (home folder, user name, e-mail and network addresses) were removed._\n",
@@ -182,7 +186,12 @@ fn run(cmd: &str, args: &[&str]) -> Option<String> {
 }
 
 fn have(cmd: &str) -> bool {
-    Command::new("sh").args(["-c", &format!("command -v {cmd}")]).stdout(Stdio::null()).stderr(Stdio::null()).status().is_ok_and(|s| s.success())
+    Command::new("sh")
+        .args(["-c", &format!("command -v {cmd}")])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .is_ok_and(|s| s.success())
 }
 
 // gh installed and logged in
@@ -234,7 +243,10 @@ fn submit(id: &str, yes: bool) -> Result<(), String> {
                 run("gh", &["api", "-X", "POST", &api, "-f", "content=+1"]).ok_or("gh could not add the +1")?;
                 println!("+1 added.");
             } else {
-                println!("Add a 👍 on the page (opened); {}.", if yes { "gh is missing or not logged in" } else { "nothing was sent: run again with --yes to +1 with gh" });
+                println!(
+                    "Add a 👍 on the page (opened); {}.",
+                    if yes { "gh is missing or not logged in" } else { "nothing was sent: run again with --yes to +1 with gh" }
+                );
                 open(&url);
             }
             set_state(id, "reported", Some(("issue", &url)));
@@ -261,9 +273,12 @@ fn submit(id: &str, yes: bool) -> Result<(), String> {
                 // No gh or no account: the form of GitHub, filled in; the whole report is in the clipboard (a URL is short)
                 copy(&body);
                 let short = shorten(&body, 3500);
-                let url = format!("https://github.com/{repo}/issues/new?title={}&body={}", url_encode(&title), url_encode(&short));
+                let url =
+                    format!("https://github.com/{repo}/issues/new?title={}&body={}", url_encode(&title), url_encode(&short));
                 open(&url);
-                println!("Not reported yet: the issue form is open, filled in (the full report is in the clipboard).\nSend it there with a GitHub account.");
+                println!(
+                    "Not reported yet: the issue form is open, filled in (the full report is in the clipboard).\nSend it there with a GitHub account."
+                );
                 set_state(id, "reported", Some(("issue", "form opened")));
             }
         }
@@ -276,7 +291,11 @@ fn submit(id: &str, yes: bool) -> Result<(), String> {
 // Title and body of the PR: what Rob wrote (redacted like the issue), then the link to the issue and the incident signature
 fn pr_text(incident: &Value, title: Option<&str>, summary: &str, issue_number: Option<i64>) -> (String, String) {
     let title = redact(title.unwrap_or_else(|| first_line(summary)));
-    let title = if title.trim().is_empty() { format!("Fix: {}", shorten(&redact(first_line(text(incident, "message"))), 80)) } else { shorten(&title, 100) };
+    let title = if title.trim().is_empty() {
+        format!("Fix: {}", shorten(&redact(first_line(text(incident, "message"))), 80))
+    } else {
+        shorten(&title, 100)
+    };
     let mut body = redact(summary.trim());
     body.push_str("\n\n");
     if let Some(n) = issue_number {
@@ -314,7 +333,8 @@ fn pr(id: &str, dir: &str, title: Option<&str>, body_file: Option<&str>, yes: bo
     if matches!(branch.as_str(), "main" | "master" | "develop" | "HEAD") {
         return Err(format!("the fix must be on its own branch, not {branch}"));
     }
-    let remote_ok = git(dir, &["remote", "get-url", "origin"]).is_some_and(|u| u.contains(&repo) || u.contains(repo.rsplit('/').next().unwrap_or("?")));
+    let remote_ok = git(dir, &["remote", "get-url", "origin"])
+        .is_some_and(|u| u.contains(&repo) || u.contains(repo.rsplit('/').next().unwrap_or("?")));
     if !remote_ok {
         return Err(format!("{dir} is not a clone of {repo}"));
     }
@@ -380,7 +400,13 @@ fn ask(id: &str) -> Result<(), String> {
         app = text(&incident, "app"),
         msg = shorten(first_line(text(&incident, "message")), 120),
     );
-    Command::new("fili-chat").args(["ask", &prompt]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().map_err(|e| format!("fili-chat: {e}"))?;
+    Command::new("fili-chat")
+        .args(["ask", &prompt])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| format!("fili-chat: {e}"))?;
     Ok(())
 }
 
@@ -421,7 +447,16 @@ fn clear() -> usize {
 
 fn show(id: &str) -> Result<(), String> {
     let i = load(id)?;
-    println!("{id}\napp: {} {}\nkind: {}\nstate: {}\nrepository: {}\nsignature: {}\nsystem: {}\n", text(&i, "app"), text(&i, "version"), text(&i, "kind"), text(&i, "state"), text(&i, "repo"), text(&i, "signature"), text(&i, "system"));
+    println!(
+        "{id}\napp: {} {}\nkind: {}\nstate: {}\nrepository: {}\nsignature: {}\nsystem: {}\n",
+        text(&i, "app"),
+        text(&i, "version"),
+        text(&i, "kind"),
+        text(&i, "state"),
+        text(&i, "repo"),
+        text(&i, "signature"),
+        text(&i, "system")
+    );
     println!("{}\n\n--- last lines of the log ---", text(&i, "message"));
     for line in i["log"].as_array().into_iter().flatten().filter_map(Value::as_str) {
         println!("{line}");
