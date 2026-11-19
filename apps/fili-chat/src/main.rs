@@ -72,6 +72,7 @@ fn chat_dir() -> PathBuf {
 // ───── settings (ai.env) ─────
 struct Conf {
     model: String,
+    rob_model: String, // model of the sessions scoped to an application ("Ask Rob"): short requests, speed matters
     args: Vec<String>,
     dir: String,
 }
@@ -95,7 +96,13 @@ fn conf() -> Conf {
         .split_whitespace()
         .map(|a| if let Some(r) = a.strip_prefix('~') { format!("{}{r}", home()) } else { a.to_string() })
         .collect();
-    Conf { model: get("FILI_AI_MODEL"), args, dir }
+    // Absent = sonnet; "default" = the model of the agent (same as FILI_AI_MODEL)
+    let rob_model = match kv.get("FILI_ROB_MODEL").map(String::as_str) {
+        None => "sonnet".to_string(),
+        Some("default") => get("FILI_AI_MODEL"),
+        Some(m) => m.to_string(),
+    };
+    Conf { model: get("FILI_AI_MODEL"), rob_model, args, dir }
 }
 
 // Value of a shell file: 'abc', "abc" or abc\ def
@@ -377,6 +384,7 @@ fn uuid() -> String {
 fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     let c = conf();
     let started = d.session(id).map(|s| s.started).unwrap_or(false);
+    let scoped = d.session(id).map(|s| s.scoped && !s.link.is_empty()).unwrap_or(false);
     d.next_epoch += 1;
     let epoch = d.next_epoch;
     let mut cmd = Command::new("claude");
@@ -401,8 +409,9 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     let mut mcp = Json::obj();
     mcp.set("mcpServers", servers);
     cmd.arg("--mcp-config").arg(mcp.to_string()).args(["--permission-prompt-tool", "mcp__fili__approve"]);
-    if !c.model.is_empty() {
-        cmd.args(["--model", &c.model]);
+    let model = if scoped { &c.rob_model } else { &c.model };
+    if !model.is_empty() {
+        cmd.args(["--model", model]);
     }
     if c.args.is_empty() {
         cmd.args(["--permission-mode", "acceptEdits"]);

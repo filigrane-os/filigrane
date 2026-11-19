@@ -19,6 +19,12 @@ Safety
 - A change to files: `fili-tx`, then say "`fili-tx undo` to undo". One request = one transaction.
 - Private details (accounts, addresses, tokens) never go in the repository. Personal choices go in `users/<login>/`.
 
+Speed (each tool call costs a full round trip: do the least)
+- The application's brief below already lists its commands: do not run `--help`, do not read `docs/`, `next.md` or the source to learn how it works (only when the request is about the code).
+- Commands print short plain text by default: use that, not `--json` piped into `python3`/`jq`. Look something up by name with the command's own filter (`--find`, `search`), not by listing everything and parsing it.
+- One command per step, and do not re-read what a command already confirmed (a "Sent to…" line is the proof: no second command to check it).
+- Do not announce a plan before acting on a clear request; act, then say the result in one sentence.
+
 Economy
 - The OS must stay light: no heavy dependency, no resident runtime. Prefer what the application already does over a new tool.
 - Read only what you need (a function, not a whole directory), use `ctl state` rather than scanning the screen, and answer in few words, in French, without headings or wide tables (the drawer is narrow).
