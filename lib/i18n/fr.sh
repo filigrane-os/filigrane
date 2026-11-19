@@ -537,5 +537,7 @@ _t_lookup() {
     'Usage: fili-login add NAME COMMAND') _t_fmt='Usage: fili-login add NAME COMMAND' ;;
     'Usage: fili-login edit ID NAME COMMAND') _t_fmt='Usage: fili-login edit ID NAME COMMAND' ;;
     'Windows: go to by number (hold Mod+Alt, type it)') _t_fmt='Fenêtres: aller à une fenêtre par son numéro (maintenir Mod+Alt, la taper)' ;;
+    'fili-bar link-system failed') _t_fmt='fili-bar link-system a échoué' ;;
+    'install-data of %s failed') _t_fmt='install-data de %s a échoué' ;;
     esac
 }

@@ -118,15 +118,14 @@ if want '^apps/fili-incident/'; then
 (cd "$ROOT/apps/fili-incident" && cargo test --release -q --locked >/dev/null 2>&1) \
     && echo "ok - fili-incident passes its unit tests" || { echo "not ok - fili-incident: cd apps/fili-incident && cargo test"; exit 1; }
 fi
-if want '^apps/fili-music/|^dotfiles/config/quickshell/|appmenu/fili-music.json|^tests/fili-shell/check-fili-music-menu.py|^tests/fili-shell/check-app-window.py'; then
+if want '^apps/fili-music/|^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py'; then
 # Baladeur (fili-music) lives in its own repository: the pinned version (apps/fili-music/upstream, or FILI_SRC_FILI_MUSIC for a
-# local checkout) passes its unit tests (the shell parity ones compare its theme with the shell's), the fili-bar menu stays
-# in agreement with its window, and the window follows the anatomy of Casier
+# local checkout) passes its unit tests (the shell parity ones compare its theme with the shell's), and the window follows the
+# anatomy of Casier (its bar module, menu and brief come from its own shell/ folder, checked by its own CI)
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
 FILI_MUSIC_SRC="$("$ROOT/scripts/upstream-dir" fili-music)" || { echo "not ok - source of fili-music not available"; exit 1; }
 (cd "$FILI_MUSIC_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
     && echo "ok - fili-music passes its unit tests" || { echo "not ok - fili-music: cd $FILI_MUSIC_SRC && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
-python3 -I "$ROOT/tests/fili-shell/check-fili-music-menu.py" || exit 1
 FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
 python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_MUSIC_SRC" || exit 1
 fi

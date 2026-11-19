@@ -119,9 +119,12 @@ def check(ref, src, name):
         for key, want in TABS.items():
             if values.get(key) != want:
                 problems.append(f"theme.toml: {key} = {values.get(key)}, expected {want} (tab row)")
-    menu = ROOT / "dotfiles/config/filigrane/appmenu" / f"{name}.json"
+    # The fallback menu of the bar: the one the application ships (shell/appmenu/), else the one of this repository
+    menu = src / "shell/appmenu" / f"{name}.json"
     if not menu.is_file():
-        problems.append(f"no bar menu fallback {menu.relative_to(ROOT)}")
+        menu = ROOT / "dotfiles/config/filigrane/appmenu" / f"{name}.json"
+    if not menu.is_file():
+        problems.append(f"no bar menu fallback (shell/appmenu/{name}.json of the application, or dotfiles/config/filigrane/appmenu/)")
     elif "action about" not in menu.read_text():
         problems.append(f"{menu.name}: no About entry")
     if name in DEBUG_PANEL:
