@@ -78,6 +78,17 @@ Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row 
 - **Status bar off.** Like the header, the footer can be left out: Settings > Appearance, `fili-theme footer off`, `[window] footer = false` (shared file, or `<app>.toml`), `--no-footer` / `--footer`; followed live. It is independent of the header. It still appears for as long as it has something to say: an operation in progress, an error, a notice, an inline confirmation, a typed path, search results. Bar menu entry "Show Status Bar" (`ctl action toggle-footer`) for one window only.
 - An error, a notice or an operation in progress takes the whole footer for its duration (Casier); an inline confirmation ("Delete the label…?") uses the same band, with the action as the default button on the right and Cancel to its left.
 
+## Attention (the app waits for the user)
+
+Reference: Cassette (`fili-recorder/qml/Main.qml`, `attend()`). When an application needs the user (Conversations: a new message, Facteur: a new mail, Aéroport: a question from the assistant, Cassette: a recording that failed or ended), its header **and** footer take the accent colour (`accentColor`) until the user comes back.
+
+- Only while the window is **not** the active one: an event in the window the user is looking at does not colour anything.
+- The footer shows the reason (`sizeSmall` + `weightAccent`, centred, elided) and reappears even when the status bar is off. The header keeps its place; only its colours change.
+- Text and glyphs on the accent use `onAccent` (dark or white by luminance of the accent). Controls of the header (capsule, search field, window buttons) drop their usual surfaces for a tint of `onAccent` (fills 0.12, hover 0.2, border 0.3, placeholder 0.6).
+- Lowered by: the window becoming active, a click on either band, or the application itself (`attention-clear`).
+- Setting: `[window] attention` (default on) in `theme.toml` or `<app>.toml`, `fili-theme attention on|off|default`, switch "Highlight apps that need me" in Settings > Appearance, `--attention` / `--no-attention` for one window; followed live like the header and footer.
+- Ctl hooks for tests: `ctl action attention` and `attention-clear` (outside the menu, `without_menu` in the menu check).
+
 ## Scrolling
 
 - Every scrollable view uses the same pair: `KineticScroll {}` inside the `Flickable`/`ListView` (wheel, touchpad, inertia) and `FiliScrollBar` on its edge. No `ScrollBar` from Qt Quick Controls, no `ScrollView` default bars, no other behaviour.

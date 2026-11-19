@@ -70,9 +70,10 @@ case "${1:-get}" in
         # Families offered for the interface font: Latin text fonts only (no icons, symbols, emoji, monospace, serif, script variants)
         fc-list :lang=en family 2>/dev/null | sed 's/,.*//' | grep -viE 'icon|awesome|emoji|symbol|math|mono|serif|display|condensed|narrow|unjoined|roman|^(c059|d050000l|p052|z003|urw)' | sort -u
         exit 0 ;;
-    header | footer)
-        # fili-theme header|footer [on|off|default]: header and footer (status bar) of the fili-* windows ([window] header|footer;
-        # header off = headless); without argument, print
+    header | footer | attention)
+        # fili-theme header|footer|attention [on|off|default]: header and footer (status bar) of the fili-* windows ([window] header|footer;
+        # header off = headless), and whether they take the accent colour when the application needs the user ([window] attention);
+        # without argument, print
         part=$1
         case "${2:-}" in
             on) toml_set window "$part" true ;;
@@ -83,7 +84,7 @@ case "${1:-get}" in
             *) echo "usage: fili-theme $part [on|off|default]" >&2; exit 2 ;;
         esac
         exit 0 ;;
-    *) echo "usage: fili-theme [get|dark|light|toggle|apply|font [name|default]|fonts|header|footer [on|off|default]|accent [name]]" >&2; exit 2 ;;
+    *) echo "usage: fili-theme [get|dark|light|toggle|apply|font [name|default]|fonts|header|footer|attention [on|off|default]|accent [name]]" >&2; exit 2 ;;
 esac
 
 mkdir -p "$dir" "$cfg/gtk-3.0" "$cfg/gtk-4.0" "$cfg/foot" "$cfg/niri"

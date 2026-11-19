@@ -11,7 +11,8 @@ qml = (root / "apps/fili-recorder/qml/Main.qml").read_text()
 actions = set(re.findall(r'^\s+"([a-z-]+)": \{ on:', qml, re.M))
 shortcuts = set(re.findall(r'Shortcut \{ sequence: "([^"]+)"', qml)) | set(re.findall(r'sequence: "([^"]+)"', qml))
 # Actions reachable only from the interface (context menu of a row)
-without_menu = set()
+# Test hooks for the attention colours (ctl only): not commands of the user
+without_menu = {"attention", "attention-clear"}
 errors = []
 
 def entries(items):

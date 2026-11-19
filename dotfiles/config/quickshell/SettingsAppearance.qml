@@ -27,6 +27,9 @@ ColumnLayout {
     function setHeaders(on) {
         FiliTheme.run(FiliTheme.bin + "/fili-theme header " + (on ? "on" : "off"));
     }
+    function setAttentions(on) {
+        FiliTheme.run(FiliTheme.bin + "/fili-theme attention " + (on ? "on" : "off"));
+    }
     function setFooters(on) {
         FiliTheme.run(FiliTheme.bin + "/fili-theme footer " + (on ? "on" : "off"));
     }
@@ -165,6 +168,28 @@ ColumnLayout {
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
         text: FiliI18n.tr("Off: the status bar at the bottom of the Filigrane apps (place, counts) is hidden. It still appears while it has something to say: an operation in progress, an error or a notice. An app can also be launched with --no-footer or --footer.")
+        color: FiliTheme.brume2
+        font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
+    RowLayout {
+        Layout.fillWidth: true
+        Layout.topMargin: FiliTheme.space2
+        Text {
+            Layout.fillWidth: true
+            text: FiliI18n.tr("Highlight apps that need me")
+            color: FiliTheme.brume
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        }
+        PanelSwitch {
+            objectName: "attentions"
+            checked: FiliTheme.attentions
+            onToggled: view.setAttentions(!FiliTheme.attentions)
+        }
+    }
+    Text {
+        Layout.fillWidth: true
+        wrapMode: Text.WordWrap
+        text: FiliI18n.tr("On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.")
         color: FiliTheme.brume2
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }

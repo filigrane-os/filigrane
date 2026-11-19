@@ -27,5 +27,9 @@ sh "$S" header on && sh "$S" footer default || fail "on/default failed"
 [ "$(get header)" = on ] && [ "$(get footer)" = on ] || fail "on / default not read back"
 grep -q '^footer' "$T" && fail "default did not remove the key"
 
+[ "$(get attention)" = on ] || fail "attention is not on by default"
+sh "$S" attention off && [ "$(get attention)" = off ] || fail "attention off not stored"
+sh "$S" attention default && grep -q '^attention' "$T" && fail "attention default did not remove the key"
+
 sh "$S" header maybe 2>/dev/null && fail "invalid value accepted"
 echo "ok - fili-theme header and footer ([window] of theme.toml)"

@@ -44,9 +44,23 @@ ApplicationWindow {
     property bool showHeader: Fili.header()
     property bool showFooter: Fili.footer()
     property bool windowButtons: Fili.windowButtons()
+    // The app waits for the user (attentionText says why): header and footer take the accent colour when the setting is on
+    // (Settings > Appearance, `fili-theme attention`). Raised by attend(), lowered by a click on the bands, by an action
+    // or when the window is activated.
+    property bool attentionOn: Fili.attention()
+    property string attentionText: ""
+    readonly property bool attending: attentionOn && attentionText !== ""
+    // Text on the accent: dark or white, whichever reads better
+    readonly property color onAccent: (0.299 * FiliTheme.accentColor.r + 0.587 * FiliTheme.accentColor.g + 0.114 * FiliTheme.accentColor.b) > 0.55 ? "#14181f" : "#ffffff"
+    // Controls of the header while it is in the accent colour: a tint of the text colour instead of the usual surfaces
+    readonly property color tintSurface: FiliTheme.alpha(onAccent, 0.12)
+    readonly property color tintHover: FiliTheme.alpha(onAccent, 0.2)
+    readonly property color tintBorder: FiliTheme.alpha(onAccent, 0.3)
+    function attend(text) { attentionText = text || Fili.tr("Needs your attention"); }
+    onActiveChanged: if (active) attentionText = ""
     readonly property bool typing: searchInput.activeFocus || renaming !== ""
     readonly property bool headerShown: showHeader || searchOpen || searchInput.text !== ""
-    readonly property bool footerShown: showFooter || cas.message !== "" || cas.recording
+    readonly property bool footerShown: showFooter || cas.message !== "" || cas.recording || attending
     property var sources: ({ inputs: [], outputs: [], default_input: "", default_output: "" })
 
     readonly property var all: JSON.parse(cas.recordings)
@@ -146,6 +160,22 @@ ApplicationWindow {
         function onThemeChanged() {
             win.showHeader = Fili.header();
             win.showFooter = Fili.footer();
+            win.attentionOn = Fili.attention();
+        }
+    }
+    // What makes Cassette ask for the user, when the window is not the active one: a recording that failed (the message says
+    // why), a recording that ended and was saved (started or stopped from the fili-bar, or the source went away)
+    property bool wasRecording: false
+    property bool wasFailed: false
+    Connections {
+        target: cas
+        function onChanged() {
+            if (cas.failed && !win.wasFailed && cas.message !== "" && !win.active)
+                win.attend(cas.message);
+            else if (win.wasRecording && !cas.recording && !cas.failed && !win.active)
+                win.attend(Fili.tr("Recording saved"));
+            win.wasFailed = cas.failed;
+            win.wasRecording = cas.recording;
         }
     }
     // Position and state while something plays or records; a slow look at the folder meanwhile (a recording started from the
@@ -189,6 +219,8 @@ ApplicationWindow {
         "settings": { on: () => true, run: () => Fili.openSettings() },
         "toggle-header": { on: () => true, run: () => win.showHeader = !win.showHeader },
         "toggle-footer": { on: () => true, run: () => win.showFooter = !win.showFooter },
+        "attention": { on: () => true, run: () => win.attend("") },
+        "attention-clear": { on: () => win.attentionText !== "", run: () => win.attentionText = "" },
         "debug": { on: () => true, run: () => debug.open = !debug.open },
         "toggle-window-buttons": { on: () => true, run: () => { win.windowButtons = !win.windowButtons; Fili.setWindowButtons(win.windowButtons); } },
         "window-actions": { on: () => win.windowButtons, run: () => windowPanel.visible ? windowPanel.close() : windowPanel.open() },
@@ -278,7 +310,8 @@ ApplicationWindow {
         width: parent.width
         height: win.headerShown ? FiliTheme.toolbarHeight : 0
         visible: win.headerShown
-        color: FiliTheme.background
+        color: win.attending ? FiliTheme.accentColor : FiliTheme.background
+        MouseArea { anchors.fill: parent; z: -1; enabled: win.attending; onClicked: win.attentionText = "" }
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
@@ -292,9 +325,9 @@ ApplicationWindow {
             width: modes.width + 2 * FiliTheme.space1 + 2
             height: 30
             radius: 8
-            color: FiliTheme.surface
+            color: win.attending ? win.tintSurface : FiliTheme.surface
             border.width: FiliTheme.borderWidth
-            border.color: FiliTheme.border
+            border.color: win.attending ? win.tintBorder : FiliTheme.border
         }
         Row {
             id: modes
@@ -310,7 +343,7 @@ ApplicationWindow {
                     width: segText.implicitWidth + 2 * FiliTheme.space3
                     height: 22
                     radius: FiliTheme.radiusControl
-                    color: on || segArea.containsMouse ? FiliTheme.surfaceHover : "transparent"
+                    color: on || segArea.containsMouse ? (win.attending ? win.tintHover : FiliTheme.surfaceHover) : "transparent"
                     Text {
                         id: segText
                         anchors.centerIn: parent
@@ -318,7 +351,7 @@ ApplicationWindow {
                         font.family: FiliTheme.font
                         font.pixelSize: FiliTheme.sizeList
                         font.weight: seg.on ? FiliTheme.weightAccent : Font.Normal
-                        color: seg.on ? FiliTheme.accentColor : FiliTheme.textSecondary
+                        color: win.attending ? win.onAccent : seg.on ? FiliTheme.accentColor : FiliTheme.textSecondary
                     }
                     MouseArea {
                         id: segArea
@@ -338,7 +371,7 @@ ApplicationWindow {
             font.family: FiliTheme.font
             font.pixelSize: FiliTheme.size
             font.weight: FiliTheme.weightAccent
-            color: FiliTheme.text
+            color: win.attending ? win.onAccent : FiliTheme.text
         }
         // Window buttons at the far right: close, and the panel of window actions (niri only)
         Rectangle {
@@ -354,7 +387,7 @@ ApplicationWindow {
                 kind: "close"
                 width: 16
                 height: 16
-                color: closeArea.containsMouse ? "#ffffff" : FiliTheme.text
+                color: closeArea.containsMouse ? "#ffffff" : win.attending ? win.onAccent : FiliTheme.text
             }
             MouseArea {
                 id: closeArea
@@ -372,12 +405,13 @@ ApplicationWindow {
             width: 28
             height: 24
             radius: FiliTheme.radiusControl
-            color: windowArea.pressed ? FiliTheme.surfaceActive : windowArea.containsMouse || windowPanel.visible ? FiliTheme.surfaceHover : "transparent"
+            color: windowArea.pressed || windowArea.containsMouse || windowPanel.visible ? (win.attending ? win.tintHover : windowArea.pressed ? FiliTheme.surfaceActive : FiliTheme.surfaceHover) : "transparent"
             WindowGlyph {
                 anchors.centerIn: parent
                 kind: "window"
                 width: 16
                 height: 16
+                color: win.attending ? win.onAccent : FiliTheme.text
             }
             MouseArea {
                 id: windowArea
@@ -395,16 +429,16 @@ ApplicationWindow {
             width: visible ? 180 : 0
             height: 26
             radius: FiliTheme.radiusControl
-            color: FiliTheme.surface
+            color: win.attending ? win.tintSurface : FiliTheme.surface
             border.width: FiliTheme.borderWidth
-            border.color: searchInput.activeFocus ? FiliTheme.accentColor : FiliTheme.border
+            border.color: win.attending ? (searchInput.activeFocus ? win.onAccent : win.tintBorder) : searchInput.activeFocus ? FiliTheme.accentColor : FiliTheme.border
             Text {
                 anchors { left: parent.left; leftMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                 visible: searchInput.text === ""
                 text: Fili.tr("Search")
                 font.family: FiliTheme.font
                 font.pixelSize: FiliTheme.size
-                color: FiliTheme.muted
+                color: win.attending ? FiliTheme.alpha(win.onAccent, 0.6) : FiliTheme.muted
             }
             TextInput {
                 id: searchInput
@@ -413,7 +447,7 @@ ApplicationWindow {
                 clip: true
                 font.family: FiliTheme.font
                 font.pixelSize: FiliTheme.size
-                color: FiliTheme.text
+                color: win.attending ? win.onAccent : FiliTheme.text
                 selectionColor: FiliTheme.surfaceActive
                 selectedTextColor: FiliTheme.text
                 Accessible.name: Fili.tr("Search")
@@ -1129,7 +1163,22 @@ ApplicationWindow {
         height: win.footerShown ? FiliTheme.statusHeight : 0
         visible: win.footerShown
         // Recessed like Facteur's footer (app-window.md of the filigrane-ui skill)
-        color: FiliTheme.backgroundDeep
+        color: win.attending ? FiliTheme.accentColor : FiliTheme.backgroundDeep
+        MouseArea { anchors.fill: parent; z: -1; enabled: win.attending; onClicked: win.attentionText = "" }
+        // What the app waits for, over the usual content
+        Text {
+            anchors { fill: parent; leftMargin: FiliTheme.space3; rightMargin: FiliTheme.space3; topMargin: 1 }
+            z: 1
+            visible: win.attending
+            verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideMiddle
+            text: win.attentionText
+            font.family: FiliTheme.font
+            font.pixelSize: FiliTheme.sizeSmall
+            font.weight: FiliTheme.weightAccent
+            color: win.onAccent
+        }
         Rectangle {
             width: parent.width
             height: FiliTheme.borderWidth
@@ -1138,7 +1187,7 @@ ApplicationWindow {
         // An error or a notice takes the whole bar
         Text {
             anchors { fill: parent; leftMargin: FiliTheme.space3; rightMargin: FiliTheme.space3; topMargin: 1 }
-            visible: cas.message !== ""
+            visible: cas.message !== "" && !win.attending
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideMiddle
@@ -1150,7 +1199,7 @@ ApplicationWindow {
         }
         Text {
             anchors { left: parent.left; leftMargin: FiliTheme.margin; right: parent.horizontalCenter; top: parent.top; topMargin: 1; bottom: parent.bottom }
-            visible: cas.message === ""
+            visible: cas.message === "" && !win.attending
             verticalAlignment: Text.AlignVCenter
             elide: Text.ElideRight
             text: cas.recording ? (cas.saving ? Fili.tr("Saving…") : "● " + Fili.tr("Recording") + "  " + win.clock(elapsedRec.seconds)) : win.items.length + " " + Fili.tr("recordings") + " · " + win.clock(win.items.reduce((a, r) => a + r.duration, 0))
@@ -1160,7 +1209,7 @@ ApplicationWindow {
         }
         Text {
             anchors { right: parent.right; rightMargin: FiliTheme.margin; left: parent.horizontalCenter; top: parent.top; topMargin: 1; bottom: parent.bottom }
-            visible: cas.message === ""
+            visible: cas.message === "" && !win.attending
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignRight
             elide: Text.ElideMiddle

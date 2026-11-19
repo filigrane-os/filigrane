@@ -45,6 +45,8 @@ pub mod qobject {
         #[qinvokable]
         fn footer(self: &Fili) -> bool;
         #[qinvokable]
+        fn attention(self: &Fili) -> bool;
+        #[qinvokable]
         #[cxx_name = "windowButtons"]
         fn window_buttons(self: &Fili) -> bool;
         #[qinvokable]
@@ -328,6 +330,11 @@ impl qobject::Fili {
     // Header of the window (toolbar): false = headless (settings and --no-header)
     pub fn header(&self) -> bool {
         theme::window_part("header", &args())
+    }
+
+    // Header and footer take the accent colour while the app needs the user (settings, --attention / --no-attention)
+    pub fn attention(&self) -> bool {
+        theme::window_part("attention", &args())
     }
 
     // Footer (status bar): false = hidden until it has something to say (settings and --no-footer)
