@@ -24,7 +24,6 @@ nerd-fonts-symbols-ttf
 wl-clipboard
 # Daemonless containers (replaces Docker on the Mac)
 podman
-lazydocker  # containers TUI (13 MB Go binary, nothing resident); needs the podman socket (DOCKER_HOST)
 # LazyVim: building the treesitter parsers (gcc = 234 MB)
 gcc
 make
