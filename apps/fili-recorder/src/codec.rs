@@ -69,6 +69,8 @@ pub fn encode(wav: &Path, format: Format) -> Result<PathBuf, String> {
         return Ok(wav.to_path_buf());
     }
     let out = wav.with_extension(format.name());
+    // Written under a temporary name, renamed when complete: an interrupted encoder never leaves a truncated recording
+    let tmp = out.with_extension(format!("{}.part", format.name()));
     let mut cmd = match format {
         Format::Opus => {
             if !program_exists("gst-launch-1.0") {
@@ -92,7 +94,7 @@ pub fn encode(wav: &Path, format: Format) -> Result<PathBuf, String> {
             ])
             .arg(format!("bitrate={OPUS_BITRATE}"))
             .args(["bitrate-type=cbr", "!", "oggmux", "!", "filesink"])
-            .arg(format!("location=\"{}\"", quotable(&out)?));
+            .arg(format!("location=\"{}\"", quotable(&tmp)?));
             c
         }
         _ => {
@@ -117,7 +119,7 @@ pub fn encode(wav: &Path, format: Format) -> Result<PathBuf, String> {
                 "--cbr",
                 "-",
             ])
-            .arg(&out);
+            .arg(&tmp);
             c
         }
     };
@@ -130,8 +132,8 @@ pub fn encode(wav: &Path, format: Format) -> Result<PathBuf, String> {
         let _ = std::io::copy(&mut src.take(bytes), &mut stdin);
     }
     let ok = child.wait().map(|s| s.success()).unwrap_or(false);
-    if !ok || fs::metadata(&out).map(|m| m.len() == 0).unwrap_or(true) {
-        let _ = fs::remove_file(&out);
+    if !ok || fs::metadata(&tmp).map(|m| m.len() == 0).unwrap_or(true) || fs::rename(&tmp, &out).is_err() {
+        let _ = fs::remove_file(&tmp);
         return Err(format!("the {} encoder failed", format.name()));
     }
     let _ = fs::remove_file(wav);

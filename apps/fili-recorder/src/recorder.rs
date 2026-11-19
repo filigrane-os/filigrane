@@ -49,6 +49,23 @@ fn session_file() -> PathBuf {
     base.join("fili-recorder.session")
 }
 
+/// Held (flock) by the process that ends a recording, from the start of the stop to its end. The kernel releases it when
+/// that process dies, whatever the way: a stop that is "saving" without it is a leftover, and there is no pid to reuse.
+fn lock_file() -> PathBuf {
+    session_file().with_extension("lock")
+}
+
+fn try_lock(path: &Path) -> Option<File> {
+    use std::os::fd::AsRawFd;
+    let f = fs::OpenOptions::new().create(true).truncate(false).write(true).open(path).ok()?;
+    (unsafe { libc::flock(f.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0).then_some(f)
+}
+
+/// Whether a stop is really running: the session says "saving" and its process still holds the lock.
+fn saving_now(saving: bool, lock: &Path) -> bool {
+    saving && try_lock(lock).is_none()
+}
+
 /// `key = value` lines (`#` comments, optional quotes): the whole syntax of the two settings files.
 fn parse_kv(text: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
@@ -208,7 +225,9 @@ fn alive(pid: u32) -> bool {
 /// its parts are finalized by the next `stop`, so it is still returned while a part exists on disk.
 pub fn load_session() -> Option<Session> {
     let text = fs::read_to_string(session_file()).ok()?;
-    let s = Session::parse(&text);
+    let mut s = Session::parse(&text);
+    // A stop whose process died (killed window, crash) would stay "saving" for ever: it can be started again
+    s.saving = saving_now(s.saving, &lock_file());
     (!s.name.is_empty()).then_some(s)
 }
 
@@ -415,8 +434,13 @@ fn kill(pid: u32, signal: &str) {
     let _ = Command::new("kill").arg(format!("-{signal}")).arg(pid.to_string()).stderr(Stdio::null()).status();
 }
 
+/// Whether the pid is still a capture of ours: after a crash or a reboot the number may belong to anything.
+fn is_capture(pid: u32) -> bool {
+    fs::read_to_string(format!("/proc/{pid}/comm")).is_ok_and(|c| c.trim() == "pw-record")
+}
+
 fn stop_process(pid: u32) {
-    if !alive(pid) {
+    if !alive(pid) || !is_capture(pid) {
         return;
     }
     kill(pid, "INT");
@@ -492,6 +516,8 @@ pub fn cmd_start(args: &[String]) -> Result<(), String> {
 
 pub fn cmd_stop() -> Result<(), String> {
     let mut s = load_session().ok_or("not recording")?;
+    // Two stops (bar and window at once) would mix into the same files
+    let _lock = try_lock(&lock_file()).ok_or("already saving")?;
     s.saving = true;
     let _ = fs::write(session_file(), s.render());
     refresh_bar();
@@ -523,31 +549,84 @@ pub fn cmd_stop() -> Result<(), String> {
     }
 }
 
+/// Writes `out` under a temporary name and renames it when complete: a stop killed half-way never leaves a recording
+/// that looks whole in the library.
+fn atomic(out: &Path, write: impl FnOnce(&Path) -> Result<(), String>) -> Result<(), String> {
+    let tmp = out.with_extension("wav.part");
+    let result = write(&tmp).and_then(|()| fs::rename(&tmp, out).map_err(|e| e.to_string()));
+    if result.is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+    result
+}
+
 /// Turns the parts into the final files; the parts are removed only once their content is safe.
 fn finalize(s: &Session) -> Result<(Vec<PathBuf>, Option<String>), String> {
     let (pi, po) = (s.part("input"), s.part("output"));
     let have = |p: &Path| wav_data(p).map(|(_, n)| n > 0).unwrap_or(false);
     let (hi, ho) = (have(&pi), have(&po));
     let mut files = Vec::new();
+    // Leftovers of a stop that died while writing: complete files are renamed into place, never written in place
+    for p in [s.final_path(None), s.final_path(Some("input")), s.final_path(Some("output"))] {
+        for ext in ["wav", "opus", "mp3"] {
+            let _ = fs::remove_file(p.with_extension(format!("{ext}.part")));
+        }
+    }
+    // A stop that died after writing the WAV file(s) (the parts may be half removed): only the compression is left
+    let single = s.final_path(None);
+    let (input, output) = (s.final_path(Some("input")), s.final_path(Some("output")));
+    let done: Vec<PathBuf> = if have(&single) {
+        vec![single.clone()]
+    } else if have(&input) && have(&output) {
+        vec![input.clone(), output.clone()]
+    } else {
+        Vec::new()
+    };
+    if !done.is_empty() {
+        let _ = fs::remove_file(&pi);
+        let _ = fs::remove_file(&po);
+        return Ok(compress(done, s));
+    }
+    // Or even after the compression: the result is there already
+    for format in [Format::Opus, Format::Mp3] {
+        let exists = |p: &PathBuf| p.with_extension(format.name()).is_file();
+        let ready: Vec<PathBuf> = if exists(&single) {
+            vec![single.clone()]
+        } else if exists(&input) && exists(&output) {
+            vec![input.clone(), output.clone()]
+        } else {
+            continue;
+        };
+        let _ = fs::remove_file(&pi);
+        let _ = fs::remove_file(&po);
+        return Ok((ready.iter().map(|p| p.with_extension(format.name())).collect(), None));
+    }
+    if !hi && !ho {
+        return Err("nothing was recorded".into());
+    }
     if s.mix || !(hi && ho) {
         let out = s.final_path(None);
         match (hi, ho) {
-            (true, true) => mix(&pi, &po, &out)?,
-            (true, false) => finish_one(&pi, &out, START_SKIP)?,
-            (false, true) => finish_one(&po, &out, START_SKIP)?,
+            (true, true) => atomic(&out, |t| mix(&pi, &po, t))?,
+            (true, false) => atomic(&out, |t| finish_one(&pi, t, START_SKIP))?,
+            (false, true) => atomic(&out, |t| finish_one(&po, t, START_SKIP))?,
             (false, false) => return Err("nothing was recorded".into()),
         }
         files.push(out);
     } else {
         for (part, which) in [(&pi, "input"), (&po, "output")] {
             let out = s.final_path(Some(which));
-            finish_one(part, &out, START_SKIP)?;
+            atomic(&out, |t| finish_one(part, t, START_SKIP))?;
             files.push(out);
         }
     }
     let _ = fs::remove_file(&pi);
     let _ = fs::remove_file(&po);
-    // The WAV files are the safe result; compressing them is the last step, and a failure keeps them
+    Ok(compress(files, s))
+}
+
+/// The WAV files are the safe result; compressing them is the last step, and a failure keeps them.
+fn compress(files: Vec<PathBuf>, s: &Session) -> (Vec<PathBuf>, Option<String>) {
     let format = if s.format.is_empty() { Format::Wav } else { Format::parse(&s.format) };
     let mut warning = None;
     let files = files
@@ -560,7 +639,7 @@ fn finalize(s: &Session) -> Result<(Vec<PathBuf>, Option<String>), String> {
             }
         })
         .collect();
-    Ok((files, warning))
+    (files, warning)
 }
 
 /// The folder is created on the first recording: opening it before that must still work.
@@ -736,6 +815,69 @@ mod tests {
         };
         assert_eq!(Session::parse(&s.render()), s);
         assert_eq!(s.part("input"), PathBuf::from("/tmp/r/.Recording a b (input).wav.part"));
+    }
+
+    #[test]
+    fn saving_lasts_only_while_the_stop_holds_the_lock() {
+        let d = tmp("lock");
+        let lock = d.join("l.lock");
+        assert!(!saving_now(false, &lock));
+        assert!(saving_now(true, &lock) == false, "nobody holds the lock: a leftover");
+        let held = try_lock(&lock).unwrap();
+        assert!(try_lock(&lock).is_none(), "a second stop is refused");
+        assert!(saving_now(true, &lock), "a stop is running");
+        drop(held);
+        assert!(!saving_now(true, &lock), "the stop died: released by the kernel");
+        let _ = fs::remove_dir_all(d);
+    }
+
+    fn resumed(name: &str, mix: bool, make: impl Fn(&Path)) -> Result<(Vec<PathBuf>, Option<String>), String> {
+        let d = tmp(name);
+        make(&d);
+        let s = Session { name: "R".into(), dir: d.clone(), mix, saving: true, ..Default::default() };
+        let r = finalize(&s);
+        let _ = fs::remove_dir_all(d);
+        r.map(|(f, w)| (f.iter().map(|p| PathBuf::from(p.file_name().unwrap())).collect(), w))
+    }
+
+    #[test]
+    fn a_stop_that_died_after_writing_the_wav_only_compresses() {
+        // Mixed (or single source) file, parts half removed
+        let (f, w) = resumed("r1", true, |d| {
+            write_wav(&d.join("R.wav"), &[1, 2, 3, 4], 0);
+            write_wav(&d.join(".R (output).wav.part"), &[9, 9], 0);
+        })
+        .unwrap();
+        assert_eq!((f, w), (vec![PathBuf::from("R.wav")], None));
+        // Separate mode, a single source saved as <name>.wav
+        let (f, _) = resumed("r2", false, |d| write_wav(&d.join("R.wav"), &[1, 2, 3, 4], 0)).unwrap();
+        assert_eq!(f, vec![PathBuf::from("R.wav")]);
+        // Separate mode, both files
+        let (f, _) = resumed("r3", false, |d| {
+            write_wav(&d.join("R (input).wav"), &[1, 2], 0);
+            write_wav(&d.join("R (output).wav"), &[3, 4], 0);
+        })
+        .unwrap();
+        assert_eq!(f, vec![PathBuf::from("R (input).wav"), PathBuf::from("R (output).wav")]);
+        // Nothing at all
+        assert!(resumed("r4", true, |_| {}).is_err());
+    }
+
+    #[test]
+    fn a_stop_that_died_after_compressing_reports_the_result() {
+        let (f, w) = resumed("r5", true, |d| fs::write(d.join("R.opus"), b"x").unwrap()).unwrap();
+        assert_eq!((f, w), (vec![PathBuf::from("R.opus")], None));
+    }
+
+    #[test]
+    fn a_half_written_file_never_gets_the_final_name() {
+        let d = tmp("atomic");
+        let out = d.join("X.wav");
+        assert!(atomic(&out, |t| { fs::write(t, b"half").unwrap(); Err("killed".into()) }).is_err());
+        assert!(!out.exists() && !d.join("X.wav.part").exists());
+        atomic(&out, |t| fs::write(t, b"all").map_err(|e| e.to_string())).unwrap();
+        assert_eq!(fs::read(&out).unwrap(), b"all");
+        let _ = fs::remove_dir_all(d);
     }
 
     #[test]
