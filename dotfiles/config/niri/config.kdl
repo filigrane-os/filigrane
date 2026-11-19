@@ -767,6 +767,8 @@ binds {
     // Windows in this column will appear as vertical tabs,
     // rather than stacked on top of each other.
     Mod+W { toggle-column-tabbed-display; }
+    // Gather every terminal of the workspace into one tabbed column.
+    Mod+Shift+W hotkey-overlay-title="Terminals: tab them together" { spawn-sh "$HOME/.local/bin/fili-tabs-terminals"; }
 
     // Actions to switch layouts.
     // Note: if you uncomment these, make sure you do NOT have

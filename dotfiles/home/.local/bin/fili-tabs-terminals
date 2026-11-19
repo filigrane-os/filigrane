@@ -1,0 +1,88 @@
+#!/usr/bin/env python3
+"""Gather every terminal window of the focused workspace into one tabbed niri column.
+
+Usage: fili-tabs-terminals [--dry-run]
+The target column is the focused window's column when it is a terminal, else the leftmost
+terminal column. Terminal app-ids: $FILI_TERMINALS (space separated) or the defaults below.
+"""
+import json
+import os
+import subprocess
+import sys
+
+DEFAULT = "foot fili-term Alacritty kitty org.wezfurlong.wezterm com.mitchellh.ghostty"
+TERMS = set(os.environ.get("FILI_TERMINALS", DEFAULT).split())
+DRY = "--dry-run" in sys.argv
+
+
+def niri(*args):
+    cmd = ["niri", "msg", *args]
+    if DRY and args[:1] == ("action",):
+        print(" ".join(cmd))
+        return ""
+    return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
+
+
+def terminals():
+    wins = json.loads(niri("-j", "windows"))
+    focused = next((w for w in wins if w["is_focused"]), None)
+    if focused is None:
+        return []
+    return [
+        w for w in wins
+        if w["workspace_id"] == focused["workspace_id"]
+        and w["app_id"] in TERMS
+        and not w["is_floating"]
+        and w["layout"]["pos_in_scrolling_layout"]
+    ], focused
+
+
+def column(w):
+    return w["layout"]["pos_in_scrolling_layout"][0]
+
+
+def main():
+    found = terminals()
+    if not found:
+        return
+    terms, focused = found
+    if len(terms) < 2:
+        return
+    target = focused if focused in terms else min(terms, key=column)
+    tid = target["id"]
+    if DRY:
+        # Cannot re-query the layout while only printing: show the plan for the current state.
+        for w in terms:
+            if w["id"] != tid:
+                print(f"# move window {w['id']} ({w['app_id']}) next to window {tid}")
+        niri("action", "focus-window", "--id", str(tid))
+        niri("action", "set-column-display", "tabbed")
+        return
+    for w in terms:
+        if w["id"] == tid:
+            continue
+        # Re-read the layout: every move shifts the column indexes.
+        wins = json.loads(niri("-j", "windows"))
+        cur = {x["id"]: x for x in wins}
+        t, me = cur[tid], cur[w["id"]]
+        if column(me) == column(t):
+            continue
+        # A column holding other windows is split first so only this window moves.
+        if sum(1 for x in wins if x["workspace_id"] == me["workspace_id"]
+               and x["layout"]["pos_in_scrolling_layout"]
+               and column(x) == column(me)) > 1:
+            niri("action", "focus-window", "--id", str(me["id"]))
+            niri("action", "expel-window-from-column")
+            me = {x["id"]: x for x in json.loads(niri("-j", "windows"))}[me["id"]]
+        # Put it in the column right after the target, then pull it in.
+        index = column(t) + 1 if column(me) > column(t) else column(t)
+        niri("action", "focus-window", "--id", str(me["id"]))
+        niri("action", "move-column-to-index", str(index))
+        niri("action", "focus-window", "--id", str(tid))
+        niri("action", "consume-window-into-column")
+    niri("action", "focus-window", "--id", str(tid))
+    niri("action", "set-column-display", "tabbed")
+
+
+if __name__ == "__main__":
+    main()
