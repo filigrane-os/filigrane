@@ -1,4 +1,4 @@
-# fili-niri: niri with the Filigrane patch
+# fili-niri: niri with the Filigrane patches
 
 `fili-niri` replaces Void's `niri` package until niri fixes [niri-wm/niri#2691](https://github.com/niri-wm/niri/issues/2691):
 on GPUs with few graphics pipes (CRTCs: three on Intel Ice Lake, the T2 MacBooks), a laptop panel turned off by niri
@@ -13,6 +13,9 @@ With the patch, the pipe of a display turned off is lent to the display that nee
 | `publish.sh` | Adds the package to a copy of the published repository and rebuilds the signed index |
 | `alert.sh` | GitHub issues of the workflow (build failed, niri fixed upstream) |
 | `.github/workflows/niri.yml` | Every day: builds when Void ships a new niri or the pin changes, publishes, alerts |
+
+Besides the CRTC fix, the fork carries a feature patch that stays: dragging the gap between two tiled windows resizes
+them (double-arrow cursor and a discreet accent line in the gap), see `FILIGRANE.md` in the fork.
 
 Installation: `packages/desktop.txt` keeps Void's `niri` (the fallback on other architectures, or when the repository
 cannot be reached); once the distribution's repository is set, `bootstrap.sh` installs `fili-niri`, whose `replaces`
