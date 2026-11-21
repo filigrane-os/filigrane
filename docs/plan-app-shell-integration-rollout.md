@@ -163,7 +163,7 @@ is the real one there; `bootstrap.sh` covers a source build.
 
 - [x] Baladeur (`v0.2.0`, removal commit `410c048`)
 - [x] Cassette (`v0.2.0`)
-- [ ] Conversations
+- [x] Conversations (`0.2.0`)
 - [ ] Facteur
 - [ ] Aéroport
 - [ ] Casier
