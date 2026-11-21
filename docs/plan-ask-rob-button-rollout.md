@@ -62,7 +62,7 @@ Reference application: **Casier**, repository `filigrane-os/fili-file`, branch `
   controls use in that state. Applications without the attention mode keep the default.
 - **No setting** to hide the button: it is cheap, and the header can already be turned off.
 - Nothing is added to the applications' own menus: the generic entry in the bar covers it. (Casier's fallback menu file stays
-  identical to the application's menu; `check-fili-file-menu.py` keeps it so.)
+  identical to the application's menu; `scripts/check-shell-menu.py` of Casier keeps it so.)
 
 ## 3. Per-application steps (the same checklist everywhere)
 

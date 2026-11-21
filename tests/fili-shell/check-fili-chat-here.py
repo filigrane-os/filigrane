@@ -30,12 +30,10 @@ for k in ("Rob, about %1", "Ask anything about this application…"):
         errors.append(f"i18n/fr.json: {k!r} is not translated")
 if "Ask Rob…" not in fr:
     errors.append("i18n/fr.json: 'Ask Rob…' is not translated")
-# Every application with a fallback menu has its brief for Rob (agents/rob/<app_id>.md), and there is a generic one
+# The generic brief exists; the brief of each application is shipped by the application (shell/rob/<app_id>.md, checked by its own
+# scripts/check-shell-menu.py)
 if not (root / "agents/rob/_default.md").exists():
     errors.append("agents/rob/_default.md is missing")
-for f in sorted((root / "dotfiles/config/filigrane/appmenu").glob("fili-*.json")):
-    if f.stem != "fili-chat" and not (root / "agents/rob" / f"{f.stem}.md").exists():
-        errors.append(f"agents/rob/{f.stem}.md is missing (brief of Rob for {f.stem})")
 if errors:
     print("\n".join(errors))
     sys.exit(1)

@@ -506,12 +506,9 @@
  "Unmute": "Rétablir le son",
  "Sound settings…": "Réglages du son…",
  "Open the Bluetooth manager": "Ouvrir le gestionnaire Bluetooth",
- "Open Facteur": "Ouvrir Facteur",
  "Open the process monitor": "Ouvrir le moniteur de processus",
  "click: play/pause · right click: menu · middle click: next · wheel: previous / next": "clic: lecture/pause · clic droit: menu · clic milieu: suivant · molette: précédent / suivant",
  "click: sound panel · middle click: mute · wheel: volume · right click: menu": "clic: panneau du son · clic milieu: muet · molette: volume · clic droit: menu",
  "Highlight apps that need me": "Signaler les applications qui ont besoin de moi",
- "Mail": "Courrier",
- "On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.": "Activé: l'en-tête et la barre d'état d'une application Filigrane prennent la couleur d'accent quand elle vous attend (un nouveau message, un nouveau courrier, une question de l'assistant) jusqu'à votre retour. Désactivé: aucun changement de couleur.",
- "click: open Facteur": "clic: ouvrir Facteur"
+ "On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.": "Activé: l'en-tête et la barre d'état d'une application Filigrane prennent la couleur d'accent quand elle vous attend (un nouveau message, un nouveau courrier, une question de l'assistant) jusqu'à votre retour. Désactivé: aucun changement de couleur."
 }

@@ -36,7 +36,7 @@ All in this repository, commit `ff3e17a` (incidents) and `2c73950` (Baladeur):
 | Bridge invokables | `fili-music/src/bridge.rs` (`Fili` object) | `logs(since)` returns JSON `{"seq": N, "entries": [[level, text], ...]}` (0 debug, 1 info, 2 warning, 3 error), `logFile()`, `clearLogs()`, `reportProblem(text)` (returns the incident id, `""` on failure). The panel also needs `copyText`, `openPath`, `uiState`/`setUiState`, `tr` (every application already has them). |
 | Panel | `fili-music/qml/DebugPanel.qml` | Band above the footer: selectable `TextEdit` (rich text), filter All / Warnings / Errors, **Ask Rob**, Copy, Clear, Open file, ×; resizable from its top edge (`debug_height` in the UI state); polls every 500 ms while open. |
 | Wiring in the window | `fili-music/qml/Main.qml` | `DebugPanel { id: debug; anchors { bottom: statusbar.top; left; right } }`; every content area anchors `bottom: debug.top`; action `"debug": { on: () => true, run: () => debug.open = !debug.open }`; `Shortcut { sequence: "Ctrl+Shift+L"; onActivated: win.runAction("debug") }`; the QML file is in the `build.rs` list. |
-| Menu | `dotfiles/config/filigrane/appmenu/<app>.json` | View menu entry `{"label": "Debug Logs", "keys": "Ctrl+Shift+L", "exec": "<app> ctl --pid %pid action debug"}`. |
+| Menu | `shell/appmenu/<app>.json` of the application | View menu entry `{"label": "Debug Logs", "keys": "Ctrl+Shift+L", "exec": "<app> ctl --pid %pid action debug"}`. |
 | Startup | `fili-music/src/main.rs` | `logs::init("fili-music", "filigrane-os/filigrane", version, theme::setting("debug","incidents") != Some("off"))` first thing in `main`, `logs::capture_qt()` before the QML engine loads. |
 | Incident CLI | `apps/fili-incident/` (`package.env`, built by bootstrap, linked in `~/.local/bin`) | `list`, `show`, `notify`, `ask`, `check`, `issue`, `submit [--yes]`, `ignore`, `clear`. 5 unit tests. |
 | Rob's procedure | `agents/chat-prompt.md`, section "Problems reported by the applications" | Diagnose read-only, `fili-incident check`, propose a fix on a branch, show `fili-incident issue`, only `submit --yes` with the user's agreement. |
@@ -85,7 +85,7 @@ For an application `APP` (program name `fili-xxx`, display name in brackets), in
    values, no literals; read `agents/skills/filigrane-ui/references/tokens.md` first).
 6. **Action + shortcut + menu**: action `debug` in the window's action table (and in the `ctl ... action` command handler,
    so the bar's menu can call it), `Shortcut Ctrl+Shift+L`, View > Debug Logs in the fallback menu JSON. For Casier the menu
-   file here must stay identical to the application's (`tests/fili-shell/check-fili-file-menu.py`): change both.
+   file here must stay identical to the application's (`scripts/check-shell-menu.py` of Casier): change both.
 7. **Translations**: the new strings (`Debug logs`, `All`, `Warnings`, `Errors`, `entries`, `Ask Rob`, `Copy`, `Clear`,
    `Open file`, `Rob was asked to look at it`, `Could not record the problem`) go in the application's language files
    (French at least). Baladeur's are in `dotfiles/config/quickshell/i18n/fr.json`.

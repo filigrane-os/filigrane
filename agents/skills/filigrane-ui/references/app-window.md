@@ -97,7 +97,7 @@ Reference: Cassette (`fili-recorder/qml/Main.qml`, `attend()`). When an applicat
 
 ## Menu, About, settings, theme, assistant
 
-- Shared menu with the fili-bar (`hig.md` §7): every command and its shortcut, through a fallback `dotfiles/config/filigrane/appmenu/<app_id>.json` that calls `<app> ctl --pid %pid action NAME`; nothing important only in a button or a context menu.
+- Shared menu with the fili-bar (`hig.md` §7): every command and its shortcut, through a fallback `shell/appmenu/<app_id>.json` of the application (installed with its package, linked by `fili-bar link-system`) that calls `<app> ctl --pid %pid action NAME`; nothing important only in a button or a context menu.
 - First entry "About <Name>" (About card), "Settings…" when `<app>.toml` exists, a "Window" menu with "Show Window Buttons", "Window Actions…".
 - Theme and options in `~/.config/filigrane/<app>.toml` above `theme.toml` and the defaults of the repository (`hig.md` §7); state of use in `~/.local/state/filigrane/`.
 - Context for the assistant (`assistant.md`).

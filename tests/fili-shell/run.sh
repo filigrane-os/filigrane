@@ -75,10 +75,6 @@ if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
     exit 1
 fi
-if want '^apps/fili-file/|appmenu/fili-file.json|^tests/fili-shell/check-fili-file-menu.py'; then
-# The fili-file menu in the fili-bar follows the commands and shortcuts of the application
-python3 -I "$ROOT/tests/fili-shell/check-fili-file-menu.py" || exit 1
-fi
 if want '^apps/fili-file/|^dotfiles/config/quickshell/|^dotfiles/config/filigrane/fili-file'; then
 # Casier (fili-file) lives in its own repository: the pinned version (apps/fili-file/upstream, or FILI_SRC_FILI_FILE for a
 # local checkout) is built, must follow the shell (same theme defaults and kinetic scroll: opt-in tests of its unit
@@ -90,7 +86,7 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
     && echo "ok - Casier follows the shell (theme defaults, kinetic scroll)" || { echo "not ok - Casier no longer matches the shell: cd $FILI_FILE_SRC && FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell make test"; exit 1; }
 "$FILI_FILE_SRC/tests/run.sh" || exit 1
 fi
-if want '^apps/fili-term/|^apps/fili-file/|appmenu/fili-term.json|^dotfiles/config/filigrane/fili-term|^tests/fili-shell/check-app-window.py'; then
+if want '^apps/fili-term/|^apps/fili-file/|^dotfiles/config/filigrane/fili-term|^tests/fili-shell/check-app-window.py'; then
 # Aéroport (fili-term) lives in its own repository too: the pinned version (apps/fili-term/upstream, or FILI_SRC_FILI_TERM)
 # is built, passes its unit tests and keeps the window anatomy of Casier (shared QML files identical, header, footer).
 FILI_TERM_SRC="$("$ROOT/scripts/upstream-dir" fili-term)" || { echo "not ok - source of fili-term not available"; exit 1; }

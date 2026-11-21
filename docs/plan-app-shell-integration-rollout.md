@@ -164,11 +164,11 @@ is the real one there; `bootstrap.sh` covers a source build.
 - [x] Baladeur (`v0.2.0`, removal commit `410c048`)
 - [x] Cassette (`v0.2.0`)
 - [x] Conversations (`0.2.0`)
-- [ ] Facteur
-- [ ] Aéroport
-- [ ] Casier
-- [ ] `docs/bar.md` has the section "Shipped by an application"; `AGENTS.md` and the skills say the same thing
-- [ ] `tests/fili-shell/check-fili-chat-here.py` no longer depends on briefs kept here
+- [x] Facteur (`facteur-v1.6.0`)
+- [x] Aéroport (`v3.3.0`)
+- [x] Casier (`v1.15.0`)
+- [x] `docs/bar.md` has the section "Shipped by an application"; `AGENTS.md` and the skills say the same thing
+- [x] `tests/fili-shell/check-fili-chat-here.py` no longer depends on briefs kept here
 
 Check on each application, by hand: `fili-bar list` marks its module `(app)`; its menu appears in the bar when its window has
 the focus; `Ask Rob…` from its window gets its brief (read the first message of the session); its launcher and icon are
