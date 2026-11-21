@@ -162,7 +162,7 @@ is the real one there; `bootstrap.sh` covers a source build.
 ## 7. Done when
 
 - [x] Baladeur (`v0.2.0`, removal commit `410c048`)
-- [ ] Cassette
+- [x] Cassette (`v0.2.0`)
 - [ ] Conversations
 - [ ] Facteur
 - [ ] Aéroport
