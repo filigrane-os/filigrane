@@ -63,7 +63,12 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
    Option (a) (normal window) and the Rust wrapper (b) are dropped; the `chatFocus` hack of `AppMenu.qml` can still go once the
    drawer is a real window of its own process with on-demand focus.
 
-## Status (2026-11-22, end of the session): extraction done, to test live
+## Status (2026-11-22, end of the session): extraction done, tested live and released
+
+Released after the user's live test: fili-ai v0.1.0, Casier 1.16.0, Aéroport 3.4.0, Facteur 1.7.0, Conversations 0.3.0, Baladeur 0.3.0,
+Cassette 0.3.0 (CI of `main` tagged each); the pins here follow (commit `912e71a`); the old `~/.local/bin/fili-chat` is removed. What
+is left of the list below is the follow-up: icon, window tests, notification closing.
+
 
 Done: the repository `filigrane-os/fili-ai` (branch `develop` pushed, nothing on `main`, no tag), the Qt Quick window (drawer on the
 layer-shell, icon rail, floating field, notifications, context chip and follow, rename, attachments, About, Debug panel, theme layers,
