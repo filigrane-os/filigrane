@@ -65,6 +65,11 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 
 ## The extraction, step by step (each step commitable and tested)
 
+Progress (2026-11-22): steps 1 and 2 are done **locally** in `~/Projects/fili-ai` (cargo workspace `crates/fili-ai-daemon`,
+`crates/fili-ai-session`, history kept through `filter-branch`, launcher `bin/fili-ai`, `Makefile`, CI, `scripts/fili-api-lint`;
+`make build` and the 16 unit tests pass). No GitHub repository yet (needs the user's go), nothing removed from here yet (step 5).
+The session still reads its translations from the shell catalog (`~/.config/quickshell/i18n`): move its strings to the package.
+
 1. Create `~/Projects/fili-ai` as a clone of the layout of `~/Projects/fili-file`: `Cargo.toml` (cxx-qt), `Makefile`
    (`build`, `test`, `check`, `install`, `install-data`, `uninstall`), `.github/workflows/ci.yml` (Void container; the CI of `main`
    tags `vX.Y.Z` when the version is bumped), `CHANGELOG.md`, `scripts/fili-api-lint` (copy), `scripts/check-shell-menu.py`.
