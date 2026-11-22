@@ -1,6 +1,5 @@
 # Lia (fili-ai), the optional AI assistant, lives in its own repository. This pin is the version the distribution builds and
 # packages (see scripts/upstream-dir). To update: tag a release there, change ref here, run tests/fili-shell/run.sh.
-# TEMPORARY: `develop` until the first release (v0.1.0 is tagged by the CI of main once the live test is done); the cache
-# of scripts/upstream-dir is then stale, use FILI_SRC_FILI_AI=~/Projects/fili-ai to build the working copy.
+# FILI_SRC_FILI_AI=~/Projects/fili-ai builds the working copy without a tag.
 url=https://github.com/filigrane-os/fili-ai
-ref=develop
+ref=v0.1.0
