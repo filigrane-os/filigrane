@@ -6,7 +6,7 @@ pragma Singleton
 // launcher open OPTIONS.json REPLY | launcher close REPLY      (fili-launcher)
 // panel NAME | close                   opens/closes a fili-panel
 // appmenu toggle | close               menu of the active application from the keyboard (AppMenu, Mod+F10)
-// chat [ACTION]                         fili-chat drawer (FiliChat, Mod+Y): toggle (default), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliChat.act)
+// ai [ACTION]                           fili-ai drawer (FiliAi, Mod+Y): toggle (default), show, close, new, sessions, rename, stop, allow, deny, float, dock... (FiliAi.act)
 // hotkeys toggle | about toggle         shortcuts window (FiliHotkeys), "About" (FiliAbout)
 // settings [PAGE]                       Settings window (FiliSettings), on the page PAGE (display...)
 // taskbar hint | taskbar DIGIT              hint mode of the taskbar (TaskbarHint): a digit (Mod+Alt+0..9) starts or continues the number of the window to go to

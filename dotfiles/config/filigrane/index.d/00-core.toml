@@ -8,11 +8,11 @@ title = "Casier"
 description = "File manager (Qt Quick, Rust): grid and list, trash, archives, global menu"
 package = "fili-file"
 
-[fili-chat]
+[fili-ai]
 kind = "app"
 title = "Rob"
 description = "Chat with the AI agent in a window of its own"
-package = "fili-chat"
+package = "fili-ai"
 
 # Plugins of the bar: git repositories (module, scripts, packages, install.sh, tests)
 [proton-mail]

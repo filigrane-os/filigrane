@@ -1,7 +1,7 @@
 pragma Singleton
 // fili-ask: the small floating field of "Ask Rob…" (Mod+Ctrl+Y, the entry of every application menu, the header button of
 // the applications): a line to ask Rob about the active application without opening the drawer. The application is the one
-// noted by `fili-chat here` just before (context.json); Rob's session scoped to it gets the question (FiliChat.askHere).
+// noted by `fili-ai here` just before (context.json); Rob's session scoped to it gets the question (FiliAi.askHere).
 // Enter = send and open the chat on the new session (so one sees what happens), Shift+Enter = send and stay where you
 // are (the bar's AI dot shows the work, a notification says "Rob has finished" with an Open button), Escape or click outside = close (the draft is kept). Without an application in the
 // context, the field is not shown (an ordinary drawer opens).
@@ -41,7 +41,7 @@ Singleton {
             return;
         close();
         input.text = "";
-        FiliChat.askHere(t, drawer);
+        FiliAi.askHere(t, drawer);
     }
 
     Process {
@@ -58,7 +58,7 @@ Singleton {
                 if (ask.appId)
                     ask.open = true;
                 else
-                    FiliChat.show();
+                    FiliAi.show();
             }
         }
     }

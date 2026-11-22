@@ -414,8 +414,8 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     match args.first().map(String::as_str) {
         Some("hook") => {
-            // Sessions of the fili-chat drawer (apps/fili-chat): the drawer shows the state itself, neither module nor notification
-            if env::var_os("FILI_CHAT").is_some() {
+            // Sessions of the fili-ai drawer (apps/fili-ai-daemon): the drawer shows the state itself, neither module nor notification
+            if env::var_os("FILI_ROB").is_some() {
                 return;
             }
             let input = stdin_json();

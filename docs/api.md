@@ -100,7 +100,7 @@ A package that can *treat* an incident (the assistant) registers a handler, `she
 
 ```toml
 label = "Ask Rob"                       # the button of the notification and the menu entry
-command = "fili-chat ask"               # run with the prompt as its last argument
+command = "fili-ai ask"               # run with the prompt as its last argument
 ```
 
 With a handler, the notification also offers its `label`, and `fili-incident ask <id>` runs it with a prompt that points to

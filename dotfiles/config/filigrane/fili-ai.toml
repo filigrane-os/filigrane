@@ -1,4 +1,4 @@
-# fili-chat (the chat of the fili-bar). The View menu of the fili-bar (chat open) changes the mode and the width;
+# fili-ai (the chat of the fili-bar). The View menu of the fili-bar (chat open) changes the mode and the width;
 # that choice is kept in ~/.local/state/filigrane/chat-view and takes precedence over this file (delete it to come back here).
 
 # dock: at the right of every window (they shrink). float: above the windows, without touching them.

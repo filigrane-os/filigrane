@@ -5,4 +5,4 @@ side = "right"
 order = 50
 compact_at = 2
 group = "ai"
-uses = ["FiliChat"]
+uses = ["FiliAi"]

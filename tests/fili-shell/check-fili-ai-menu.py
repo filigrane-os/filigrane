@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""The fili-bar menu of the chat (dotfiles/config/filigrane/appmenu/fili-chat.json) stays in agreement with FiliChat.qml:
-every `fili-shell chat ACTION` command of the menu is a `case "ACTION"` of act(), and every announced shortcut has its key
-in the drawer. Usage: check-fili-chat-menu.py (from anywhere)."""
+"""The fili-bar menu of the chat (dotfiles/config/filigrane/appmenu/fili-ai.json) stays in agreement with FiliAi.qml:
+every `fili-shell ai ACTION` command of the menu is a `case "ACTION"` of act(), and every announced shortcut has its key
+in the drawer. Usage: check-fili-ai-menu.py (from anywhere)."""
 import json, pathlib, re, sys
 
 root = pathlib.Path(__file__).resolve().parents[2]
-menu = json.loads((root / "dotfiles/config/filigrane/appmenu/fili-chat.json").read_text())
-qml = (root / "dotfiles/config/quickshell/FiliChat.qml").read_text()
+menu = json.loads((root / "dotfiles/config/filigrane/appmenu/fili-ai.json").read_text())
+qml = (root / "dotfiles/config/quickshell/FiliAi.qml").read_text()
 cases = set(re.findall(r'case "([a-z-]+)":', qml))
 keys = {"Ctrl+Shift+N": "Qt.ShiftModifier", "Esc": "Keys.onEscapePressed", "F2": "Qt.Key_F2", "Ctrl+N": "Qt.Key_N", "Ctrl+L": "Qt.Key_L", "Ctrl+.": "Qt.Key_Period",
         "Ctrl+Return": "Qt.Key_Return", "Ctrl+Backspace": "Qt.Key_Backspace"}
@@ -20,17 +20,17 @@ def entries(items):
             yield e
 
 for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]]):
-    m = re.fullmatch(r"fili-shell chat ([a-z-]+)", e.get("exec", ""))
-    if e.get("exec", "").startswith("fili-shell chat") and not (m and m.group(1) in cases):
+    m = re.fullmatch(r"fili-shell ai ([a-z-]+)", e.get("exec", ""))
+    if e.get("exec", "").startswith("fili-shell ai") and not (m and m.group(1) in cases):
         errors.append(f"command without a case in act(): {e['exec']}")
     k = e.get("keys")
     if k and (k not in keys or keys[k] not in qml):
-        errors.append(f"shortcut without a key in FiliChat.qml: {k}")
+        errors.append(f"shortcut without a key in FiliAi.qml: {k}")
 for a in cases:
-    if not any(e.get("exec") == f"fili-shell chat {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show", "open", "answer", "ask", "here"):
+    if not any(e.get("exec") == f"fili-shell ai {a}" for e in entries(menu["app"] + [m for top in menu["menus"] for m in top["children"]])) and a not in ("toggle", "show", "open", "answer", "ask", "here"):
         errors.append(f"action of act() missing from the menu: {a}")
 if errors:
     print("not ok - menu of the chat:")
     print("\n".join("#   " + e for e in errors))
     sys.exit(1)
-print("ok - menu of the chat agrees with FiliChat.qml (%d actions)" % len(cases))
+print("ok - menu of the chat agrees with FiliAi.qml (%d actions)" % len(cases))

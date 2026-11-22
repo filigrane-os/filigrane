@@ -1,10 +1,10 @@
 pragma Singleton
-// fili-chat-about: "About Rob" card (the Filigrane chat), in the middle of the screen: robot icon (the one of the AI
-// module of the fili-bar), display name (Rob), "Also known as fili-chat" (the program), then the useful facts:
+// fili-ai-about: "About Rob" card (the Filigrane chat), in the middle of the screen: robot icon (the one of the AI
+// module of the fili-bar), display name (Rob), "Also known as fili-ai" (the program), then the useful facts:
 // agent, version and model (read by `fili-ai status` at every opening, nothing runs while the window is closed), sessions,
 // presentation of the drawer, settings file. Same base content as the Casier card (fili-file/src/about.rs):
 // every fili-* application has this card (filigrane-ui skill, references/hig.md §7).
-// Opening: menu Rob › About Rob (`fili-shell chat about`). Closing: Escape, click outside the card.
+// Opening: menu Rob › About Rob (`fili-shell ai about`). Closing: Escape, click outside the card.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -19,16 +19,16 @@ Singleton {
     readonly property string icon: String.fromCodePoint(0xf06a9)
     readonly property string name: "Rob"
     // Name of the program (aka): what one types, the name in the repository
-    readonly property string aka: "fili-chat"
+    readonly property string aka: "fili-ai"
     readonly property var rows: [
         [FiliI18n.tr("Also known as"), aka],
         [FiliI18n.tr("Part of"), "Filigrane"],
         [FiliI18n.tr("Agent"), (info.agent || "—") + (info.version ? " " + info.version : "")],
         [FiliI18n.tr("Model"), info.model || FiliI18n.tr("default")],
-        [FiliI18n.tr("Sessions"), String(FiliChat.sessions.length)],
-        [FiliI18n.tr("View"), FiliI18n.tr(FiliChat.dock ? "Dock Beside Windows" : "Float Above Windows") + " · " + FiliChat.viewWidth + " px"],
-        [FiliI18n.tr("Follow"), FiliChat.follow],
-        [FiliI18n.tr("Settings"), "~/.config/filigrane/fili-chat.toml"]
+        [FiliI18n.tr("Sessions"), String(FiliAi.sessions.length)],
+        [FiliI18n.tr("View"), FiliI18n.tr(FiliAi.dock ? "Dock Beside Windows" : "Float Above Windows") + " · " + FiliAi.viewWidth + " px"],
+        [FiliI18n.tr("Follow"), FiliAi.follow],
+        [FiliI18n.tr("Settings"), "~/.config/filigrane/fili-ai.toml"]
     ]
 
     function show() {
@@ -78,7 +78,7 @@ Singleton {
         anchors { top: true; bottom: true; left: true; right: true }
         exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.namespace: "fili-chat-about"
+        WlrLayershell.namespace: "fili-ai-about"
         WlrLayershell.keyboardFocus: about.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "#99101419"
 

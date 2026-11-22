@@ -41,13 +41,13 @@ Singleton {
             win = niriWin;
     }
     Component.onCompleted: win = niriWin
-    // The fili-chat drawer has the keyboard focus: its menu (appmenu/fili-chat.json) replaces the one of the window. Kept as long as
+    // The fili-ai drawer has the keyboard focus: its menu (appmenu/fili-ai.json) replaces the one of the window. Kept as long as
     // a menu is open (a menu taken from the keyboard receives the focus in its place) and during a press on a title of the
     // bar: the bar does not take the keyboard, niri then gives the focus back to the previous window, and the menu would change
     // under the mouse before the click ends
     property bool chatFocus: false
     property bool holdChat: false
-    readonly property bool chatNow: FiliChat.focused
+    readonly property bool chatNow: FiliAi.focused
     onChatNowChanged: {
         if (chatNow || !(open || holdChat))
             chatFocus = chatNow;
@@ -71,8 +71,8 @@ Singleton {
                 am.chatFocus = false;
         }
     }
-    readonly property var winId: chatFocus ? "fili-chat" : (win ? win.id : null)
-    readonly property string appId: chatFocus ? "fili-chat" : (win?.app_id ?? "")
+    readonly property var winId: chatFocus ? "fili-ai" : (win ? win.id : null)
+    readonly property string appId: chatFocus ? "fili-ai" : (win?.app_id ?? "")
     readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
     readonly property string key: appId.replace(/[^A-Za-z0-9._-]/g, "_")
 

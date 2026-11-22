@@ -1,10 +1,10 @@
-# The topic icons of the sessions: the TOPICS list of the daemon (apps/fili-chat) and that of the font
+# The topic icons of the sessions: the TOPICS list of the daemon (apps/fili-ai-daemon) and that of the font
 # (scripts/fili-icons.py) must be identical and in the same order (code = 0xF2000 + position).
 import re
 import sys
 
 root = sys.argv[1] if len(sys.argv) > 1 else "."
-rs = open(f"{root}/apps/fili-chat/src/main.rs").read()
+rs = open(f"{root}/apps/fili-ai-daemon/src/main.rs").read()
 py = open(f"{root}/scripts/fili-icons.py").read()
 a = re.findall(r'"([a-z0-9-]+)"', re.search(r"const TOPICS: \[&str; \d+\] = \[(.*?)\];", rs, re.S).group(1))
 b = re.findall(r'"([a-z0-9-]+)"', re.search(r"TOPICS = \[(.*?)\]", py, re.S).group(1))

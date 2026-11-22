@@ -50,8 +50,8 @@ scripts/check-shell-menu.py                                                     
     `/usr/share/filigrane/shell` and `~/.local/share/filigrane/shell` (`FILI_SHELL_DIRS` replaces both, for tests). It
     **never replaces** a module of the repository, a plugin or a file of the user's own (those win), and forgets the links of
     what a package no longer ships. Tests: `tests/fili-shell/check-fili-bar-cli.sh`.
-  - **`fili-chat`** reads the brief of Rob from `agents/rob/<app_id>.md` of the repository, else from the shipped
-    `rob/<app_id>.md` (last shipped folder wins). Test: `apps/fili-chat` unit tests.
+  - **`fili-ai`** reads the brief of Rob from `agents/rob/<app_id>.md` of the repository, else from the shipped
+    `rob/<app_id>.md` (last shipped folder wins). Test: `apps/fili-ai-daemon` unit tests.
   - **The shell bench** (`tests/fili-shell/run.sh`) loads the modules and fallback menus shipped in the `shell/` of the pinned
     applications (`scripts/upstream-dir`, or `FILI_SRC_<APP>=~/Projects/<app>` for a local checkout), like a machine where the
     packages are installed. `check-app-window.py` finds the menu in `shell/appmenu/<app_id>.json` of the checked source.
@@ -75,7 +75,7 @@ scripts/check-shell-menu.py                                                     
   section; the merge to `main` publishes it. Do not tag by hand.
 - What **stays here**: the shell (bar, taskbar, panels, launcher), generic modules (clock, audio, network…), `_default.json`,
   the menus of programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), the menu of Rob itself
-  (`fili-chat.json`: Rob lives in `apps/fili-chat` of this repository), the launchers of the shell (`fili-chat`,
+  (`fili-ai.json`: Rob lives in `apps/fili-ai-daemon` of this repository), the launchers of the shell (`fili-ai`,
   `fili-settings`, `nvim-foot`).
 
 ## 3. Per-application steps (the same checklist everywhere)
@@ -111,7 +111,7 @@ scripts/check-shell-menu.py                                                     
   `shell/rob/<app_id>.md` of the application; `agents/rob/<app_id>.md` stays only for programs without a repository).
 - **Skills**: `agents/skills/filigrane-ui/references/hig.md` §7 and `app-window.md` mention `dotfiles/config/filigrane/appmenu/`
   as the place of the fallback menu: say "the `shell/appmenu/` of the application".
-- **`tests/fili-shell/check-fili-chat-here.py`**: it demands a brief here for every fallback menu here; once the menus leave,
+- **`tests/fili-shell/check-fili-ai-here.py`**: it demands a brief here for every fallback menu here; once the menus leave,
   nothing remains to check. Add the same check to each application's `check-shell-menu.py`: `shell/rob/<app_id>.md` exists.
 - **Bot of the pins** (`scripts/bump-app-pins.sh`, `.github/workflows/bump-app-pins.yml`): it only raises `ref`. Step 8's
   removal is done by hand (or added to the bot's branch); say so in the PR body of the bot if it becomes a habit.
@@ -144,7 +144,7 @@ scripts/check-shell-menu.py                                                     
   `check-fili-file-menu.py`, which reads the `menuActions` table of `qml/Main.qml`): port that script to
   `scripts/check-shell-menu.py` of Casier unchanged in spirit (menu file path and source path become repo-relative) and run it
   from `make check`. Rewrite the AGENTS.md bullet in the same commit as the removal here. Casier also ships a portal; leave it.
-- **Not applications**: `fili-chat` (Rob, `apps/fili-chat` here), `fili-incident`, `fili-receive`, `fili-automount`,
+- **Not applications**: `fili-ai` (Rob, `apps/fili-ai-daemon` here), `fili-incident`, `fili-receive`, `fili-automount`,
   `bar-stats`, `budget`, `fili-appmenu`, `fili-ai-session` are part of the distribution: unchanged.
 
 ## 6. Order of work
@@ -168,7 +168,7 @@ is the real one there; `bootstrap.sh` covers a source build.
 - [x] Aéroport (`v3.3.0`)
 - [x] Casier (`v1.15.0`)
 - [x] `docs/bar.md` has the section "Shipped by an application"; `AGENTS.md` and the skills say the same thing
-- [x] `tests/fili-shell/check-fili-chat-here.py` no longer depends on briefs kept here
+- [x] `tests/fili-shell/check-fili-ai-here.py` no longer depends on briefs kept here
 
 Check on each application, by hand: `fili-bar list` marks its module `(app)`; its menu appears in the bar when its window has
 the focus; `Ask Rob…` from its window gets its brief (read the first message of the session); its launcher and icon are

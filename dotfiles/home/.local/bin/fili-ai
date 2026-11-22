@@ -9,12 +9,26 @@
 #   fili-ai update            update the installed agents
 #   fili-ai status            agent, model, working directory, repository, installed agents
 #
+# The assistant of the desktop (Rob, the drawer; Mod+Y, Mod+Ctrl+Y) is driven by the same command; the work is done by the
+# fili-ai-daemon program, which keeps the agent sessions:
+#   fili-ai toggle            Mod+Y: notes the focused application (fili-context), then shows or hides the drawer
+#   fili-ai here [TEXT]       Mod+Ctrl+Y, "Ask Rob…": a session scoped to the focused application, TEXT sent if given
+#   fili-ai ask TEXT          notes the focused application, then asks TEXT in a new session
+#   fili-ai sessions          the sessions as JSON (the daemon must be running)
+#   fili-ai send ID TEXT      message to a session, the reply on the output
+#   fili-ai daemon | mcp ID   the daemon (started by the drawer), the permission server of an agent
+#
 # Agents: claude (Claude Code, Anthropic), codex (Codex CLI, OpenAI), ollama (Codex CLI on local Ollama
 # models), opencode (Mistral, Gemini, OpenRouter, DeepSeek...), none.
 # Settings are in ~/.config/filigrane/ai.env, written by bootstrap.sh from config.env (FILI_AI, FILI_AI_MODEL,
 # FILI_AI_WORKDIR, FILI_AI_ARGS, FILIGRANE_DIR); `use` only changes FILI_AI there. FILI_AI_ARGS replaces the
 # agent's default options (permissions, sandbox). Binaries are in ~/.local/opt/<name>-<version>, linked in ~/.local/bin.
 set -euo pipefail
+
+# The drawer's commands go straight to the daemon program, before anything else is read (Mod+Y must be quick)
+case "${1:-}" in
+    toggle | here | ask | sessions | send | daemon | mcp) PATH="$HOME/.local/bin:$PATH" exec fili-ai-daemon "$@" ;;
+esac
 
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/ai.env"
 OPT="$HOME/.local/opt"

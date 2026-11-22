@@ -117,11 +117,11 @@ if want '^apps/fili-incident/'; then
 (cd "$ROOT/apps/fili-incident" && cargo test --release -q --locked >/dev/null 2>&1) \
     && echo "ok - fili-incident passes its unit tests" || { echo "not ok - fili-incident: cd apps/fili-incident && cargo test"; exit 1; }
 fi
-if want 'fili-chat|chat|appmenu/_default.json|niri/config.kdl'; then
-python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
-python3 -I "$ROOT/tests/fili-shell/check-fili-chat-topics.py" "$ROOT" || exit 1
-python3 -I "$ROOT/tests/fili-shell/check-fili-chat-here.py" || exit 1
-(cd "$ROOT/apps/fili-chat" && cargo test --release --quiet) || exit 1
+if want 'fili-ai|chat|appmenu/_default.json|niri/config.kdl'; then
+python3 -I "$ROOT/tests/fili-shell/check-fili-ai-menu.py" || exit 1
+python3 -I "$ROOT/tests/fili-shell/check-fili-ai-topics.py" "$ROOT" || exit 1
+python3 -I "$ROOT/tests/fili-shell/check-fili-ai-here.py" || exit 1
+(cd "$ROOT/apps/fili-ai-daemon" && cargo test --release --quiet) || exit 1
 fi
 if want 'fili-bar|bar/modules/'; then
 # The fili-bar command (modules, plugins)

@@ -96,8 +96,8 @@ Singleton {
         }
         aiSeen();
     }
-    // The chat (FiliChat) joins the terminal sessions: permission asked = ASK, unread answer = DONE
-    readonly property var ai: aiChat(aiFor(aiData, Niri.focusedId, Niri.windows), FiliChat.attention, FiliChat.busy)
+    // The chat (FiliAi) joins the terminal sessions: permission asked = ASK, unread answer = DONE
+    readonly property var ai: aiChat(aiFor(aiData, Niri.focusedId, Niri.windows), FiliAi.attention, FiliAi.busy)
     function aiChat(base, attention, busy) {
         const icon = String.fromCodePoint(0xf06a9);
         const rows = base.tooltip.rows.filter(r => r[0] !== FiliI18n.tr("Sessions") || r[1] !== FiliI18n.tr("none"));
@@ -117,8 +117,8 @@ Singleton {
     }
     // Go to what is asking: the chat when it waits for an answer, else the terminal session that waits (or the next one)
     function aiAsk() {
-        if (FiliChat.attention === "waiting")
-            FiliChat.show();
+        if (FiliAi.attention === "waiting")
+            FiliAi.show();
         else
             FiliTheme.run(FiliTheme.tool("fili-ai-session") + " focus");
     }

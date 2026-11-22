@@ -1,16 +1,16 @@
-// fili-chat: the Filigrane chat. A daemon keeps the agent sessions (Claude Code in stream mode, one process per
-// open session) so that the conversation stays when the drawer (FiliChat.qml) hides; the drawer connects to it.
-// fili-chat daemon          daemon (started by the drawer on first display; it stops without a client or an agent)
-// fili-chat toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
-// fili-chat ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
+// fili-ai: the Filigrane chat. A daemon keeps the agent sessions (Claude Code in stream mode, one process per
+// open session) so that the conversation stays when the drawer (FiliAi.qml) hides; the drawer connects to it.
+// fili-ai daemon          daemon (started by the drawer on first display; it stops without a client or an agent)
+// fili-ai toggle          Mod+Y: notes the active application (fili-context), then shows or hides the drawer
+// fili-ai ask TEXT        notes the active application the same way, then asks TEXT in a new session (an
 //                           application's button, e.g. Aéroport's "Ask Rob": the details are in its context)
-// fili-chat here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then creates
+// fili-ai here [TEXT]     Mod+Ctrl+Y, "Ask Rob…" of every application menu: notes the active application, then creates
 //                           a new session scoped to it, with TEXT sent if given
-// fili-chat status          sessions as JSON (the daemon must be running)
-// fili-chat send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
-// fili-chat mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
+// fili-ai sessions          sessions as JSON (the daemon must be running)
+// fili-ai send ID TEXT    message to a session, reply printed on the output (tests in a terminal)
+// fili-ai mcp ID          MCP server (standard input/output) started by the agent: "approve" tool of
 // --permission-prompt-tool, passes each permission request to the drawer and waits for the answer
-// Socket: $XDG_RUNTIME_DIR/fili-chat/sock, one JSON line per message.
+// Socket: $XDG_RUNTIME_DIR/fili-ai/sock, one JSON line per message.
 // client -> daemon: {"op":"new"} {"op":"open","id"} {"op":"send","id","text"} {"op":"stop","id"}
 // {"op":"rename","id","title"} {"op":"archive","id"} (keeps the history: archived)
 // {"op":"restore","id"}  {"op":"agent"} (asks {"ev":"agent","ok":bool}: is the agent installed) {"op":"answer","rid","allow"}
@@ -56,7 +56,7 @@ fn home() -> String {
     env::var("HOME").unwrap_or_default()
 }
 fn runtime_dir() -> PathBuf {
-    PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into())).join("fili-chat")
+    PathBuf::from(env::var("XDG_RUNTIME_DIR").unwrap_or_else(|_| "/tmp".into())).join("fili-ai")
 }
 fn sock_path() -> PathBuf {
     runtime_dir().join("sock")
@@ -399,8 +399,8 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     ]);
     cmd.args(if started { ["--resume", id] } else { ["--session-id", id] });
     cmd.arg("--add-dir").arg(&c.dir);
-    // Permissions: the agent asks the drawer (fili-chat mcp) when it would have asked the user
-    let exe = env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "fili-chat".into());
+    // Permissions: the agent asks the drawer (fili-ai mcp) when it would have asked the user
+    let exe = env::current_exe().map(|p| p.display().to_string()).unwrap_or_else(|_| "fili-ai".into());
     let mut srv = Json::obj();
     srv.set("command", exe);
     srv.set("args", Json::Arr(vec!["mcp".into(), id.into()]));
@@ -425,7 +425,7 @@ fn spawn_agent(d: &mut Daemon, id: &str) -> Result<(), String> {
     let path = format!("{}/.local/bin:{}", home(), env::var("PATH").unwrap_or_default());
     cmd.current_dir(&c.dir)
         .env("PATH", path)
-        .env("FILI_CHAT", "1")
+        .env("FILI_ROB", "1")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         // stderr of the agent kept (<id>.err, overwritten at each start): the only trace of a "The agent stopped"
@@ -1100,7 +1100,7 @@ fn ask_user(sid: &str, args: &Json) -> Json {
         v.set("message", m);
         v
     };
-    let Ok(mut s) = connect() else { return deny("fili-chat is not running") };
+    let Ok(mut s) = connect() else { return deny("fili-ai is not running") };
     let rid = uuid();
     let mut j = Json::obj();
     j.set("op", "ask");
@@ -1109,7 +1109,7 @@ fn ask_user(sid: &str, args: &Json) -> Json {
     j.set("tool", args.get("tool_name").str().unwrap_or("?"));
     j.set("input", args.get("input"));
     if writeln!(s, "{j}").is_err() {
-        return deny("fili-chat is not reachable");
+        return deny("fili-ai is not reachable");
     }
     for line in BufReader::new(s).lines().map_while(Result::ok) {
         let Some(a) = Json::parse(&line) else { continue };
@@ -1137,7 +1137,7 @@ fn note_context() -> Result<(), String> {
 
 fn shell_chat(args: &[&str]) -> Result<(), String> {
     Command::new(format!("{}/.local/bin/fili-shell", home()))
-        .arg("chat")
+        .arg("ai")
         .args(args)
         .status()
         .map(|_| ())
@@ -1145,7 +1145,7 @@ fn shell_chat(args: &[&str]) -> Result<(), String> {
 }
 
 fn connect() -> Result<UnixStream, String> {
-    UnixStream::connect(sock_path()).map_err(|_| "fili-chat: the daemon is not running (the drawer starts it)".to_string())
+    UnixStream::connect(sock_path()).map_err(|_| "fili-ai: the daemon is not running (the drawer starts it)".to_string())
 }
 
 fn main() {
@@ -1163,7 +1163,7 @@ fn main() {
             note_context().and_then(|_| if text.is_empty() { shell_chat(&["here"]) } else { shell_chat(&["here", &text]) })
         }
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
-        Some("status") => connect().and_then(|s| {
+        Some("sessions") => connect().and_then(|s| {
             let mut l = String::new();
             BufReader::new(s).read_line(&mut l).map_err(|e| e.to_string())?;
             print!("{l}");
@@ -1185,10 +1185,10 @@ fn main() {
             }
             Ok(())
         }),
-        _ => Err("usage: fili-chat daemon | toggle | ask TEXT | here [TEXT] | status | send ID TEXT".into()),
+        _ => Err("usage: fili-ai daemon | toggle | ask TEXT | here [TEXT] | sessions | send ID TEXT".into()),
     };
     if let Err(e) = r {
-        eprintln!("fili-chat: {e}");
+        eprintln!("fili-ai: {e}");
         std::process::exit(1);
     }
 }
@@ -1199,7 +1199,7 @@ mod tests {
 
     #[test]
     fn brief_reads_default_and_app_files_and_refuses_odd_names() {
-        let dir = env::temp_dir().join(format!("fili-chat-brief-{}", std::process::id()));
+        let dir = env::temp_dir().join(format!("fili-ai-brief-{}", std::process::id()));
         fs::create_dir_all(dir.join("agents/rob")).unwrap();
         fs::write(dir.join("agents/rob/_default.md"), "GENERIC").unwrap();
         fs::write(dir.join("agents/rob/fili-file.md"), "CASIER").unwrap();
@@ -1215,7 +1215,7 @@ mod tests {
 
     #[test]
     fn brief_falls_back_on_the_one_the_application_ships() {
-        let dir = env::temp_dir().join(format!("fili-chat-shipped-{}", std::process::id()));
+        let dir = env::temp_dir().join(format!("fili-ai-shipped-{}", std::process::id()));
         let (sys, user) = (dir.join("sys"), dir.join("user"));
         for d in [&sys, &user, &dir.join("agents/rob")] {
             fs::create_dir_all(if d.ends_with("rob") { d.clone() } else { d.join("rob") }).unwrap();

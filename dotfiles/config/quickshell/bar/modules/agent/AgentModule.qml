@@ -1,4 +1,4 @@
-// AI agent (fili-chat and terminal sessions, fili-ai-session; state read by BarState): sand and blinking when the agent
+// AI agent (fili-ai and terminal sessions, fili-ai-session; state read by BarState): sand and blinking when the agent
 // waits for an answer (ASK), DONE when it finished without being looked at. Click = agent panel (sessions, actions),
 // Super+click or middle click = what is waiting (the chat, else the terminal session that waits, else the last one,
 // again: the next; none: fili-ai), right click = menu (open the agent, choose it)

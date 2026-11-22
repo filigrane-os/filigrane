@@ -622,8 +622,8 @@ mod tests {
 
     #[test]
     fn a_handler_file_gives_a_label_and_a_command() {
-        let h = parse_handler("rob", "label = \"Ask Rob\"   # the button\ncommand = \"fili-chat ask\"\n").unwrap();
-        assert_eq!(h, Handler { name: "rob".into(), label: "Ask Rob".into(), command: "fili-chat ask".into() });
+        let h = parse_handler("rob", "label = \"Ask Rob\"   # the button\ncommand = \"fili-ai ask\"\n").unwrap();
+        assert_eq!(h, Handler { name: "rob".into(), label: "Ask Rob".into(), command: "fili-ai ask".into() });
         // No label: the name; no command: not a handler
         assert_eq!(parse_handler("x", "command = \"y\"").unwrap().label, "x");
         assert!(parse_handler("x", "label = \"only\"").is_none());

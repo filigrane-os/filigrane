@@ -391,7 +391,7 @@ _t_lookup() {
     'Filter %s not found (speaker DSP not loaded?)') _t_fmt='Filtre %s introuvable (DSP haut-parleurs non chargé ?)' ;;
     'Keyboard shortcuts') _t_fmt='Raccourcis clavier' ;;
     'AI agent in a terminal (fili-ai)') _t_fmt='Agent IA dans un terminal (fili-ai)' ;;
-    'AI chat (fili-chat)') _t_fmt='Chat IA (fili-chat)' ;;
+    'AI chat (fili-ai)') _t_fmt='Chat IA (fili-ai)' ;;
     'Application menu') _t_fmt='Menu des applications' ;;
     'git missing: %s not built') _t_fmt='git absent: %s non compilé' ;;
     'icon-theme failed') _t_fmt='icon-theme a échoué' ;;
@@ -506,7 +506,7 @@ _t_lookup() {
     'Usage: fili-bar new NAME [--qml] (lowercase letters, digits, hyphens)') _t_fmt='Usage: fili-bar new NOM [--qml] (minuscules, chiffres, tirets)' ;;
     'Usage: fili-bar remove NAME') _t_fmt='Usage: fili-bar remove NOM' ;;
     'ALSA: default device routed to PipeWire (cpal/ALSA apps)') _t_fmt='ALSA: périphérique par défaut redirigé vers PipeWire (applications cpal/ALSA)' ;;
-    'Ask Rob about this application (fili-chat here)') _t_fmt='Demander à Rob à propos de cette application (fili-chat here)' ;;
+    'Ask Rob about this application (fili-ai here)') _t_fmt='Demander à Rob à propos de cette application (fili-ai here)' ;;
     'disabled') _t_fmt='désactivé' ;;
     'enabled') _t_fmt='activé' ;;
     'removed') _t_fmt='supprimé' ;;

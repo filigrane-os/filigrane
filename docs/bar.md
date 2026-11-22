@@ -190,7 +190,7 @@ module `(app)`. Precedence: **a module of the repository, a plugin, or a file of
 command never replaces them. It also forgets the links of what a package no longer ships, so removing the package removes the
 module and the menu from the bar. `FILI_SHELL_DIRS` (colon separated) replaces the two directories, for tests.
 
-The brief of Rob is read by `fili-chat` from `agents/rob/<app_id>.md` of the repository when it exists (programs that have no
+The brief of Rob is read by `fili-ai` from `agents/rob/<app_id>.md` of the repository when it exists (programs that have no
 repository of their own), else from the shipped `rob/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/rob/<app_id>.md`
 adds personal lines. The menu check of each application (`scripts/check-shell-menu.py`, run by its `make test` or `make check`)
 verifies that the shipped menu agrees with the window and that the brief exists. The shell bench (`tests/fili-shell/run.sh`)
@@ -199,7 +199,7 @@ loads the modules and menus shipped by the pinned applications, like a machine w
 
 What stays in this repository: the shell itself, the generic modules (clock, audio, network…), `_default.json`, the menus of
 programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Rob
-(`apps/fili-chat`).
+(`apps/fili-ai-daemon`).
 
 ## The module contract
 
@@ -213,7 +213,7 @@ bar/modules/<name>/
   i18n/<language>.json the translations of the texts only this module shows
 ```
 
-What a module may rely on, without declaring it (the **public API** of the shell): `BarModule`, `BarItem`, `BarScript`, `BarLabel`, `BarRow`, `BarHover`, `BarState`, `BarWatched`, `BarTone`; `FiliTheme`, `FiliI18n`, `FiliShell`, `FiliInfo`, `FiliPanel`, `FiliTooltip`, `Niri`; the controls of `qs.controls` (`Panel*`); the Qt and Quickshell modules. Anything else of the shell (`FiliChat`, `FiliHotkeys`, `FiliAbout`, `FiliNotification`...) is named in `uses = ["..."]` of its manifest, which makes the coupling visible and reviewable. `group` (`desktop`, `system`, `connectivity`, `sound`, `time`, `ai`) says which domain the module belongs to; `fili-bar list` shows it. The folders stay flat: the group is data, not a directory.
+What a module may rely on, without declaring it (the **public API** of the shell): `BarModule`, `BarItem`, `BarScript`, `BarLabel`, `BarRow`, `BarHover`, `BarState`, `BarWatched`, `BarTone`; `FiliTheme`, `FiliI18n`, `FiliShell`, `FiliInfo`, `FiliPanel`, `FiliTooltip`, `Niri`; the controls of `qs.controls` (`Panel*`); the Qt and Quickshell modules. Anything else of the shell (`FiliAi`, `FiliHotkeys`, `FiliAbout`, `FiliNotification`...) is named in `uses = ["..."]` of its manifest, which makes the coupling visible and reviewable. `group` (`desktop`, `system`, `connectivity`, `sound`, `time`, `ai`) says which domain the module belongs to; `fili-bar list` shows it. The folders stay flat: the group is data, not a directory.
 
 A text only one module shows is translated in the `i18n/` of that module; a text shared by several modules or by the shell (and by `bar-stats`, which reads the shell catalog) stays in `dotfiles/config/quickshell/i18n/`. `scripts/check-i18n.sh` checks both, and `tests/fili-shell/check-module-contract.py` checks the imports, `uses` and the manifest. A module that is not essential to a Filigrane machine (`resources`) is the first candidate to become an optional package that ships its own folder (see "Shipped by an application").
 

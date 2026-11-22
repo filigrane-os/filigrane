@@ -1,30 +1,30 @@
 pragma Singleton
-// fili-chat: the Filigrane chat, a drawer on the right edge of the screen. Mod+Y (`fili-chat toggle`, or
-// `fili-shell chat toggle`) shows or hides it; the conversation stays, since it lives in the fili-chat daemon
-// (apps/fili-chat) which keeps the agent and the history of each session. The drawer only connects to the daemon
+// fili-ai: the Filigrane chat, a drawer on the right edge of the screen. Mod+Y (`fili-ai toggle`, or
+// `fili-shell ai toggle`) shows or hides it; the conversation stays, since it lives in the fili-ai daemon
+// (apps/fili-ai-daemon) which keeps the agent and the history of each session. The drawer only connects to the daemon
 // while it is open or an agent is working (the daemon stops by itself without a client or an agent).
 // Keyboard: Enter sends, Shift+Enter new line, Escape hides,
 // The tabs show the 20 most recent sessions; the older ones are found with the list button in the footer.
 // Archiving a session: confirmation (Enter archives, Escape cancels); it stays (with its history) in "All sessions",
-// button at the bottom of the tabs, with "Settings" (fili-chat.toml in the default editor).
+// button at the bottom of the tabs, with "Settings" (fili-ai.toml in the default editor).
 // Ctrl+N new session, Ctrl+L shows or hides the session tabs (left column, red dot = waiting for
 // an answer, green = finished and unread), Ctrl+. interrupts the agent; permission asked by the agent:
 // Ctrl+Enter allows, Ctrl+Backspace denies. Mod+Y notes the active application (context chip above
 // the input, attached to the next message). AI dot of the fili-bar: ASK (permission), DONE (unread answer).
 // Two layouts: "dock" (default: to the right of every window, the drawer reserves its place and niri shrinks the
 // windows) or "float" (above the windows, without touching them). Chosen from the View menu (state ~/.local/state/filigrane/
-// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-chat.toml (mode, width). The left edge of the drawer
+// chat-view, "MODE WIDTH"), defaults in ~/.config/filigrane/fili-ai.toml (mode, width). The left edge of the drawer
 // is a resize handle (drag: free width, kept like the View menu widths; double click: back to 440).
 // Permission asked out of sight of the drawer: notification with Allow / Deny (answered here, like the card) and a click
 // that opens the session; the bubble closes once the request is settled, wherever it was answered.
-// fili-bar menu: dotfiles/config/filigrane/appmenu/fili-chat.json (AppMenu.qml shows it when the drawer has the keyboard
-// focus); its commands are `fili-shell chat ACTION` (act() below), tests/fili-shell/check-fili-chat-menu.py
+// fili-bar menu: dotfiles/config/filigrane/appmenu/fili-ai.json (AppMenu.qml shows it when the drawer has the keyboard
+// focus); its commands are `fili-shell ai ACTION` (act() below), tests/fili-shell/check-fili-ai-menu.py
 // keeps the menu and act() in agreement.
 // Sessions and applications (follow setting of the toml: "app" by default, "window", "off"): on opening only, never
 // while the drawer is open, the session linked to the active application (context chip) is resumed, otherwise the
 // last one stays. The link is created by sending a message with the context chip, or by "New Session for This
 // Application" (Ctrl+Shift+N); "Unlink" removes it. Link key: app_id ("window": app_id and title).
-// Daemon protocol: see apps/fili-chat/src/main.rs.
+// Daemon protocol: see apps/fili-ai-daemon/src/main.rs.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
@@ -107,7 +107,7 @@ Singleton {
     readonly property string ctxFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/context.json"
     readonly property string title: sessions.find(s => s.id === current)?.title || FiliI18n.tr("New session")
     readonly property bool linked: link.connected
-    readonly property string sock: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-chat/sock"
+    readonly property string sock: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/fili-ai/sock"
     property int tries: 0
     // The drawer has the keyboard focus (sets FocusScope): AppMenu then shows its menu
     property bool focused: false
@@ -128,7 +128,7 @@ Singleton {
     readonly property bool dock: mode === "dock"
     readonly property int viewWidth: stWidth || cfgWidth || 440
     readonly property string viewFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/chat-view"
-    readonly property string cfgFile: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/fili-chat.toml"
+    readonly property string cfgFile: (Quickshell.env("XDG_CONFIG_HOME") || Quickshell.env("HOME") + "/.config") + "/filigrane/fili-ai.toml"
     // Renaming of the current session in the header
     property bool renaming: false
 
@@ -261,12 +261,12 @@ Singleton {
         focusInput();
     }
 
-    // Commands of the fili-bar menu and of the `fili-shell chat ACTION` channel
+    // Commands of the fili-bar menu and of the `fili-shell ai ACTION` channel
     function act(a, args) {
         switch (a) {
         case "open": show(); if (args && args[0]) openSession(args[0]); break;
         case "toggle": toggle(); break;
-        case "about": FiliChatAbout.show(); break;
+        case "about": FiliAiAbout.show(); break;
         case "show": show(); break;
         case "close": hide(); break;
         case "new": show(); newSession(); break;
@@ -297,7 +297,7 @@ Singleton {
         if (FiliTheme.testing || link.connected)
             return;
         // The binary is shipped by the fili-apps package (/usr/bin); FiliTheme.bin first (tests, local builds)
-        Quickshell.execDetached(["sh", "-c", 'for d in "$1" /usr/bin; do [ -x "$d/fili-chat" ] && exec "$d/fili-chat" daemon; done', "sh", FiliTheme.bin]);
+        Quickshell.execDetached(["sh", "-c", 'for d in "$1" /usr/bin; do [ -x "$d/fili-ai-daemon" ] && exec "$d/fili-ai-daemon" daemon; done', "sh", FiliTheme.bin]);
         tries = 0;
         retry.start();
     }
@@ -340,7 +340,7 @@ Singleton {
             onStreamFinished: chat.attachUrls(text.split("\n").map(l => l.trim()).filter(l => l.startsWith("file://")))
         }
     }
-    // Context noted by `fili-chat toggle` just before opening
+    // Context noted by `fili-ai toggle` just before opening
     Process {
         id: ctxRead
         command: ["cat", chat.ctxFile]
@@ -397,7 +397,7 @@ Singleton {
         followPending = false;
         send_({ op: "new" });
     }
-    // Question asked from an application (`fili-chat ask TEXT`, e.g. Aéroport's "Ask Rob" on a failed command): a new
+    // Question asked from an application (`fili-ai ask TEXT`, e.g. Aéroport's "Ask Rob" on a failed command): a new
     // session gets it, with the context of the application noted just before (the details are in that context)
     property string pendingAsk: ""
     function ask(text) {
@@ -415,7 +415,7 @@ Singleton {
         pendingAsk = "";
         send_({ op: "new" });
     }
-    // "Ask Rob" of an application (`fili-chat here [TEXT]`, Mod+Ctrl+Y, entry of every application menu): the session
+    // "Ask Rob" of an application (`fili-ai here [TEXT]`, Mod+Ctrl+Y, entry of every application menu): the session
     // scoped to the active application is created (linked to it), TEXT is sent to it if given.
     // The daemon adds the scope instruction to each message of a scoped session.
     property bool hereWant: false
@@ -434,7 +434,7 @@ Singleton {
         hereNow();
     }
     // Question typed in the floating field (FiliAsk): sent to the scoped session of the application noted by
-    // `fili-chat here`; the drawer stays closed unless `drawer` (the finished turn is announced by a notification)
+    // `fili-ai here`; the drawer stays closed unless `drawer` (the finished turn is announced by a notification)
     function askHere(text, drawer) {
         if (drawer) {
             here(text);
@@ -510,7 +510,7 @@ Singleton {
     // Settings: the configuration file in the default editor
     function openSettings() {
         if (!FiliTheme.testing)
-            Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/.config/filigrane/fili-chat.toml"]);
+            Quickshell.execDetached(["xdg-open", Quickshell.env("HOME") + "/.config/filigrane/fili-ai.toml"]);
     }
     function send(text) {
         let t = text.trim();
@@ -582,7 +582,7 @@ Singleton {
             notify(id, FiliI18n.tr("Rob has finished"), "normal");
         }
     }
-    // Permission notification: Allow / Deny answer through the drawer (`fili-shell chat answer RID:yes`), the
+    // Permission notification: Allow / Deny answer through the drawer (`fili-shell ai answer RID:yes`), the
     // default action (click) opens the session; the rid travels as a hint so the bubble closes once settled
     function notifyAsk(id, rid, tool, summary) {
         const title = sessions.find(s => s.id === id)?.title || "Rob";
@@ -591,8 +591,8 @@ Singleton {
             return;
         }
         Quickshell.execDetached(["setsid", "-f", "sh", "-c",
-            'r="$(notify-send -a fili-chat -i fili-chat -u critical -t 120000 -h "string:x-fili-chat-rid:$2" -A allow="$5" -A deny="$6" -A default="$7" "$3" "$4")"\n'
-            + 'case "$r" in allow) exec "$0" chat answer "$2:yes" ;; deny) exec "$0" chat answer "$2:no" ;; default) exec "$0" chat open "$1" ;; esac',
+            'r="$(notify-send -a fili-ai -i fili-ai -u critical -t 120000 -h "string:x-fili-ai-rid:$2" -A allow="$5" -A deny="$6" -A default="$7" "$3" "$4")"\n'
+            + 'case "$r" in allow) exec "$0" ai answer "$2:yes" ;; deny) exec "$0" ai answer "$2:no" ;; default) exec "$0" ai open "$1" ;; esac',
             FiliTheme.bin + "/fili-shell", id, rid, FiliI18n.tr("Rob needs you") + " · " + title, (tool ? tool + ": " : "") + summary,
             FiliI18n.tr("Allow"), FiliI18n.tr("Deny"), FiliI18n.tr("Open")]);
     }
@@ -602,7 +602,7 @@ Singleton {
             return;
         }
         for (const p of FiliNotification.popups.slice())
-            if (p.n.appName === "fili-chat" && p.n.hints && p.n.hints["x-fili-chat-rid"] === rid)
+            if (p.n.appName === "fili-ai" && p.n.hints && p.n.hints["x-fili-ai-rid"] === rid)
                 FiliNotification.close(p.n, "dismiss");
     }
     // Notification of a session out of sight of the drawer; its "Open" button (or a click) shows the drawer on it
@@ -613,7 +613,7 @@ Singleton {
         }
         const title = sessions.find(s => s.id === id)?.title || "Rob";
         Quickshell.execDetached(["setsid", "-f", "sh", "-c",
-            'r="$(notify-send -a fili-chat -i fili-chat -u "$2" -A default="$5" "$3" "$4")" && [ "$r" = default ] && exec "$0" chat open "$1"',
+            'r="$(notify-send -a fili-ai -i fili-ai -u "$2" -A default="$5" "$3" "$4")" && [ "$r" = default ] && exec "$0" ai open "$1"',
             FiliTheme.bin + "/fili-shell", id, urgency, summary, title, FiliI18n.tr("Open")]);
     }
     function askItem(ev) {
@@ -727,7 +727,7 @@ Singleton {
         exclusionMode: chat.dock ? ExclusionMode.Normal : ExclusionMode.Ignore
         exclusiveZone: chat.dock ? chat.viewWidth : 0
         WlrLayershell.layer: chat.dock ? WlrLayer.Top : WlrLayer.Overlay
-        WlrLayershell.namespace: "fili-chat"
+        WlrLayershell.namespace: "fili-ai"
         WlrLayershell.keyboardFocus: chat.open ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
         color: "transparent"
 
