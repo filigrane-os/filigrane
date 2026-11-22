@@ -80,7 +80,7 @@ rename Rob -> Lia here and in the six applications (`LiaButton.qml`, `shell/lia/
 Deployed locally with `make install PREFIX=$HOME/.local` in `~/Projects/fili-ai` (`bootstrap.sh --apps` skips because the
 `filigrane-apps` package is installed). Left: the live test by the user, a real icon `fili-ai` (none exists), tests of the window
 logic in the new repository (the former TestShell section was dropped), the notification closing when a permission is answered
-elsewhere (was `FiliNotification.close`), then the tag (CI of `main`) and the pin here. `FILI_ROB` (session marker for the hooks) keeps its name.
+elsewhere (was `FiliNotification.close`), then the tag (CI of `main`) and the pin here. `FILI_ROB` (session marker for the hooks) became `FILI_AGENT_IA` (`FILI_ROB` is still understood).
 
 ## The extraction, step by step (each step commitable and tested)
 
