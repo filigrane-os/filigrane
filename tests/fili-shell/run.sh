@@ -163,6 +163,9 @@ fi
 if want 'bar/modules/|controls/|check-panel-text-fit'; then
 python3 -I "$ROOT/tests/fili-shell/check-panel-text-fit.py" "$ROOT" || exit 1
 fi
+if want 'bar/modules/|controls/|check-module-contract'; then
+python3 -I "$ROOT/tests/fili-shell/check-module-contract.py" "$ROOT" || exit 1
+fi
 if want 'bar/modules/power/|check-power-level'; then
 python3 -I "$ROOT/tests/fili-shell/check-power-level.py" "$ROOT" || exit 1
 fi

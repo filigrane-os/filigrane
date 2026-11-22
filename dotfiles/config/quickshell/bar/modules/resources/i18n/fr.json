@@ -1,0 +1,13 @@
+{
+ "Speed test running…": "Test de débit en cours…",
+ "Network speed test": "Test de débit réseau",
+ "%1 ↓ %2 ↑ Mbit/s, ping %3 ms": "%1 ↓ %2 ↑ Mbit/s, ping %3 ms",
+ "~35 MB": "~35 Mo",
+ "Disk test running…": "Test du disque en cours…",
+ "Disk speed test": "Test de vitesse du disque",
+ "%1 write · %2 read MB/s": "%1 écr. · %2 lect. Mo/s",
+ "512 MB": "512 Mo",
+ "Full monitor (htop)": "Moniteur complet (htop)",
+ "Open the process monitor": "Ouvrir le moniteur de processus",
+ "click: monitor": "clic: moniteur"
+}

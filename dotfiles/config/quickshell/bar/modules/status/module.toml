@@ -3,3 +3,4 @@ title = "Status"
 description = "Recording, SSH, airplane mode, VPN and update indicators"
 side = "right"
 order = 10
+group = "system"

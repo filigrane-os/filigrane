@@ -3,3 +3,5 @@ title = "Notifications"
 description = "Notification center"
 side = "right"
 order = 110
+group = "desktop"
+uses = ["FiliNotification"]

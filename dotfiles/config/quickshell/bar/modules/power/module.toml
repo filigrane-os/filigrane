@@ -4,3 +4,4 @@ description = "Battery and power actions"
 side = "right"
 order = 130
 compact_at = 4
+group = "system"

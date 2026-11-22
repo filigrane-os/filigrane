@@ -201,6 +201,22 @@ What stays in this repository: the shell itself, the generic modules (clock, aud
 programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Rob
 (`apps/fili-chat`).
 
+## The module contract
+
+A module of the distribution is **self-contained**: everything it is lives in its folder, in the same shape as a module shipped by an application (so one can leave for its own repository with a `git mv`):
+
+```
+bar/modules/<name>/
+  module.toml          manifest: title, side, order, group, uses, squeeze levels
+  <Name>Module.qml     the item of the bar
+  <Name>Panel.qml      its panel (optional)
+  i18n/<language>.json the translations of the texts only this module shows
+```
+
+What a module may rely on, without declaring it (the **public API** of the shell): `BarModule`, `BarItem`, `BarScript`, `BarLabel`, `BarRow`, `BarHover`, `BarState`, `BarWatched`, `BarTone`; `FiliTheme`, `FiliI18n`, `FiliShell`, `FiliInfo`, `FiliPanel`, `FiliTooltip`, `Niri`; the controls of `qs.controls` (`Panel*`); the Qt and Quickshell modules. Anything else of the shell (`FiliChat`, `FiliHotkeys`, `FiliAbout`, `FiliNotification`...) is named in `uses = ["..."]` of its manifest, which makes the coupling visible and reviewable. `group` (`desktop`, `system`, `connectivity`, `sound`, `time`, `ai`) says which domain the module belongs to; `fili-bar list` shows it. The folders stay flat: the group is data, not a directory.
+
+A text only one module shows is translated in the `i18n/` of that module; a text shared by several modules or by the shell (and by `bar-stats`, which reads the shell catalog) stays in `dotfiles/config/quickshell/i18n/`. `scripts/check-i18n.sh` checks both, and `tests/fili-shell/check-module-contract.py` checks the imports, `uses` and the manifest. A module that is not essential to a Filigrane machine (`resources`) is the first candidate to become an optional package that ships its own folder (see "Shipped by an application").
+
 ## Writing a module
 
 A module is a folder `bar/modules/<name>/` with `<Name>Module.qml` and, if it opens a panel, `<Name>Panel.qml` next to it. Add a `module.toml` (see above) so it is placed without a `fili-bar.toml`. A personal module (an account, a third-party service) goes in `users/<login>/dotfiles/config/quickshell/bar/modules/<name>/`, never in the distribution. After adding a file, run `./bootstrap.sh --fili-shell` (files are linked one by one, a new one is not seen before) and restart Quickshell if it is already running.
@@ -337,7 +353,7 @@ AlertModule {
 ### Pitfalls
 
 - A module is loaded **by its file**. It sees the other files of its folder only if `BarLayout.qml` imports that folder; a module with helpers next to it (`appmenu`, `audio`, `clock`, `alert`) needs a line there. Otherwise rely on `qs`, `qs.bar` and `qs.controls` only.
-- Text is in English in the code; translations go in `dotfiles/config/quickshell/i18n/<language>.json` and `FiliI18n.tr("...")`.
+- Text is in English in the code; translations go in the `i18n/<language>.json` of the module (shared texts: `dotfiles/config/quickshell/i18n/<language>.json`) and `FiliI18n.tr("...")`.
 - Colours, sizes and fonts come from `FiliTheme`, never hard-coded. The interface rules are in the `filigrane-ui` skill (`agents/skills/filigrane-ui/`).
 - The bar must stay light: no resident process per module, no polling when a signal will do. Measure with `tests/fili-shell/bench.sh`.
 

@@ -73,6 +73,13 @@ for cat in sorted(glob.glob("dotfiles/config/quickshell/i18n/*.json")):
     own = set()
     for m in glob.glob(f"dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json") + glob.glob(f"users/*/dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json"):
         own |= set(json.load(open(m)))
+    # An entry of a module catalog nothing uses any more, or whose placeholders differ from the English text
+    for m in glob.glob(f"dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json") + glob.glob(f"users/*/dotfiles/config/quickshell/bar/modules/*/i18n/{lang}.json"):
+        for k, v in json.load(open(m)).items():
+            if k not in keys:
+                print(f"{m}: unused entry: {k}"); bad = True
+            elif ph(k) != ph(v):
+                print(f"{m}: placeholders differ: {k}"); bad = True
     for k in sorted(keys):
         if k not in c and k not in own:
             print(f"{lang}.json: missing: {k}"); bad = True

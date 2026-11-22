@@ -1,0 +1,23 @@
+{
+ "Bass": "Basses",
+ "Mids": "Médiums",
+ "Treble": "Aigus",
+ "Loudness": "Loudness",
+ "All settings": "Tous les réglages",
+ "Sound": "Son",
+ "OUTPUT": "SORTIE",
+ "INPUT": "ENTRÉE",
+ "RECORDING": "ENREGISTREMENT",
+ "EQUALIZER": "ÉGALISEUR",
+ "Full mixer": "Mixeur complet",
+ "muted": "muet",
+ "Sound muted": "Son coupé",
+ "Output": "Sortie",
+ "Volume": "Volume",
+ "Input": "Entrée",
+ "click: sound panel · middle click: mute · wheel: volume · right click: menu": "clic: panneau du son · clic milieu: muet · molette: volume · clic droit: menu",
+ "Open the mixer": "Ouvrir le mixeur",
+ "Unmute": "Rétablir le son",
+ "Mute": "Couper le son",
+ "Sound settings…": "Réglages du son…"
+}
