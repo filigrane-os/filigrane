@@ -14,6 +14,9 @@ Written on 2026-11-22 to resume in a clean conversation. Read `AGENTS.md`, `docs
   `agents/chat-prompt.md`), the agents' hooks and settings (`dotfiles/home/.claude/`, `.codex/`, `config/opencode/`).
   **`fili-incident` stays in the distribution**: collecting, notifying and preparing the GitHub issue are useful without an
   assistant; only its "Ask Rob" button comes from an incident handler (`shell/incident/<name>.toml`).
+- **The assistant is named Lia** (decided on 2026-11-22; *l'IA*). Rob is retired. Only the display name changes: the program, the
+  repository and the commands stay `fili-ai`, and the About card says "also known as fili-ai". The rename is done **once, at the
+  extraction** (list at the end of this file).
 - Skills `filigrane` and `filigrane-ui` describe the whole OS: proposed to stay here (to confirm with the user).
 - **Commit only; tag everything once, at the end of the developments** (apps: no version bump, no push, no tag before the user has
   tested live; see the rules of `AGENTS.md`). The old binary `~/.local/bin/fili-chat` stays until that live test, then it is removed.
@@ -41,7 +44,7 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 
 ## What is still to do **before** the Qt application
 
-1. **Decide the name** (see below). It changes strings in roughly 60 places, so settle it before moving files.
+1. ~~Decide the name~~: done, **Lia**. Do the rename while moving the files (see "The name" below), not before.
 2. **Move the AI logic out of `bar/BarState.qml` into the `agent` module.** About 100 lines of `BarState` are the assistant's
    (`aiData`, `aiFor`, `aiChat`, `aiAsk`, `aiSeen`, `aiName`, `aiLimit`, the watcher of `fili-ai/state.json`). The module cannot ship
    in the `fili-ai` repository while its logic lives in the shell. Move them into `modules/agent/` (a small `AgentState.qml` next to
@@ -93,9 +96,9 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 - `bootstrap.sh --dotfiles-only` asks for sudo for the firewall: harmless without a terminal, the links are made.
 - The state directory `~/.local/state/filigrane/chat/` (history of the sessions) kept its old name on purpose: do not lose the history.
 
-## The name: Rob or Lia?
+## The name: Lia (decided)
 
-Both are a pun (robot / *l'IA*). Points to weigh, nothing is decided:
+Rob (robot) and Lia (*l'IA*) were both puns; Lia was chosen. The reasons, for the record:
 
 - **"to rob" means to steal in English**, which is an unfortunate word for an assistant that can read your files and run commands.
   In French it is just a first name; the robot pun works in both languages.
@@ -104,7 +107,11 @@ Both are a pun (robot / *l'IA*). Points to weigh, nothing is decided:
   names of the applications (Casier, Aéroport, Facteur, Cassette, Baladeur, Conversations).
 - Whatever the choice, the display name is an alias: the program, repository and commands stay `fili-ai`, and the "About" card says
   "also known as fili-ai" (the alias rule of `AGENTS.md`).
-- Rename cost (all in places that move anyway): "Ask Rob…" (the default menu, six applications' `RobButton.qml`), `agents/rob/`,
+- Rename to do (all in places that move anyway): "Ask Rob…" → "Ask Lia…" (the default menu, six applications' `RobButton.qml`), `agents/rob/`,
   `shell/rob/<app>.md` in six repositories, the hidden prompt, the `.desktop` (`Name=Rob`), the handler label, the About card,
   the README and the docs. Do it **once, at the extraction**.
-- Before adopting a name, check that it is not already a well-known product of the same kind.
+- Still to check before the public release: that no well-known product of the same kind already carries the name.
+- Files to rename or rewrite: `agents/rob/` → `agents/lia/`, `shell/rob/<app>.md` → `shell/lia/<app>.md` in the six applications (and the
+  loader `fili-ai` that reads them, plus `~/.config/filigrane/rob/<app>.md` → `lia/`, with a fallback to the old folder), `RobButton.qml`
+  → `LiaButton.qml`, the menu label, `Name=` of the `.desktop`, the label of the incident handler, the hidden prompt, `AGENTS.md`, the
+  skills and the docs. Grep for `Rob`, `rob` and `RobButton` to find them all.
