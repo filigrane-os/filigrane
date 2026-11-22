@@ -66,8 +66,10 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 ## Status (2026-11-22, end of the session): extraction done, tested live and released
 
 Released after the user's live test: fili-ai v0.1.0, Casier 1.16.0, Aéroport 3.4.0, Facteur 1.7.0, Conversations 0.3.0, Baladeur 0.3.0,
-Cassette 0.3.0 (CI of `main` tagged each); the pins here follow (commit `912e71a`); the old `~/.local/bin/fili-chat` is removed. What
-is left of the list below is the follow-up: icon, window tests, notification closing.
+Cassette 0.3.0 (CI of `main` tagged each); the pins here follow (commit `912e71a`); the old `~/.local/bin/fili-chat` is removed. Follow-up done on `develop` of fili-ai (not released yet): tests of the conversation logic (`fili-ai-window --test`, 58 checks, in
+`make check`), the permission bubble closes once settled, an optional package (`DISTRO_OPTIONAL_APPS`: published, not in `filigrane-apps`,
+installed by bootstrap when an agent is chosen). Left: the icon (the user wants to settle it at the very end; the current draft is a
+profile with filigrane hair), then v0.1.1 and its pin.
 
 
 Done: the repository `filigrane-os/fili-ai` (branch `develop` pushed, nothing on `main`, no tag), the Qt Quick window (drawer on the
