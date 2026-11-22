@@ -99,8 +99,9 @@ check "watch prints a new event" 'grep -q "\"n\":1" "$T/watched"'
 check "Lia's default brief points to fili-api" 'grep -q "fili-api show" "$("$ROOT/scripts/upstream-dir" fili-ai)/data/prompts/lia/_default.md"'
 
 # fili-incident: no handler = no assistant; a handler adds its button and runs with the prompt as its last argument
-INC="$ROOT/apps/fili-incident/target/release/fili-incident"
-(cd "$ROOT/apps/fili-incident" && HOME="$REAL_HOME" cargo build --release -q --locked) || echo "# fili-incident did not build"
+# Built in a folder of its own: the caller may export CARGO_TARGET_DIR (run.sh does), and an old binary must not be the one tested
+INC="$T/inc-target/release/fili-incident"
+(cd "$ROOT/apps/fili-incident" && HOME="$REAL_HOME" CARGO_TARGET_DIR="$T/inc-target" cargo build --release -q --locked) || echo "# fili-incident did not build"
 echo '{"id":"i1","app":"demo","repo":"o/r","kind":"manual","signature":"s","message":"boom","state":"new","log":[]}' > "$XDG_STATE_HOME/filigrane/incidents/i1.json"
 check "without a handler, ask says no assistant is installed" '"$INC" ask i1 2>&1 | grep -q "no assistant installed" && [ -z "$("$INC" handlers)" ]'
 printf '#!/bin/sh\nprintf "%%s" "$1" > "%s"\n' "$T/prompt" > "$T/h.sh"; chmod +x "$T/h.sh"
