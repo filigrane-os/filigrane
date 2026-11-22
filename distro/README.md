@@ -47,3 +47,6 @@ Boot the ISO (the `anon` session opens automatically), connect the network, then
 `DISTRO_OPTIONAL_APPS` (`distro.env`) lists the tools that are built and published as packages of their own but are not required by
 the `<distro>-apps` meta-package, so they are not installed by default: the system works without them. Today: `fili-ai` (Lia, the
 assistant): `sudo xbps-install fili-ai`, which `bootstrap.sh` does when an AI agent is chosen (`FILI_AI` is not `none`).
+
+A tool's `package.env` may set `REPLACES` (packages whose files the package takes over): `fili-ai` replaces the former packages
+`fili-ai-daemon` and `fili-ai-session`, which avoids a file conflict on a machine that has them.

@@ -84,8 +84,9 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
         echo "==> $pkg-$ver: déjà construit"; echo "$pkg-$ver.$ARCH.xbps" >>"$WORK/made.txt"; return 0
     fi
     echo "==> $pkg-$ver"
-    # Package settings (optional): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Default: a Rust binary that only links libc.
-    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT"
+    # Package settings (optional): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE, REPLACES (packages whose files this one takes over,
+    # e.g. a tool that moved into another package). Default: a Rust binary that only links libc.
+    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT" REPLACES=""
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
     # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
@@ -114,7 +115,7 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
             cp -r "$dir/shell/." "$dest/usr/share/filigrane/shell/"
         fi
     fi
-    LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
+    LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS" ${REPLACES:+--replaces "$REPLACES"}
 }
 
 command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }
