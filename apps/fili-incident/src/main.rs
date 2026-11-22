@@ -419,7 +419,11 @@ fn parse_handler(name: &str, text: &str) -> Option<Handler> {
             _ => {}
         }
     }
-    (!command.is_empty()).then(|| Handler { name: name.to_string(), label: if label.is_empty() { name.to_string() } else { label }, command })
+    (!command.is_empty()).then(|| Handler {
+        name: name.to_string(),
+        label: if label.is_empty() { name.to_string() } else { label },
+        command,
+    })
 }
 
 /// Folders that hold handlers: the user's own first, then what the packages ship (FILI_SHELL_DIRS replaces the packages', for tests)
@@ -439,7 +443,8 @@ fn handlers() -> Vec<Handler> {
     let mut found: Vec<Handler> = Vec::new();
     for dir in handler_dirs() {
         let Ok(entries) = fs::read_dir(&dir) else { continue };
-        let mut files: Vec<_> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "toml")).collect();
+        let mut files: Vec<_> =
+            entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "toml")).collect();
         files.sort();
         for file in files {
             let name = file.file_stem().unwrap_or_default().to_string_lossy().to_string();
@@ -456,7 +461,10 @@ fn handlers() -> Vec<Handler> {
 
 fn ask(id: &str) -> Result<(), String> {
     let incident = load(id)?;
-    let handler = handlers().into_iter().next().ok_or("no assistant installed (no incident handler: docs/api.md); fili-incident submit ID reports it yourself")?;
+    let handler = handlers()
+        .into_iter()
+        .next()
+        .ok_or("no assistant installed (no incident handler: docs/api.md); fili-incident submit ID reports it yourself")?;
     let prompt = format!(
         "Problem reported by {app}: {msg}. Incident {id}: read it with `fili-incident show {id}`, find the cause and follow the incident procedure of your instructions.",
         app = text(&incident, "app"),
