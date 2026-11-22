@@ -343,6 +343,8 @@ cmd_link_system() {
             [ -f "${m}module.toml" ] || continue
             n="$(basename "$m")"; valid_name "$n" || continue
             dest="$mods/$n"
+            # An empty folder is what a module leaves when its files move to a package: it is replaced (never one that holds files)
+            [ -d "$dest" ] && [ ! -L "$dest" ] && rmdir "$dest" 2>/dev/null
             if [ -e "$dest" ] || [ -L "$dest" ]; then ours "$dest" || continue; fi
             mkdir -p "$mods" && ln -sfn "${m%/}" "$dest"
         done

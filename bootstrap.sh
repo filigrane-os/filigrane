@@ -665,9 +665,18 @@ link_one() { # link_one SOURCE DESTINATION
 
 # Links to this repository that became orphans (file moved, deleted or moved to another layer): removed
 prune_links() {
-    local l
+    local l d
     while IFS= read -r -d '' l; do
-        case "$(readlink "$l")" in "$ROOT"/*) rm -f "$l"; say 'Orphan link removed: ~/%s' "${l#"$TARGET_HOME/"}" ;; esac
+        case "$(readlink "$l")" in
+        "$ROOT"/*)
+            rm -f "$l"; say 'Orphan link removed: ~/%s' "${l#"$TARGET_HOME/"}"
+            # The folders it leaves empty (a bar module whose files moved to a package) go too, up to ~/.config and ~/.local
+            d="$(dirname "$l")"
+            while [ "$d" != "$TARGET_HOME" ] && [ "$d" != "$TARGET_HOME/.config" ] && [ "$d" != "$TARGET_HOME/.local" ] \
+                && [ "$d" != "$TARGET_HOME/.local/share" ] && rmdir "$d" 2>/dev/null; do
+                d="$(dirname "$d")"
+            done ;;
+        esac
     done < <(find "$TARGET_HOME" -maxdepth 1 -xtype l -print0
              find "$TARGET_HOME/.config" "$TARGET_HOME/.local" "$TARGET_HOME/.claude" "$TARGET_HOME/.agents" \
                  "$TARGET_HOME/.codex" -xtype l -print0 2>/dev/null)
