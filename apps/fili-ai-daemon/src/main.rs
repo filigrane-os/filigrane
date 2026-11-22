@@ -1162,6 +1162,9 @@ fn main() {
             let text = a[1..].join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
             note_context().and_then(|_| if text.is_empty() { shell_chat(&["here"]) } else { shell_chat(&["here", &text]) })
         }
+        // Without noting the application: the bar's click, the notification (the shell channel `fili-shell ai show|hide`)
+        Some("show") => shell_chat(&["show"]),
+        Some("hide") => shell_chat(&["close"]),
         Some("mcp") if a.len() >= 2 => mcp(&a[1]),
         Some("sessions") => connect().and_then(|s| {
             let mut l = String::new();
@@ -1185,7 +1188,7 @@ fn main() {
             }
             Ok(())
         }),
-        _ => Err("usage: fili-ai daemon | toggle | ask TEXT | here [TEXT] | sessions | send ID TEXT".into()),
+        _ => Err("usage: fili-ai daemon | toggle | ask TEXT | show | hide | here [TEXT] | sessions | send ID TEXT".into()),
     };
     if let Err(e) = r {
         eprintln!("fili-ai: {e}");

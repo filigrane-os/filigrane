@@ -12,7 +12,7 @@ ColumnLayout {
     spacing: FiliTheme.space1
 
     readonly property var sessions: BarState.aiData.sessions ?? []
-    readonly property string chatState: FiliAi.attention === "waiting" ? "waiting" : FiliAi.attention === "done" ? "done" : FiliAi.busy ? "working" : ""
+    readonly property string chatState: AiState.attention === "waiting" ? "waiting" : AiState.attention === "done" ? "done" : AiState.busy ? "working" : ""
     function stateText(s) {
         return { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s] ?? FiliI18n.tr("ready");
     }
@@ -33,7 +33,7 @@ ColumnLayout {
         label: FiliI18n.tr("Chat")
         detail: view.stateText(view.chatState)
         sel: view.chatState === "waiting"
-        onClicked: { FiliPanel.close(); FiliAi.show(); }
+        onClicked: { FiliPanel.close(); AiState.show(); }
     }
     Repeater {
         model: view.sessions
@@ -77,9 +77,9 @@ ColumnLayout {
     PanelButton {
         objectName: "agent-chat"
         glyph: "\uf075"
-        label: FiliAi.open ? FiliI18n.tr("Hide the chat") : FiliI18n.tr("Show the chat")
+        label: AiState.open ? FiliI18n.tr("Hide the chat") : FiliI18n.tr("Show the chat")
         detail: "Mod+Y"
-        onClicked: { FiliPanel.close(); FiliAi.toggle(); }
+        onClicked: { FiliPanel.close(); AiState.toggle(); }
     }
     PanelButton {
         objectName: "agent-new"

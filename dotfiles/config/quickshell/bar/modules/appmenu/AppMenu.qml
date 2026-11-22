@@ -47,7 +47,7 @@ Singleton {
     // under the mouse before the click ends
     property bool chatFocus: false
     property bool holdChat: false
-    readonly property bool chatNow: FiliAi.focused
+    readonly property bool chatNow: AiState.focused
     onChatNowChanged: {
         if (chatNow || !(open || holdChat))
             chatFocus = chatNow;

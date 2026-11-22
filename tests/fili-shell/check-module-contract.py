@@ -10,7 +10,7 @@ root = sys.argv[1] if len(sys.argv) > 1 else "."
 mods = f"{root}/dotfiles/config/quickshell/bar/modules"
 # The public API: what a module may use without declaring it
 PUBLIC = {"BarModule", "BarItem", "BarScript", "BarLabel", "BarRow", "BarHover", "BarState", "BarWatched", "BarTone",
-          "FiliTheme", "FiliI18n", "FiliShell", "FiliInfo", "FiliPanel", "FiliTooltip", "Niri"}
+          "FiliTheme", "FiliI18n", "FiliShell", "FiliInfo", "FiliPanel", "FiliTooltip", "Niri", "AiState"}
 GROUPS = {"desktop", "system", "connectivity", "sound", "time", "ai"}
 controls = {os.path.basename(f)[:-4] for f in glob.glob(f"{root}/dotfiles/config/quickshell/controls/*.qml")}
 IMPORT_OK = re.compile(r"^(QtQuick(\.\w+)?|Quickshell(\.\w+)*|qs|qs\.bar|qs\.controls)$")

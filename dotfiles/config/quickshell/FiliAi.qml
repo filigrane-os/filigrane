@@ -111,6 +111,29 @@ Singleton {
     property int tries: 0
     // The drawer has the keyboard focus (sets FocusScope): AppMenu then shows its menu
     property bool focused: false
+    // What the shell may know of this window (AiState: open, focused, attention, busy): published to a file on each change, a few
+    // milliseconds apart, so that the bar and the application menu never reach into this window (docs/api.md, "The assistant")
+    function publishUi() {
+        const state = JSON.stringify({ v: 1, open: open, focused: focused, attention: attention, busy: busy });
+        if (FiliTheme.testing) {
+            AiState.apply(state);
+            return;
+        }
+        Quickshell.execDetached(["sh", "-c", 'mkdir -p "${1%/*}" && printf "%s" "$2" > "$1.tmp" && mv "$1.tmp" "$1"', "sh", AiState.file, state]);
+    }
+    function ui() {
+        FiliTheme.testing ? publishUi() : uiTimer.restart();
+    }
+    Timer {
+        id: uiTimer
+        interval: 40
+        onTriggered: chat.publishUi()
+    }
+    onOpenChanged: ui()
+    onFocusedChanged: ui()
+    onAttentionChanged: ui()
+    onBusyChanged: ui()
+    Component.onCompleted: ui()
     // Layout: choice of the user (state), else setting (toml), else docked
     property string cfgMode: ""
     property int cfgWidth: 0

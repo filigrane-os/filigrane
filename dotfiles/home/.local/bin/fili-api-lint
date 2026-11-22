@@ -8,6 +8,7 @@ cannot drift apart. Standard library only.
     fili-api-lint [catalog] FILE...       the format (rules below); `ok FILE` or one `x FILE: problem` per line, exit 1 on any
     fili-api-lint context FILE...         a context file ($XDG_RUNTIME_DIR/fili/context/<pid>.json), see "Context" below
     fili-api-lint incident FILE...        an incident file (~/.local/state/filigrane/incidents/<id>.json), see "Incident" below
+    fili-api-lint ai-ui FILE...           the assistant's state file ($XDG_RUNTIME_DIR/fili/ai/ui.json), see "Assistant state" below
     fili-api-lint --app ROOT [FILE...]    also the agreement with the application's source (default FILE: ROOT/shell/ctl/*.json):
                                           the verbs are the ones of the usage line of `<program> ctl` (src/**/*.rs), the actions
                                           the ones of the window (ACTIONS of src/ctl.rs, else the table of qml/Main.qml)
@@ -55,6 +56,12 @@ Incident, version 1 (what an application writes when it meets a bug; fili-incide
   state          new, notified, ignored or reported
   log            a list of strings (the last lines of the log)
   issue, pr      optional strings, written by fili-incident when it reports; v: optional, 1
+
+Assistant state, version 1 (what the assistant's interface tells the shell; AiState.qml reads it):
+  v              1
+  open, focused, busy   booleans: the interface is shown, has the keyboard focus, a session is working
+  attention      "waiting" (a permission is asked), "done" (an answer finished and unread) or ""
+  all five keys are required and no other key is allowed
 """
 import glob
 import json
@@ -270,6 +277,23 @@ def lint_incident(c, stem=None):
     return p
 
 
+def lint_ai_ui(c, stem=None):
+    """Problems of a decoded assistant state file."""
+    if not isinstance(c, dict):
+        return ["not a JSON object"]
+    p = keys_problem(c, {"v", "open", "focused", "attention", "busy"}, ("v", "open", "focused", "attention", "busy"), "state")
+    if p:
+        return p
+    if c["v"] != VERSION or isinstance(c["v"], bool):
+        p.append(f"v is {c['v']!r}: this tool understands {VERSION}")
+    for k in ("open", "focused", "busy"):
+        if not isinstance(c[k], bool):
+            p.append(f"{k}: true or false")
+    if c["attention"] not in ("", "waiting", "done"):
+        p.append('attention: "waiting", "done" or ""')
+    return p
+
+
 # ---- agreement with the source of the application (--app) ------------------------------------------------------------------
 
 
@@ -376,7 +400,7 @@ def main(argv):
         print(__doc__)
         return 0 if args else 2
     kind = "catalog"
-    if args[0] in ("catalog", "context", "incident"):
+    if args[0] in ("catalog", "context", "incident", "ai-ui"):
         kind, args = args[0], args[1:]
     root, write, files = None, False, []
     it = iter(args)
@@ -408,7 +432,7 @@ def main(argv):
             continue
         stem = pathlib.Path(f).stem
         if kind != "catalog":
-            problems = (lint_context if kind == "context" else lint_incident)(c, stem)
+            problems = {"context": lint_context, "incident": lint_incident, "ai-ui": lint_ai_ui}[kind](c, stem)
             for line in problems:
                 print(f"x {f}: {line}")
             if problems:

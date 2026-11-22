@@ -26,6 +26,7 @@ ShellRoot {
         FiliNotification.dnd;
         FiliSound.notify;
         FiliLauncher.open;
+        AiState.open;
         FiliAi.open;
         FiliAiAbout.open;
         FiliAsk.open;

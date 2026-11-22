@@ -60,6 +60,9 @@ check "an incident signature is 16 hex digits" 'inc "$(echo "$INC" | jq ".signat
 check "an incident state is one of four" 'inc "$(echo "$INC" | jq ".state = \"open\"")" demo-1-ab | grep -q "new, notified"'
 check "an incident has no unknown key" 'inc "$(echo "$INC" | jq ".extra = 1")" demo-1-ab | grep -q "unknown key extra"'
 check "a reported incident may carry issue and pr" 'inc "$(echo "$INC" | jq ".state = \"reported\" | .issue = \"u\" | .pr = \"p\"")" demo-1-ab | grep -q "^ok"'
+ui() { mkdir -p "$T/u"; printf '%s' "$1" > "$T/u/ui.json"; python3 -I "$LINT" ai-ui "$T/u/ui.json"; }
+check "the assistant state is accepted" 'ui "{\"v\":1,\"open\":true,\"focused\":false,\"attention\":\"waiting\",\"busy\":false}" | grep -q "^ok"'
+check "the assistant state refuses a bad attention and a missing key" 'out="$(ui "{\"v\":1,\"open\":true,\"focused\":false,\"attention\":\"maybe\"}")"; echo "$out" | grep -q "missing busy" && ui "{\"v\":1,\"open\":true,\"focused\":false,\"attention\":\"maybe\",\"busy\":false}" | grep -q "attention:"'
 mkdir -p "$XDG_STATE_HOME/filigrane/incidents"; echo "$INC" > "$XDG_STATE_HOME/filigrane/incidents/demo-1-ab.json"
 check "doctor accepts the files of the applications" 'fili-api doctor | grep -q "^ok: .* follow the formats"'
 echo "$INC" | jq '.when = "1"' > "$XDG_STATE_HOME/filigrane/incidents/demo-1-ab.json"

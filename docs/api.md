@@ -14,6 +14,7 @@ it does not know and refuses a larger `v` than it understands.
 | [Incidents](#incidents-what-went-wrong) | `~/.local/state/filigrane/incidents/<id>.json` | each application | `fili-incident`, handlers |
 | [Handlers](#incident-handlers) | `shell/incident/<name>.toml` | an optional package (`fili-ai`) | `fili-incident` |
 | [Events](#events-something-happened) | `$XDG_RUNTIME_DIR/fili/events/` | anyone (`fili-event emit`) | anyone (`fili-event watch`) |
+| [Assistant state](#the-assistant) | `$XDG_RUNTIME_DIR/fili/ai/ui.json` | the assistant's interface | the shell (`AiState.qml`) |
 | [Logs](#logs) | `~/.local/state/filigrane/logs/<app>.log` | each application | the Debug panel, `fili-incident` |
 
 `shell/` is the folder a package installs into `/usr/share/filigrane/shell/` (or `~/.local/share/filigrane/shell/` for a build
@@ -119,6 +120,27 @@ With a handler, the notification also offers its `label`, and `fili-incident ask
 `fili-event list [NAME]` shows the latest ones, `fili-event watch [NAME]` prints each new one as a line of JSON (inotify when
 `inotifywait` is installed, a one-second poll otherwise). The folder is a tmpfs, keeps the last 100 events, and nobody has to
 listen: no daemon. Names in use: `incident.new` (`data`: the incident id).
+
+## The assistant
+
+The assistant (Rob, `fili-ai`) is an optional client of the contracts above, and the shell knows it through two things only, so
+that it can be a window of the shell today and an application of its own tomorrow, or be absent:
+
+- **Present** when the program `fili-ai-daemon` is installed (an application's "Ask Rob" button shows only then).
+- **Commands**: `fili-ai toggle` (notes the focused application, then shows or hides the interface), `fili-ai show` and
+  `fili-ai hide` (without noting it: the bar, the notifications), `fili-ai here [TEXT]` (a session scoped to the focused
+  application: Mod+Ctrl+Y, "Ask Rob…"), `fili-ai ask TEXT`, `fili-ai sessions`, `fili-ai send ID TEXT`.
+- **State**: the assistant's interface writes `$XDG_RUNTIME_DIR/fili/ai/ui.json` on each change, atomically, and the shell reads it
+  (`AiState.qml`: the bar, the application menu and the agent panel use nothing else):
+
+```json
+{ "v": 1, "open": true, "focused": false, "attention": "waiting", "busy": true }
+```
+
+`open`: the interface is shown; `focused`: it has the keyboard focus (the bar then shows its menu); `attention`: `waiting` (a
+permission is asked), `done` (an answer was finished and not read) or empty; `busy`: a session is working. All five keys are
+required; `fili-api-lint ai-ui FILE` defines the format. The terminal sessions of the agents are another source, written by
+`fili-ai-session` (`$XDG_RUNTIME_DIR/fili-ai/state.json`).
 
 ## Logs
 
