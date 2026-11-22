@@ -120,7 +120,7 @@ Singleton {
         if (FiliChat.attention === "waiting")
             FiliChat.show();
         else
-            FiliTheme.run(FiliTheme.bin + "/fili-ai-session focus");
+            FiliTheme.run(FiliTheme.tool("fili-ai-session") + " focus");
     }
     Connections {
         target: Niri
@@ -131,7 +131,7 @@ Singleton {
     function aiSeen() {
         for (const s of aiData.sessions ?? [])
             if (s.attention && s.window !== undefined && s.window === Niri.focusedId)
-                FiliTheme.run(FiliTheme.bin + "/fili-ai-session seen " + s.id);
+                FiliTheme.run(FiliTheme.tool("fili-ai-session") + " seen " + s.id);
     }
     // Name of a session: title of its window (subject given by Claude Code, without its activity indicator ✳ ◐ ⠋...), else its folder
     function aiName(s, windows) {

@@ -45,7 +45,7 @@ ColumnLayout {
             detail: view.stateText(modelData.state)
             sel: modelData.state === "waiting"
             dim: modelData.window === undefined
-            onClicked: view.go(FiliTheme.bin + "/fili-ai-session focus " + modelData.id)
+            onClicked: view.go(FiliTheme.tool("fili-ai-session") + " focus " + modelData.id)
         }
     }
     // What the asking session wants (permission or question), under its row
@@ -85,7 +85,7 @@ ColumnLayout {
         objectName: "agent-new"
         glyph: "\uf067"
         label: FiliI18n.tr("New terminal session")
-        onClicked: view.go(FiliTheme.bin + "/fili-ai-session new")
+        onClicked: view.go(FiliTheme.tool("fili-ai-session") + " new")
     }
     PanelButton {
         objectName: "agent-pick"

@@ -166,6 +166,9 @@ fi
 if want 'bar/modules/power/|check-power-level'; then
 python3 -I "$ROOT/tests/fili-shell/check-power-level.py" "$ROOT" || exit 1
 fi
+if want 'FiliTheme.qml|bar/modules/(appmenu|agent)/|bar/BarState.qml|check-packaged-tools'; then
+python3 -I "$ROOT/tests/fili-shell/check-packaged-tools.py" "$ROOT" || exit 1
+fi
 if want 'FiliNotification|check-notification-buttons'; then
 python3 -I "$ROOT/tests/fili-shell/check-notification-buttons.py" "$ROOT" || exit 1
 fi

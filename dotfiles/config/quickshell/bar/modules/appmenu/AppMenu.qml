@@ -284,7 +284,7 @@ Singleton {
         if (w && w.pid && (spec.menus ?? []).length === 0 && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
             pending = true;
             query.queryGen = gen;
-            query.command = [FiliTheme.bin + "/fili-appmenu", "menu", String(w.pid), w.title ?? ""];
+            query.command = [FiliTheme.tool("fili-appmenu"), "menu", String(w.pid), w.title ?? ""];
             query.running = true;
         } else {
             source = "fallback";
@@ -486,7 +486,7 @@ Singleton {
         } else if (e.niri) {
             Niri.action(...e.niri);
         } else if (e.svc) {
-            const cmd = [FiliTheme.bin + "/fili-appmenu", "do", e.svc, e.path];
+            const cmd = [FiliTheme.tool("fili-appmenu"), "do", e.svc, e.path];
             if (FiliTheme.testing)
                 FiliTheme.ran = FiliTheme.ran.concat([cmd.join(" ")]);
             else
@@ -502,7 +502,7 @@ Singleton {
         expander.target = entry;
         expander.depth = depth;
         expander.expandGen = gen;
-        expander.command = [FiliTheme.bin + "/fili-appmenu", "expand", entry.svc, entry.path];
+        expander.command = [FiliTheme.tool("fili-appmenu"), "expand", entry.svc, entry.path];
         expander.running = true;
     }
     Process {
