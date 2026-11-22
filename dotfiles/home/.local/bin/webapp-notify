@@ -6,7 +6,7 @@
 # - no sender: open webapp (Chrome), recognised by its name or host in the sending app, the title or the body
 # The original notification is removed then re-emitted under the name of the webapp (notif-focus focuses it or reopens it on click)
 # and pushed into bar-alert (kind = lowercase name without spaces).
-# Chrome notifications not recognised: logged in $XDG_RUNTIME_DIR/webapp-notify.log. Proton Mail already has mail-notify.
+# Chrome notifications not recognised: logged in $XDG_RUNTIME_DIR/webapp-notify.log. A mail service with a native listener has its own plugin.
 # Started by niri at login (restart loop).
 CONF="${XDG_CONFIG_HOME:-$HOME/.config}/webapps"
 RUN="${XDG_RUNTIME_DIR:-/tmp}"

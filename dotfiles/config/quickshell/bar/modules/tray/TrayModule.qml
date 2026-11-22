@@ -43,10 +43,10 @@ BarModule {
             objectName: "backup"
             title: FiliI18n.tr("Backup")
             value: BarState.backup
-            colors: ({ idle: FiliTheme.ardoise, active: FiliTheme.brume, failed: FiliTheme.cendre }); blinkClass: "active"
+            colors: ({ idle: FiliTheme.barMuted, active: FiliTheme.barText, failed: FiliTheme.cendre }); blinkClass: "active"
             click: FiliTheme.bin + "/bar-backup run"
         }
         // Drawer chevron: click = show / fold
-        BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.ardoise, open: FiliTheme.brume2 }); click: FiliTheme.bin + "/bar-tray toggle" }
+        BarScript { objectName: "tray-handle"; value: BarState.trayHandle; hideEmpty: false; colors: ({ "": FiliTheme.barMuted, open: FiliTheme.barText2 }); click: FiliTheme.bin + "/bar-tray toggle" }
     }
 }

@@ -1,5 +1,6 @@
 # LocalSend (protocol v2) in Rust, without a heavy runtime: localsendd (receiving) and lsend (sending, discovery).
-# No crate in this repository: bootstrap.sh (setup_apps) clones this source at this commit and builds it.
-url=https://github.com/x7ssss/localsend-daemon
-commit=1a37815ac0d7c3d46ffeb490f0f4c9466d5ebe4a
+# No crate in this repository: bootstrap.sh (setup_apps) clones this source at this commit and builds it. Continues
+# x7ssss/localsend-daemon (no longer available); the Filigrane changes are commits of that repository, not patches.
+url=https://github.com/filigrane-os/localsend-daemon
+commit=15251e7cac90dbdf4b2add9741a686e2feb0fadc
 bins="localsendd lsend"

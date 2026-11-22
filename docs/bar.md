@@ -1,12 +1,12 @@
 # The bar (fili-bar)
 
-The bar is the thin line at the top of every screen. In the interface it is simply called **Barre**; `fili-bar` is its name in the repository, the code and the commands. It is part of the *fili-shell* (Quickshell, QML) and is made of **modules**: small independent items, each one a folder.
+The bar is the thin line at the top of every screen. In the interface it is called **Passerelle**; `fili-bar` is its name in the repository, the code and the commands. It is part of the *fili-shell* (Quickshell, QML) and is made of **modules**: small independent items, each one a folder.
 
 Idle, a module shows little or nothing: indicators such as alerts, the timer or the recording mark only appear when they have something to say.
 
 ## Default layout
 
-Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `status`, `tray`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `notifications`, `clock`, `power`.
+Left, from the edge: `logo`, `appmenu` (`workspaces` is off by default: the workspaces are the strip at the left of the taskbar; `[modules.workspaces] enabled = true` brings it back). Right, in reading order: `status`, `tray`, `recorder`, `media`, `resources`, `agent`, `audio`, `keyboard`, `display`, `bluetooth`, `network`, `mail`, `notifications`, `clock`, `power`.
 
 | Module | Shows | Click |
 |---|---|---|
@@ -15,17 +15,22 @@ Left, from the edge: `logo`, `workspaces`, `appmenu`. Right, in reading order: `
 | `appmenu` | name and menus of the active application | open a menu (see below) |
 | `status` | screen recording, incoming SSH, airplane mode, VPN, pending updates (each hidden when idle) | recording: stop; airplane: turn off; updates: run them |
 | `tray` | system tray icons and the drawer chevron | chevron: show or fold the drawer |
-| `media` | current player | play / pause; middle: next; wheel: previous / next |
-| `resources` | CPU and memory; temperature and disk only when high | monitor panel |
-| `agent` | the AI agent (waiting, done) | sessions panel |
-| `audio` | output volume | sound panel; middle: mute; wheel: volume; right: mixer |
+| `recorder` | Cassette (k7), the sound recorder: in the drawer at rest, `REC` in the bar while it records | panel: input and output (each one optional), start / stop, Open Cassette (the window: recordings and player); middle: start / stop; right: menu (open Cassette, start / stop, recordings folder) |
+| `baladeur` | "Artist - Title" of Baladeur (fili-music) with previous / next buttons, while it runs (it stays alive when its window is closed) | panel: the player and the whole queue (filter, volume dial, actions); middle: play / pause; wheel: previous / next; right: menu (open Baladeur, play / pause, previous / next) |
+| `media` | current player | play / pause; middle: next; wheel: previous / next; right: menu (player window, controls) |
+| `resources` | CPU and memory; temperature and disk only when high | monitor panel; right: menu (open the process monitor) |
+| `agent` | the AI agent (waiting, done) | sessions panel; right: menu (open the agent, choose it) |
+| `audio` | output volume | sound panel; middle: mute; wheel: volume; right: menu (open the mixer, mute) |
 | `keyboard` | layout | panel; middle: next layout |
 | `display` | screens | panel; wheel: brightness |
-| `bluetooth` | adapter and devices | panel |
+| `bluetooth` | adapter and devices | panel; right: menu (open the Bluetooth manager) |
 | `network` | Wi-Fi | panel; right: network menu |
+| `mail` | unread mail over every account (Facteur); hidden when there is none | open Facteur; right: menu (open Facteur) |
 | `notifications` | notification count | history; right: do not disturb |
 | `clock` | date and time | pinned calendar |
 | `power` | battery | panel; right: system menu |
+
+**One rule for every module**: click = the panel (the main action when there is no panel), right click = the module's menu (a small panel, `BarModule.contextMenu(items)`; its first row opens the module's application when it has one), middle click = a quick action also shown in the tooltip, wheel = the module's value. The application is also reachable from the panel itself (the cover of Baladeur, "Open Cassette", "Open" of Messages).
 
 A click that opens a panel opens a **fili-panel** under the item. `Esc`, a click elsewhere or another click closes it. `Mod+A` opens the panels from the keyboard, and the arrows move from one module to the next, in the order of the bar.
 
@@ -33,9 +38,68 @@ A click that opens a panel opens a **fili-panel** under the item. `Esc`, a click
 
 The `tray` module folds the indicators that are not in use. Folded, only the ones that have something to show stay visible; the chevron unfolds all of them. `bar-tray toggle` does the same from a script.
 
+### A bar that adapts to its screen
+
+When the right row no longer fits next to the left one, the bar **squeezes** itself one level at a time, per screen, and goes back as soon as there is room again (a column never squeezes). Each module says in its `module.toml` what it gives up and at which level:
+
+| Level | What happens |
+|---|---|
+| 1 | `media`: the title goes, the icon stays (title and artist stay in the card) |
+| 2 | `clock`: the time alone, the date stays in the card and the calendar; `agent`: icon alone |
+| 3 | `resources`, `keyboard`, `display` move into the drawer |
+| 4 | `audio`, `network`, `bluetooth`, `power`: icon alone |
+
+`compact_at = N` is the level from which a module shows its compact form (`display = "icon"` for `BarItem` and `BarScript`; a module with its own layout reads `compact`), `drawer_at = N` the level from which it goes into the drawer. Both work in a `module.toml` and in `[modules.<name>]`; a module without them never changes. What you set yourself (`display = "value"`, `tray = "idle"`) wins over the squeeze. The application menu is the last to give way: the right row squeezes to leave it all its titles (up to 480 px), then it keeps at least 200 px and truncates its titles with `…`.
+
+The `status` module is a single icon for the indicators (recording, SSH, airplane mode, VPN, updates): it shows the most urgent one, with a count when several are active, and nothing while none is. A click opens a panel with one row per indicator and its action.
+
 ### The application menu
 
 `appmenu` is the global menu: the name of the active application in bold, then its menus, like the classic Mac OS X menu bar. It reads the application's menu bar through AT-SPI (GTK, Qt) or, for applications that export none, a hand-written fallback in `dotfiles/config/filigrane/appmenu/<app_id>.json` (personal ones in `users/<login>/dotfiles/config/filigrane/appmenu/`). Menus that do not fit move into a `…` title. `Mod+F10` gives the menu the keyboard focus.
+
+## The taskbar (Quai)
+
+A second bar, **fili-taskbar** (shown as **Quai** to the user), runs along the bottom of every screen (`bar/FiliTaskbar.qml`, logic in `bar/TaskbarLayout.qml`). It lists **every window of that screen grouped by workspace**, in the order niri lays them out (columns left to right), so that one glance tells what runs where, including the windows scrolled out of view.
+
+| Action | Result |
+|---|---|
+| click on a window | focus it, whatever its workspace |
+| middle click | close it |
+| click on a workspace label | go to the workspace |
+| click on a merged icon or a folded workspace | list of its windows |
+| hover | fili-tooltip: application, titles, urgent windows, "Tab 2 of 3" |
+
+**Tabs.** The windows of a column in tabbed display (niri's `Mod+W`) carry a thin line along the outer edge of their icons, one segment per tab, joining them visually (the focus mark says which one is active; the tooltip says "Tab 2 of 3"; the active tab is the last focused of the column). niri does not report tabbed columns, so they are recognised by their height: two or more windows of one column, each taller than 3/4 of the screen (`Niri.isTall`, `TaskbarLayout.tabbed`). Merged icons (squeeze level 2) show none.
+
+**Numbers.** Every window has a number, shown on its icon at all times: the lowest free number (1, 2, 3...) when it opens, the same on every screen, kept while the window lives and given back when it closes. They are saved in `~/.local/state/filigrane/window-numbers.json`, so reloading the shell does not renumber. A merged icon shows `3+2` (its first number and how many more); the hover and the list show them all.
+
+To go to a window by its number, hold **Mod+Alt**, type the whole number (one or more digits) and release: the focus goes to the window. Esc cancels, Backspace erases a digit, Enter validates at once. niri cannot bind Mod+Alt alone, so the digits are bound (`fili-shell taskbar N`): the keypad (`Mod+Alt+KP_0..9`, with or without NumLock) in the distribution, and the number row of layouts that type symbols (bépo) in the layer of the user, e.g. `Mod+Alt+quotedbl` for the 1. The bar of the focused screen takes the keyboard to see the release; if a key is missed, the mode validates by itself 1.2 s after the last digit.
+
+Like the fili-bar it squeezes itself per screen, one level at a time while its row does not fit: 0 icon and title of every window; 1 the title of the focused window only; 2 the windows of one application in a workspace merge into one icon with a count; 3 the workspaces that are not shown on their screen fold into a label and a count.
+
+Settings, all optional, in `fili-bar.toml`:
+
+```toml
+[taskbar]
+enabled = true     # false: no taskbar
+scale = 100        # size of the bar, its text and its icons, in percent (80 to 160)
+edge = "bottom"    # "bottom" (default) or "top"; if the fili-bar is on that edge, the taskbar takes the other one
+screens = "all"    # "all" or a list of output names, like [bar] screens
+autohide = false   # true: hidden until the pointer touches its edge; it then takes no room (windows use the whole screen)
+background = "solid"  # "solid" (default) | "translucent" | "transparent"
+```
+
+**Workspaces and titles.** The strip at the left lists the workspaces of the screen in alphanumeric order of their names (`2` before `10`), the unnamed ones last, so a workspace keeps its place whatever niri's order. The titles of the windows share the room: they shrink (down to 64 px) before any is dropped, then only the focused one keeps its title, then the windows of one application merge, then the other workspaces fold.
+
+**Edge.** `edge` is `top`, `bottom`, `left` or `right`. On the left or the right the Quai is a narrow column (as wide as the Quai is high on the top or the bottom: `taskbar_height` of the theme, 32): one icon over its number per window. It never shares the edge of the fili-bar (it takes the opposite one) and keeps clear of its corner.
+
+**Text over a see-through background.** With a `translucent` or `transparent` background (of the fili-bar or of the Quai) the text colour follows what is behind: `bar-luma` measures the wallpaper under each edge (ImageMagick, once per wallpaper), and the bar uses dark text over a light wallpaper, light text over a dark one (the logo changes with it). A transparent bar has no line on its inner edge.
+
+**Right click** on the background of the fili-bar or of the Quai opens the same panel for both: edge, background, screens (and hiding for the Quai), with a gear to its page of Settings (Bar, Quai).
+
+With `autohide` only a 2 px line stays on the edge; the pointer on it, the number mode (Mod+Alt), an open menu or list, and the half second after the pointer left show the bar. `background` is the same choice as `[bar] background` for the fili-bar. All of it is in **Settings > Bar** (the fili-bar background, then the Quai: shown, edge, hiding, background, screens), and from the command line: `fili-bar background transparent`, `fili-bar taskbar autohide true`, `fili-bar taskbar` (shows the settings).
+
+Its height is `taskbar_height` of the theme (32 by default) times `scale` (Settings > Quai > Size, or `fili-bar taskbar scale 120`; the text and the icons follow) and is added to `FiliTheme.barMargin`, so the full-screen shell windows stay clear of it.
 
 ## Choosing and ordering modules
 
@@ -54,7 +118,8 @@ To change the defaults, create `~/.config/filigrane/fili-bar.toml` (re-read as s
 
 ```toml
 [bar]
-edge = "top"         # "top" (default), "bottom", "left" or "right": on the left and the right the bar is a narrow column
+edge = "top"         # "top" (default), "bottom", "left" or "right"
+background = "solid"  # "solid" (default) | "translucent" | "transparent": on the left and the right the bar is a narrow column
 screens = "all"      # "all" (default) or a list of output names, e.g. ["eDP-1", "DP-6"]
 
 [modules]
@@ -90,16 +155,51 @@ fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on
 fili-bar screens [all|NAME...]         screens that get a bar
 fili-bar new NAME [--qml]              skeleton of a plugin (script, or QML module)
 fili-bar check DIR|NAME                check a manifest and its script
-fili-bar install URL [--commit REV]    clone a plugin; shows its manifest, then --yes to install
+fili-bar install URL [--commit REV]    clone a plugin (a repository `fili-bar-NAME` installs as `NAME`); shows its manifest, then --yes
+fili-bar setup NAME                    run the install.sh of a plugin again
+fili-bar autostart [--force]           start the autostart commands of the enabled plugins (niri runs it at login)
 fili-bar remove NAME                   remove a plugin (to the trash)
 fili-bar sync                          clone the pinned plugins of bar-plugins.toml (new machine)
 ```
 
 `enable`, `disable` and `move` write `[modules.<name>]` in `~/.config/filigrane/fili-bar.toml`, which the bar re-reads at once. Plugins you add live in `~/.local/share/filigrane/bar/plugins/<name>/`, never in the repository, and are linked into `~/.config/quickshell/bar/modules/<name>`. `install` records `name = "url@commit"` in `~/.config/filigrane/bar-plugins.toml`, so `sync` brings the same commits back on another machine. A manifest with an `api` newer than the bar's is refused. A plugin is code with your rights, without a sandbox: read what `install` shows, and the script, before saying `--yes`. A new plugin shows after the shell restarts.
 
-### Settings > Barre
+### Settings > Passerelle
 
 A right click on the bar background opens a panel with the edge and the screens (also `fili-bar edge` and `fili-bar screens`), and a shortcut to **Settings › Barre**. The same choices are in **Settings › Barre** (`fili-shell settings bar`, or the foot of a panel): a switch to show or hide each module, arrows to move it up or down its row and to the other side. The page runs `fili-bar`, so it writes the same `fili-bar.toml`. An explicit `left` / `right` list in that file wins over the order of the page, and the page says so.
+
+## Shipped by an application
+
+A Filigrane application brings everything it adds to the desktop in **its own repository** and installs it with its package, so
+updating the application is updating one package. Nothing of it lives in this repository. The application's `make install`
+(and `make install-data`, which installs everything but the programs) puts the following in `$(DATADIR)/filigrane/shell/`
+(`/usr/share/filigrane/shell/` for a package, `~/.local/share/filigrane/shell/` for a build from source by `bootstrap.sh`):
+
+```
+shell/fili-bar/<module>/   module.toml, <Name>Module.qml, <Name>Panel.qml, i18n/fr.json   a module of the bar (optional)
+shell/appmenu/<app_id>.json                                                               the fallback menu of the global menu
+shell/rob/<app_id>.md                                                                     the hidden brief of Rob for this application
+```
+
+The launcher (`data/<app_id>.desktop`) and the icon go to the usual `applications/` and `icons/` directories. One application
+may ship several module folders; a module folder is named after the module, which is the name the bar and `fili-bar.toml` use.
+
+`fili-bar link-system` (run by `fili-bar autostart`, so at each login, and by `bootstrap.sh`) links each shipped module folder
+into `~/.config/quickshell/bar/modules/` and each shipped menu into `~/.config/filigrane/appmenu/`. `fili-bar list` marks such a
+module `(app)`. Precedence: **a module of the repository, a plugin, or a file of your own with the same name always wins**; the
+command never replaces them. It also forgets the links of what a package no longer ships, so removing the package removes the
+module and the menu from the bar. `FILI_SHELL_DIRS` (colon separated) replaces the two directories, for tests.
+
+The brief of Rob is read by `fili-chat` from `agents/rob/<app_id>.md` of the repository when it exists (programs that have no
+repository of their own), else from the shipped `rob/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/rob/<app_id>.md`
+adds personal lines. The menu check of each application (`scripts/check-shell-menu.py`, run by its `make test` or `make check`)
+verifies that the shipped menu agrees with the window and that the brief exists. The shell bench (`tests/fili-shell/run.sh`)
+loads the modules and menus shipped by the pinned applications, like a machine where the packages are installed
+(`FILI_SRC_<APP>=~/Projects/<app>` for a local checkout).
+
+What stays in this repository: the shell itself, the generic modules (clock, audio, network…), `_default.json`, the menus of
+programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Rob
+(`apps/fili-chat`).
 
 ## Writing a module
 
@@ -173,6 +273,41 @@ printf '{"text": " %s", "tooltip": "%s"}\n' "$(uptime -p | sed 's/up //')" "$(up
 | `title`, `hint` | name and help line of the tooltip |
 
 The output protocol is the one of `BarScript` above (`text`, `class`, `tooltip`); an empty `text` hides the module. `side`, `order`, `display`, `tray` and `show` work as for any module. A plugin runs with your rights: read its script before adding it.
+
+### Packages a plugin needs
+
+A plugin lists the xbps packages it depends on in its manifest:
+
+```toml
+packages = ["socat", "go"]
+```
+
+`fili-bar install` shows them, with the ones that are missing; with `--yes` it installs the missing ones with `sudo xbps-install -y` before running `install.sh`. `fili-bar setup NAME` and `fili-bar sync` do the same on another machine. Name only what the plugin needs; the Filigrane rule applies: if a package is heavy, say so in the README of the plugin (the user sees the list before saying `--yes`).
+
+### `extras/`: small files shipped with the plugin
+
+A plugin may ship small configuration files in `extras/config/PATH`: a fallback app menu for a web app (`filigrane/appmenu/APP_ID.json`), an icon (`webapps/icons/NAME.png`), a launcher menu entry (`menu/entries.d/NAME`, same `Label | mode | command` format as `menu/entries`). `fili-bar install` lists them before you say `--yes`, then links each file to `~/.config/PATH` (`fili-bar sync` does the same on another machine). A file you already have at that place is never replaced, and `fili-bar remove` removes only the links it made.
+
+### `install.sh`: first-run setup
+
+A plugin may ship an optional `install.sh` at its root: the steps that make it work (build a daemon, store a credential in the keyring, copy `config.example.toml` to the options file, run `rclone config`). `fili-bar install` shows it with the manifest, runs it with `--yes` once the plugin is in place, and `fili-bar sync` runs it for every plugin it clones on a new machine. `fili-bar setup NAME` runs it again.
+
+- It runs with `sh`, in the folder of the plugin, with `FILI_BAR_PLUGIN` (the name) and `FILI_BAR_OPTIONS` (the options file) in the environment.
+- It must be idempotent: running it twice changes nothing.
+- It never writes a secret in the plugin folder (credentials go to the keyring or to a file under `~/.config`), and never calls `sudo` without saying so on screen.
+- A failure is reported and the plugin stays installed; fix it, then `fili-bar setup NAME`.
+
+### Starting a daemon at login
+
+A plugin that needs a background process lists its commands in the manifest:
+
+```toml
+autostart = ["./bin/my-daemon", "while :; do other-tool; sleep 30; done"]
+```
+
+niri runs `fili-bar autostart` at login (once per session; `--force` runs it again). Each command starts detached, in the folder of the plugin, through `sh -c`; a disabled plugin (`fili-bar disable NAME`) starts nothing. The commands must tolerate a second instance (a lock, as `flock -n` in a script) and restart themselves if they should survive a crash. The key is optional and ignored by a bar that does not know it.
+
+A program that is not tied to a bar module (a daemon you want at every login, such as the headless Proton Bridge) does not need a plugin: add it on the **Login** page of Settings, by picking an installed application there, or with `fili-login add NAME COMMAND` (also `list`, `edit`, `remove`, `enable`, `disable`, `run`). The items live in `~/.config/filigrane/login.toml` (personal ones in `users/<login>/dotfiles/config/filigrane/`), and niri runs `fili-login start` at login, once per session. The same rules apply: the command must tolerate a second instance and restart itself if it should survive a crash; it cannot contain a double quote or a backslash.
 
 ### Translations and options of a plugin
 

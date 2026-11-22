@@ -6,7 +6,7 @@ import qs.bar
 BarModule {
     id: nat
     property string text
-    property color color: FiliTheme.brume
+    property color color: FiliTheme.barText
     property alias hover: hov
     property var tip
     property alias tipInfo: hov.tipInfo

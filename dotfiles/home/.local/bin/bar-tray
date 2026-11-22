@@ -1,5 +1,5 @@
 #!/bin/sh
-# Drawer of the bar left of the clock (backup, mail, WhatsApp, calendar at rest, system tray): `bar-tray toggle`
+# Drawer of the bar left of the clock (backup, mail, chat, calendar at rest, system tray): `bar-tray toggle`
 # opens or folds it. State: presence of $XDG_RUNTIME_DIR/bar-tray-open, read by the bar (BarState.qml), without a daemon.
 f="${XDG_RUNTIME_DIR:-/tmp}/bar-tray-open"
 case "$1" in

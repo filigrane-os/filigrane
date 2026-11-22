@@ -44,6 +44,11 @@ Singleton {
     readonly property bool trayOpen: trayF.exists
     readonly property var trayHandle: trayOpen ? { text: "", class: "open", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: fold") } } : { text: "", tooltip: { title: FiliI18n.tr("Drawer"), hint: FiliI18n.tr("click: show the backup") } }
 
+    // ───── status indicators ─────
+    // Rows of the status panel ({ key, glyph, title, detail, click }), published by the status module: the active
+    // indicators (recording, SSH, airplane mode, VPN, updates) merged into one bar icon
+    property var statusRows: []
+
     // ───── backup ─────
     // Folded, visible only while running or on failure; back at rest, it stays 10 s (to be able to run it again
     // after a click by mistake)
@@ -177,7 +182,7 @@ Singleton {
         const card = {
             title: sessions.length ? "Claude Code" : FiliI18n.tr("AI agent"),
             rows: rows,
-            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: choose the agent")
+            hint: FiliI18n.tr("click: agent panel · Super+click or middle click: go to what is asking · right click: menu")
         };
         if (calls.some(s => s.state === "waiting"))
             return { text: icon + " ASK", class: "waiting", tooltip: card };

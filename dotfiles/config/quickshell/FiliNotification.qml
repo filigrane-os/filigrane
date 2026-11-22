@@ -344,10 +344,16 @@ Singleton {
         }
         // Action buttons (above the click area of the bubble)
         Row {
+            id: btnRow
             z: 2
             visible: card.btns.length > 0
             anchors { right: parent.right; bottom: parent.bottom; margins: FiliTheme.space3 }
             spacing: FiliTheme.space2
+            // Natural width of all buttons; when it exceeds the card, every button shrinks by the same
+            // factor and its label is elided, so the row never overflows the bubble.
+            property real natural: 0
+            readonly property real avail: card.width - 2 * FiliTheme.space3 - spacing * Math.max(0, card.btns.length - 1)
+            readonly property real fit: natural > avail && natural > 0 ? avail / natural : 1
             Repeater {
                 model: card.btns
                 Rectangle {
@@ -356,12 +362,18 @@ Singleton {
                     required property int index
                     objectName: "notif-action-" + modelData.identifier
                     height: 24
-                    width: label.implicitWidth + 2 * FiliTheme.space3
+                    readonly property real naturalWidth: label.implicitWidth + 2 * FiliTheme.space3
+                    width: naturalWidth * btnRow.fit
+                    Component.onCompleted: btnRow.natural += naturalWidth
+                    Component.onDestruction: btnRow.natural -= naturalWidth
                     radius: FiliTheme.radiusControl
                     color: index === 0 ? (btnArea.containsMouse ? FiliTheme.voileVif : FiliTheme.voile) : btnArea.containsMouse ? FiliTheme.nuit4 : FiliTheme.nuit3
                     Text {
                         id: label
                         anchors.centerIn: parent
+                        width: Math.min(implicitWidth, btn.width - 2 * FiliTheme.space2)
+                        elide: Text.ElideRight
+                        horizontalAlignment: Text.AlignHCenter
                         text: btn.modelData.text
                         color: btn.index === 0 ? FiliTheme.nuit : FiliTheme.brume
                         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeList; weight: FiliTheme.weightAccent }

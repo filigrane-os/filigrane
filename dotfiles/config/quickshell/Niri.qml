@@ -10,18 +10,49 @@ Singleton {
     property var workspaces: []
     property var windows: ({})
     property var focusedId: null
+    // Order in which the windows had the focus (id -> sequence number): the active tab of a tabbed column is the last
+    // focused window of the column. Seeded from niri's focus timestamps, then counted up here.
+    property var focusSeq: ({})
+    property real focusClock: 0
+    function setFocused(id) {
+        if (id !== null && id !== undefined) {
+            niri.focusClock += 1;
+            niri.focusSeq[id] = niri.focusClock;
+        }
+        niri.focusedId = id;
+    }
+    // Windows of a tabbed column are as tall as the column, those of a stacked one share its height: a tile taller than
+    // 3/4 of its screen can only be a lone window or a tab (niri does not say which columns are tabbed). A window
+    // carries it as `tall`.
+    function isTall(w, layout) {
+        const h = layout?.tile_size?.[1];
+        if (!h || !layout.pos_in_scrolling_layout)
+            return false;
+        const out = (niri.workspaces.find(x => x.id === w.workspace_id) ?? {}).output;
+        const screen = Quickshell.screens.find(s => s.name === out);
+        return !!screen && h > 0.75 * screen.height;
+    }
     property var layouts: []
     property int layout: 0
     // Layout used before the current one ("previous" toggle, like Ctrl+Space of the Omarchy picker)
     property int previousLayout: -1
 
     readonly property var focused: focusedId !== null ? windows[focusedId] ?? null : null
+    // A window opened after the start of the stream (not one of the windows already there)
+    signal windowOpened(var window)
+    property bool seeded: false
 
     function action(...args) {
         if (FiliTheme.testing)
             FiliTheme.ran = FiliTheme.ran.concat(["niri msg action " + args.join(" ")]);
         else
             Quickshell.execDetached(["niri", "msg", "action", ...args]);
+    }
+
+    // Niri action on a given display (connector): focus-monitor first, since focus-workspace N and
+    // focus-workspace-up/down act on the display that has the focus
+    function onOutput(output, act) {
+        FiliTheme.run("niri msg action focus-monitor '" + String(output).replace(/'/g, "") + "' && niri msg action " + act);
     }
 
     // Window of an MPRIS player (niri id, or null): browsers publish "…instance<pid>" (the pid of the window),
@@ -57,13 +88,72 @@ Singleton {
         action("switch-layout", String(i));
     }
 
+    // Temporary numbers (numbered workspaces, Settings > Workspaces): the pinned workspaces are 1..pinnedMax (written
+    // by fili-app-output, 0 = numbering off: nothing is touched). Any other workspace with a window gets the lowest free number above
+    // them (up to 9) as its niri name, so that its key (Mod+N) reaches it; a name above pinnedMax goes away when the
+    // workspace empties. fili-app-output move-to creates such a workspace by name.
+    property int pinnedMax: 0
+    // ids whose name was just set or removed and not yet confirmed by niri: id -> sent action
+    property var tempSent: ({})
+    FileView {
+        path: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/numbered-max"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: niri.pinnedMax = parseInt(text()) || 0
+        onLoadFailed: niri.pinnedMax = 0
+    }
+    function ipc(actions) {
+        if (FiliTheme.testing) {
+            FiliTheme.ran = FiliTheme.ran.concat(actions.map(a => "niri ipc " + JSON.stringify(a)));
+            return;
+        }
+        Quickshell.execDetached(["sh", "-c", "for a; do printf '%s\\n' \"$a\"; done | socat - \"UNIX-CONNECT:$NIRI_SOCKET\" > /dev/null", "sh"].concat(actions.map(a => JSON.stringify({ Action: a }))));
+    }
+    function tempNumbering() {
+        const ws = workspaces, sent = {};
+        const hasWin = id => Object.values(windows).some(x => x.workspace_id === id);
+        const max = pinnedMax;
+        if (max === 0)
+            return; // numbering off: names are the user's
+        const acts = [], used = new Set(ws.filter(w => w.name).map(w => w.name));
+        for (const w of ws) {
+            const n = /^[0-9]+$/.test(w.name ?? "") ? parseInt(w.name) : 0;
+            if (n > max) {
+                if ((!hasWin(w.id) && !w.is_active) && tempSent[w.id] !== "unset") {
+                    sent[w.id] = "unset";
+                    acts.push({ UnsetWorkspaceName: { reference: { Id: w.id } } });
+                }
+            } else if (max > 0 && !w.name && hasWin(w.id)) {
+                if (tempSent[w.id] !== undefined && tempSent[w.id] !== "unset") {
+                    sent[w.id] = tempSent[w.id];
+                    continue;
+                }
+                let k = max + 1;
+                while (k <= 9 && used.has(String(k)))
+                    k++;
+                if (k > 9)
+                    continue;
+                used.add(String(k));
+                sent[w.id] = String(k);
+                acts.push({ SetWorkspaceName: { name: String(k), workspace: { Id: w.id } } });
+            }
+        }
+        if (JSON.stringify(sent) !== JSON.stringify(tempSent))
+            tempSent = sent;
+        if (acts.length > 0)
+            ipc(acts);
+    }
+    onWorkspacesChanged: tempNumbering()
+    onWindowsChanged: tempNumbering()
+
     function setWindows(m) {
         windows = m;
     }
     // Fields of a window read by the bar: niri sends the whole window at every move or resize
     // (layout), without changing anything that is displayed
     function same(a, b) {
-        return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id;
+        return a && a.title === b.title && a.app_id === b.app_id && a.workspace_id === b.workspace_id
+            && a.is_urgent === b.is_urgent && a.is_floating === b.is_floating && a.tall === b.tall;
     }
 
     // Event stream read directly from the niri socket ("EventStream" request), without a `niri msg` process
@@ -96,14 +186,21 @@ Singleton {
                     niri.workspaces = niri.workspaces.map(w => w.output === out ? Object.assign({}, w, { is_active: w.id === id }) : w);
                 } else if (ev.WindowsChanged) {
                     const m = {};
+                    const seen = ev.WindowsChanged.windows.slice().sort((a, b) => ((a.focus_timestamp?.secs ?? 0) - (b.focus_timestamp?.secs ?? 0)) || ((a.focus_timestamp?.nanos ?? 0) - (b.focus_timestamp?.nanos ?? 0)));
+                    for (const w of seen)
+                        niri.focusSeq[w.id] = ++niri.focusClock;
                     for (const w of ev.WindowsChanged.windows) {
+                        w.tall = niri.isTall(w, w.layout);
                         m[w.id] = w;
                         if (w.is_focused)
-                            niri.focusedId = w.id;
+                            niri.setFocused(w.id);
                     }
                     niri.setWindows(m);
+                    niri.seeded = true;
                 } else if (ev.WindowOpenedOrChanged) {
                     const w = ev.WindowOpenedOrChanged.window;
+                    w.tall = niri.isTall(w, w.layout);
+                    const opened = niri.seeded && niri.windows[w.id] === undefined;
                     if (niri.same(niri.windows[w.id], w)) {
                         niri.windows[w.id] = w;
                     } else {
@@ -112,13 +209,33 @@ Singleton {
                         niri.setWindows(m);
                     }
                     if (w.is_focused)
-                        niri.focusedId = w.id;
+                        niri.setFocused(w.id);
+                    if (opened)
+                        niri.windowOpened(w);
+                } else if (ev.WindowLayoutsChanged) {
+                    // Position of a window in its workspace (taskbar order): the rest of the layout changes at every
+                    // move or resize and is not worth a new model, so only a new column / row, or a change of height class (tabbed or not), republishes
+                    let m = null;
+                    for (const [id, layout] of ev.WindowLayoutsChanged.changes) {
+                        const w = niri.windows[id];
+                        if (!w)
+                            continue;
+                        const tall = niri.isTall(w, layout);
+                        if (JSON.stringify(w.layout?.pos_in_scrolling_layout) !== JSON.stringify(layout?.pos_in_scrolling_layout) || w.tall !== tall) {
+                            m = m ?? Object.assign({}, niri.windows);
+                            m[id] = Object.assign({}, w, { layout: layout, tall: tall });
+                        } else {
+                            w.layout = layout;
+                        }
+                    }
+                    if (m)
+                        niri.setWindows(m);
                 } else if (ev.WindowClosed) {
                     const m = Object.assign({}, niri.windows);
                     delete m[ev.WindowClosed.id];
                     niri.setWindows(m);
                 } else if (ev.WindowFocusChanged) {
-                    niri.focusedId = ev.WindowFocusChanged.id;
+                    niri.setFocused(ev.WindowFocusChanged.id);
                 } else if (ev.KeyboardLayoutsChanged) {
                     niri.layouts = ev.KeyboardLayoutsChanged.keyboard_layouts.names;
                     niri.layout = ev.KeyboardLayoutsChanged.keyboard_layouts.current_idx;

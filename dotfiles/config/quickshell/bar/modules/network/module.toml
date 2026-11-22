@@ -3,3 +3,4 @@ title = "Network"
 description = "Wi-Fi and network"
 side = "right"
 order = 100
+compact_at = 4

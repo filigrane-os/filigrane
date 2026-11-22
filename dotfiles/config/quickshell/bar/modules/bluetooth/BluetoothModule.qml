@@ -37,7 +37,7 @@ BarItem {
             return " SHARE";
         return " " + connected.length;
     }
-    color: !adapter ? FiliTheme.ardoise : FiliTheme.brume
+    color: !adapter ? FiliTheme.barMuted : FiliTheme.barText
     tip: !adapter ? { title: "Bluetooth", rows: [[FiliI18n.tr("State"), FiliI18n.tr("no adapter found")]], hint: FiliI18n.tr("click: Bluetooth panel") } : {
         title: "Bluetooth",
         rows: [[adapter.name, adapter.enabled ? FiliI18n.tr("on") : FiliI18n.tr("off")]].concat(
@@ -46,4 +46,5 @@ BarItem {
         hint: FiliI18n.tr("click: Bluetooth panel (pair, connect, forget)")
     }
     hover.onLeftClicked: togglePanel()
+    hover.onRightClicked: contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open the Bluetooth manager"), cmd: FiliTheme.bin + "/bar-tui bluetui", app: true }])
 }

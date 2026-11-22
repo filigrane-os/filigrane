@@ -10,6 +10,7 @@ It is not a Void fork: the distribution stays downstream of Void (same mirrors, 
 | Git repository (root) | The source: package lists, services, system settings, dotfiles, Rust tools. `bootstrap.sh` applies it |
 | Layers | distribution (root) → hardware (`hardware/<machine>`) → personal (`users/<login>`, never in the ISO) |
 | xbps repository (`build-repo.sh`) | `fili-<app>`: one package per tool in `apps/`, already built, no cargo needed (version from `Cargo.toml`, revision `_N` = commits touching `apps/<app>`, so every change to a tool is an update; dependencies in `apps/<app>/package.env`). `fili-apps`: meta-package depending on all of them. `fili-<list>`: one meta-package per `packages/<list>.txt` |
+| `fili-niri` (`niri/`) | niri with the Filigrane patch, replacing Void's `niri` until niri fixes [#2691](https://github.com/niri-wm/niri/issues/2691): rebuilt every day from Void's template by `.github/workflows/niri.yml`, with alerts (see `niri/README.md`) |
 | ISO (`build-iso.sh`) | Void console live system (`void-mklive`) with the xbps repository, a generic copy of the git repository and the `fili-install` installer |
 
 Philosophy (see `AGENTS.md`): the OS leaves RAM and CPU to the browser, agents and containers. Native Void packages come first, with no unnecessary daemon, no Electron, JVM or resident Node. Home-made tools are Rust binaries. `budget` measures how well this rule is kept.

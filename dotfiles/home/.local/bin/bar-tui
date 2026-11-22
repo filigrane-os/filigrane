@@ -1,12 +1,12 @@
 #!/bin/sh
-# Starts a TUI in a floating foot (niri rule on the app-id bar-tui). Usage: bar-tui CMD [ARGS...]
+# Starts a TUI in a floating terminal (Aéroport, or foot) (niri rule on the app-id bar-tui). Usage: bar-tui CMD [ARGS...]
 # If the same command already runs in a bar-tui window, it gets the focus instead of being started again
-# (comparison of the foot command line, the title can be changed by the TUI).
-want="$(printf '%s\0' foot --app-id bar-tui -T "$1" -e "$@" | tr '\0' ' ')"
+# (comparison of the terminal command line without the program name, the title can be changed by the TUI).
+want="$(printf '%s\0' --app-id bar-tui -T "$1" -e "$@" | tr '\0' ' ')"
 niri msg -j windows 2>/dev/null | jq -r '.[] | select(.app_id == "bar-tui") | "\(.id) \(.pid)"' |
 while read -r id pid; do
-    [ "$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null)" = "$want" ] && { niri msg action focus-window --id "$id"; exit 7; }
+    [ "$(tr '\0' ' ' <"/proc/$pid/cmdline" 2>/dev/null | cut -d' ' -f2-)" = "$want" ] && { niri msg action focus-window --id "$id"; exit 7; }
 done
 [ $? -eq 7 ] && exit 0
 # Detached (setsid -f): otherwise the terminal stays a child of the bar (click) and blocks the refresh of its modules
-setsid -f foot --app-id bar-tui -T "$1" -e "$@"
+setsid -f fili-terminal --app-id bar-tui -T "$1" -e "$@"

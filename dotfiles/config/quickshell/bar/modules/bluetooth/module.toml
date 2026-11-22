@@ -3,3 +3,4 @@ title = "Bluetooth"
 description = "Bluetooth devices"
 side = "right"
 order = 90
+compact_at = 4

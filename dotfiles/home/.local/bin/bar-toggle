@@ -35,12 +35,27 @@ case "$1" in
         fi
         sleep 0.5; "$HOME/.local/bin/fili-shell" bar refresh 11 ;;
     idle)
-        # Delays in seconds, 0 = never: ~/.config/filigrane/power.toml, [idle] lock, screen_off, sleep (written by the
-        # Power page of fili-settings through `bar-toggle idle set`). Defaults: lock 5 min, screen off 10 min, no
-        # automatic sleep (a long S3 sleep on battery can lose the session, see hardware/mac-t2/README.md).
+        # Delays in seconds, 0 = never: ~/.config/filigrane/power.toml, [idle] (plugged in) and [battery] (on battery),
+        # keys lock, screen_off, sleep (written by the Power page of fili-settings through `bar-toggle idle set`).
+        # Defaults plugged in: lock 5 min, screen off 10 min, no automatic sleep; on battery: 2 min, 5 min, no sleep
+        # (a long S3 sleep on battery can lose the session, see hardware/mac-t2/README.md).
+        # The set in use follows the power source: the power module of the bar runs `bar-toggle idle refresh` when it changes.
         conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/power.toml"
-        get() { v=$(sed -n "/^\[idle\]/,/^\[/s/^$1 *= *\([0-9][0-9]*\).*/\1/p" "$conf" 2>/dev/null | head -n1); echo "${v:-$2}"; }
-        lock=$(get lock 300); off=$(get screen_off 600); sleep_after=$(get sleep 0)
+        source_now() {
+            for f in /sys/class/power_supply/*/online; do
+                [ -r "$f" ] && [ "$(cat "${f%online}type" 2>/dev/null)" = Mains ] && { [ "$(cat "$f")" = 1 ] && echo ac || echo battery; return; }
+            done
+            echo ac
+        }
+        get() { v=$(sed -n "/^\[$1\]/,/^\[/s/^$2 *= *\([0-9][0-9]*\).*/\1/p" "$conf" 2>/dev/null | head -n1); echo "${v:-$3}"; }
+        load() {
+            if [ "$1" = battery ]; then
+                lock=$(get battery lock 120); off=$(get battery screen_off 300); sleep_after=$(get battery sleep 0)
+            else
+                lock=$(get idle lock 300); off=$(get idle screen_off 600); sleep_after=$(get idle sleep 0)
+            fi
+        }
+        src=$(source_now); load "$src"
         human() { if [ "$1" -eq 0 ]; then t 'never'; else printf '%s min' $(($1 / 60)); fi; }
         start() {
             set --
@@ -52,15 +67,27 @@ case "$1" in
                 after-resume '$HOME/.local/bin/bar-toggle night resume' >/dev/null 2>&1 &
         }
         case "$2" in
-            get) echo "$lock $off $sleep_after"; exit 0 ;;
+            get)
+                # bar-toggle idle get [ac|battery]: the delays of that source (default: the one in use)
+                [ -n "$3" ] && load "$3"
+                echo "$lock $off $sleep_after"; exit 0 ;;
+            source) echo "$src"; exit 0 ;;
             set)
-                # bar-toggle idle set LOCK SCREEN_OFF SLEEP (seconds, 0 = never)
-                for v in "$3" "$4" "$5"; do case "$v" in '' | *[!0-9]*) echo "usage: bar-toggle idle set LOCK SCREEN_OFF SLEEP" >&2; exit 2 ;; esac; done
+                # bar-toggle idle set ac|battery LOCK SCREEN_OFF SLEEP (seconds, 0 = never)
+                case "$3" in ac | battery) ;; *) echo "usage: bar-toggle idle set ac|battery LOCK SCREEN_OFF SLEEP" >&2; exit 2 ;; esac
+                for v in "$4" "$5" "$6"; do case "$v" in '' | *[!0-9]*) echo "usage: bar-toggle idle set ac|battery LOCK SCREEN_OFF SLEEP" >&2; exit 2 ;; esac; done
                 mkdir -p "${conf%/*}"
-                printf '# Idle delays in seconds, 0 = never (Settings > Power)\n[idle]\nlock = %s\nscreen_off = %s\nsleep = %s\n' "$3" "$4" "$5" >"$conf"
-                lock=$3; off=$4; sleep_after=$5
+                load ac; al=$lock; ao=$off; az=$sleep_after
+                load battery; bl=$lock; bo=$off; bz=$sleep_after
+                if [ "$3" = ac ]; then al=$4; ao=$5; az=$6; else bl=$4; bo=$5; bz=$6; fi
+                printf '# Idle delays in seconds, 0 = never (Settings > Power)\n# [idle]: plugged in, [battery]: on battery\n[idle]\nlock = %s\nscreen_off = %s\nsleep = %s\n\n[battery]\nlock = %s\nscreen_off = %s\nsleep = %s\n' "$al" "$ao" "$az" "$bl" "$bo" "$bz" >"$conf"
+                load "$src"
                 # Applied at once, unless auto lock is off (caffeine, presentation): it starts with these delays
                 if pgrep -x swayidle >/dev/null; then pkill -x swayidle; start; fi
+                exit 0 ;;
+            refresh)
+                # The power source changed: restart swayidle with its delays, unless auto lock is off
+                pgrep -x swayidle >/dev/null && { pkill -x swayidle; start; }
                 exit 0 ;;
         esac
         if [ "$2" = start ] || ! pgrep -x swayidle >/dev/null; then

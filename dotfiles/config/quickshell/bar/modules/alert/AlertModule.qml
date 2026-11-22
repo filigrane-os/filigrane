@@ -1,7 +1,7 @@
 // Alert indicator of one kind: ~/.local/state/alerts/<kind> (one line "field<TAB>field" per item, added by `bar-alert push`)
 // and, optionally, <kind>.count (the real number of unread items, which takes priority). Shown in the bar while there is
 // something; at rest it only shows in the open drawer (bar-tray toggle). Click = `bar-alert open <kind>` (opens the web
-// app and clears the alert). The modules of a user layer (mail, WhatsApp, calendar...) are an AlertModule with their
+// app and clears the alert). The plugins (mail, chat, calendar...) are an AlertModule with their
 // kind, title, glyph and colour; `render` gives a kind its own format and expiry.
 import QtQuick
 import qs
@@ -18,7 +18,7 @@ BarScript {
     // Icon in the open drawer when there is no alert
     property string idleGlyph: glyph
     // Colour of the alert (at rest: slate)
-    property color accent: FiliTheme.brume
+    property color accent: FiliTheme.barText
     property string openHint: FiliI18n.tr("click: open %1", title)
     // Web app opened by a click (bar-alert open KIND URL); empty: the web app of the list named like the kind
     property string url: ""
@@ -45,7 +45,7 @@ BarScript {
 
     readonly property var shown: build(file.content, counter.exists ? counter.content : null, now)
     value: shown.text !== "" ? shown : (BarState.trayOpen ? ({ text: idleGlyph, "class": "idle", tooltip: { title: title, hint: FiliI18n.tr("click: open") } }) : BarState.empty)
-    colors: ({ active: accent, idle: FiliTheme.ardoise })
+    colors: ({ active: accent, idle: FiliTheme.barMuted })
     click: FiliTheme.bin + "/bar-alert open " + kind + (url ? " '" + url + "'" : "")
 
     // State from the file content, the content of <kind>.count (null if it does not exist) and the time
