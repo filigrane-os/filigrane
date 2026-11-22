@@ -4,7 +4,7 @@
 #   fili-api list              the applications that declare control commands (catalogs shell/ctl/<app_id>.json)
 #   fili-api show APP          the commands and the actions of one application (APP: app id or name)
 #   fili-api apps              the running applications that share a context (pid, name, location)
-#   fili-api check FILE        validate a catalog (what an application's `make check` runs)
+#   fili-api check FILE...     validate catalogs against the format (fili-api-lint, the reference validator)
 #   fili-api -h                this help
 #
 # Catalogs: /usr/share/filigrane/shell/ctl and ~/.local/share/filigrane/shell/ctl (FILI_SHELL_DIRS, colon separated,
@@ -27,18 +27,8 @@ catalogs() {
     done
 }
 
-# Empty when the catalog is valid, else the problems, one per line
-problems() {
-    jq -r '
-      def need(k; t): if has(k) | not then "missing \(k)" elif (.[k] | type) != t then "\(k) must be \(t)" else empty end;
-      if type != "object" then "not a JSON object" else
-        ( need("v"; "number"), need("app_id"; "string"), need("name"; "string"), need("ctl"; "string"), need("commands"; "array"),
-          (if (.v // 1) > 1 then "v \(.v) is newer than this tool understands (1)" else empty end),
-          (if (.ctl // "" | type) == "string" and ((.ctl // "") | contains("%pid") | not) and ((.ctl // "") | contains("--pid") ) then "ctl: --pid needs %pid" else empty end),
-          (if has("actions") and ((.actions | type) != "array" or any(.actions[]?; type != "object" or ((.name // "") | type) != "string" or (.name // "") == "")) then "actions must be a list of {name, label?, keys?}" else empty end),
-          ((.commands // [])[]? | select(type != "object" or (.verb // "" | type) != "string" or (.verb // "") == "" or (.summary // "" | type) != "string" or (.summary // "") == "")
-             | "a command needs a verb and a summary: \(tostring)") ) end' "$1"
-}
+# The format of a catalog is defined by fili-api-lint (the reference validator, next to this command)
+lint() { python3 -I "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/fili-api-lint" "$@"; }
 
 case "${1:-}" in
     -h | --help | "") sed -n '2,/^set -e/{/^set -e/!p}' "$0" | sed 's/^# \{0,1\}//' ;;
@@ -56,7 +46,8 @@ case "${1:-}" in
         done < <(catalogs)
         [ -n "$found" ] || { echo "fili-api: no catalog for $app (fili-api list)" >&2; exit 1; }
         jq -r '"\(.name) (\(.app_id)): \(.ctl)\n", (.commands[] | "  \(.verb) \(.args // "")" + (if .reads then "  [read]" else "" end) + "\n      \(.summary)"),
-            (if (.actions // []) | length > 0 then "\nactions (action NAME):", (.actions[] | "  \(.name)" + (if .label then "  \(.label)" else "" end) + (if .keys then "  (\(.keys))" else "" end)) else empty end)' "$found"
+            (if (.actions // []) | length > 0 then "\nactions (action NAME):", (.actions[] | "  \(.name)" + (if .args then " \(.args)" else "" end) + (if .label then "  \(.label)" else "" end) + (if .keys then "  (\(.keys))" else "" end)) else empty end),
+            (if (.action_patterns // []) | length > 0 then "\naction families:", (.action_patterns[] | "  \(.pattern)  \(.summary)") else empty end)' "$found"
         ;;
     apps)
         for f in "$runtime"/fili/context/*.json; do
@@ -66,12 +57,8 @@ case "${1:-}" in
         done | awk -F'\t' 'BEGIN { printf "%-8s %-16s %s\n", "PID", "APP", "LOCATION" } { printf "%-8s %-16s %s\n", $1, $2, $3 }'
         ;;
     check)
-        f="${2:?usage: fili-api check FILE}"
-        [ -f "$f" ] || { echo "fili-api: no such file: $f" >&2; exit 1; }
-        jq -e . "$f" >/dev/null 2>&1 || { echo "x $f: not valid JSON"; exit 1; }
-        p="$(problems "$f")"
-        if [ -n "$p" ]; then printf '%s\n' "$p" | sed 's/^/x /'; exit 1; fi
-        echo "ok $f"
+        [ $# -ge 2 ] || { echo "usage: fili-api check FILE..." >&2; exit 1; }
+        shift; lint "$@"
         ;;
     *) echo "fili-api: unknown command $1 (fili-api -h)" >&2; exit 2 ;;
 esac

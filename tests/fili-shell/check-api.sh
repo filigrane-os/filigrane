@@ -13,18 +13,47 @@ check() { if eval "$2"; then echo "ok - api: $1"; else echo "not ok - api: $1"; 
 cat > "$T/shell/ctl/demo.json" <<'J'
 { "v": 1, "app_id": "demo", "name": "Demo", "program": "demo", "ctl": "demo ctl --pid %pid",
   "commands": [ { "verb": "action", "args": "NAME", "summary": "Run a command", "reads": false }, { "verb": "state", "summary": "State", "reads": true } ],
-  "actions": [ { "name": "go", "label": "Go There", "keys": "Ctrl+G" }, { "name": "quiet" } ] }
+  "actions": [ { "name": "go", "label": "Go There", "keys": "Ctrl+G", "args": "NAME" }, { "name": "quiet" } ] }
 J
 check "list shows a catalog" 'fili-api list | grep -q "^demo .*Demo .*2 "'
 check "show finds it by name, any case" 'fili-api show DEMO | grep -q "state   \[read\]"'
-check "show lists the actions with label and shortcut" 'fili-api show demo | grep -q "go  Go There  (Ctrl+G)" && fili-api show demo | grep -q "^  quiet$"'
+check "show lists the actions with label and shortcut" 'fili-api show demo | grep -q "go NAME  Go There  (Ctrl+G)" && fili-api show demo | grep -q "^  quiet$"'
 check "check refuses malformed actions" 'echo "{\"v\":1,\"app_id\":\"x\",\"name\":\"X\",\"ctl\":\"x\",\"commands\":[],\"actions\":[\"a\"]}" > "$T/act.json"; ! fili-api check "$T/act.json" > /dev/null'
 check "show refuses an unknown application" '! fili-api show nothing 2> /dev/null'
 check "check accepts a valid catalog" 'fili-api check "$T/shell/ctl/demo.json" > /dev/null'
-echo '{"v":1,"app_id":"x","name":"X","ctl":"x ctl --pid","commands":[{"verb":"a"}]}' > "$T/bad.json"
-check "check rejects a --pid without %pid and a command without summary" 'out="$(fili-api check "$T/bad.json")"; [ $? -ne 0 ] && echo "$out" | grep -q "needs %pid" && echo "$out" | grep -q "verb and a summary"'
-echo '{"v":2,"app_id":"x","name":"X","ctl":"x","commands":[]}' > "$T/new.json"
-check "check refuses a newer version" 'fili-api check "$T/new.json" | grep -q "newer"'
+LINT="$BIN/fili-api-lint"
+# One fixture per rule of the format: a catalog that breaks only that rule must fail with its message
+bad() { # bad "what" 'jq filter that breaks the demo catalog' "message that must appear"
+    mkdir -p "$T/f"; jq "$2" "$T/shell/ctl/demo.json" > "$T/f/demo.json"
+    check "the format refuses $1" 'out="$(python3 -I "$LINT" "$T/f/demo.json")"; [ $? -ne 0 ] && echo "$out" | grep -q "$3"'
+}
+bad "an unknown key" '.extra = 1' "unknown key extra"
+bad "a newer version" '.v = 2' "this tool understands 1"
+bad "a ctl without %pid" '.ctl = "demo ctl"' 'ctl must be exactly'
+bad "a command without summary" 'del(.commands[0].summary)' "missing summary"
+bad "a summary with a final full stop" '.commands[0].summary = "Run a command."' "full stop"
+bad "a summary without a capital" '.commands[0].summary = "run a command"' "capital letter"
+bad "empty args" '.commands[0].args = ""' "args: 1-120"
+bad "a verb twice" '.commands += [.commands[0]]' "listed twice"
+bad "reads that is not a boolean" '.commands[0].reads = "no"' "reads must be"
+bad "an action twice" '.actions += [.actions[0]]' "action go is listed twice"
+bad "an action argument that is not capitals" '.actions[0].args = "name"' "placeholders in capitals"
+bad "a required argument after an optional one" '.actions[0].args = "[A] B"' "after an optional one"
+bad "actions without the verb action" '.commands |= map(select(.verb != "action"))' "needs the verb"
+bad "a malformed pattern" '.action_patterns = [{"pattern":"open","summary":"Open"}]' "name:<param>"
+check "the format accepts args and patterns" 'jq ".actions[0].args = \"[NAME] [MODE]\" | .action_patterns = [{\"pattern\":\"open:<id>\",\"summary\":\"Open one\"}]" "$T/shell/ctl/demo.json" > "$T/f/demo.json"; python3 -I "$LINT" "$T/f/demo.json" > /dev/null'
+check "a file is named after its app id" 'cp "$T/shell/ctl/demo.json" "$T/other.json"; python3 -I "$LINT" "$T/other.json" | grep -q "is named other.json"'
+check "fili-api check is the same validator" 'jq ".extra = 1" "$T/shell/ctl/demo.json" > "$T/f/demo.json"; out="$(fili-api check "$T/f/demo.json")"; [ $? -ne 0 ] && echo "$out" | grep -q "unknown key extra"'
+
+# The applications: each catalog it ships follows the format and its source, and its copy of the validator is this one
+for pin in "$ROOT"/apps/*/upstream; do
+    [ -f "$pin" ] || continue
+    app="$(basename "$(dirname "$pin")")"
+    src="$("$ROOT/scripts/upstream-dir" "$app" 2> /dev/null)" || continue
+    [ -d "$src/shell/ctl" ] || continue
+    check "$app: its catalog follows the format and its source" 'python3 -I "$src/scripts/fili-api-lint" --app "$src" > /dev/null'
+    check "$app: its fili-api-lint is the distribution one" 'cmp -s "$src/scripts/fili-api-lint" "$LINT"'
+done
 echo '{"app":"Demo","pid":'$$',"location":"/tmp"}' > "$XDG_RUNTIME_DIR/fili/context/$$.json"
 echo '{"app":"Dead","pid":999999}' > "$XDG_RUNTIME_DIR/fili/context/999999.json"
 check "apps lists the running ones only" 'fili-api apps | grep -q "Demo" && ! fili-api apps | grep -q Dead'

@@ -45,19 +45,38 @@ The application also **declares** its commands in a catalog, `shell/ctl/<app_id>
 assistant can list them without reading a brief written by hand:
 
 ```json
-{ "v": 1, "app_id": "fili-file", "name": "Casier", "program": "fili-file",
-  "ctl": "fili-file ctl --pid %pid",
+{ "v": 1, "app_id": "fili-file", "name": "Casier", "program": "fili-file", "ctl": "fili-file ctl --pid %pid",
   "commands": [
-    { "verb": "action", "args": "NAME", "summary": "Run a menu command of the window", "reads": false },
-    { "verb": "state",  "args": "",     "summary": "JSON of the tabs, folder, selection and tasks", "reads": true }
+    { "verb": "action", "args": "NAME [ARG]", "summary": "Run a menu command of the window", "reads": false },
+    { "verb": "state", "summary": "JSON of the tabs, folder, selection and tasks", "reads": true }
   ],
-  "actions": [ { "name": "new-folder", "label": "New Folder", "keys": "Ctrl+Shift+N" }, { "name": "open", "label": "Open" } ] }
+  "actions": [ { "name": "new-folder", "label": "New Folder", "keys": "Ctrl+Shift+N", "args": "[NAME]" } ],
+  "action_patterns": [ { "pattern": "open-chat:<id>", "summary": "Show a conversation by its numeric id" } ] }
 ```
 
-`reads` is true for a command that only reads. `actions` lists the names `action NAME` accepts, with the label and shortcut of
-the menu entry when there is one (`<program> ctl actions` answers the same list from the running window); the application's
-`scripts/check-ctl-catalog.py` keeps the list equal to the table of its window (`--write` rewrites it). `fili-api list` shows every catalog, `fili-api show APP` one of them,
-`fili-api check FILE` validates a catalog (what `make check` of an application runs).
+`fili-api list` shows every catalog, `fili-api show APP` one of them (commands, actions with their arguments, families).
+
+### The format is `fili-api-lint`
+
+The format is **defined by one program**, `fili-api-lint` (`dotfiles/home/.local/bin/`), whose header lists every rule. A key it
+does not list is an error, so an application cannot invent one. In short:
+
+- `commands`: the verbs of `<program> ctl`, each with a `summary` (a sentence that starts with a capital letter, no final full
+  stop), `reads` (true when the verb changes nothing) and, if it has arguments, a free `args` synopsis. No argument: no `args`.
+- `actions`: the names `action NAME` accepts, each with the `label` and `keys` of its menu entry when it has one, and `args`
+  when it takes an argument: placeholders in capitals, `[X]` when optional (`TRACK_ID`, `[NAME]`, `PATH [MODE]`). An optional
+  argument is one the action can do without (it then opens its own dialog or does its default).
+- `action_patterns`: a family with a parameter that `actions` cannot list (`open-chat:<id>`).
+- The usage line of the program lists **every** verb (`usage: <program> ctl [--pid PID] verb ... | verb ...`): it is what the
+  catalog is compared with.
+
+**Keeping the applications in line.** Each application keeps a byte-identical copy of the validator as `scripts/fili-api-lint`
+and runs `python3 -I scripts/fili-api-lint --app .` in its `make test` / `make check`. `--app` also compares the catalog with the
+source (the verbs with the usage line, the actions with the table of the window: `ACTIONS` of `src/ctl.rs`, else the table of
+`qml/Main.qml`), and `--app . --write` rewrites the list of actions from the source and keeps the `args` already written. The
+distribution's `tests/fili-shell/check-api.sh` checks, for each pinned application that ships a catalog, that it follows the
+format and its source **and that its copy is this file**. To change the format: change `fili-api-lint` here (a new `v` when
+a reader of the old one would be wrong), recopy it into the applications, and every one of them fails its check until it does.
 
 ## Incidents: what went wrong
 
