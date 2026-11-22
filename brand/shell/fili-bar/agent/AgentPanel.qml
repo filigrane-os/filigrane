@@ -11,9 +11,10 @@ ColumnLayout {
     id: view
     spacing: FiliTheme.space1
 
-    readonly property alias agent: ag
-    AgentState { id: ag }
-    readonly property var sessions: ag.aiData.sessions ?? []
+    // The state of the agent, loaded by its URL (see AgentModule.qml)
+    Loader { id: stateLoader; source: Qt.resolvedUrl("AgentState.qml") }
+    readonly property var agent: stateLoader.item
+    readonly property var sessions: agent?.aiData.sessions ?? []
     readonly property string chatState: AiState.attention === "waiting" ? "waiting" : AiState.attention === "done" ? "done" : AiState.busy ? "working" : ""
     function stateText(s) {
         return { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s] ?? FiliI18n.tr("ready");
@@ -43,7 +44,7 @@ ColumnLayout {
             required property var modelData
             objectName: "agent-session"
             glyph: view.glyph(modelData.state)
-            label: ag.aiName(modelData, Niri.windows)
+            label: view.agent ? view.agent.aiName(modelData, Niri.windows) : ""
             detail: view.stateText(modelData.state)
             sel: modelData.state === "waiting"
             dim: modelData.window === undefined

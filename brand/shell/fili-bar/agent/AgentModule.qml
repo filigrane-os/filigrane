@@ -8,16 +8,21 @@ import qs.bar
 
 BarScript {
     objectName: "ai"
-    // Sessions and limits; this instance marks the sessions looked at as seen
-    readonly property alias agent: ag
-    AgentState { id: ag; watching: true }
+    // Sessions and limits (AgentState); this instance marks the sessions looked at as seen. Loaded by its URL, like the panel: a
+    // module folder linked from a package does not give its siblings to the type resolution of the shell
+    Loader {
+        id: stateLoader
+        source: Qt.resolvedUrl("AgentState.qml")
+        onLoaded: item.watching = true
+    }
+    readonly property var agent: stateLoader.item
     panel: "agent"
     panelSource: Qt.resolvedUrl("AgentPanel.qml")
-    value: ag.ai
+    value: agent ? agent.ai : BarState.empty
     colors: ({ off: FiliTheme.barMuted, idle: FiliTheme.barText2, working: FiliTheme.barText, waiting: FiliTheme.barWarn, done: FiliTheme.barAccent })
     blinkClass: "waiting"
-    hover.onLeftClicked: hover.meta ? ag.aiAsk() : togglePanel()
-    hover.onMiddleClicked: ag.aiAsk()
+    hover.onLeftClicked: hover.meta ? agent?.aiAsk() : togglePanel()
+    hover.onMiddleClicked: agent?.aiAsk()
     hover.onRightClicked: contextMenu([{ glyph: "\uf08e", text: FiliI18n.tr("Open the AI agent"), cmd: FiliTheme.bin + "/fili-ai", app: true },
                                        { glyph: "\uf0ec", text: FiliI18n.tr("Choose the agent…"), cmd: FiliTheme.bin + "/fili-ai pick" }])
 }
