@@ -7,6 +7,8 @@
 # Usage: tests/fili-shell/run.sh [-v] [--changed]   (-v: full Quickshell log; --changed: only the checks that the
 # uncommitted changes (git status) can affect, e.g. a fili-bt-pair change runs its own unit check only).
 # Exit code 0 if everything passes.
+# The applications' own suites (make test) are not run here unless the pin of an application changed (apps/<app>/upstream) or
+# FILI_APP_TESTS=1: the CI of each application runs them. Here only their parity with the shell and their window anatomy.
 # A running Wayland session (niri) is needed: run from the desktop, not over ssh.
 set -u
 VERBOSE=0; CHANGED=0
@@ -75,54 +77,47 @@ if [ -n "$errors" ]; then
     echo "not ok - erreurs QML:"; printf '%s\n' "$errors" | sed 's/^/#   /'
     exit 1
 fi
-if want '^apps/fili-file/|^dotfiles/config/quickshell/|^dotfiles/config/filigrane/fili-file'; then
-# Casier (fili-file) lives in its own repository: the pinned version (apps/fili-file/upstream, or FILI_SRC_FILI_FILE for a
-# local checkout) is built, must follow the shell (same theme defaults and kinetic scroll: opt-in tests of its unit
-# suite) and must pass its own headless scenarios (tests/run.sh of that repository).
-FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
+# The applications live in their own repositories and run their unit suites and headless scenarios in their own CI (make test,
+# make check). Here only what compares an application with the shell, whenever the shell changes: the shell_parity tests (theme
+# defaults, kinetic scroll) and the window anatomy against Casier. The whole suite of an application (its `make test`, `make check`
+# for Casier) runs here only when its pin changes (apps/<app>/upstream), or for every application with FILI_APP_TESTS=1.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-(cd "$FILI_FILE_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make >/dev/null 2>&1) || { echo "not ok - fili-file does not build ($FILI_FILE_SRC: make)"; exit 1; }
-(cd "$FILI_FILE_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q shell_parity) >/dev/null 2>&1 \
-    && echo "ok - Casier follows the shell (theme defaults, kinetic scroll)" || { echo "not ok - Casier no longer matches the shell: cd $FILI_FILE_SRC && FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell make test"; exit 1; }
-"$FILI_FILE_SRC/tests/run.sh" || exit 1
-fi
-if want '^apps/fili-term/|^apps/fili-file/|^dotfiles/config/filigrane/fili-term|^tests/fili-shell/check-app-window.py'; then
-# Aéroport (fili-term) lives in its own repository too: the pinned version (apps/fili-term/upstream, or FILI_SRC_FILI_TERM)
-# is built, passes its unit tests and keeps the window anatomy of Casier (shared QML files identical, header, footer).
-FILI_TERM_SRC="$("$ROOT/scripts/upstream-dir" fili-term)" || { echo "not ok - source of fili-term not available"; exit 1; }
-FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-(cd "$FILI_TERM_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make test >/dev/null 2>&1) \
-    && echo "ok - fili-term builds and passes its unit tests" || { echo "not ok - fili-term: cd $FILI_TERM_SRC && make test"; exit 1; }
-python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_TERM_SRC" || exit 1
-fi
-if want '^apps/fili-recorder/|^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py'; then
-# Cassette (fili-recorder) lives in its own repository: the pinned version (apps/fili-recorder/upstream, or FILI_SRC_FILI_RECORDER
-# for a local checkout) passes its unit tests (the shell parity ones compare its theme with the shell's), and the window follows
-# the anatomy of Casier (its bar module, menu and brief come from its own shell/ folder, checked by its own CI)
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-FILI_RECORDER_SRC="$("$ROOT/scripts/upstream-dir" fili-recorder)" || { echo "not ok - source of fili-recorder not available"; exit 1; }
-(cd "$FILI_RECORDER_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
-    && echo "ok - fili-recorder passes its unit tests" || { echo "not ok - fili-recorder: cd $FILI_RECORDER_SRC && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
-FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
-python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_RECORDER_SRC" || exit 1
-fi
+SHELL_RE='^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py|^tests/fili-shell/run.sh'
+app_src() { # app_src APP: the pinned sources (or FILI_SRC_<APP>), else the bench stops
+    "$ROOT/scripts/upstream-dir" "$1" || { echo "not ok - source of $1 not available" >&2; exit 1; }
+}
+app_parity() { # app_parity APP NAME: the app follows the shell
+    src="$(app_src "$1")" || exit 1
+    (cd "$src" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked shell_parity >/dev/null 2>&1) \
+        && echo "ok - $2 follows the shell (theme defaults, kinetic scroll)" \
+        || { echo "not ok - $2 no longer matches the shell: cd $src && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test shell_parity"; exit 1; }
+}
+app_anatomy() { # app_anatomy APP: the window follows the anatomy of Casier
+    src="$(app_src "$1")" || exit 1
+    ref="$(app_src fili-file)" || exit 1
+    python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$ref" "$src" || exit 1
+}
+app_suite() { # app_suite APP NAME TARGET: its own suite, when its pin changed
+    { [ "${FILI_APP_TESTS:-0}" = 1 ] || { [ "$CHANGED" = 1 ] && printf '%s\n' "$CHG" | grep -Eq "^apps/$1/upstream"; }; } || return 0
+    src="$(app_src "$1")" || exit 1
+    (cd "$src" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make "$3" >/dev/null 2>&1) \
+        && echo "ok - $2 passes its own suite (make $3)" || { echo "not ok - $2: cd $src && make $3"; exit 1; }
+}
+if want "$SHELL_RE|^apps/fili-file/upstream"; then app_parity fili-file Casier; fi
+if want "$SHELL_RE|^apps/fili-recorder/upstream|^apps/fili-file/upstream"; then app_parity fili-recorder Cassette; app_anatomy fili-recorder; fi
+if want "$SHELL_RE|^apps/fili-music/upstream|^apps/fili-file/upstream"; then app_parity fili-music Baladeur; app_anatomy fili-music; fi
+if want "$SHELL_RE|^apps/fili-term/upstream|^apps/fili-file/upstream"; then app_anatomy fili-term; fi
+app_suite fili-file Casier check
+app_suite fili-term Aeroport test
+app_suite fili-recorder Cassette test
+app_suite fili-music Baladeur test
+app_suite fili-im Conversations test
+app_suite fili-mail Facteur test
 if want '^apps/fili-incident/'; then
 # fili-incident (problems reported by the apps, in this repository): the private details removed from what leaves the machine,
 # the signature in the issue, the GitHub search reply, incident ids that cannot leave their folder
 (cd "$ROOT/apps/fili-incident" && cargo test --release -q --locked >/dev/null 2>&1) \
     && echo "ok - fili-incident passes its unit tests" || { echo "not ok - fili-incident: cd apps/fili-incident && cargo test"; exit 1; }
-fi
-if want '^apps/fili-music/|^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py'; then
-# Baladeur (fili-music) lives in its own repository: the pinned version (apps/fili-music/upstream, or FILI_SRC_FILI_MUSIC for a
-# local checkout) passes its unit tests (the shell parity ones compare its theme with the shell's), and the window follows the
-# anatomy of Casier (its bar module, menu and brief come from its own shell/ folder, checked by its own CI)
-export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-FILI_MUSIC_SRC="$("$ROOT/scripts/upstream-dir" fili-music)" || { echo "not ok - source of fili-music not available"; exit 1; }
-(cd "$FILI_MUSIC_SRC" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked >/dev/null 2>&1) \
-    && echo "ok - fili-music passes its unit tests" || { echo "not ok - fili-music: cd $FILI_MUSIC_SRC && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test"; exit 1; }
-FILI_FILE_SRC="$("$ROOT/scripts/upstream-dir" fili-file)" || { echo "not ok - source of fili-file not available"; exit 1; }
-python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$FILI_FILE_SRC" "$FILI_MUSIC_SRC" || exit 1
 fi
 if want 'fili-chat|chat|appmenu/_default.json|niri/config.kdl'; then
 python3 -I "$ROOT/tests/fili-shell/check-fili-chat-menu.py" || exit 1
