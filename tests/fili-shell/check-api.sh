@@ -3,6 +3,7 @@
 # fili-incident, in isolated state, runtime and config folders.
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BIN="$ROOT/dotfiles/home/.local/bin"
+REAL_HOME="$HOME"   # the tests below change HOME; cargo needs the real one (its registry, its toolchain)
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 export XDG_CONFIG_HOME="$T/cfg" XDG_DATA_HOME="$T/data" XDG_STATE_HOME="$T/state" XDG_RUNTIME_DIR="$T/run" HOME="$T/home" FILI_SHELL_DIRS="$T/shell"
 export PATH="$BIN:$PATH"
@@ -99,7 +100,7 @@ check "Lia's default brief points to fili-api" 'grep -q "fili-api show" "$("$ROO
 
 # fili-incident: no handler = no assistant; a handler adds its button and runs with the prompt as its last argument
 INC="$ROOT/apps/fili-incident/target/release/fili-incident"
-(cd "$ROOT/apps/fili-incident" && cargo build --release -q --locked 2> /dev/null)
+(cd "$ROOT/apps/fili-incident" && HOME="$REAL_HOME" cargo build --release -q --locked) || echo "# fili-incident did not build"
 echo '{"id":"i1","app":"demo","repo":"o/r","kind":"manual","signature":"s","message":"boom","state":"new","log":[]}' > "$XDG_STATE_HOME/filigrane/incidents/i1.json"
 check "without a handler, ask says no assistant is installed" '"$INC" ask i1 2>&1 | grep -q "no assistant installed" && [ -z "$("$INC" handlers)" ]'
 printf '#!/bin/sh\nprintf "%%s" "$1" > "%s"\n' "$T/prompt" > "$T/h.sh"; chmod +x "$T/h.sh"

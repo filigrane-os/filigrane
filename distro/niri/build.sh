@@ -59,7 +59,8 @@ if [ "$MODE" = version ]; then
     exit 0
 fi
 
-# Patch: the commits of the fork (except FILIGRANE.md) replayed on the niri release Void ships
+# Patch: the commits of the fork replayed on the niri release Void ships. All of them, including the ones that only
+# touch FILIGRANE.md: later commits edit that file and would conflict without it (it is left out of the package patch)
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 src="$WORK/niri"
@@ -73,7 +74,7 @@ else
 fi
 git -C "$src" fetch -q https://github.com/niri-wm/niri.git "refs/tags/v$version:refs/tags/v$version"
 base="$(git -C "$src" merge-base "$ref" "v$version")"
-mapfile -t commits < <(git -C "$src" rev-list --reverse "$base..$ref" -- . ':(exclude)FILIGRANE.md')
+mapfile -t commits < <(git -C "$src" rev-list --reverse "$base..$ref")
 [ "${#commits[@]}" -gt 0 ] || { echo "build.sh: no patch commit between $base and $ref" >&2; exit 1; }
 git -C "$src" -c advice.detachedHead=false checkout -q "v$version"
 for c in "${commits[@]}"; do
