@@ -1,4 +1,6 @@
 // Battery (sysfs, no UPower): capacity and state re-read every 15 s; warning <= 25 %, critical <= 10 %.
+// The level is now / full (current full capacity), not the kernel "capacity" which is relative to the design
+// capacity: a worn battery would never show 100 %. "capacity" stays as the fallback.
 // When the power source changes (plugged / unplugged) the idle delays of the new source are applied (bar-toggle idle refresh).
 // Click = power panel, right click = system menu (lock, sleep, quit...)
 import QtQuick
@@ -35,11 +37,27 @@ BarItem {
     tip: status ? { title: FiliI18n.tr("Battery"), rows: [[FiliI18n.tr("Level"), capacity + " %"], [FiliI18n.tr("State"), { Charging: FiliI18n.tr("Charging"), Discharging: FiliI18n.tr("On battery"), Full: FiliI18n.tr("Full"), "Not charging": FiliI18n.tr("Plugged in, charging paused") }[status] ?? status]] } : ""
 
     FileView { id: cap; path: batt.dir + "/capacity"; blockLoading: true; printErrors: false }
+    FileView { id: now; path: batt.dir + "/charge_now"; blockLoading: true; printErrors: false }
+    FileView { id: full; path: batt.dir + "/charge_full"; blockLoading: true; printErrors: false }
+    FileView { id: enow; path: batt.dir + "/energy_now"; blockLoading: true; printErrors: false }
+    FileView { id: efull; path: batt.dir + "/energy_full"; blockLoading: true; printErrors: false }
     FileView { id: st; path: batt.dir + "/status"; blockLoading: true; printErrors: false }
     function read() {
         cap.reload();
         st.reload();
-        const c = parseInt(cap.text());
+        now.reload();
+        full.reload();
+        enow.reload();
+        efull.reload();
+        let c = parseInt(cap.text());
+        // Charge (µAh) or energy (µWh): whichever the firmware exposes, validated as numbers
+        for (const [a, b] of [[now, full], [enow, efull]]) {
+            const n = parseInt(a.text()), f = parseInt(b.text());
+            if (!isNaN(n) && !isNaN(f) && f > 0) {
+                c = Math.min(100, Math.round(100 * n / f));
+                break;
+            }
+        }
         batt.capacity = isNaN(c) ? -1 : c;
         batt.status = st.text().trim();
         if (batt.lastSource === "" && batt.status !== "")
