@@ -47,13 +47,21 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 1. ~~Decide the name~~: done, **Lia**. Do the rename while moving the files (see "The name" below), not before.
 2. ~~Move the AI logic out of `bar/BarState.qml`~~: done. `modules/agent/AgentState.qml` holds it (the module and the panel each
    create one; only the module sets `watching`); the tests use a probe instance (`probeAgent`).
-3. **Technical question to settle with the user: how does the drawer sit on screen?** Today `FiliAi.qml` is a layer-shell surface
-   with an exclusive zone (the drawer docks to the right edge and the windows shrink beside it; or it floats above them). A Qt Quick
-   window cannot be a layer-shell surface without `layer-shell-qt` (C++: forbidden here, Rust only). Options: (a) a normal window in
-   niri, docked as the right-hand column (niri rules) or floating, losing the exact "dock beside windows" feel; (b) a Rust wrapper
-   around the layer-shell protocol (check what cxx-qt-lib offers first); (c) keep a thin layer-shell surface in the shell that only
-   embeds the application's content. Measure (a) in a prototype first: it is by far the simplest and removes the `chatFocus` hack of
-   `AppMenu.qml` (a real window is a real focus).
+3. ~~How does the drawer sit on screen?~~ Settled on 2026-11-22: **keep the current behaviour (layer-shell surface with an exclusive
+   zone), with no C++ at all.** The Void package `layer-shell-qt` ships a QML module `org.kde.layershell` and the Wayland shell
+   integration plugin. Prototype run on the real niri (Qt 6.11 with layer-shell-qt 6.7.5): a plain Qt Quick `Window` got a layer-shell
+   surface (`niri msg layers` listed it, keyboard on-demand). Recipe for the drawer process of `fili-ai`:
+   - set `QT_WAYLAND_SHELL_INTEGRATION=layer-shell` before the `QGuiApplication` is created (the drawer is its own process, so no
+     other window of the application is affected; a normal window such as the settings or About card is another process or goes
+     without the variable);
+   - in QML: `import org.kde.layershell 1.0 as LayerShell`, then on the `Window`: `LayerShell.Window.scope`, `.layer`, `.anchors`
+     (top | bottom | right), `.exclusionZone` (drawer width: windows shrink beside it; 0 when it floats), `.keyboardInteractivity`
+     (`KeyboardInteractivityOnDemand`);
+   - the xbps package of `fili-ai` depends on `layer-shell-qt` (already installed here with `-devel`; `-devel` is not needed, remove it);
+   - risk: the package is built against an older Qt than the system's; it loads today, so watch it after Qt updates (a test in the
+     repository should start a window and check `niri msg layers`).
+   Option (a) (normal window) and the Rust wrapper (b) are dropped; the `chatFocus` hack of `AppMenu.qml` can still go once the
+   drawer is a real window of its own process with on-demand focus.
 
 ## The extraction, step by step (each step commitable and tested)
 
