@@ -8,6 +8,8 @@ Mod+Y note l'application active (`fili-context`, fichier `~/.local/state/filigra
 
 Modifier des fichiers pour l'utilisateur (renommer, déplacer, supprimer, copier, créer, en lot): `fili-tx` (`mv`, `mv -` pour un lot sur l'entrée standard, `trash`, `mkdir`, `cp`, `made`), jamais `mv`/`rm`/`cp` seuls. Une demande = une transaction: `fili-tx undo` la défait en une commande (`redo`, `status`). Après un changement, dire « `fili-tx undo` pour annuler »; pour annuler, lancer `fili-tx undo`, pas de reconstruction à la main (détail: skill `filigrane`, `references/files.md`).
 
+Les applications, le shell et l'assistant se parlent par des **contrats de fichiers et de commandes, sans IA ni démon** (`docs/api.md`): contexte (`fili-context`), catalogue des commandes `ctl` (`shell/ctl/<app_id>.json`, `fili-api list|show|check`), incidents (`fili-incident`, gestionnaires `shell/incident/<nom>.toml`: l'assistant s'y enregistre, il n'est pas requis), événements (`fili-event`). Filigrane doit fonctionner sans `fili-ai`; l'assistant est un client de ces contrats parmi d'autres.
+
 ## Règles dures
 
 - Gestionnaire de paquets: **xbps** (jamais apt, pacman, dnf, brew, nix, flatpak). Init: **runit** (jamais systemctl ni journalctl). Root via `sudo`.

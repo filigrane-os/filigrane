@@ -1,12 +1,13 @@
 // fili-incident: the problems the fili-* applications report. An application that meets a bug (a panic, a QML error, "Report a
-// problem" of its Debug panel) writes an incident file; this command warns the user, hands the problem to Rob (fili-chat) and
-// prepares the GitHub issue, or a +1 on the one that already exists. Nothing leaves the machine without the user's say:
+// problem" of its Debug panel) writes an incident file; this command warns the user, hands the problem to the assistant if one
+// is installed (an incident handler, docs/api.md) and prepares the GitHub issue, or a +1 on the one that already exists. Nothing leaves the machine without the user's say:
 // the issue is created or +1'd only with --yes, and without `gh` (or an account) the prefilled issue form opens in the browser.
 //
 // fili-incident list [--all]       incidents (the ones still to look at; --all adds ignored and reported)
 // fili-incident show ID            one incident: what happened and the last lines of the log
-// fili-incident notify ID          notification "<app> had a problem" with the buttons Ask Rob and Ignore (waits for the answer)
-// fili-incident ask ID             asks Rob to look at it (fili-chat ask)
+// fili-incident notify ID          notification "<app> had a problem" with the buttons of the handler (e.g. Ask Rob), Report… and Ignore (waits for the answer)
+// fili-incident ask ID             asks the assistant (the first incident handler) to look at it; none installed: says so
+// fili-incident handlers           the installed incident handlers
 // fili-incident check ID           is it already on GitHub? (public search by signature, no account needed)
 // fili-incident issue ID           the issue as it would be sent (title and body, with the private details removed)
 // fili-incident submit ID [--yes]  existing issue: +1 (with gh and --yes), else opens it; none: creates it (gh and --yes), else
@@ -393,21 +394,93 @@ fn pr(id: &str, dir: &str, title: Option<&str>, body_file: Option<&str>, yes: bo
 
 // ---- Rob and the notification ---------------------------------------------------------------------------------------------
 
+/// An incident handler: a program that can treat an incident (the assistant). Registered by a package or by the user
+/// (docs/api.md, "Incident handlers"), so that nothing here depends on an assistant being installed.
+#[derive(Debug, PartialEq)]
+struct Handler {
+    name: String,
+    label: String,
+    command: String,
+}
+
+/// `key = "value"` lines of a handler file (a trailing comment is ignored)
+fn parse_handler(name: &str, text: &str) -> Option<Handler> {
+    let (mut label, mut command) = (String::new(), String::new());
+    for line in text.lines() {
+        let Some((k, v)) = line.split_once('=') else { continue };
+        let v = v.trim();
+        let v = match v.strip_prefix('"') {
+            Some(rest) => rest.split('"').next().unwrap_or("").to_string(),
+            None => v.split('#').next().unwrap_or("").trim().to_string(),
+        };
+        match k.trim() {
+            "label" => label = v,
+            "command" => command = v,
+            _ => {}
+        }
+    }
+    (!command.is_empty()).then(|| Handler { name: name.to_string(), label: if label.is_empty() { name.to_string() } else { label }, command })
+}
+
+/// Folders that hold handlers: the user's own first, then what the packages ship (FILI_SHELL_DIRS replaces the packages', for tests)
+fn handler_dirs() -> Vec<PathBuf> {
+    let config = env::var("XDG_CONFIG_HOME").unwrap_or_else(|_| format!("{}/.config", home()));
+    let mut dirs = vec![PathBuf::from(config).join("filigrane/incident")];
+    let shell = env::var("FILI_SHELL_DIRS").unwrap_or_else(|_| {
+        let data = env::var("XDG_DATA_HOME").unwrap_or_else(|_| format!("{}/.local/share", home()));
+        format!("/usr/share/filigrane/shell:{data}/filigrane/shell")
+    });
+    dirs.extend(shell.split(':').filter(|d| !d.is_empty()).map(|d| PathBuf::from(d).join("incident")));
+    dirs
+}
+
+/// The handlers found, the first folder winning for a given name, in the alphabetical order of the names
+fn handlers() -> Vec<Handler> {
+    let mut found: Vec<Handler> = Vec::new();
+    for dir in handler_dirs() {
+        let Ok(entries) = fs::read_dir(&dir) else { continue };
+        let mut files: Vec<_> = entries.flatten().map(|e| e.path()).filter(|p| p.extension().is_some_and(|x| x == "toml")).collect();
+        files.sort();
+        for file in files {
+            let name = file.file_stem().unwrap_or_default().to_string_lossy().to_string();
+            if found.iter().any(|h| h.name == name) {
+                continue;
+            }
+            if let Some(h) = fs::read_to_string(&file).ok().and_then(|t| parse_handler(&name, &t)) {
+                found.push(h);
+            }
+        }
+    }
+    found
+}
+
 fn ask(id: &str) -> Result<(), String> {
     let incident = load(id)?;
+    let handler = handlers().into_iter().next().ok_or("no assistant installed (no incident handler: docs/api.md); fili-incident submit ID reports it yourself")?;
     let prompt = format!(
         "Problem reported by {app}: {msg}. Incident {id}: read it with `fili-incident show {id}`, find the cause and follow the incident procedure of your instructions.",
         app = text(&incident, "app"),
         msg = shorten(first_line(text(&incident, "message")), 120),
     );
-    Command::new("fili-chat")
-        .args(["ask", &prompt])
+    // The command is the handler's own; the prompt is its last argument, never part of the shell text
+    Command::new("sh")
+        .args(["-c", &format!("exec {} \"$1\"", handler.command), "fili-incident", &prompt])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
-        .map_err(|e| format!("fili-chat: {e}"))?;
+        .map_err(|e| format!("{}: {e}", handler.name))?;
     Ok(())
+}
+
+/// Tell the others (docs/api.md, "Events"); best effort, nothing needs to listen
+fn announce(id: &str) {
+    let _ = Command::new("fili-event")
+        .args(["emit", "incident.new", &json!({ "id": id }).to_string()])
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status();
 }
 
 fn notify(id: &str) -> Result<(), String> {
@@ -416,17 +489,25 @@ fn notify(id: &str) -> Result<(), String> {
         return Ok(());
     }
     set_state(id, "notified", None);
+    announce(id);
     let title = format!("{} had a problem", text(&incident, "app"));
     let body = shorten(&redact(first_line(text(&incident, "message"))), 140);
-    // --wait: notify-send stays until a button is pressed and prints its identifier
-    let out = Command::new("notify-send")
-        .args(["--wait", "-a", text(&incident, "app"), "-A", "ask=Ask Rob", "-A", "ignore=Ignore", &title, &body])
+    // The buttons: the assistant's (when a handler is installed), then Report and Ignore. --wait: notify-send stays until a
+    // button is pressed and prints its identifier
+    let mut cmd = Command::new("notify-send");
+    cmd.args(["--wait", "-a", text(&incident, "app")]);
+    if let Some(h) = handlers().first() {
+        cmd.args(["-A", &format!("ask={}", h.label)]);
+    }
+    let out = cmd
+        .args(["-A", "report=Report…", "-A", "ignore=Ignore", &title, &body])
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()
         .map_err(|e| format!("notify-send: {e}"))?;
     match String::from_utf8_lossy(&out.stdout).trim() {
         "ask" => ask(id),
+        "report" => submit(id, false),
         "ignore" => {
             set_state(id, "ignored", None);
             Ok(())
@@ -488,6 +569,12 @@ fn main() {
         ["show", id] => show(id),
         ["notify", id] => notify(id),
         ["ask", id] => ask(id),
+        ["handlers"] => {
+            for h in handlers() {
+                println!("{}\t{}\t{}", h.name, h.label, h.command);
+            }
+            Ok(())
+        }
         ["check", id] => load(id).and_then(|i| find_existing(&i)).map(|found| println!("{}", found.unwrap_or(Value::Null))),
         ["issue", id] => load(id).map(|i| {
             let (title, body) = issue(&i);
@@ -506,7 +593,7 @@ fn main() {
             println!("fili-incident {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
-        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | check ID | issue ID | submit ID [--yes] [--pr ...] | pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes] | ignore ID | clear".into()),
+        _ => Err("usage: fili-incident list [--all] | show ID | notify ID | ask ID | handlers | check ID | issue ID | submit ID [--yes] [--pr ...] | pr ID [--dir PATH] [--title T] [--body-file F|-] [--yes] | ignore ID | clear".into()),
     };
     if let Err(e) = result {
         eprintln!("fili-incident: {e}");
@@ -531,6 +618,15 @@ mod tests {
         // A phone number, alone or as a WhatsApp id
         let out = redact("pair +33612345678 failed for 33612345678@s.whatsapp.net");
         assert!(!out.contains("3361234"), "{out}");
+    }
+
+    #[test]
+    fn a_handler_file_gives_a_label_and_a_command() {
+        let h = parse_handler("rob", "label = \"Ask Rob\"   # the button\ncommand = \"fili-chat ask\"\n").unwrap();
+        assert_eq!(h, Handler { name: "rob".into(), label: "Ask Rob".into(), command: "fili-chat ask".into() });
+        // No label: the name; no command: not a handler
+        assert_eq!(parse_handler("x", "command = \"y\"").unwrap().label, "x");
+        assert!(parse_handler("x", "label = \"only\"").is_none());
     }
 
     #[test]
