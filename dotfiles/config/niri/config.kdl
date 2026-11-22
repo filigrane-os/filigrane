@@ -480,7 +480,7 @@ binds {
     // Aéroport (fili-term), or foot while it is not installed
     Mod+Return hotkey-overlay-title="Open a Terminal: Aéroport" { spawn-sh "t=$(command -v fili-term || echo \"$HOME/.local/bin/fili-term\"); [ -x \"$t\" ] && exec \"$t\"; exec foot"; }
     Mod+Y hotkey-overlay-title="AI chat (fili-ai)" { spawn-sh "fili-ai toggle"; }
-    Mod+Ctrl+Y hotkey-overlay-title="Ask Rob about this application (fili-ai here)" { spawn-sh "fili-ai here"; }
+    Mod+Ctrl+Y hotkey-overlay-title="Ask Lia about this application (fili-ai here)" { spawn-sh "fili-ai here"; }
     Mod+Shift+Y hotkey-overlay-title="AI agent in a terminal (fili-ai)" { spawn "bash" "-lc" "exec ~/.local/bin/fili-ai key"; }
     Mod+E hotkey-overlay-title="Casier" { spawn-sh "/usr/bin/fili-file"; }
     Mod+P hotkey-overlay-title="Displays: panel" { spawn-sh "$HOME/.local/bin/fili-shell panel display"; }

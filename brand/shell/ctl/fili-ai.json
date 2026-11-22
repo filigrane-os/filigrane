@@ -1,0 +1,118 @@
+{
+  "v": 1,
+  "app_id": "fili-ai",
+  "name": "Lia",
+  "program": "fili-ai",
+  "ctl": "fili-ai ctl --pid %pid",
+  "commands": [
+    {
+      "verb": "action",
+      "args": "NAME [ARG...]",
+      "summary": "Run a command of the assistant's window (starts it if none is open)",
+      "reads": false
+    },
+    {
+      "verb": "state",
+      "summary": "JSON of the state: open, focused, attention and busy",
+      "reads": true
+    },
+    {
+      "verb": "actions",
+      "summary": "The names of the commands",
+      "reads": true
+    }
+  ],
+  "actions": [
+    {
+      "name": "about",
+      "label": "About Lia"
+    },
+    {
+      "name": "toggle"
+    },
+    {
+      "name": "show"
+    },
+    {
+      "name": "close",
+      "label": "Hide the Drawer",
+      "keys": "Esc"
+    },
+    {
+      "name": "new",
+      "label": "New Session",
+      "keys": "Ctrl+N"
+    },
+    {
+      "name": "new-here",
+      "label": "New Session for This Application",
+      "keys": "Ctrl+Shift+N"
+    },
+    {
+      "name": "sessions",
+      "label": "Sessions…",
+      "keys": "Ctrl+L"
+    },
+    {
+      "name": "rename",
+      "label": "Rename Session…",
+      "keys": "F2"
+    },
+    {
+      "name": "unlink",
+      "label": "Unlink from Application"
+    },
+    {
+      "name": "archive",
+      "label": "Archive Session"
+    },
+    {
+      "name": "stop",
+      "label": "Stop",
+      "keys": "Ctrl+."
+    },
+    {
+      "name": "allow",
+      "label": "Allow",
+      "keys": "Ctrl+Return"
+    },
+    {
+      "name": "deny",
+      "label": "Deny",
+      "keys": "Ctrl+Backspace"
+    },
+    {
+      "name": "drop-context",
+      "label": "Remove Context Note"
+    },
+    {
+      "name": "float",
+      "label": "Float Above Windows"
+    },
+    {
+      "name": "dock",
+      "label": "Dock Beside Windows"
+    },
+    {
+      "name": "width-narrow",
+      "label": "Narrow"
+    },
+    {
+      "name": "width-medium",
+      "label": "Medium"
+    },
+    {
+      "name": "width-wide",
+      "label": "Wide"
+    },
+    {
+      "name": "settings",
+      "label": "Settings…"
+    },
+    {
+      "name": "debug",
+      "label": "Debug Logs",
+      "keys": "Ctrl+Shift+L"
+    }
+  ]
+}

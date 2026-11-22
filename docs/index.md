@@ -4,7 +4,7 @@
 
 | Kind | What it is | How it is installed |
 |---|---|---|
-| `app` | A program with its own window (Casier, Rob), compiled and signed | An xbps package of the Filigrane repository: `sudo xbps-install` |
+| `app` | A program with its own window (Casier, Lia), compiled and signed | An xbps package of the Filigrane repository: `sudo xbps-install` |
 | `plugin` | A module of the bar: QML or scripts, its dependencies, a setup | A git repository: `fili-bar install` (manifest shown, `packages`, `install.sh`, see [bar.md](bar.md)) |
 | `webapp` | A web application in the launcher | `webapp-add` |
 

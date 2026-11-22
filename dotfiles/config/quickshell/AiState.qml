@@ -1,4 +1,4 @@
-// What the shell knows of the assistant (Rob, fili-ai): whether its interface is open or has the keyboard focus, whether it
+// What the shell knows of the assistant (Lia, fili-ai): whether its interface is open or has the keyboard focus, whether it
 // works, whether it waits for the user or has an unread answer. Read from $XDG_RUNTIME_DIR/fili/ai/ui.json, which the
 // assistant's interface writes on each change (docs/api.md, "The assistant"), and acted upon with the fili-ai command: the
 // bar, the application menu and the agent panel use this singleton and never reach into the assistant's window. The assistant

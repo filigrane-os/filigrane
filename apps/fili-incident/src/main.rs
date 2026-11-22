@@ -5,7 +5,7 @@
 //
 // fili-incident list [--all]       incidents (the ones still to look at; --all adds ignored and reported)
 // fili-incident show ID            one incident: what happened and the last lines of the log
-// fili-incident notify ID          notification "<app> had a problem" with the buttons of the handler (e.g. Ask Rob), Report… and Ignore (waits for the answer)
+// fili-incident notify ID          notification "<app> had a problem" with the buttons of the handler (e.g. Ask Lia), Report… and Ignore (waits for the answer)
 // fili-incident ask ID             asks the assistant (the first incident handler) to look at it; none installed: says so
 // fili-incident handlers           the installed incident handlers
 // fili-incident check ID           is it already on GitHub? (public search by signature, no account needed)
@@ -289,7 +289,7 @@ fn submit(id: &str, yes: bool) -> Result<(), String> {
 
 // ---- The fix as a pull request --------------------------------------------------------------------------------------------
 
-// Title and body of the PR: what Rob wrote (redacted like the issue), then the link to the issue and the incident signature
+// Title and body of the PR: what Lia wrote (redacted like the issue), then the link to the issue and the incident signature
 fn pr_text(incident: &Value, title: Option<&str>, summary: &str, issue_number: Option<i64>) -> (String, String) {
     let title = redact(title.unwrap_or_else(|| first_line(summary)));
     let title = if title.trim().is_empty() {
@@ -392,7 +392,7 @@ fn pr(id: &str, dir: &str, title: Option<&str>, body_file: Option<&str>, yes: bo
     Ok(())
 }
 
-// ---- Rob and the notification ---------------------------------------------------------------------------------------------
+// ---- Lia and the notification ---------------------------------------------------------------------------------------------
 
 /// An incident handler: a program that can treat an incident (the assistant). Registered by a package or by the user
 /// (docs/api.md, "Incident handlers"), so that nothing here depends on an assistant being installed.
@@ -622,8 +622,8 @@ mod tests {
 
     #[test]
     fn a_handler_file_gives_a_label_and_a_command() {
-        let h = parse_handler("rob", "label = \"Ask Rob\"   # the button\ncommand = \"fili-ai ask\"\n").unwrap();
-        assert_eq!(h, Handler { name: "rob".into(), label: "Ask Rob".into(), command: "fili-ai ask".into() });
+        let h = parse_handler("rob", "label = \"Ask Lia\"   # the button\ncommand = \"fili-ai ask\"\n").unwrap();
+        assert_eq!(h, Handler { name: "rob".into(), label: "Ask Lia".into(), command: "fili-ai ask".into() });
         // No label: the name; no command: not a handler
         assert_eq!(parse_handler("x", "command = \"y\"").unwrap().label, "x");
         assert!(parse_handler("x", "label = \"only\"").is_none());

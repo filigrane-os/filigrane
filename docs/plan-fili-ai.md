@@ -63,6 +63,18 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
    Option (a) (normal window) and the Rust wrapper (b) are dropped; the `chatFocus` hack of `AppMenu.qml` can still go once the
    drawer is a real window of its own process with on-demand focus.
 
+## Status (2026-11-22, end of the session): extraction done, to test live
+
+Done: the repository `filigrane-os/fili-ai` (branch `develop` pushed, nothing on `main`, no tag), the Qt Quick window (drawer on the
+layer-shell, icon rail, floating field, notifications, context chip and follow, rename, attachments, About, Debug panel, theme layers,
+French catalog), the package (ctl catalog, bar menu fallback, incident handler, prompts and briefs `lia/`, bar module `agent`, launcher
+with its catalog, `.desktop`), the removal from this repository (`apps/fili-ai/upstream` pins `develop` until the first tag), the
+rename Rob -> Lia here and in the six applications (`LiaButton.qml`, `shell/lia/`, `askLia`; local commits, not pushed, not tagged).
+Deployed locally with `make install PREFIX=$HOME/.local` in `~/Projects/fili-ai` (`bootstrap.sh --apps` skips because the
+`filigrane-apps` package is installed). Left: the live test by the user, a real icon `fili-ai` (none exists), tests of the window
+logic in the new repository (the former TestShell section was dropped), the notification closing when a permission is answered
+elsewhere (was `FiliNotification.close`), then the tag (CI of `main`) and the pin here. `FILI_ROB` (session marker for the hooks) keeps its name.
+
 ## The extraction, step by step (each step commitable and tested)
 
 Progress (2026-11-22): steps 1 and 2 are done **locally** in `~/Projects/fili-ai` (cargo workspace `crates/fili-ai-daemon`,

@@ -105,7 +105,7 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
         # ALIASES (package.env): other command names for the same program
         local alias
         for alias in $ALIASES; do ln -sfn "$app" "$dest/usr/bin/$alias"; done
-        # shell/ of the tool: what the Filigrane shell reads (fili-bar/<module>/, appmenu/<app_id>.json, rob/<app_id>.md), merged
+        # shell/ of the tool: what the Filigrane shell reads (fili-bar/<module>/, appmenu/<app_id>.json, lia/<app_id>.md), merged
         # with the other tools' into /usr/share/filigrane/shell/ (fili-bar link-system links it at login). A tool with its own
         # Makefile installs it itself.
         if [ -d "$dir/shell" ]; then

@@ -1,0 +1,11 @@
+{
+ "SESSIONS": "SESSIONS",
+ "No session": "Aucune session",
+ "ACTIONS": "ACTIONS",
+ "Hide the chat": "Cacher le chat",
+ "Show the chat": "Afficher le chat",
+ "New terminal session": "Nouvelle session de terminal",
+ "Choose the agent": "Choisir l'agent",
+ "Open the AI agent": "Ouvrir l'agent IA",
+ "Choose the agent…": "Choisir l'agent…"
+}

@@ -107,7 +107,7 @@ A package that can *treat* an incident (the assistant) registers a handler, `she
 `~/.config/filigrane/incident/<name>.toml` for your own):
 
 ```toml
-label = "Ask Rob"                       # the button of the notification and the menu entry
+label = "Ask Lia"                       # the button of the notification and the menu entry
 command = "fili-ai ask"               # run with the prompt as its last argument
 ```
 
@@ -123,13 +123,13 @@ listen: no daemon. Names in use: `incident.new` (`data`: the incident id).
 
 ## The assistant
 
-The assistant (Rob, `fili-ai`) is an optional client of the contracts above, and the shell knows it through two things only, so
+The assistant (Lia, `fili-ai`) is an optional client of the contracts above, and the shell knows it through two things only, so
 that it can be a window of the shell today and an application of its own tomorrow, or be absent:
 
-- **Present** when the program `fili-ai-daemon` is installed (an application's "Ask Rob" button shows only then).
+- **Present** when the program `fili-ai-daemon` is installed (an application's "Ask Lia" button shows only then).
 - **Commands**: `fili-ai toggle` (notes the focused application, then shows or hides the interface), `fili-ai show` and
   `fili-ai hide` (without noting it: the bar, the notifications), `fili-ai here [TEXT]` (a session scoped to the focused
-  application: Mod+Ctrl+Y, "Ask Rob…"), `fili-ai ask TEXT`, `fili-ai sessions`, `fili-ai send ID TEXT`.
+  application: Mod+Ctrl+Y, "Ask Lia…"), `fili-ai ask TEXT`, `fili-ai sessions`, `fili-ai send ID TEXT`.
 - **State**: the assistant's interface writes `$XDG_RUNTIME_DIR/fili/ai/ui.json` on each change, atomically, and the shell reads it
   (`AiState.qml`: the bar, the application menu and the agent panel use nothing else):
 

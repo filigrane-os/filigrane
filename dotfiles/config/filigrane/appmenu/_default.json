@@ -1,6 +1,6 @@
 {
   "app": [
-    { "label": "Ask Rob…", "exec": "fili-ai here" },
+    { "label": "Ask Lia…", "exec": "fili-ai here" },
     { "sep": true },
     { "label": "Quit %1", "niri": ["close-window"] },
     { "sep": true },

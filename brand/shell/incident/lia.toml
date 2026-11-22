@@ -1,0 +1,3 @@
+# Incident handler: what fili-incident offers when an application reports a problem (docs/api.md, "Incident handlers").
+label = "Ask Lia"
+command = "fili-ai ask"

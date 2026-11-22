@@ -10,7 +10,7 @@ package = "fili-file"
 
 [fili-ai]
 kind = "app"
-title = "Rob"
+title = "Lia"
 description = "Chat with the AI agent in a window of its own"
 package = "fili-ai"
 

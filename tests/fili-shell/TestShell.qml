@@ -309,7 +309,7 @@ ShellRoot {
             () => {
                 const labels = AppMenu.menus.map(m => m.label);
                 ok(labels.join(",") === "Terminal,Shell,Go,Help,Window", "appmenu: foot -> application, fallback menus, Window", labels.join(","));
-                ok(AppMenu.menus[0].children[0].label === "Ask Rob…" && AppMenu.menus[0].children[2].label === "Quit %1", "appmenu: application menu -> Ask Rob…, then Quit");
+                ok(AppMenu.menus[0].children[0].label === "Ask Lia…" && AppMenu.menus[0].children[2].label === "Quit %1", "appmenu: application menu -> Ask Lia…, then Quit");
                 const title = t.find(t.bar.contentItem, "appmenu-1");
                 const host = t.find(t.bar.contentItem, "appmenu");
                 ok(title && host && host.visible && host.shown, "appmenu: menu titles in the fili-bar", host ? host.visible : "not found");
@@ -321,7 +321,7 @@ ShellRoot {
                 ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: click on a title -> menu open");
                 ok(AppMenu.levels[0][0].keys === "Super+Return", "appmenu: shortcut of a fallback entry = niri bind of the same command", AppMenu.levels[0][0].keys);
                 ok(AppMenu.menus[0].children[2].keys === "Super+Q", "appmenu: Quit -> shortcut of close-window", AppMenu.menus[0].children[2].keys);
-                ok(AppMenu.menus[0].children[0].keys === "Super+Ctrl+Y", "appmenu: Ask Rob… -> shortcut of the niri bind of fili-ai here", AppMenu.menus[0].children[0].keys);
+                ok(AppMenu.menus[0].children[0].keys === "Super+Ctrl+Y", "appmenu: Ask Lia… -> shortcut of the niri bind of fili-ai here", AppMenu.menus[0].children[0].keys);
                 AppMenu.bindsLocal = localBinds;
                 const pb = AppMenu.parseBinds('binds {\n    // Mod+X { nope; }\n    Mod+Ctrl+W hotkey-overlay-title="a" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }\n    Mod+V       { toggle-window-floating; }\n    Mod+1 { focus-workspace 1; }\n    Mod+B { spawn "foot" "-e" "btop"; }\n}\nlayout { Mod+Z { x; } }\n');
                 ok(pb["exec:bar-tui impala"] === "Super+Ctrl+W" && pb["niri:toggle-window-floating"] === "Super+V" && pb["niri:focus-workspace 1"] === "Super+1" && pb["exec:foot -e btop"] === "Super+B" && Object.keys(pb).length === 4, "appmenu: reading the niri binds (spawn, spawn-sh, actions, arguments, comments)", JSON.stringify(pb));
@@ -524,7 +524,7 @@ ShellRoot {
                 ok(FiliLauncher.match("Night light", ["nig"]) !== null && FiliLauncher.match("Night light", ["xyz"]) === null, "fili-launcher match");
                 ok(FiliLauncher.match("Réglages", ["regl"]) !== null && FiliLauncher.match("Réglages", ["regl"]).hits.join() === "0,1,2,3" && FiliLauncher.fold("Éé À") === "ee a", "fili-launcher accents ignored (regl -> Réglages)");
                 ok(FiliLauncher.match("Casier", ["file"], " files fichiers file ") !== null && FiliLauncher.match("Casier", ["file"], "") === null
-                    && FiliLauncher.match("Rob", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Rob", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher keywords (Casier <- file, Rob <- ia)");
+                    && FiliLauncher.match("Lia", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Lia", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher keywords (Casier <- file, Lia <- ia)");
             },
             wait(() => t.shell("printf 'Alpha\\nBeta app\\nGamma › sous\\n' | " + t.bin + "/fili-shell launcher --prompt 'Style › '; echo \"rc=$?\""),
                  () => FiliLauncher.open && FiliLauncher.entries.length === 3),

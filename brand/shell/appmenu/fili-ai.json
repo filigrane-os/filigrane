@@ -1,0 +1,120 @@
+{
+  "name": "Lia",
+  "app": [
+    {
+      "label": "About Lia",
+      "exec": "fili-ai ctl --pid %pid action about"
+    },
+    {
+      "sep": true
+    },
+    {
+      "label": "Settings…",
+      "exec": "fili-ai ctl --pid %pid action settings"
+    },
+    {
+      "sep": true
+    },
+    {
+      "label": "Hide the Drawer",
+      "keys": "Esc",
+      "exec": "fili-ai ctl --pid %pid action close"
+    }
+  ],
+  "menus": [
+    {
+      "label": "Session",
+      "children": [
+        {
+          "label": "New Session",
+          "keys": "Ctrl+N",
+          "exec": "fili-ai ctl --pid %pid action new"
+        },
+        {
+          "label": "New Session for This Application",
+          "keys": "Ctrl+Shift+N",
+          "exec": "fili-ai ctl --pid %pid action new-here"
+        },
+        {
+          "label": "Sessions…",
+          "keys": "Ctrl+L",
+          "exec": "fili-ai ctl --pid %pid action sessions"
+        },
+        {
+          "label": "Rename Session…",
+          "keys": "F2",
+          "exec": "fili-ai ctl --pid %pid action rename"
+        },
+        {
+          "label": "Unlink from Application",
+          "exec": "fili-ai ctl --pid %pid action unlink"
+        },
+        {
+          "label": "Archive Session",
+          "exec": "fili-ai ctl --pid %pid action archive"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Stop",
+          "keys": "Ctrl+.",
+          "exec": "fili-ai ctl --pid %pid action stop"
+        },
+        {
+          "label": "Allow",
+          "keys": "Ctrl+Return",
+          "exec": "fili-ai ctl --pid %pid action allow"
+        },
+        {
+          "label": "Deny",
+          "keys": "Ctrl+Backspace",
+          "exec": "fili-ai ctl --pid %pid action deny"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Remove Context Note",
+          "exec": "fili-ai ctl --pid %pid action drop-context"
+        }
+      ]
+    },
+    {
+      "label": "View",
+      "children": [
+        {
+          "label": "Float Above Windows",
+          "exec": "fili-ai ctl --pid %pid action float"
+        },
+        {
+          "label": "Dock Beside Windows",
+          "exec": "fili-ai ctl --pid %pid action dock"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Narrow",
+          "exec": "fili-ai ctl --pid %pid action width-narrow"
+        },
+        {
+          "label": "Medium",
+          "exec": "fili-ai ctl --pid %pid action width-medium"
+        },
+        {
+          "label": "Wide",
+          "exec": "fili-ai ctl --pid %pid action width-wide"
+        },
+        {
+          "sep": true
+        },
+        {
+          "label": "Debug Logs",
+          "keys": "Ctrl+Shift+L",
+          "exec": "fili-ai ctl --pid %pid action debug"
+        }
+      ]
+    }
+  ]
+}

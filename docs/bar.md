@@ -178,7 +178,7 @@ updating the application is updating one package. Nothing of it lives in this re
 ```
 shell/fili-bar/<module>/   module.toml, <Name>Module.qml, <Name>Panel.qml, i18n/fr.json   a module of the bar (optional)
 shell/appmenu/<app_id>.json                                                               the fallback menu of the global menu
-shell/rob/<app_id>.md                                                                     the hidden brief of Rob for this application
+shell/lia/<app_id>.md                                                                     the hidden brief of Lia for this application
 ```
 
 The launcher (`data/<app_id>.desktop`) and the icon go to the usual `applications/` and `icons/` directories. One application
@@ -190,15 +190,15 @@ module `(app)`. Precedence: **a module of the repository, a plugin, or a file of
 command never replaces them. It also forgets the links of what a package no longer ships, so removing the package removes the
 module and the menu from the bar. `FILI_SHELL_DIRS` (colon separated) replaces the two directories, for tests.
 
-The brief of Rob is read by `fili-ai` from `agents/rob/<app_id>.md` of the repository when it exists (programs that have no
-repository of their own), else from the shipped `rob/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/rob/<app_id>.md`
+The brief of Lia is read by `fili-ai` from `agents/lia/<app_id>.md` of the repository when it exists (programs that have no
+repository of their own), else from the shipped `lia/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/lia/<app_id>.md`
 adds personal lines. The menu check of each application (`scripts/check-shell-menu.py`, run by its `make test` or `make check`)
 verifies that the shipped menu agrees with the window and that the brief exists. The shell bench (`tests/fili-shell/run.sh`)
 loads the modules and menus shipped by the pinned applications, like a machine where the packages are installed
 (`FILI_SRC_<APP>=~/Projects/<app>` for a local checkout).
 
 What stays in this repository: the shell itself, the generic modules (clock, audio, network…), `_default.json`, the menus of
-programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Rob
+programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Lia
 (`apps/fili-ai-daemon`).
 
 ## The module contract

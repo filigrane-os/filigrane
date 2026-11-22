@@ -26,7 +26,7 @@ for k in ("Lia, about %1", "Ask anything about this application…"):
     if k not in fr:
         errors.append(f"i18n/fr.json of fili-ai: {k!r} is not translated")
 # The generic brief ships with the package; the brief of each application is shipped by the application (shell/lia/<app_id>.md or
-# the older shell/rob/<app_id>.md, checked by its own scripts/check-shell-menu.py)
+# the older shell/lia/<app_id>.md, checked by its own scripts/check-shell-menu.py)
 if not (src / "data/prompts/lia/_default.md").exists():
     errors.append("data/prompts/lia/_default.md is missing in fili-ai")
 if errors:
