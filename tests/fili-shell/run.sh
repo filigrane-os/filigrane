@@ -78,19 +78,17 @@ if [ -n "$errors" ]; then
     exit 1
 fi
 # The applications live in their own repositories and run their unit suites and headless scenarios in their own CI (make test,
-# make check). Here only what compares an application with the shell, whenever the shell changes: the shell_parity tests (theme
+# make check). Here only what compares an application with the shell, whenever the shell changes: check-app-shell-parity.py (theme
 # defaults, kinetic scroll) and the window anatomy against Casier. The whole suite of an application (its `make test`, `make check`
 # for Casier) runs here only when its pin changes (apps/<app>/upstream), or for every application with FILI_APP_TESTS=1.
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/.cache/filigrane-apps}"
-SHELL_RE='^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py|^tests/fili-shell/run.sh'
+SHELL_RE='^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py|^tests/fili-shell/check-app-shell-parity.py|^tests/fili-shell/run.sh'
 app_src() { # app_src APP: the pinned sources (or FILI_SRC_<APP>), else the bench stops
     "$ROOT/scripts/upstream-dir" "$1" || { echo "not ok - source of $1 not available" >&2; exit 1; }
 }
-app_parity() { # app_parity APP NAME: the app follows the shell
+app_parity() { # app_parity APP NAME: the app follows the shell (theme.toml defaults, KineticScroll.qml)
     src="$(app_src "$1")" || exit 1
-    (cd "$src" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" FILI_SHELL_DIR="$ROOT/dotfiles/config/quickshell" cargo test --release -q --locked shell_parity >/dev/null 2>&1) \
-        && echo "ok - $2 follows the shell (theme defaults, kinetic scroll)" \
-        || { echo "not ok - $2 no longer matches the shell: cd $src && QMAKE=/usr/lib/qt6/bin/qmake6 FILI_SHELL_DIR=$ROOT/dotfiles/config/quickshell cargo test shell_parity"; exit 1; }
+    python3 -I "$ROOT/tests/fili-shell/check-app-shell-parity.py" "$src" "$2" || exit 1
 }
 app_anatomy() { # app_anatomy APP: the window follows the anatomy of Casier
     src="$(app_src "$1")" || exit 1
