@@ -4,3 +4,4 @@ description = "Date, time and calendar"
 side = "right"
 order = 120
 compact_at = 2
+group = "time"

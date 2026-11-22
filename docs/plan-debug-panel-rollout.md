@@ -44,7 +44,7 @@ All in this repository, commit `ff3e17a` (incidents) and `2c73950` (Baladeur):
 
 How an incident flows: panic / QML error (TypeError, ReferenceError, binding loop, critical Qt message) / "Ask Rob" button →
 `logs::incident()` writes `~/.local/state/filigrane/incidents/<id>.json` (signature, last 200 log lines, version, system) →
-starts `fili-incident notify ID` (notification with Ask Rob / Ignore) → Rob (`fili-chat ask`) → `check` by signature on
+starts `fili-incident notify ID` (notification with Ask Rob / Ignore) → Rob (`fili-ai ask`) → `check` by signature on
 GitHub's public search (no account) → the user decides: `submit --yes` with `gh`, else the prefilled issue form opens in
 the browser and the redacted report is in the clipboard. Limits: one incident per signature per day, three per run; off with
 `[debug] incidents = "off"` in `~/.config/filigrane/<app>.toml`. The incident JSON carries `repo` (`owner/name`), so an
@@ -120,7 +120,7 @@ daemon has no QML: give it the log (file + panic hook + incidents) but not the Q
 and the `cxx-qt-lib` import optional (a cargo feature `qt`, on by default for the GUI binary), as `fili-mail` and `fili-im`
 already split their `cxx-qt` dependencies behind a feature. The window's panel can then also show the daemon's log: read
 `~/.local/state/filigrane/logs/<app>-daemon.log` (a second tab or a source filter in the panel) once the basics work.
-`fili-chat` (Rob, `apps/fili-chat`) is a thin client: log file only, no panel.
+`fili-ai` (Rob, `apps/fili-ai-daemon`) is a thin client: log file only, no panel.
 
 ## 5. Per-application notes
 
@@ -132,7 +132,7 @@ already split their `cxx-qt` dependencies behind a feature. The window's panel c
 | Facteur | `fili-mail`, `filigrane-os/fili-mail` | cxx-qt behind a feature, daemon + window | Daemon log: see 4.3. Issues must go to its own repository. |
 | Aéroport | `fili-term`, `filigrane-os/fili-term` | Rust daemon + Qt Quick window (`ctl.rs`, `proto.rs`) | It is a terminal: the panel must not steal key input from the shell; Ctrl+Shift+L may conflict with terminal shortcuts, check its keymap first and pick another chord if needed (and record it in the contract). |
 | Conversations | `fili-im`, `filigrane-os/fili-im` | daemon + cxx-qt GUI behind a feature | Messages can be private: **never log message bodies**; the redaction in `fili-incident` removes paths, e-mails, IPs and MACs but not chat text. Check what the application logs before enabling the panel's copy/Ask Rob. Live test of P1 still pending (see `~/Projects/fili-im/docs/next.md`). |
-| Rob | `fili-chat`, here | small Rust client | Log file only. |
+| Rob | `fili-ai`, here | small Rust client | Log file only. |
 
 Privacy rule for every application: nothing sensitive in log lines (tokens, passwords, message or mail bodies, file contents).
 Review the existing `log::` calls of each application before turning the panel on, and lower or remove any that print

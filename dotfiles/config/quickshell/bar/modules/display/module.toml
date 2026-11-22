@@ -4,3 +4,4 @@ description = "Brightness and night light"
 side = "right"
 order = 80
 drawer_at = 3
+group = "system"

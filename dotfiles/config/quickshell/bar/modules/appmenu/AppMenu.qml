@@ -41,13 +41,13 @@ Singleton {
             win = niriWin;
     }
     Component.onCompleted: win = niriWin
-    // The fili-chat drawer has the keyboard focus: its menu (appmenu/fili-chat.json) replaces the one of the window. Kept as long as
+    // The fili-ai drawer has the keyboard focus: its menu (appmenu/fili-ai.json) replaces the one of the window. Kept as long as
     // a menu is open (a menu taken from the keyboard receives the focus in its place) and during a press on a title of the
     // bar: the bar does not take the keyboard, niri then gives the focus back to the previous window, and the menu would change
     // under the mouse before the click ends
     property bool chatFocus: false
     property bool holdChat: false
-    readonly property bool chatNow: FiliChat.focused
+    readonly property bool chatNow: AiState.focused
     onChatNowChanged: {
         if (chatNow || !(open || holdChat))
             chatFocus = chatNow;
@@ -71,8 +71,8 @@ Singleton {
                 am.chatFocus = false;
         }
     }
-    readonly property var winId: chatFocus ? "fili-chat" : (win ? win.id : null)
-    readonly property string appId: chatFocus ? "fili-chat" : (win?.app_id ?? "")
+    readonly property var winId: chatFocus ? "fili-ai" : (win ? win.id : null)
+    readonly property string appId: chatFocus ? "fili-ai" : (win?.app_id ?? "")
     readonly property string dir: Quickshell.env("FILI_APPMENU_DIR") || Quickshell.env("HOME") + "/.config/filigrane/appmenu"
     readonly property string key: appId.replace(/[^A-Za-z0-9._-]/g, "_")
 
@@ -284,7 +284,7 @@ Singleton {
         if (w && w.pid && (spec.menus ?? []).length === 0 && Date.now() - (noMenu[w.app_id] ?? 0) > 60000) {
             pending = true;
             query.queryGen = gen;
-            query.command = [FiliTheme.bin + "/fili-appmenu", "menu", String(w.pid), w.title ?? ""];
+            query.command = [FiliTheme.tool("fili-appmenu"), "menu", String(w.pid), w.title ?? ""];
             query.running = true;
         } else {
             source = "fallback";
@@ -486,7 +486,7 @@ Singleton {
         } else if (e.niri) {
             Niri.action(...e.niri);
         } else if (e.svc) {
-            const cmd = [FiliTheme.bin + "/fili-appmenu", "do", e.svc, e.path];
+            const cmd = [FiliTheme.tool("fili-appmenu"), "do", e.svc, e.path];
             if (FiliTheme.testing)
                 FiliTheme.ran = FiliTheme.ran.concat([cmd.join(" ")]);
             else
@@ -502,7 +502,7 @@ Singleton {
         expander.target = entry;
         expander.depth = depth;
         expander.expandGen = gen;
-        expander.command = [FiliTheme.bin + "/fili-appmenu", "expand", entry.svc, entry.path];
+        expander.command = [FiliTheme.tool("fili-appmenu"), "expand", entry.svc, entry.path];
         expander.running = true;
     }
     Process {

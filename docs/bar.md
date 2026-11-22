@@ -178,7 +178,7 @@ updating the application is updating one package. Nothing of it lives in this re
 ```
 shell/fili-bar/<module>/   module.toml, <Name>Module.qml, <Name>Panel.qml, i18n/fr.json   a module of the bar (optional)
 shell/appmenu/<app_id>.json                                                               the fallback menu of the global menu
-shell/rob/<app_id>.md                                                                     the hidden brief of Rob for this application
+shell/lia/<app_id>.md                                                                     the hidden brief of Lia for this application
 ```
 
 The launcher (`data/<app_id>.desktop`) and the icon go to the usual `applications/` and `icons/` directories. One application
@@ -190,16 +190,32 @@ module `(app)`. Precedence: **a module of the repository, a plugin, or a file of
 command never replaces them. It also forgets the links of what a package no longer ships, so removing the package removes the
 module and the menu from the bar. `FILI_SHELL_DIRS` (colon separated) replaces the two directories, for tests.
 
-The brief of Rob is read by `fili-chat` from `agents/rob/<app_id>.md` of the repository when it exists (programs that have no
-repository of their own), else from the shipped `rob/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/rob/<app_id>.md`
+The brief of Lia is read by `fili-ai` from `agents/lia/<app_id>.md` of the repository when it exists (programs that have no
+repository of their own), else from the shipped `lia/<app_id>.md` (the last shipped folder wins); `~/.config/filigrane/lia/<app_id>.md`
 adds personal lines. The menu check of each application (`scripts/check-shell-menu.py`, run by its `make test` or `make check`)
 verifies that the shipped menu agrees with the window and that the brief exists. The shell bench (`tests/fili-shell/run.sh`)
 loads the modules and menus shipped by the pinned applications, like a machine where the packages are installed
 (`FILI_SRC_<APP>=~/Projects/<app>` for a local checkout).
 
 What stays in this repository: the shell itself, the generic modules (clock, audio, network…), `_default.json`, the menus of
-programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Rob
-(`apps/fili-chat`).
+programs that are not Filigrane applications (`foot.json`, `google-chrome.json`), and the menu and launcher of Lia
+(`apps/fili-ai-daemon`).
+
+## The module contract
+
+A module of the distribution is **self-contained**: everything it is lives in its folder, in the same shape as a module shipped by an application (so one can leave for its own repository with a `git mv`):
+
+```
+bar/modules/<name>/
+  module.toml          manifest: title, side, order, group, uses, squeeze levels
+  <Name>Module.qml     the item of the bar
+  <Name>Panel.qml      its panel (optional)
+  i18n/<language>.json the translations of the texts only this module shows
+```
+
+What a module may rely on, without declaring it (the **public API** of the shell): `BarModule`, `BarItem`, `BarScript`, `BarLabel`, `BarRow`, `BarHover`, `BarState`, `BarWatched`, `BarTone`; `FiliTheme`, `FiliI18n`, `FiliShell`, `FiliInfo`, `FiliPanel`, `FiliTooltip`, `Niri`, `AiState` (what the shell knows of the assistant: open, focused, attention, busy; `show()`/`hide()`); the controls of `qs.controls` (`Panel*`); the Qt and Quickshell modules. Anything else of the shell (`FiliHotkeys`, `FiliAbout`, `FiliNotification`...) is named in `uses = ["..."]` of its manifest, which makes the coupling visible and reviewable. `group` (`desktop`, `system`, `connectivity`, `sound`, `time`, `ai`) says which domain the module belongs to; `fili-bar list` shows it. The folders stay flat: the group is data, not a directory.
+
+A text only one module shows is translated in the `i18n/` of that module; a text shared by several modules or by the shell (and by `bar-stats`, which reads the shell catalog) stays in `dotfiles/config/quickshell/i18n/`. `scripts/check-i18n.sh` checks both, and `tests/fili-shell/check-module-contract.py` checks the imports, `uses` and the manifest. A module that is not essential to a Filigrane machine (`resources`) is the first candidate to become an optional package that ships its own folder (see "Shipped by an application").
 
 ## Writing a module
 
@@ -337,7 +353,7 @@ AlertModule {
 ### Pitfalls
 
 - A module is loaded **by its file**. It sees the other files of its folder only if `BarLayout.qml` imports that folder; a module with helpers next to it (`appmenu`, `audio`, `clock`, `alert`) needs a line there. Otherwise rely on `qs`, `qs.bar` and `qs.controls` only.
-- Text is in English in the code; translations go in `dotfiles/config/quickshell/i18n/<language>.json` and `FiliI18n.tr("...")`.
+- Text is in English in the code; translations go in the `i18n/<language>.json` of the module (shared texts: `dotfiles/config/quickshell/i18n/<language>.json`) and `FiliI18n.tr("...")`.
 - Colours, sizes and fonts come from `FiliTheme`, never hard-coded. The interface rules are in the `filigrane-ui` skill (`agents/skills/filigrane-ui/`).
 - The bar must stay light: no resident process per module, no polling when a signal will do. Measure with `tests/fili-shell/bench.sh`.
 

@@ -28,7 +28,7 @@ SCALE = 0.85
 CENTER_Y = 350
 ADVANCE = 950
 
-# Topic icons of the fili-chat sessions: the AI picks one by its name (apps/fili-chat, TOPICS, same order), the code
+# Topic icons of the fili-ai sessions: the AI picks one by its name (crates/fili-ai-daemon of the fili-ai repository, TOPICS, same order), the code
 # is 0xF2000 + position. 0xF2F00 and following: drawer buttons (session list, settings).
 TOPICS = [
     "message-circle", "terminal", "code", "bug", "git-branch", "package", "wrench", "settings", "wifi", "volume-2",

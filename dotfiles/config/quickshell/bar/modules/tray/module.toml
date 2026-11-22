@@ -3,3 +3,4 @@ title = "Tray"
 description = "System tray icons, backup and the drawer handle"
 side = "right"
 order = 20
+group = "desktop"

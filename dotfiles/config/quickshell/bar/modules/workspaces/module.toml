@@ -6,3 +6,4 @@ order = 20
 # Off by default: the workspaces are the strip at the left of the taskbar (bar/FiliTaskbar.qml). Set [modules.workspaces] enabled = true
 # in fili-bar.toml to have them in the fili-bar again (for example with [taskbar] enabled = false)
 enabled = false
+group = "desktop"

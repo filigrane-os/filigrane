@@ -1,0 +1,13 @@
+{
+ "Title": "Titre",
+ "Artist": "Artiste",
+ "Album": "Album",
+ "playing": "lecture",
+ "paused": "pause",
+ "Position": "Position",
+ "click: play/pause · right click: menu · middle click: next · wheel: previous / next": "clic: lecture/pause · clic droit: menu · clic milieu: suivant · molette: précédent / suivant",
+ "Show the player": "Afficher le lecteur",
+ "Play / pause": "Lecture / pause",
+ "Next": "Suivant",
+ "Previous": "Précédent"
+}

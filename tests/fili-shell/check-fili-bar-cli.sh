@@ -109,6 +109,16 @@ check "link-system never replaces a file of the user" '[ ! -L "$XDG_CONFIG_HOME/
 rm -rf "$SH/fili-bar/shipped" "$SH/appmenu/shipped.json"
 "$FB" link-system
 check "link-system forgets what a package no longer ships" '[ ! -e "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped" ] && [ ! -L "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped" ] && [ ! -L "$XDG_CONFIG_HOME/filigrane/appmenu/shipped.json" ]'
+# An empty folder (what is left when the files of a module moved to a package) must not block the link of that module
+mkdir -p "$SH/fili-bar/shipped2" "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped2"
+printf 'title = "Shipped 2"\napi = 1\nside = "right"\n' > "$SH/fili-bar/shipped2/module.toml"
+"$FB" link-system
+check "link-system replaces an empty folder left in the modules" '[ "$(readlink "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped2")" = "$SH/fili-bar/shipped2" ]'
+# ...but never a folder that holds something
+mkdir -p "$SH/fili-bar/shipped3" "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3"
+printf 'title = "Shipped 3"\n' > "$SH/fili-bar/shipped3/module.toml"; : > "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3/Mine.qml"
+"$FB" link-system
+check "link-system leaves a folder that holds files" '[ -d "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3" ] && [ ! -L "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3" ]'
 unset FILI_SHELL_DIRS
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"

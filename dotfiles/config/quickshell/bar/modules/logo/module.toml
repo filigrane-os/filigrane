@@ -3,3 +3,5 @@ title = "Logo"
 description = "Filigrane logo, opens the menu"
 side = "left"
 order = 10
+group = "desktop"
+uses = ["FiliAbout"]

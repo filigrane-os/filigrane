@@ -2,7 +2,7 @@
 name = "fili-incident"
 version = "0.1.0"
 edition = "2024"
-description = "Problems reported by the fili-* applications: notification, Rob, and a GitHub issue prepared (or a +1 on the existing one)"
+description = "Problems reported by the fili-* applications: notification, Lia, and a GitHub issue prepared (or a +1 on the existing one)"
 license = "GPL-3.0-or-later"
 
 [dependencies]

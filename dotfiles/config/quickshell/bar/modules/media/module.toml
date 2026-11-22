@@ -4,3 +4,4 @@ description = "Playing media"
 side = "right"
 order = 30
 compact_at = 1
+group = "sound"

@@ -20,7 +20,7 @@ SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPa
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
 DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "fili-im": "Ctrl+Shift+L",
                "fili-term": "Ctrl+Shift+L"}
-# Applications that have the "Ask Rob" header button (app-window.md, "Ask Rob button"), with the first version that has
+# Applications that have the "Ask Lia" header button (app-window.md, "Ask Lia button"), with the first version that has
 # it: a pinned older version (apps/<name>/upstream) is not held to it, and the check starts by itself when the pin reaches
 # that version. An application joins this list when it gets the button; it can never leave it.
 ROB_BUTTON = {"fili-file": (1, 14, 0), "fili-recorder": (0, 1, 0), "fili-music": (0, 1, 1), "fili-im": (0, 1, 5),
@@ -64,7 +64,7 @@ def bare_views(text):
 def normalize(text):
     """Drops the module import and the singleton name, the only allowed differences between copies."""
     text = re.sub(r"^import Fili\.\w+\s*$", "", text, flags=re.M)
-    calls = r"tr|askRob|robAvailable|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
+    calls = r"tr|askLia|robAvailable|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
     return re.sub(rf"\b[A-Z][A-Za-z]*\.(?=({calls})\b)", "APP.", text)
 
 
@@ -142,22 +142,25 @@ def version_of(src):
 
 
 def check_rob(ref, src):
-    """The "Ask Rob" header button: shared file, listed in build.rs, instantiated, `askRob` exposed."""
+    """The "Ask Lia" header button: shared file, listed in build.rs, instantiated, `askLia` exposed. The versions before the
+    rename of the assistant (Rob -> Lia) have RobButton.qml and `ask_rob`: accepted until the applications are released again."""
     problems = []
-    button, theirs = src / "qml" / "RobButton.qml", ref / "qml" / "RobButton.qml"
+    name = "Lia" if (src / "qml" / "LiaButton.qml").is_file() or not (src / "qml" / "RobButton.qml").is_file() else "Rob"
+    rname = name if (ref / "qml" / f"{name}Button.qml").is_file() else ("Lia" if name == "Rob" else "Rob")
+    button, theirs = src / "qml" / f"{name}Button.qml", ref / "qml" / f"{rname}Button.qml"
     if not button.is_file():
-        return ["qml/RobButton.qml missing"]
-    if theirs.is_file() and normalize(button.read_text()) != normalize(theirs.read_text()):
-        problems.append("qml/RobButton.qml differs from Casier's copy")
+        return [f"qml/{name}Button.qml missing"]
+    if theirs.is_file() and normalize(button.read_text().replace("Rob", "Lia").replace("rob", "lia")) != normalize(theirs.read_text().replace("Rob", "Lia").replace("rob", "lia")):
+        problems.append(f"qml/{name}Button.qml differs from Casier's copy")
     build = src / "build.rs"
-    if build.is_file() and "qml/RobButton.qml" not in build.read_text():
-        problems.append("build.rs: qml/RobButton.qml is not in qml_files")
+    if build.is_file() and f"qml/{name}Button.qml" not in build.read_text():
+        problems.append(f"build.rs: qml/{name}Button.qml is not in qml_files")
     main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
-    if not re.search(r"^\s*RobButton\s*\{", main, re.M):
-        problems.append("Main.qml: no RobButton")
+    if not re.search(rf"^\s*{name}Button\s*\{{", main, re.M):
+        problems.append(f"Main.qml: no {name}Button")
     rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
-    if not re.search(r"\bfn ask_rob\b", rust):
-        problems.append("no `askRob` invokable for the Ask Rob button")
+    if not re.search(r"\bfn ask_(lia|rob)\b", rust):
+        problems.append("no `askLia` invokable for the Ask Lia button")
     return problems
 
 

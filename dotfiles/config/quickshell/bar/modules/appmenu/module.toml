@@ -3,3 +3,4 @@ title = "Application menu"
 description = "Menu of the focused application"
 side = "left"
 order = 30
+group = "desktop"

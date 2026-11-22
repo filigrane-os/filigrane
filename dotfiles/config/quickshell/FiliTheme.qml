@@ -277,6 +277,13 @@ Singleton {
     // Scripts and binaries of the distribution (~/.local/bin; FILI_BIN for the tests)
     readonly property string bin: Quickshell.env("FILI_BIN") || Quickshell.env("HOME") + "/.local/bin"
 
+    // A program installed by a package (/usr/bin, e.g. fili-appmenu, fili-ai-session): found through PATH, never
+    // in ~/.local/bin (FILI_BIN still overrides for the tests)
+    function tool(name) {
+        const b = Quickshell.env("FILI_BIN");
+        return b ? b + "/" + name : name;
+    }
+
     // Test mode (tests/fili-shell/run.sh): windows hidden, commands recorded instead of run
     readonly property bool testing: Quickshell.env("FILI_TEST") === "1"
     property var ran: []

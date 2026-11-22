@@ -54,7 +54,7 @@ Extra niri settings go in `users/<login>/dotfiles/config/niri/local.kdl`: the ma
 | `AUTOLOGIN` | `auto` | Auto-login on `tty1`: `1`, `0`, or `auto` (VMs only) |
 | `FILI_AI` | `claude` | AI agent: `claude`, `codex`, `ollama`, `opencode`, `none`. See [ai-agent.md](ai-agent.md) |
 | `FILI_AI_MODEL` | empty | Agent model (empty = the agent's default) |
-| `FILI_ROB_MODEL` | `sonnet` | Model of Rob when asked from an application (Ask Rob); `default` = `FILI_AI_MODEL` |
+| `FILI_AGENT_MODEL` | `sonnet` | Model of the agent for the requests scoped to an application ("Ask the assistant", short and fast); `default` = `FILI_AI_MODEL` |
 | `FILI_AI_WORKDIR` | `work` | Agent working directory, relative to your home |
 | `FILI_AI_ARGS` | empty | Agent options replacing the defaults (permissions, sandbox) |
 

@@ -1,0 +1,81 @@
+#!/bin/bash
+# What the Filigrane applications declare, for scripts, shortcuts and the assistant (docs/api.md). No AI involved.
+#
+#   fili-api list              the applications that declare control commands (catalogs shell/ctl/<app_id>.json)
+#   fili-api show APP          the commands and the actions of one application (APP: app id or name)
+#   fili-api apps              the running applications that share a context (pid, name, location)
+#   fili-api check FILE...     validate catalogs against the format (fili-api-lint, the reference validator)
+#   fili-api doctor            check the files the applications really write: the context of each running one, the incidents, the assistant's state
+#   fili-api -h                this help
+#
+# Catalogs: /usr/share/filigrane/shell/ctl and ~/.local/share/filigrane/shell/ctl (FILI_SHELL_DIRS, colon separated,
+# replaces both; the first folder that has an app id wins).
+set -euo pipefail
+command -v jq >/dev/null || { echo "fili-api: jq is needed" >&2; exit 1; }
+dirs() { printf '%s\n' "${FILI_SHELL_DIRS:-/usr/share/filigrane/shell:${XDG_DATA_HOME:-$HOME/.local/share}/filigrane/shell}" | tr ':' '\n'; }
+runtime="${XDG_RUNTIME_DIR:-/run/user/$UID}"
+
+# Catalog files, one per app id (the first folder wins)
+catalogs() {
+    local d f seen=" "
+    for d in $(dirs); do
+        for f in "$d"/ctl/*.json; do
+            [ -f "$f" ] || continue
+            local id; id="$(basename "$f" .json)"
+            case "$seen" in *" $id "*) continue ;; esac
+            seen+="$id "; printf '%s\n' "$f"
+        done
+    done
+}
+
+# The format of a catalog is defined by fili-api-lint (the reference validator, next to this command)
+lint() { python3 -I "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/fili-api-lint" "$@"; }
+
+case "${1:-}" in
+    -h | --help | "") sed -n '2,/^set -e/{/^set -e/!p}' "$0" | sed 's/^# \{0,1\}//' ;;
+    list)
+        printf '%-16s %-14s %4s  %s\n' APP NAME CMDS CONTROL
+        while IFS= read -r f; do
+            jq -r '[.app_id, .name, (.commands | length), .ctl] | @tsv' "$f"
+        done < <(catalogs) | awk -F'\t' '{ printf "%-16s %-14s %4s  %s\n", $1, $2, $3, $4 }'
+        ;;
+    show)
+        app="${2:?usage: fili-api show APP}"
+        found=
+        while IFS= read -r f; do
+            if jq -e --arg a "$app" '.app_id == $a or (.name | ascii_downcase) == ($a | ascii_downcase)' "$f" >/dev/null; then found="$f"; break; fi
+        done < <(catalogs)
+        [ -n "$found" ] || { echo "fili-api: no catalog for $app (fili-api list)" >&2; exit 1; }
+        jq -r '"\(.name) (\(.app_id)): \(.ctl)\n", (.commands[] | "  \(.verb) \(.args // "")" + (if .reads then "  [read]" else "" end) + "\n      \(.summary)"),
+            (if (.actions // []) | length > 0 then "\nactions (action NAME):", (.actions[] | "  \(.name)" + (if .args then " \(.args)" else "" end) + (if .label then "  \(.label)" else "" end) + (if .keys then "  (\(.keys))" else "" end)) else empty end),
+            (if (.action_patterns // []) | length > 0 then "\naction families:", (.action_patterns[] | "  \(.pattern)  \(.summary)") else empty end)' "$found"
+        ;;
+    apps)
+        for f in "$runtime"/fili/context/*.json; do
+            [ -e "$f" ] || continue
+            pid="$(basename "$f" .json)"; [ -d "/proc/$pid" ] || continue
+            jq -r --arg p "$pid" '[$p, (.app // "?"), (.location // "")] | @tsv' "$f" 2>/dev/null
+        done | awk -F'\t' 'BEGIN { printf "%-8s %-16s %s\n", "PID", "APP", "LOCATION" } { printf "%-8s %-16s %s\n", $1, $2, $3 }'
+        ;;
+    check)
+        [ $# -ge 2 ] || { echo "usage: fili-api check FILE..." >&2; exit 1; }
+        shift; lint "$@"
+        ;;
+    doctor)
+        # What the applications write, against the formats of docs/api.md: one line per problem, exit 1 on any
+        rc=0; n=0
+        for f in "$runtime"/fili/context/*.json; do
+            [ -e "$f" ] || continue
+            pid="$(basename "$f" .json)"; [ -d "/proc/$pid" ] || continue
+            n=$((n + 1)); out="$(lint context "$f")" || { printf '%s\n' "$out"; rc=1; }
+        done
+        if [ -e "$runtime/fili/ai/ui.json" ]; then n=$((n + 1)); out="$(lint ai-ui "$runtime/fili/ai/ui.json")" || { printf '%s\n' "$out"; rc=1; }; fi
+        for f in "${XDG_STATE_HOME:-$HOME/.local/state}"/filigrane/incidents/*.json; do
+            [ -e "$f" ] || continue
+            n=$((n + 1)); out="$(lint incident "$f")" || { printf '%s\n' "$out"; rc=1; }
+        done
+        [ "$rc" = 0 ] && echo "ok: $n files follow the formats"
+        exit "$rc"
+        ;;
+    *) echo "fili-api: unknown command $1 (fili-api -h)" >&2; exit 2 ;;
+esac

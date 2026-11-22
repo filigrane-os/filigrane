@@ -1,6 +1,6 @@
 #!/bin/sh
 # Manage the modules of the fili-bar (Passerelle). Usage:
-# fili-bar list                       modules: name, side, order, state, kind, title
+# fili-bar list                       modules: name, side, order, state, kind, group, title
 # fili-bar enable NAME | disable NAME show or hide a module (fili-bar.toml)
 # fili-bar move NAME left|right [ORDER]   side and position of a module (fili-bar.toml)
 # fili-bar edge [top|bottom|left|right]   edge of the screen the bar sits on (shows it without argument)
@@ -89,12 +89,12 @@ names() {
 }
 
 cmd_list() {
-    printf '%-16s %-6s %5s  %-9s %-7s %s\n' NAME SIDE ORDER STATE KIND TITLE
+    printf '%-16s %-6s %5s  %-9s %-7s %-13s %s\n' NAME SIDE ORDER STATE KIND GROUP TITLE
     for n in $(names); do
         state=on; [ "$(val "$n" enabled true)" = false ] && state=off
         kind=qml; [ -n "$(mval "$mods/$n/module.toml" cmd)" ] && kind=script
         origin=; if [ -L "$mods/$n" ]; then if ours "$mods/$n"; then origin=" (app)"; else origin=" (plugin)"; fi; fi
-        printf '%-16s %-6s %5s  %-9s %-7s %s%s\n' "$n" "$(val "$n" side right)" "$(val "$n" order 50)" "$state" "$kind" "$(mval "$mods/$n/module.toml" title)" "$origin"
+        printf '%-16s %-6s %5s  %-9s %-7s %-13s %s%s\n' "$n" "$(val "$n" side right)" "$(val "$n" order 50)" "$state" "$kind" "$(mval "$mods/$n/module.toml" group)" "$(mval "$mods/$n/module.toml" title)" "$origin"
     done | sort -b -k2,2 -k3,3n
 }
 
@@ -343,6 +343,8 @@ cmd_link_system() {
             [ -f "${m}module.toml" ] || continue
             n="$(basename "$m")"; valid_name "$n" || continue
             dest="$mods/$n"
+            # An empty folder is what a module leaves when its files move to a package: it is replaced (never one that holds files)
+            [ -d "$dest" ] && [ ! -L "$dest" ] && rmdir "$dest" 2>/dev/null
             if [ -e "$dest" ] || [ -L "$dest" ]; then ours "$dest" || continue; fi
             mkdir -p "$mods" && ln -sfn "${m%/}" "$dest"
         done

@@ -1,0 +1,21 @@
+{
+ "no adapter found": "aucun adaptateur détecté",
+ "click: Bluetooth panel": "clic: panneau Bluetooth",
+ "paired": "appairé",
+ "click: Bluetooth panel (pair, connect, forget)": "clic: panneau Bluetooth (appairer, connecter, oublier)",
+ "Open the Bluetooth manager": "Ouvrir le gestionnaire Bluetooth",
+ "No Bluetooth adapter found (no controller, or firmware not loaded)": "Aucun adaptateur Bluetooth détecté (contrôleur absent ou micrologiciel non chargé)",
+ "Searching…": "Recherche en cours…",
+ "Search for devices": "Rechercher des appareils",
+ "DEVICES": "APPAREILS",
+ "pairing…": "appairage…",
+ "connecting…": "connexion…",
+ "disconnecting…": "déconnexion…",
+ "new": "nouveau",
+ "click: connect / disconnect · right click: forget": "clic: connecter / déconnecter · clic droit: oublier",
+ "Sharing": "Partage",
+ "Receive: visible to nearby devices": "Recevoir: visible des appareils proches",
+ "%1 unavailable: %2": "%1 indisponible: %2",
+ "Search nearby": "Rechercher à proximité",
+ "send": "envoyer"
+}

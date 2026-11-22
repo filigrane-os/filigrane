@@ -12,11 +12,14 @@ import Quickshell.Io
 import qs
 import qs.bar
 import qs.bar.modules.alert
+import qs.bar.modules.agent
 import qs.bar.modules.appmenu
 import qs.bar.modules.mail
 
 ShellRoot {
     id: t
+    // Pure functions of the agent module (state of the bar item)
+    AgentState { id: probeAgent }
     property int count: 0
     property int failures: 0
     property var steps: []
@@ -224,14 +227,13 @@ ShellRoot {
                     FiliPanel.close();
                 }
                 // Agent panel: one row per session (click = its window), message of the request, actions
-                BarState.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
                 FiliPanel.view = "agent";
+                FiliPanel.loaded.agent.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
                 const ag = FiliPanel.loaded;
                 FiliTheme.ran = [];
                 ok(t.findAll(ag, "agent-session").length === 2 && t.find(ag, "agent-message").visible && t.find(ag, "agent-message").text === "Bash?", "fili-panel agent: sessions and request message");
                 t.findAll(ag, "agent-session")[0].press(L);
                 ok(FiliTheme.ran.join("\n").indexOf("fili-ai-session focus a1") >= 0 && FiliPanel.view === "", "fili-panel agent: click on a session -> its window, panel closed", JSON.stringify(FiliTheme.ran));
-                BarState.aiData = { sessions: [], limits: null };
                 expectMenu("volume", "wiremix --tab output", true);
                 expectClick("keyboard", M, "switch-layout next");
                 expectClick("display", "up", "brightnessctl -q set 3%+");
@@ -267,7 +269,7 @@ ShellRoot {
                 FiliTheme.ran = [];
             },
             // The commands of the clicks exist (scripts of the repository)
-            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats fili-ai fili-ai-session; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
+            wait(() => t.shell('for f in menu bar-alert bar-toggle bar-update bar-timer bar-backup bar-tray bar-tui webapp focus-or-run fili-shell bar-stats; do [ -x "' + t.bin + '/$f" ] || echo "$f"; done'),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.trim() === "", "scripts called by the fili-bar present in " + t.bin, t.shellOut.out.trim()),
             // impala, bluetui, wiremix... installed
@@ -307,7 +309,7 @@ ShellRoot {
             () => {
                 const labels = AppMenu.menus.map(m => m.label);
                 ok(labels.join(",") === "Terminal,Shell,Go,Help,Window", "appmenu: foot -> application, fallback menus, Window", labels.join(","));
-                ok(AppMenu.menus[0].children[0].label === "Ask Rob…" && AppMenu.menus[0].children[2].label === "Quit %1", "appmenu: application menu -> Ask Rob…, then Quit");
+                ok(AppMenu.menus[0].children[0].label === "Ask Lia…" && AppMenu.menus[0].children[2].label === "Quit %1", "appmenu: application menu -> Ask Lia…, then Quit");
                 const title = t.find(t.bar.contentItem, "appmenu-1");
                 const host = t.find(t.bar.contentItem, "appmenu");
                 ok(title && host && host.visible && host.shown, "appmenu: menu titles in the fili-bar", host ? host.visible : "not found");
@@ -319,7 +321,7 @@ ShellRoot {
                 ok(AppMenu.open && AppMenu.levels.length === 1 && AppMenu.levels[0][0].label === "New terminal", "appmenu: click on a title -> menu open");
                 ok(AppMenu.levels[0][0].keys === "Super+Return", "appmenu: shortcut of a fallback entry = niri bind of the same command", AppMenu.levels[0][0].keys);
                 ok(AppMenu.menus[0].children[2].keys === "Super+Q", "appmenu: Quit -> shortcut of close-window", AppMenu.menus[0].children[2].keys);
-                ok(AppMenu.menus[0].children[0].keys === "Super+Ctrl+Y", "appmenu: Ask Rob… -> shortcut of the niri bind of fili-chat here", AppMenu.menus[0].children[0].keys);
+                ok(AppMenu.menus[0].children[0].keys === "Super+Ctrl+Y", "appmenu: Ask Lia… -> shortcut of the niri bind of fili-ai here", AppMenu.menus[0].children[0].keys);
                 AppMenu.bindsLocal = localBinds;
                 const pb = AppMenu.parseBinds('binds {\n    // Mod+X { nope; }\n    Mod+Ctrl+W hotkey-overlay-title="a" { spawn-sh "$HOME/.local/bin/bar-tui impala"; }\n    Mod+V       { toggle-window-floating; }\n    Mod+1 { focus-workspace 1; }\n    Mod+B { spawn "foot" "-e" "btop"; }\n}\nlayout { Mod+Z { x; } }\n');
                 ok(pb["exec:bar-tui impala"] === "Super+Ctrl+W" && pb["niri:toggle-window-floating"] === "Super+V" && pb["niri:focus-workspace 1"] === "Super+1" && pb["exec:foot -e btop"] === "Super+B" && Object.keys(pb).length === 4, "appmenu: reading the niri binds (spawn, spawn-sh, actions, arguments, comments)", JSON.stringify(pb));
@@ -469,15 +471,15 @@ ShellRoot {
                 ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
                 ok(BarState.timerFor("T", now - 1, now)["class"] === "done" && BarState.timerFor("", 0, now)["class"] === "idle", "BarState: timer elapsed / idle");
                 // AI agent (fili-ai-session): rest, working, question waiting, turn finished without being looked at
-                ok(BarState.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: AI agent without a session");
+                ok(probeAgent.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: AI agent without a session");
                 const lim = { five_hour: { used_percentage: 34.4, resets_at: now + 3600 }, seven_day: { used_percentage: 12 }, seen: now };
-                const busy = BarState.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } }, now);
+                const busy = probeAgent.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } }, now);
                 ok(busy["class"] === "working" && busy.tooltip.rows[0][0] === "Icône IA" && busy.tooltip.rows[0][1].indexOf("context 43 %") >= 0
                    && busy.tooltip.rows.some(r => r[0] === "5-hour limit" && r[1].startsWith("34 %") && Math.abs(r[2].value - 0.344) < 1e-6 && Math.abs(r[2].mark - 0.8) < 0.01), "BarState: AI agent working, card (title, context, limits and gauges)", JSON.stringify(busy));
-                const ask = BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
+                const ask = probeAgent.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
                 ok(ask.text.endsWith(" ASK") && ask["class"] === "waiting" && ask.tooltip.rows.some(r => r[1] === "Bash?"), "BarState: AI agent waiting (ASK)", JSON.stringify(ask));
-                ok(BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: AI agent looked at, no longer highlighted");
-                ok(BarState.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: AI agent, turn finished (DONE)");
+                ok(probeAgent.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: AI agent looked at, no longer highlighted");
+                ok(probeAgent.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: AI agent, turn finished (DONE)");
             },
             wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
                  () => BarState.timerFile.kind === "S" && BarState.trayOpen),
@@ -522,7 +524,7 @@ ShellRoot {
                 ok(FiliLauncher.match("Night light", ["nig"]) !== null && FiliLauncher.match("Night light", ["xyz"]) === null, "fili-launcher match");
                 ok(FiliLauncher.match("Réglages", ["regl"]) !== null && FiliLauncher.match("Réglages", ["regl"]).hits.join() === "0,1,2,3" && FiliLauncher.fold("Éé À") === "ee a", "fili-launcher accents ignored (regl -> Réglages)");
                 ok(FiliLauncher.match("Casier", ["file"], " files fichiers file ") !== null && FiliLauncher.match("Casier", ["file"], "") === null
-                    && FiliLauncher.match("Rob", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Rob", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher keywords (Casier <- file, Rob <- ia)");
+                    && FiliLauncher.match("Lia", ["ia"], " ai assistant ia chat ") !== null && FiliLauncher.match("Lia", ["xyz"], " ai assistant ia chat ") === null, "fili-launcher keywords (Casier <- file, Lia <- ia)");
             },
             wait(() => t.shell("printf 'Alpha\\nBeta app\\nGamma › sous\\n' | " + t.bin + "/fili-shell launcher --prompt 'Style › '; echo \"rc=$?\""),
                  () => FiliLauncher.open && FiliLauncher.entries.length === 3),
@@ -1559,265 +1561,6 @@ ShellRoot {
                 FiliAudioSwitch.candidate = fake;
                 FiliAudioSwitch.answer(false);
                 ok(!FiliAudioSwitch.open && FiliAudioSwitch.choices["AA"] === "keep", "fili-audio-switch: without the checkbox nothing changes");
-            },
-            // fili-chat: drawer, sessions, daemon events (without a daemon: the requests are recorded)
-            () => {
-                FiliTheme.ran = [];
-                FiliChat.toggle();
-                ok(FiliChat.open, "fili-chat: toggle opens the drawer");
-                FiliChat.send("bonjour");
-                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pending === "bonjour", "fili-chat: without a session, the first message creates one", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "sessions", sessions: [] });
-                FiliChat.receive({ ev: "created", id: "s1" });
-                ok(FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"bonjour"}' && FiliChat.current === "s1" && FiliChat.pending === "", "fili-chat: the created session receives the pending message", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "msg", id: "s1", role: "user", text: "bonjour" });
-                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
-                FiliChat.receive({ ev: "delta", id: "s1", text: "sal" });
-                FiliChat.receive({ ev: "delta", id: "s1", text: "ut" });
-                ok(FiliChat.working && FiliChat.busy && FiliChat.live === "salut", "fili-chat: text in progress and working state", FiliChat.live);
-                FiliTheme.ran = [];
-                FiliChat.send("encore");
-                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0] === 'chat {"op":"send","id":"s1","text":"encore"}', "fili-chat: message typed during a turn: sent to the daemon, which queues it", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "queue", id: "s1", items: ["encore"] });
-                ok(FiliChat.queuedNow.length === 1, "fili-chat: queue shown");
-                FiliChat.receive({ ev: "queue", id: "s1", items: [] });
-                FiliChat.receive({ ev: "tool", id: "s1", name: "Bash", summary: "sv status iwd" });
-                FiliChat.receive({ ev: "msg", id: "s1", role: "assistant", text: "Salut." });
-                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
-                ok(FiliChat.log.map(i => i.kind).join() === "user,tool,assistant" && FiliChat.live === "" && !FiliChat.working && !FiliChat.busy, "fili-chat: thread (message, tool, reply) and end of the turn", FiliChat.log.map(i => i.kind).join());
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s2", title: "Wi-Fi", state: "idle", updated: 2 }, { id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
-                ok(FiliChat.current === "s1" && FiliChat.title === "bonjour", "fili-chat: title of the current session", FiliChat.title);
-                FiliTheme.ran = [];
-                FiliChat.openSession("s2");
-                ok(FiliChat.current === "s2" && FiliTheme.ran[0] === 'chat {"op":"open","id":"s2"}', "fili-chat: switching session asks for its history", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "history", id: "s2", items: [{ ev: "msg", id: "s2", role: "assistant", text: "Avant" }] });
-                ok(FiliChat.log.length === 1 && FiliChat.items["s1"].length === 3, "fili-chat: history per session");
-                // Permission asked: card in the thread, "waiting" state, ASK dot, answer
-                FiliChat.openSession("s1");
-                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
-                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "pending" });
-                FiliChat.receive({ ev: "state", id: "s1", state: "waiting" });
-                ok(FiliChat.log[FiliChat.log.length - 1].kind === "ask" && FiliChat.attention === "waiting" && FiliChat.working, "fili-chat: permission requested (card, waiting, ASK)", FiliChat.attention);
-                ok(BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" ASK"), "fili-chat: pastille IA ASK");
-                FiliTheme.ran = [];
-                FiliChat.answerFirst(true);
-                ok(FiliTheme.ran[0] === 'chat {"op":"answer","rid":"r1","allow":true}', "fili-chat: Ctrl+Enter allows the first request", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "allowed" });
-                ok(FiliChat.log.filter(i => i.kind === "ask").length === 1 && FiliChat.log[FiliChat.log.length - 1].status === "allowed", "fili-chat: the decided request replaces the card");
-                // Permission asked while the drawer is hidden: notification with Allow / Deny answered through the drawer
-                FiliChat.hide();
-                FiliTheme.ran = [];
-                FiliChat.receive({ ev: "ask", id: "s1", rid: "r2", tool: "Bash", summary: "ls", status: "pending" });
-                ok(FiliTheme.ran[0] === "notify-ask s1 r2", "fili-chat: permission out of sight: notification with buttons", JSON.stringify(FiliTheme.ran));
-                FiliChat.act("answer", ["r2:no"]);
-                ok(FiliTheme.ran[1] === 'chat {"op":"answer","rid":"r2","allow":false}', "fili-chat: Deny of the notification answers the request", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "ask", id: "s1", rid: "r2", tool: "Bash", summary: "ls", status: "denied" });
-                ok(FiliTheme.ran[2] === "notify-close r2", "fili-chat: settled request closes its notification", JSON.stringify(FiliTheme.ran));
-                FiliChat.show();
-                FiliChat.openSession("s1");
-                // Answer finished while the drawer is hidden: DONE until it opens
-                FiliChat.hide();
-                FiliChat.receive({ ev: "state", id: "s1", state: "working" });
-                FiliChat.receive({ ev: "state", id: "s1", state: "idle" });
-                ok(FiliChat.attention === "done" && BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliChat.attention, FiliChat.busy).text.endsWith(" DONE"), "fili-chat: unread reply (DONE)", FiliChat.attention);
-                // Tabs: red (waiting) and green (finished, unread) are read from states / unread of each session
-                ok(FiliChat.unread["s1"] === true && FiliChat.tabsOpen, "fili-chat: tab of s1 green (finished, unread)");
-                FiliChat.act("sessions");
-                ok(!FiliChat.tabsOpen && FiliChat.open, "fili-chat: Sessions… hides the tabs");
-                FiliChat.act("sessions");
-                ok(FiliChat.tabsOpen, "fili-chat: Sessions… shows them again");
-                // Deletion confirmed; the deleted ones stay in the full list
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
-                ok(FiliChat.sessions.length === 1 && FiliChat.allSessions.length === 2, "fili-chat: deleted ones are out of the tabs but in the full list");
-                FiliChat.askArchive("s1");
-                ok(FiliChat.confirmId === "s1", "fili-chat: supprimer demande confirmation");
-                FiliChat.confirmArchive(false);
-                ok(FiliChat.confirmId === "" && FiliChat.sessions.length === 1, "fili-chat: cancel keeps the session");
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "", icon: 0xF2001 }] });
-                ok(FiliChat.sessions[0].icon === 0xF2001, "fili-chat: the topic icon chosen by the AI arrives with the session");
-                FiliChat.receive({ ev: "agent", ok: false });
-                ok(!FiliChat.agentOk, "fili-chat: without an AI agent, the install banner is shown");
-                FiliChat.receive({ ev: "agent", ok: true });
-                ok(FiliChat.agentOk, "fili-chat: agent installed, banner removed");
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
-                // 20 tabs at most, the older ones stay in the full list; the current one keeps its tab
-                FiliChat.receive({ ev: "sessions", sessions: Array.from({ length: 25 }, (_, i) => ({ id: "t" + i, title: "T" + i, state: "idle", link: "", updated: 100 - i })) });
-                ok(FiliChat.tabSessions.length === 20 && FiliChat.allSessions.length === 25, "fili-chat: at most 20 tabs, all the sessions in the list");
-                FiliChat.current = "t24";
-                ok(FiliChat.tabSessions.length === 20 && FiliChat.tabSessions.some(x => x.id === "t24"), "fili-chat: a session opened from the list keeps its tab");
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "A", state: "idle", link: "" }, { id: "s2", title: "B", state: "idle", link: "", archived: true }] });
-                FiliChat.askArchive("s2");
-                ok(FiliChat.confirmId === "", "fili-chat: no confirmation for an already deleted session");
-                // Context (Mod+Y): attached once to the message
-                FiliChat.show();
-                ok(FiliChat.attention === "", "fili-chat: opening the drawer reads the reply");
-                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
-                FiliChat.ctxOn = true;
-                ok(FiliChat.ctxLabel === "foot · ~", "fili-chat: context chip", FiliChat.ctxLabel);
-                FiliTheme.ran = [];
-                FiliChat.send("ceci");
-                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"s1","key":"foot"}' && FiliTheme.ran[1] === 'chat {"op":"send","id":"s1","text":"ceci","context":true}' && !FiliChat.ctxOn, "fili-chat: the context goes with the message, once (and links the session)", JSON.stringify(FiliTheme.ran));
-                FiliChat.setMode("float");
-                FiliShell.popupOpened("panel");
-                ok(!FiliChat.open, "fili-chat: floating, closed when a bar panel opens");
-                FiliChat.setMode("dock");
-            },
-            // fili-chat: layout (floating / docked), width, renaming
-            () => {
-                FiliTheme.ran = [];
-                ok(FiliChat.mode === "dock" && FiliChat.dock && FiliChat.viewWidth === 440, "fili-chat: docked, 440 px by default", FiliChat.mode);
-                FiliChat.show();
-                FiliShell.popupOpened("panel");
-                ok(FiliChat.open, "fili-chat: docked, a bar panel does not close it");
-                FiliChat.act("width-wide");
-                ok(FiliChat.viewWidth === 560 && FiliChat.dock && FiliTheme.ran[0] === "chat-view dock 560", "fili-chat: largeur large", JSON.stringify(FiliTheme.ran));
-                FiliChat.act("float");
-                ok(!FiliChat.dock && FiliChat.viewWidth === 560 && FiliTheme.ran[1] === "chat-view float 560", "fili-chat: View menu > floating, choice kept", JSON.stringify(FiliTheme.ran));
-                FiliChat.setWidth(5000);
-                ok(FiliChat.viewWidth === 900, "fili-chat: dragged width clamped to 900", FiliChat.viewWidth);
-                FiliChat.setWidth(100);
-                ok(FiliChat.viewWidth === 300, "fili-chat: dragged width clamped to 300", FiliChat.viewWidth);
-                FiliChat.act("width-medium");
-                FiliShell.popupOpened("panel");
-                ok(!FiliChat.open, "fili-chat: floating, a bar panel closes it");
-                FiliChat.act("dock");
-                ok(FiliChat.dock, "fili-chat: View menu > docked");
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "s1", title: "bonjour", state: "idle", updated: 1 }] });
-                FiliChat.current = "s1";
-                FiliTheme.ran = [];
-                FiliChat.act("rename");
-                ok(FiliChat.open && FiliChat.renaming, "fili-chat: Rename opens the title field");
-                FiliChat.commitRename("  Wi-Fi  ");
-                ok(!FiliChat.renaming && FiliTheme.ran[0] === 'chat {"op":"rename","id":"s1","title":"Wi-Fi"}', "fili-chat: rename sent to the daemon", JSON.stringify(FiliTheme.ran));
-                FiliChat.hide();
-                FiliChat.act("toggle");
-                ok(FiliChat.open, "fili-chat: act toggle");
-                FiliChat.act("close");
-            },
-            // fili-chat: sessions linked to applications (follow = "app"): resumed on opening, link on sending, new linked session
-            () => {
-                FiliChat.hide();
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a2", title: "Terminal", state: "idle", updated: 2, link: "foot" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "" }] });
-                FiliChat.current = "a3";
-                FiliChat.items = Object.assign({}, FiliChat.items, { a1: [], a2: [], a3: [] });
-                ok(FiliChat.follow === "app" && FiliChat.linkKey({ window: { app_id: "foot", title: "~" } }) === "foot", "fili-chat: follow = app by default, key = app_id", FiliChat.follow);
-                // Opening: the context (active application) and the list are there -> the linked session is resumed
-                FiliTheme.ran = [];
-                FiliChat.show();
-                FiliChat.ctx = { window: { app_id: "google-chrome", title: "Toyota" } };
-                FiliChat.ctxReady = true;
-                FiliChat.sessionsFresh = true;
-                FiliChat.tryFollow();
-                ok(FiliChat.current === "a1", "fili-chat: opening resumes the session linked to the active application", FiliChat.current);
-                // No resuming while the drawer is open (window change), nor if the turn is working
-                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
-                FiliChat.tryFollow();
-                ok(FiliChat.current === "a1", "fili-chat: a window change with the drawer open does not change the session");
-                FiliChat.hide();
-                FiliChat.receive({ ev: "state", id: "a1", state: "working" });
-                FiliChat.show();
-                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
-                FiliChat.ctxReady = true;
-                FiliChat.sessionsFresh = true;
-                FiliChat.tryFollow();
-                ok(FiliChat.current === "a1", "fili-chat: no resume during a turn in progress");
-                FiliChat.receive({ ev: "state", id: "a1", state: "idle" });
-                // Application without a linked session: the current session stays
-                FiliChat.hide();
-                FiliChat.show();
-                FiliChat.ctx = { window: { app_id: "niri-inconnu", title: "" } };
-                FiliChat.ctxReady = true;
-                FiliChat.sessionsFresh = true;
-                FiliChat.tryFollow();
-                ok(FiliChat.current === "a1", "fili-chat: application without a linked session, the last one stays");
-                // Link on sending: session without a link + context chip
-                FiliChat.openSession("a3");
-                FiliChat.ctx = { window: { app_id: "foot", title: "~" } };
-                FiliChat.ctxOn = true;
-                FiliTheme.ran = [];
-                FiliChat.send("bonjour");
-                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a3","key":"foot"}' && FiliTheme.ran[1].includes('"op":"send"'), "fili-chat: sending with the context chip links the session", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
-                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
-                // Already linked: no second link; chip removed: no link
-                FiliChat.receive({ ev: "sessions", sessions: [{ id: "a1", title: "Chrome", state: "idle", updated: 3, link: "google-chrome" }, { id: "a3", title: "libre", state: "idle", updated: 1, link: "foot" }] });
-                FiliChat.ctxOn = true;
-                FiliTheme.ran = [];
-                FiliChat.send("encore");
-                ok(FiliTheme.ran.length === 1 && FiliTheme.ran[0].includes('"op":"send"'), "fili-chat: an already linked session is not linked again", JSON.stringify(FiliTheme.ran));
-                // New session for this application
-                FiliChat.receive({ ev: "state", id: "a3", state: "working" });
-                FiliChat.receive({ ev: "state", id: "a3", state: "idle" });
-                FiliChat.ctx = { window: { app_id: "fili-file", title: "Casier" } };
-                FiliTheme.ran = [];
-                FiliChat.act("new-here");
-                ok(FiliTheme.ran[0] === 'chat {"op":"new"}' && FiliChat.pendingLink === "fili-file", "fili-chat: New session for this application", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "created", id: "a4" });
-                ok(FiliTheme.ran[1] === 'chat {"op":"link","id":"a4","key":"fili-file"}' && FiliChat.pendingLink === "", "fili-chat: the created session is linked", JSON.stringify(FiliTheme.ran));
-                FiliTheme.ran = [];
-                FiliChat.act("unlink");
-                ok(FiliTheme.ran[0] === 'chat {"op":"link","id":"a4","key":""}', "fili-chat: Unlink removes the link", JSON.stringify(FiliTheme.ran));
-                // Question from an application (fili-chat ask): a new session gets it, with the context
-                FiliChat.ctxOn = true;
-                FiliTheme.ran = [];
-                FiliChat.act("ask", ["Why", "did", "make", "fail?"]);
-                ok(FiliTheme.ran.includes('chat {"op":"new"}') && FiliChat.pending === "Why did make fail?" && FiliChat.pendingAsk === "", "fili-chat: ask opens a new session with the question", JSON.stringify(FiliTheme.ran));
-                FiliChat.receive({ ev: "created", id: "a5" });
-                ok(FiliTheme.ran.some(r => r.includes('"op":"send","id":"a5","text":"Why did make fail?","context":true')), "fili-chat: the question goes with the context", JSON.stringify(FiliTheme.ran));
-                FiliChat.hide();
-            },
-            // fili-chat: its menu replaces that of the window when the drawer has the keyboard focus (without the niri Quit/Window menus)
-            wait(() => { FiliChat.show(); FiliChat.focused = true; }, () => AppMenu.appName === "Rob" && AppMenu.menus.length > 0, 5000),
-            () => {
-                const labels = AppMenu.menus.map(m => m.label);
-                ok(labels.join() === "Rob,Session,View", "fili-chat: fili-bar menu = Rob, Session, View (no Window or Quit)", labels.join());
-                ok(AppMenu.menus[0].children.some(c => c.label === "About Rob" && c.exec === "fili-shell chat about"), "fili-chat: menu Rob > About Rob");
-                const session = AppMenu.menus.find(m => m.label === "Session");
-                ok(session && session.children.some(c => c.label === "Rename Session…" && c.keys === "F2" && c.exec === "fili-shell chat rename"), "fili-chat: Session > Rename Session… (F2)");
-                // Press on a title of the bar: niri gives the focus back to the previous window, the chat menu stays
-                AppMenu.pressTitle();
-                FiliChat.focused = false;
-                ok(AppMenu.chatFocus && AppMenu.appId === "fili-chat", "fili-chat: the menu stays during a press on a title (focus given back to the window)");
-            },
-            wait(() => {}, () => !AppMenu.chatFocus, 5000),
-            () => {
-                ok(AppMenu.appId !== "fili-chat", "fili-chat: without focus or an open menu, the bar goes back to the active window");
-                FiliChat.hide();
-            },
-            // fili-ask: "Ask Rob…" without a text shows the small floating field, Esc / close hides it and keeps the draft
-            () => {
-                FiliChat.hide();
-                FiliChat.act("here");
-                ok(FiliAsk.open && !FiliChat.open, "fili-ask: `fili-chat here` shows the small field, not the drawer");
-                FiliAsk.text = "hello";
-                FiliShell.popupOpened("panel");
-                ok(!FiliAsk.open && FiliAsk.text === "hello", "fili-ask: another panel closes the field and keeps the draft");
-                FiliAsk.show();
-                FiliAsk.close();
-                ok(!FiliAsk.open, "fili-ask: close hides the field");
-            },
-            // fili-ask: a question sent from the field keeps the link to the daemon until the agent works (the link used to
-            // drop before "created", so the question was never sent)
-            () => {
-                FiliChat.awaiting = true;
-                ok(FiliChat.wantLink && !FiliChat.open, "fili-ask: the link is wanted while a question from the field is awaited");
-                FiliChat.awaiting = false;
-                ok(!FiliChat.wantLink || FiliChat.busy, "fili-ask: and let go afterwards");
-            },
-            // fili-chat: "About Rob" card (robot icon, name Rob), closed by another panel
-            () => {
-                FiliChat.hide();
-                FiliChat.act("about");
-                ok(FiliChatAbout.open && FiliChatAbout.name === "Rob" && FiliChatAbout.icon.codePointAt(0) === 0xf06a9, "fili-chat: About Rob (robot icon, name Rob)");
-                const labels = FiliChatAbout.rows.map(r => r[0]);
-                ok(["Also known as", "Part of", "Agent", "Model", "Sessions", "View", "Follow", "Settings"].every(l => labels.includes(l)) && FiliChatAbout.rows.every(r => r[1] !== ""), "fili-chat: card = aka, membership, agent, model, sessions, view, follow, settings", labels.join());
-                ok(FiliChatAbout.rows[0][0] === "Also known as" && FiliChatAbout.rows[0][1] === "fili-chat", "fili-chat: the card says aka fili-chat");
-                ok(!FiliChat.open, "fili-chat: the card does not open the drawer");
-                FiliShell.popupOpened("panel");
-                ok(!FiliChatAbout.open, "fili-chat: card closed by another panel");
-                FiliChatAbout.toggle();
-                ok(FiliChatAbout.open, "fili-chat: the card reopens");
-                FiliChatAbout.close();
             },
             // FiliI18n: tests in English (LANG=C.UTF-8, run.sh); French catalog loaded by hand
             () => {

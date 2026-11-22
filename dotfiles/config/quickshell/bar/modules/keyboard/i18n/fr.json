@@ -1,0 +1,17 @@
+{
+ "Keyboard viewer": "Visualiseur de clavier",
+ "Emoji": "Emoji",
+ "Keyboard": "Clavier",
+ "LAYOUTS": "DISPOSITIONS",
+ "Previous layout": "Disposition précédente",
+ "No layout found": "Aucune disposition détectée",
+ "TOOLS": "OUTILS",
+ "MORE": "PLUS",
+ "Super+Shift+/": "Super+Maj+/",
+ "Layouts: XKB_LAYOUT in config.env": "Dispositions: XKB_LAYOUT dans config.env",
+ "click: types the key in the active window · Shift / AltGr: next level": "clic: tape la touche dans la fenêtre active · Maj / AltGr: niveau suivant",
+ "Search (smile, heart, thumbs…)": "Rechercher (smile, heart, thumbs…)",
+ "click: copies and types in the active window": "clic: copie et tape dans la fenêtre active",
+ "BACKLIGHT": "RÉTROÉCLAIRAGE",
+ "click: keyboard panel · middle click: next layout": "clic: panneau clavier · clic milieu: disposition suivante"
+}

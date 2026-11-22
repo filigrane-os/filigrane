@@ -74,7 +74,8 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
     dir="$(src_dir "$app")"
     pkg="$(pkg_name "$app")"
     ver="$(app_version "$app")"
-    echo "$pkg" >>"$WORK/apps.list"
+    # An optional tool (DISTRO_OPTIONAL_APPS) is published but not required by the <distro>-apps meta-package
+    case " $DISTRO_OPTIONAL_APPS " in *" $app "*) ;; *) echo "$pkg" >>"$WORK/apps.list" ;; esac
     [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && dirty=1
     # A local checkout (FILI_SRC_<NAME>) is work in progress: always rebuilt
     override="FILI_SRC_$(printf '%s' "$app" | tr 'a-z-' 'A-Z_')"
@@ -83,8 +84,9 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
         echo "==> $pkg-$ver: déjà construit"; echo "$pkg-$ver.$ARCH.xbps" >>"$WORK/made.txt"; return 0
     fi
     echo "==> $pkg-$ver"
-    # Package settings (optional): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE. Default: a Rust binary that only links libc.
-    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT"
+    # Package settings (optional): DESC, DEPENDS, SHLIBS, ALIASES, PKG_LICENSE, REPLACES (packages whose files this one takes over,
+    # e.g. a tool that moved into another package). Default: a Rust binary that only links libc.
+    local DESC="$app, outil de $DISTRO" DEPENDS="glibc>=2.39_1 libgcc>=0" SHLIBS="libc.so.6 libgcc_s.so.1" ALIASES="" PKG_LICENSE="MIT" REPLACES=""
     # shellcheck disable=SC1091
     [ -f "$dir/package.env" ] && source "$dir/package.env"
     # QMAKE: cxx-qt (fili-file) finds Qt through it; Void keeps qmake6 outside PATH
@@ -105,7 +107,7 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
         # ALIASES (package.env): other command names for the same program
         local alias
         for alias in $ALIASES; do ln -sfn "$app" "$dest/usr/bin/$alias"; done
-        # shell/ of the tool: what the Filigrane shell reads (fili-bar/<module>/, appmenu/<app_id>.json, rob/<app_id>.md), merged
+        # shell/ of the tool: what the Filigrane shell reads (fili-bar/<module>/, appmenu/<app_id>.json, lia/<app_id>.md), merged
         # with the other tools' into /usr/share/filigrane/shell/ (fili-bar link-system links it at login). A tool with its own
         # Makefile installs it itself.
         if [ -d "$dir/shell" ]; then
@@ -113,7 +115,7 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
             cp -r "$dir/shell/." "$dest/usr/share/filigrane/shell/"
         fi
     fi
-    LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS"
+    LICENSE_OF="$PKG_LICENSE" create "$pkg" "$ver" "$ARCH" "$DESC" "$DEPENDS" "$dest" --shlib-requires "$SHLIBS" ${REPLACES:+--replaces "$REPLACES"}
 }
 
 command -v cargo >/dev/null || { echo "cargo requis (xbps-install cargo)" >&2; exit 1; }

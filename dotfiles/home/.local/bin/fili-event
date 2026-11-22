@@ -1,0 +1,39 @@
+#!/bin/bash
+# Events between applications, without a daemon (docs/api.md): files in $XDG_RUNTIME_DIR/fili/events/ (tmpfs, the last 100).
+#
+#   fili-event emit NAME [JSON]   publish an event ({"v":1,"name","when","data"}); JSON is its data
+#   fili-event list [NAME]        the latest events, one JSON line each (oldest first)
+#   fili-event watch [NAME]       print each new event as it comes (inotify if inotifywait exists, else a 1 s poll)
+#   fili-event -h                 this help
+set -euo pipefail
+command -v jq >/dev/null || { echo "fili-event: jq is needed" >&2; exit 1; }
+dir="${XDG_RUNTIME_DIR:-/run/user/$UID}/fili/events"
+valid() { case "$1" in "" | *[!a-z0-9.-]*) return 1 ;; esac; }
+files() { local f; for f in "$dir"/*.json; do [ -e "$f" ] && printf '%s\n' "$f"; done | sort; }
+# Lines of the events (with the given name, if any), in order
+lines() { local f; while IFS= read -r f; do jq -c --arg n "${1:-}" 'select($n == "" or .name == $n)' "$f" 2>/dev/null || true; done; }
+case "${1:-}" in
+    -h | --help | "") sed -n '2,/^set -e/{/^set -e/!p}' "$0" | sed 's/^# \{0,1\}//' ;;
+    emit)
+        name="${2:-}"; valid "$name" || { echo "fili-event: the name is lowercase letters, digits, dots and hyphens" >&2; exit 2; }
+        data="${3:-null}"
+        mkdir -p "$dir"
+        now="$(date +%s%N)"
+        tmp="$(mktemp "$dir/.tmp.XXXXXX")"
+        jq -cn --arg n "$name" --argjson t "${now:0:10}" --argjson d "$data" '{v: 1, name: $n, when: $t, data: $d}' > "$tmp" 2>/dev/null || { rm -f "$tmp"; echo "fili-event: the data is not JSON" >&2; exit 2; }
+        mv "$tmp" "$dir/$now-$name.json"
+        # Keep the last 100
+        files | head -n -100 | while IFS= read -r old; do rm -f "$old"; done
+        ;;
+    list) files | lines "${2:-}" ;;
+    watch)
+        mkdir -p "$dir"
+        last="$(files | tail -n 1)"
+        while :; do
+            new="$(files | awk -v l="$last" 'l == "" || $0 > l')"
+            if [ -n "$new" ]; then printf '%s\n' "$new" | lines "${2:-}"; last="$(printf '%s\n' "$new" | tail -n 1)"; fi
+            if command -v inotifywait >/dev/null; then inotifywait -q -t 30 -e moved_to,create "$dir" >/dev/null 2>&1 || true; else sleep 1; fi
+        done
+        ;;
+    *) echo "fili-event: unknown command $1 (fili-event -h)" >&2; exit 2 ;;
+esac
