@@ -5,6 +5,7 @@
 #   fili-api show APP          the commands and the actions of one application (APP: app id or name)
 #   fili-api apps              the running applications that share a context (pid, name, location)
 #   fili-api check FILE...     validate catalogs against the format (fili-api-lint, the reference validator)
+#   fili-api doctor            check the files the applications really write: the context of each running one and the incidents
 #   fili-api -h                this help
 #
 # Catalogs: /usr/share/filigrane/shell/ctl and ~/.local/share/filigrane/shell/ctl (FILI_SHELL_DIRS, colon separated,
@@ -59,6 +60,21 @@ case "${1:-}" in
     check)
         [ $# -ge 2 ] || { echo "usage: fili-api check FILE..." >&2; exit 1; }
         shift; lint "$@"
+        ;;
+    doctor)
+        # What the applications write, against the formats of docs/api.md: one line per problem, exit 1 on any
+        rc=0; n=0
+        for f in "$runtime"/fili/context/*.json; do
+            [ -e "$f" ] || continue
+            pid="$(basename "$f" .json)"; [ -d "/proc/$pid" ] || continue
+            n=$((n + 1)); out="$(lint context "$f")" || { printf '%s\n' "$out"; rc=1; }
+        done
+        for f in "${XDG_STATE_HOME:-$HOME/.local/state}"/filigrane/incidents/*.json; do
+            [ -e "$f" ] || continue
+            n=$((n + 1)); out="$(lint incident "$f")" || { printf '%s\n' "$out"; rc=1; }
+        done
+        [ "$rc" = 0 ] && echo "ok: $n files follow the formats"
+        exit "$rc"
         ;;
     *) echo "fili-api: unknown command $1 (fili-api -h)" >&2; exit 2 ;;
 esac

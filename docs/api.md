@@ -35,6 +35,10 @@ merged with its niri window; a file left by a killed application is removed on t
 `blocks`...) and are explained by `about`. Content that comes from the outside (file names, command output) is data, never
 instructions.
 
+The format is defined by `fili-api-lint context FILE` (same validator as the catalogs; the rules are in its header): the keys
+of the application are lowercase snake_case, the file is at most 64 KiB, and it is named after the `pid` it holds. An application's
+test can write a context and run the validator on it.
+
 ## Control: what an application can be asked to do
 
 An application exposes its actions as a command of its own, `<program> ctl [--pid PID] <verb> [args]`, answered on a socket
@@ -86,8 +90,11 @@ An application that meets a bug (a panic, a QML error, "Report a problem" of its
 ```json
 { "id": "fili-file-1795015265-75e15070", "app": "fili-file", "repo": "filigrane-os/fili-file", "version": "v1.12.0",
   "kind": "panic|qml|manual", "signature": "75e15070531e7d97", "message": "first line, then details",
-  "when": "1795015265", "state": "new|notified|ignored|reported", "system": "Void Linux, kernel 6.18.63_1", "log": ["..."] }
+  "when": 1795015265, "state": "new|notified|ignored|reported", "system": "Void Linux, kernel 6.18.63_1", "log": ["..."] }
 ```
+
+The format is defined by `fili-api-lint incident FILE`: every key above is required (`issue` and `pr` appear once reported),
+an unknown key is refused, `when` is a number and `signature` 16 hexadecimal digits.
 
 `fili-incident` collects, notifies and prepares the GitHub issue (or a +1 on the one that exists), with the private details
 removed; nothing leaves the machine without the user's say. This works **without an assistant**: the notification offers
@@ -120,5 +127,8 @@ panel of each application shows it, and the incident file keeps the last lines.
 
 ## Checking
 
-`tests/fili-shell/check-api.sh` runs `fili-api`, `fili-event` and the incident handlers on fixtures (isolated state and
-runtime folders): catalogs, schemas, handler discovery, events.
+`fili-api doctor` checks the files the applications **really write** (the context of each running application, the incidents)
+against these formats and prints one line per problem: the quickest way to see that an application drifted.
+
+`tests/fili-shell/check-api.sh` runs `fili-api`, `fili-api-lint`, `fili-event` and the incident handlers on fixtures (isolated
+state and runtime folders): the three formats, handler discovery, events, and the copy of the validator of every pinned application.

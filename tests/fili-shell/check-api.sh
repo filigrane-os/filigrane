@@ -45,6 +45,27 @@ check "the format accepts args and patterns" 'jq ".actions[0].args = \"[NAME] [M
 check "a file is named after its app id" 'cp "$T/shell/ctl/demo.json" "$T/other.json"; python3 -I "$LINT" "$T/other.json" | grep -q "is named other.json"'
 check "fili-api check is the same validator" 'jq ".extra = 1" "$T/shell/ctl/demo.json" > "$T/f/demo.json"; out="$(fili-api check "$T/f/demo.json")"; [ $? -ne 0 ] && echo "$out" | grep -q "unknown key extra"'
 
+# Context and incident files: what the applications really write
+ctx() { mkdir -p "$T/c"; printf '%s' "$1" > "$T/c/$2.json"; python3 -I "$LINT" context "$T/c/$2.json"; }
+check "a context with its keys is accepted" 'ctx "{\"app\":\"Casier\",\"pid\":42,\"about\":\"What it means\",\"location\":\"/tmp\",\"selection\":[\"a\"],\"selection_count\":1,\"asked_block\":null}" 42 | grep -q "^ok"'
+check "a context needs app, pid and about" 'out="$(ctx "{\"app\":\"X\"}" 43)"; echo "$out" | grep -q "missing pid" && echo "$out" | grep -q "missing about"'
+check "a context file is named after its pid" 'ctx "{\"app\":\"X\",\"pid\":1,\"about\":\"a\"}" 44 | grep -q "is named 44.json, pid is 1"'
+check "a context key is snake_case" 'ctx "{\"app\":\"X\",\"pid\":45,\"about\":\"a\",\"askedBlock\":1}" 45 | grep -q "snake_case"'
+check "a selection is a list of strings" 'ctx "{\"app\":\"X\",\"pid\":46,\"about\":\"a\",\"selection\":\"a\"}" 46 | grep -q "selection: a list"'
+INC='{"id":"demo-1-ab","app":"demo","repo":"o/r","version":"1.0","kind":"qml","signature":"0123456789abcdef","message":"boom","when":1795000000,"state":"new","system":"Void","log":["l"]}'
+inc() { mkdir -p "$T/i"; printf '%s' "$1" > "$T/i/$2.json"; python3 -I "$LINT" incident "$T/i/$2.json"; }
+check "an incident with its keys is accepted" 'inc "$INC" demo-1-ab | grep -q "^ok"'
+check "an incident time is a number, not a string" 'inc "$(echo "$INC" | jq ".when = \"1795000000\"")" demo-1-ab | grep -q "whole number of seconds"'
+check "an incident signature is 16 hex digits" 'inc "$(echo "$INC" | jq ".signature = \"xyz\"")" demo-1-ab | grep -q "16 hexadecimal"'
+check "an incident state is one of four" 'inc "$(echo "$INC" | jq ".state = \"open\"")" demo-1-ab | grep -q "new, notified"'
+check "an incident has no unknown key" 'inc "$(echo "$INC" | jq ".extra = 1")" demo-1-ab | grep -q "unknown key extra"'
+check "a reported incident may carry issue and pr" 'inc "$(echo "$INC" | jq ".state = \"reported\" | .issue = \"u\" | .pr = \"p\"")" demo-1-ab | grep -q "^ok"'
+mkdir -p "$XDG_STATE_HOME/filigrane/incidents"; echo "$INC" > "$XDG_STATE_HOME/filigrane/incidents/demo-1-ab.json"
+check "doctor accepts the files of the applications" 'fili-api doctor | grep -q "^ok: .* follow the formats"'
+echo "$INC" | jq '.when = "1"' > "$XDG_STATE_HOME/filigrane/incidents/demo-1-ab.json"
+check "doctor reports a file that drifts" 'out="$(fili-api doctor)"; [ $? -ne 0 ] && echo "$out" | grep -q "demo-1-ab.json: when"'
+rm -f "$XDG_STATE_HOME/filigrane/incidents/demo-1-ab.json"
+
 # The applications: each catalog it ships follows the format and its source, and its copy of the validator is this one
 for pin in "$ROOT"/apps/*/upstream; do
     [ -f "$pin" ] || continue
@@ -68,6 +89,8 @@ check "only the last 100 events are kept" '[ "$(ls "$XDG_RUNTIME_DIR/fili/events
 fili-event watch tick > "$T/watched" & wpid=$!
 sleep 1.5; fili-event emit tick '{"n":1}'; sleep 2.5; kill $wpid 2> /dev/null; wait $wpid 2> /dev/null
 check "watch prints a new event" 'grep -q "\"n\":1" "$T/watched"'
+
+check "Rob's default brief points to fili-api" 'grep -q "fili-api show" "$ROOT/agents/rob/_default.md"'
 
 # fili-incident: no handler = no assistant; a handler adds its button and runs with the prompt as its last argument
 INC="$ROOT/apps/fili-incident/target/release/fili-incident"
