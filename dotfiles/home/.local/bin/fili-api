@@ -2,7 +2,7 @@
 # What the Filigrane applications declare, for scripts, shortcuts and the assistant (docs/api.md). No AI involved.
 #
 #   fili-api list              the applications that declare control commands (catalogs shell/ctl/<app_id>.json)
-#   fili-api show APP          the commands of one application (APP: app id or name)
+#   fili-api show APP          the commands and the actions of one application (APP: app id or name)
 #   fili-api apps              the running applications that share a context (pid, name, location)
 #   fili-api check FILE        validate a catalog (what an application's `make check` runs)
 #   fili-api -h                this help
@@ -35,6 +35,7 @@ problems() {
         ( need("v"; "number"), need("app_id"; "string"), need("name"; "string"), need("ctl"; "string"), need("commands"; "array"),
           (if (.v // 1) > 1 then "v \(.v) is newer than this tool understands (1)" else empty end),
           (if (.ctl // "" | type) == "string" and ((.ctl // "") | contains("%pid") | not) and ((.ctl // "") | contains("--pid") ) then "ctl: --pid needs %pid" else empty end),
+          (if has("actions") and ((.actions | type) != "array" or any(.actions[]?; type != "object" or ((.name // "") | type) != "string" or (.name // "") == "")) then "actions must be a list of {name, label?, keys?}" else empty end),
           ((.commands // [])[]? | select(type != "object" or (.verb // "" | type) != "string" or (.verb // "") == "" or (.summary // "" | type) != "string" or (.summary // "") == "")
              | "a command needs a verb and a summary: \(tostring)") ) end' "$1"
 }
@@ -54,7 +55,8 @@ case "${1:-}" in
             if jq -e --arg a "$app" '.app_id == $a or (.name | ascii_downcase) == ($a | ascii_downcase)' "$f" >/dev/null; then found="$f"; break; fi
         done < <(catalogs)
         [ -n "$found" ] || { echo "fili-api: no catalog for $app (fili-api list)" >&2; exit 1; }
-        jq -r '"\(.name) (\(.app_id)): \(.ctl)\n", (.commands[] | "  \(.verb) \(.args // "")" + (if .reads then "  [read]" else "" end) + "\n      \(.summary)")' "$found"
+        jq -r '"\(.name) (\(.app_id)): \(.ctl)\n", (.commands[] | "  \(.verb) \(.args // "")" + (if .reads then "  [read]" else "" end) + "\n      \(.summary)"),
+            (if (.actions // []) | length > 0 then "\nactions (action NAME):", (.actions[] | "  \(.name)" + (if .label then "  \(.label)" else "" end) + (if .keys then "  (\(.keys))" else "" end)) else empty end)' "$found"
         ;;
     apps)
         for f in "$runtime"/fili/context/*.json; do

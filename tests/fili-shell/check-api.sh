@@ -12,10 +12,13 @@ check() { if eval "$2"; then echo "ok - api: $1"; else echo "not ok - api: $1"; 
 
 cat > "$T/shell/ctl/demo.json" <<'J'
 { "v": 1, "app_id": "demo", "name": "Demo", "program": "demo", "ctl": "demo ctl --pid %pid",
-  "commands": [ { "verb": "action", "args": "NAME", "summary": "Run a command", "reads": false }, { "verb": "state", "summary": "State", "reads": true } ] }
+  "commands": [ { "verb": "action", "args": "NAME", "summary": "Run a command", "reads": false }, { "verb": "state", "summary": "State", "reads": true } ],
+  "actions": [ { "name": "go", "label": "Go There", "keys": "Ctrl+G" }, { "name": "quiet" } ] }
 J
 check "list shows a catalog" 'fili-api list | grep -q "^demo .*Demo .*2 "'
 check "show finds it by name, any case" 'fili-api show DEMO | grep -q "state   \[read\]"'
+check "show lists the actions with label and shortcut" 'fili-api show demo | grep -q "go  Go There  (Ctrl+G)" && fili-api show demo | grep -q "^  quiet$"'
+check "check refuses malformed actions" 'echo "{\"v\":1,\"app_id\":\"x\",\"name\":\"X\",\"ctl\":\"x\",\"commands\":[],\"actions\":[\"a\"]}" > "$T/act.json"; ! fili-api check "$T/act.json" > /dev/null'
 check "show refuses an unknown application" '! fili-api show nothing 2> /dev/null'
 check "check accepts a valid catalog" 'fili-api check "$T/shell/ctl/demo.json" > /dev/null'
 echo '{"v":1,"app_id":"x","name":"X","ctl":"x ctl --pid","commands":[{"verb":"a"}]}' > "$T/bad.json"

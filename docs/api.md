@@ -50,10 +50,13 @@ assistant can list them without reading a brief written by hand:
   "commands": [
     { "verb": "action", "args": "NAME", "summary": "Run a menu command of the window", "reads": false },
     { "verb": "state",  "args": "",     "summary": "JSON of the tabs, folder, selection and tasks", "reads": true }
-  ] }
+  ],
+  "actions": [ { "name": "new-folder", "label": "New Folder", "keys": "Ctrl+Shift+N" }, { "name": "open", "label": "Open" } ] }
 ```
 
-`reads` is true for a command that only reads. `fili-api list` shows every catalog, `fili-api show APP` one of them,
+`reads` is true for a command that only reads. `actions` lists the names `action NAME` accepts, with the label and shortcut of
+the menu entry when there is one (`<program> ctl actions` answers the same list from the running window); the application's
+`scripts/check-ctl-catalog.py` keeps the list equal to the table of its window (`--write` rewrites it). `fili-api list` shows every catalog, `fili-api show APP` one of them,
 `fili-api check FILE` validates a catalog (what `make check` of an application runs).
 
 ## Incidents: what went wrong
