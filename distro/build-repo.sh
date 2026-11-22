@@ -74,7 +74,8 @@ build_app() { # build_app APP -> writes the package name in $WORK/apps.list
     dir="$(src_dir "$app")"
     pkg="$(pkg_name "$app")"
     ver="$(app_version "$app")"
-    echo "$pkg" >>"$WORK/apps.list"
+    # An optional tool (DISTRO_OPTIONAL_APPS) is published but not required by the <distro>-apps meta-package
+    case " $DISTRO_OPTIONAL_APPS " in *" $app "*) ;; *) echo "$pkg" >>"$WORK/apps.list" ;; esac
     [ -n "$(git -C "$ROOT" status --porcelain -- "apps/$app" 2>/dev/null)" ] && dirty=1
     # A local checkout (FILI_SRC_<NAME>) is work in progress: always rebuilt
     override="FILI_SRC_$(printf '%s' "$app" | tr 'a-z-' 'A-Z_')"

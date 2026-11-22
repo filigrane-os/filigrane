@@ -507,5 +507,7 @@ _t_lookup() {
     'fili-bar link-system failed') _t_fmt='fili-bar link-system a échoué' ;;
     'install-data of %s failed') _t_fmt='install-data de %s a échoué' ;;
     'SKIP: the assistant (fili-ai package) is not installed, no agent to install') _t_fmt='SKIP: l'\''assistant (paquet fili-ai) n'\''est pas installé, pas d'\''agent à installer' ;;
+    'Assistant: installing the fili-ai package') _t_fmt='Assistant: installation du paquet fili-ai' ;;
+    'Installing fili-ai failed') _t_fmt='Installation de fili-ai échouée' ;;
     esac
 }

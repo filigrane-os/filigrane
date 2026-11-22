@@ -623,6 +623,12 @@ setup_ai() {
     local fili
     [ "$FILI_AI" != none ] || return 0
     for fili in "$TARGET_HOME/.local/bin/fili-ai" /usr/bin/fili-ai; do [ -x "$fili" ] && break || fili=""; done
+    if [ -z "$fili" ] && xbps-query -R fili-ai >/dev/null 2>&1; then
+        # Not in the <distro>-apps meta-package (the system works without the assistant): installed because an agent was chosen
+        log 'Assistant: installing the fili-ai package'
+        $SUDO xbps-install -y fili-ai >/dev/null || warn 'Installing fili-ai failed'
+        [ -x /usr/bin/fili-ai ] && fili=/usr/bin/fili-ai
+    fi
     [ -n "$fili" ] || { say 'SKIP: the assistant (fili-ai package) is not installed, no agent to install'; return 0; }
     log 'AI agent: %s' "$FILI_AI"
     run_as_user "$fili" install "$FILI_AI" \

@@ -7,5 +7,19 @@
  "New terminal session": "Nouvelle session de terminal",
  "Choose the agent": "Choisir l'agent",
  "Open the AI agent": "Ouvrir l'agent IA",
- "Choose the agent…": "Choisir l'agent…"
+ "Choose the agent…": "Choisir l'agent…",
+ "5-hour limit": "Limite sur 5 h",
+ "AI agent": "Agent IA",
+ "Chat": "Chat",
+ "Sessions": "Sessions",
+ "Weekly limit": "Limite hebdomadaire",
+ "as of %1": "relevé %1",
+ "click: agent panel · Super+click or middle click: go to what is asking · right click: menu": "clic : panneau de l'agent · Super+clic ou clic milieu : aller à ce qui attend · clic droit : menu",
+ "context %1 %": "contexte %1 %",
+ "finished": "terminé",
+ "none": "aucune",
+ "ready": "prêt",
+ "resets %1": "remise à zéro %1",
+ "waiting for you": "attend votre réponse",
+ "working": "au travail"
 }
