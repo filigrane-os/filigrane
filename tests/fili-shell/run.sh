@@ -105,7 +105,9 @@ if want "$SHELL_RE|^apps/fili-file/upstream"; then app_parity fili-file Casier; 
 if want "$SHELL_RE|^apps/fili-recorder/upstream|^apps/fili-file/upstream"; then app_parity fili-recorder Cassette; app_anatomy fili-recorder; fi
 if want "$SHELL_RE|^apps/fili-music/upstream|^apps/fili-file/upstream"; then app_parity fili-music Baladeur; app_anatomy fili-music; fi
 if want "$SHELL_RE|^apps/fili-term/upstream|^apps/fili-file/upstream"; then app_anatomy fili-term; fi
+if want "$SHELL_RE|^apps/fili-ai/upstream|^apps/fili-file/upstream"; then app_parity fili-ai Lia; fi
 app_suite fili-file Casier check
+app_suite fili-ai Lia check
 app_suite fili-term Aeroport test
 app_suite fili-recorder Cassette test
 app_suite fili-music Baladeur test
@@ -117,11 +119,11 @@ if want '^apps/fili-incident/'; then
 (cd "$ROOT/apps/fili-incident" && cargo test --release -q --locked >/dev/null 2>&1) \
     && echo "ok - fili-incident passes its unit tests" || { echo "not ok - fili-incident: cd apps/fili-incident && cargo test"; exit 1; }
 fi
-if want 'fili-ai|chat|appmenu/_default.json|niri/config.kdl'; then
-python3 -I "$ROOT/tests/fili-shell/check-fili-ai-menu.py" || exit 1
-python3 -I "$ROOT/tests/fili-shell/check-fili-ai-topics.py" "$ROOT" || exit 1
-python3 -I "$ROOT/tests/fili-shell/check-fili-ai-here.py" || exit 1
-(cd "$ROOT/apps/fili-ai-daemon" && cargo test --release --quiet) || exit 1
+if want 'fili-ai|chat|appmenu/_default.json|niri/config.kdl|^apps/fili-ai/upstream'; then
+# The assistant lives in its own repository (apps/fili-ai/upstream): its menu, catalog and unit tests are checked there
+# (make check); here only what ties it to the distribution
+python3 -I "$ROOT/tests/fili-shell/check-fili-ai-topics.py" "$(app_src fili-ai)" "$ROOT" || exit 1
+python3 -I "$ROOT/tests/fili-shell/check-fili-ai-here.py" "$(app_src fili-ai)" || exit 1
 fi
 if want 'fili-bar|bar/modules/'; then
 # The fili-bar command (modules, plugins)

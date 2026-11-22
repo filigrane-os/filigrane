@@ -4,7 +4,7 @@ import re, sys
 
 root = sys.argv[1] if len(sys.argv) > 1 else "."
 qml = f"{root}/dotfiles/config/quickshell"
-packaged = ("fili-appmenu", "fili-ai-session")
+packaged = ("fili-appmenu",)
 bad = []
 import glob
 for path in glob.glob(f"{qml}/**/*.qml", recursive=True):

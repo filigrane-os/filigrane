@@ -119,7 +119,7 @@ jobs:
       - name: Tests
         run: |
           su fili -c 'set -e; cd ~/filigrane
-            for a in bar-stats fili-ai-session fili-appmenu; do
+            for a in bar-stats fili-appmenu; do
               cargo build -q --locked --release --manifest-path apps/$a/Cargo.toml --target-dir /tmp/apps
             done
             ./bootstrap.sh --fili-shell --profile baremetal --machine generic --cpu other --gpu none --arch x86_64
@@ -220,18 +220,12 @@ jobs:
         run: |
           broken="$(find "$HOME" -xdev -xtype l -not -path "$HOME/.cache/*" -not -path "$HOME/.local/state/*" 2>/dev/null || true)"
           [ -z "$broken" ] || { echo "$broken"; exit 1; }
-      - name: Agent IA (skills, dossier de travail, fili-ai sans réseau)
+      - name: Agent IA (skills, dossier de travail, réglages)
         run: |
           for d in .claude/skills .agents/skills; do test -f "$HOME/$d/filigrane/SKILL.md"; done
           for f in AGENTS.md CLAUDE.md; do test -f "$HOME/work/$f"; done
           conf="$HOME/.config/filigrane/ai.env"
           grep -qx 'FILI_AI=claude' "$conf"
-          fili="$HOME/.local/bin/fili-ai"
-          "$fili" status
-          "$fili" use none
-          grep -qx 'FILI_AI=none' "$conf"
-          if "$fili" use inconnu; then echo "agent inconnu accepté"; exit 1; fi
-          if "$fili" </dev/null; then echo "lancé sans agent"; exit 1; fi
       - name: Fichiers T2
         run: |
           t2="$HOME/.config/t2-audio/tune.conf"

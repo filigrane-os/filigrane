@@ -28,6 +28,14 @@ PLAIN = [
 errors = []
 
 
+def at(rel):
+    """The file of the application: at its root, or in the crate of a workspace (fili-ai: crates/fili-ai-window/)"""
+    for c in [app / rel] + sorted(app.glob(f"crates/*/{rel}")):
+        if c.is_file():
+            return c
+    return app / rel
+
+
 def tokens(qml):
     """'readonly property <type> <name>: <value>' -> {name: value}"""
     out = {}
@@ -56,7 +64,7 @@ def defaults(toml):
 
 
 tok = tokens((shell / "FiliTheme.qml").read_text())
-toml = (app / "theme.toml").read_text()
+toml = at("theme.toml").read_text()
 d = defaults(toml)
 common = 0
 for token, key in COLORS:
@@ -99,7 +107,7 @@ if n < 7:
 if common < 25:
     errors.append(f"only {common} shared tokens")
 # The scroll file is the shell's, byte for byte
-if (app / "qml/KineticScroll.qml").read_text() != (shell / "KineticScroll.qml").read_text():
+if at("qml/KineticScroll.qml").read_text() != (shell / "KineticScroll.qml").read_text():
     errors.append("qml/KineticScroll.qml differs from the shell's")
 
 if errors:

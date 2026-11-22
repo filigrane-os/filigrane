@@ -75,7 +75,9 @@ for pin in "$ROOT"/apps/*/upstream; do
     app="$(basename "$(dirname "$pin")")"
     src="$("$ROOT/scripts/upstream-dir" "$app" 2> /dev/null)" || continue
     [ -d "$src/shell/ctl" ] || continue
-    check "$app: its catalog follows the format and its source" 'python3 -I "$src/scripts/fili-api-lint" --app "$src" > /dev/null'
+    # An application whose sources are in a workspace (fili-ai: crates/fili-ai-window) is checked from that crate
+    root="$src"; [ -d "$src/src" ] || root="$(dirname "$(ls -d "$src"/crates/*/shell 2> /dev/null | head -1)")"
+    check "$app: its catalog follows the format and its source" 'python3 -I "$src/scripts/fili-api-lint" --app "$root" > /dev/null'
     check "$app: its fili-api-lint is the distribution one" 'cmp -s "$src/scripts/fili-api-lint" "$LINT"'
 done
 echo '{"app":"Demo","pid":'$$',"location":"/tmp"}' > "$XDG_RUNTIME_DIR/fili/context/$$.json"
@@ -93,7 +95,7 @@ fili-event watch tick > "$T/watched" & wpid=$!
 sleep 1.5; fili-event emit tick '{"n":1}'; sleep 2.5; kill $wpid 2> /dev/null; wait $wpid 2> /dev/null
 check "watch prints a new event" 'grep -q "\"n\":1" "$T/watched"'
 
-check "Rob's default brief points to fili-api" 'grep -q "fili-api show" "$ROOT/agents/rob/_default.md"'
+check "Lia's default brief points to fili-api" 'grep -q "fili-api show" "$("$ROOT/scripts/upstream-dir" fili-ai)/data/prompts/lia/_default.md"'
 
 # fili-incident: no handler = no assistant; a handler adds its button and runs with the prompt as its last argument
 INC="$ROOT/apps/fili-incident/target/release/fili-incident"

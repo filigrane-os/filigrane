@@ -2,7 +2,7 @@
 // works, whether it waits for the user or has an unread answer. Read from $XDG_RUNTIME_DIR/fili/ai/ui.json, which the
 // assistant's interface writes on each change (docs/api.md, "The assistant"), and acted upon with the fili-ai command: the
 // bar, the application menu and the agent panel use this singleton and never reach into the assistant's window. The assistant
-// can be a window of the shell (FiliAi.qml) or an application of its own: this file does not change.
+// is an application of its own (the fili-ai package, window fili-ai-window).
 pragma Singleton
 
 import QtQuick

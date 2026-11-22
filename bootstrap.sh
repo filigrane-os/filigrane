@@ -502,7 +502,7 @@ setup_apps() {
         fi
         command -v cargo >/dev/null || { warn 'cargo missing (packages/dev.txt): apps/ not built'; return 0; }
         # build.rs, qml/, fonts/, i18n/ and theme.toml (fili-file: embedded in the binary); daemon/: second crate of fili-term; third_party/: litehtml (fili-mail); connectors/: Go programs (fili-im)
-        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon third_party connectors -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
+        sum="$(cd "$src" && { find Cargo.toml Cargo.lock src build.rs qml fonts i18n theme.toml daemon crates bin data third_party connectors -type f 2>/dev/null || true; } | sort | xargs cat | sha256sum | cut -c1-12)"
         dir="$TARGET_HOME/.local/opt/$name-$sum"
         # Programs of the tool (BINS in package.env, e.g. fili-term and its session daemon), default: the one named like it
         bins="$(BINS=""; [ -f "$src/package.env" ] && . "$src/package.env"; echo "$BINS")"; bins="${bins:-$name}"
@@ -617,11 +617,15 @@ setup_restricted() {
     $SUDO xbps-install -y "${repos[@]/#/--repository=}" "${todo[@]}" || warn 'Installing %s failed' "${todo[*]}"
 }
 
-# AI agent chosen (FILI_AI): installed by fili-ai (dotfiles/home/.local/bin), which also knows how to update it
+# AI agent chosen (FILI_AI): installed by fili-ai (the launcher of the fili-ai package, built by setup_apps), which also knows
+# how to update it. Filigrane works without the assistant: no package, nothing to install.
 setup_ai() {
+    local fili
     [ "$FILI_AI" != none ] || return 0
+    for fili in "$TARGET_HOME/.local/bin/fili-ai" /usr/bin/fili-ai; do [ -x "$fili" ] && break || fili=""; done
+    [ -n "$fili" ] || { say 'SKIP: the assistant (fili-ai package) is not installed, no agent to install'; return 0; }
     log 'AI agent: %s' "$FILI_AI"
-    run_as_user "$ROOT/dotfiles/home/.local/bin/fili-ai" install "$FILI_AI" \
+    run_as_user "$fili" install "$FILI_AI" \
         || warn 'Installing the %s agent failed (network?), run bootstrap.sh again or fili-ai install %s' "$FILI_AI" "$FILI_AI"
 }
 

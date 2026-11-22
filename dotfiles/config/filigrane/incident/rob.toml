@@ -1,4 +1,0 @@
-# Incident handler: what fili-incident offers when an application reports a problem (docs/api.md, "Incident handlers").
-# The assistant brings it with its own package (fili-ai); until then it lives with the distribution.
-label = "Ask Rob"
-command = "fili-ai ask"
