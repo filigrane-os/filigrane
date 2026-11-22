@@ -12,11 +12,14 @@ import Quickshell.Io
 import qs
 import qs.bar
 import qs.bar.modules.alert
+import qs.bar.modules.agent
 import qs.bar.modules.appmenu
 import qs.bar.modules.mail
 
 ShellRoot {
     id: t
+    // Pure functions of the agent module (state of the bar item)
+    AgentState { id: probeAgent }
     property int count: 0
     property int failures: 0
     property var steps: []
@@ -224,14 +227,13 @@ ShellRoot {
                     FiliPanel.close();
                 }
                 // Agent panel: one row per session (click = its window), message of the request, actions
-                BarState.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
                 FiliPanel.view = "agent";
+                FiliPanel.loaded.agent.aiData = { sessions: [{ id: "a1", state: "waiting", attention: true, window: 7, message: "Bash?", cwd: "/x/proj" }, { id: "b2", state: "idle", cwd: "/x/other" }] };
                 const ag = FiliPanel.loaded;
                 FiliTheme.ran = [];
                 ok(t.findAll(ag, "agent-session").length === 2 && t.find(ag, "agent-message").visible && t.find(ag, "agent-message").text === "Bash?", "fili-panel agent: sessions and request message");
                 t.findAll(ag, "agent-session")[0].press(L);
                 ok(FiliTheme.ran.join("\n").indexOf("fili-ai-session focus a1") >= 0 && FiliPanel.view === "", "fili-panel agent: click on a session -> its window, panel closed", JSON.stringify(FiliTheme.ran));
-                BarState.aiData = { sessions: [], limits: null };
                 expectMenu("volume", "wiremix --tab output", true);
                 expectClick("keyboard", M, "switch-layout next");
                 expectClick("display", "up", "brightnessctl -q set 3%+");
@@ -469,15 +471,15 @@ ShellRoot {
                 ok(r.text === " 1:01:40" && r["class"] === "active", "BarState: minuteur (heures)", r.text);
                 ok(BarState.timerFor("T", now - 1, now)["class"] === "done" && BarState.timerFor("", 0, now)["class"] === "idle", "BarState: timer elapsed / idle");
                 // AI agent (fili-ai-session): rest, working, question waiting, turn finished without being looked at
-                ok(BarState.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: AI agent without a session");
+                ok(probeAgent.aiFor({ sessions: [] }, null, {})["class"] === "off", "BarState: AI agent without a session");
                 const lim = { five_hour: { used_percentage: 34.4, resets_at: now + 3600 }, seven_day: { used_percentage: 12 }, seen: now };
-                const busy = BarState.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } }, now);
+                const busy = probeAgent.aiFor({ sessions: [{ id: "a", state: "working", window: 7, ctx: 42.6, cost: 1.5, model: "Opus" }], limits: lim }, null, { 7: { title: "✳ Icône IA" } }, now);
                 ok(busy["class"] === "working" && busy.tooltip.rows[0][0] === "Icône IA" && busy.tooltip.rows[0][1].indexOf("context 43 %") >= 0
                    && busy.tooltip.rows.some(r => r[0] === "5-hour limit" && r[1].startsWith("34 %") && Math.abs(r[2].value - 0.344) < 1e-6 && Math.abs(r[2].mark - 0.8) < 0.01), "BarState: AI agent working, card (title, context, limits and gauges)", JSON.stringify(busy));
-                const ask = BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
+                const ask = probeAgent.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7, message: "Bash?" }] }, null, {});
                 ok(ask.text.endsWith(" ASK") && ask["class"] === "waiting" && ask.tooltip.rows.some(r => r[1] === "Bash?"), "BarState: AI agent waiting (ASK)", JSON.stringify(ask));
-                ok(BarState.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: AI agent looked at, no longer highlighted");
-                ok(BarState.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: AI agent, turn finished (DONE)");
+                ok(probeAgent.aiFor({ sessions: [{ id: "a", state: "waiting", attention: true, window: 7 }] }, 7, {})["class"] === "idle", "BarState: AI agent looked at, no longer highlighted");
+                ok(probeAgent.aiFor({ sessions: [{ id: "a", state: "done", attention: true, window: 7 }, { id: "b", state: "idle" }] }, null, {}).text.endsWith(" DONE"), "BarState: AI agent, turn finished (DONE)");
             },
             wait(() => t.shell('echo "S $(( $(date +%s) - 65 ))" > "$XDG_RUNTIME_DIR/bar-timer"; : > "$XDG_RUNTIME_DIR/bar-tray-open"'),
                  () => BarState.timerFile.kind === "S" && BarState.trayOpen),
@@ -1598,7 +1600,7 @@ ShellRoot {
                 FiliAi.receive({ ev: "ask", id: "s1", rid: "r1", tool: "Bash", summary: "sudo sv restart iwd", status: "pending" });
                 FiliAi.receive({ ev: "state", id: "s1", state: "waiting" });
                 ok(FiliAi.log[FiliAi.log.length - 1].kind === "ask" && FiliAi.attention === "waiting" && FiliAi.working, "fili-ai: permission requested (card, waiting, ASK)", FiliAi.attention);
-                ok(BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliAi.attention, FiliAi.busy).text.endsWith(" ASK"), "fili-ai: pastille IA ASK");
+                ok(probeAgent.aiChat(probeAgent.aiFor({ sessions: [] }, null, {}), FiliAi.attention, FiliAi.busy).text.endsWith(" ASK"), "fili-ai: pastille IA ASK");
                 FiliTheme.ran = [];
                 FiliAi.answerFirst(true);
                 ok(FiliTheme.ran[0] === 'chat {"op":"answer","rid":"r1","allow":true}', "fili-ai: Ctrl+Enter allows the first request", JSON.stringify(FiliTheme.ran));
@@ -1619,7 +1621,7 @@ ShellRoot {
                 FiliAi.hide();
                 FiliAi.receive({ ev: "state", id: "s1", state: "working" });
                 FiliAi.receive({ ev: "state", id: "s1", state: "idle" });
-                ok(FiliAi.attention === "done" && BarState.aiChat(BarState.aiFor({ sessions: [] }, null, {}), FiliAi.attention, FiliAi.busy).text.endsWith(" DONE"), "fili-ai: unread reply (DONE)", FiliAi.attention);
+                ok(FiliAi.attention === "done" && probeAgent.aiChat(probeAgent.aiFor({ sessions: [] }, null, {}), FiliAi.attention, FiliAi.busy).text.endsWith(" DONE"), "fili-ai: unread reply (DONE)", FiliAi.attention);
                 // Tabs: red (waiting) and green (finished, unread) are read from states / unread of each session
                 ok(FiliAi.unread["s1"] === true && FiliAi.tabsOpen, "fili-ai: tab of s1 green (finished, unread)");
                 FiliAi.act("sessions");

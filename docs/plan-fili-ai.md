@@ -45,10 +45,8 @@ Commits of this repository, oldest first: `ea11303` (module contract), `7708c2b`
 ## What is still to do **before** the Qt application
 
 1. ~~Decide the name~~: done, **Lia**. Do the rename while moving the files (see "The name" below), not before.
-2. **Move the AI logic out of `bar/BarState.qml` into the `agent` module.** About 100 lines of `BarState` are the assistant's
-   (`aiData`, `aiFor`, `aiChat`, `aiAsk`, `aiSeen`, `aiName`, `aiLimit`, the watcher of `fili-ai/state.json`). The module cannot ship
-   in the `fili-ai` repository while its logic lives in the shell. Move them into `modules/agent/` (a small `AgentState.qml` next to
-   the module, reading `AiState` and `state.json`), move their tests from `tests/fili-shell/TestShell.qml`, keep `run.sh` green.
+2. ~~Move the AI logic out of `bar/BarState.qml`~~: done. `modules/agent/AgentState.qml` holds it (the module and the panel each
+   create one; only the module sets `watching`); the tests use a probe instance (`probeAgent`).
 3. **Technical question to settle with the user: how does the drawer sit on screen?** Today `FiliAi.qml` is a layer-shell surface
    with an exclusive zone (the drawer docks to the right edge and the windows shrink beside it; or it floats above them). A Qt Quick
    window cannot be a layer-shell surface without `layer-shell-qt` (C++: forbidden here, Rust only). Options: (a) a normal window in

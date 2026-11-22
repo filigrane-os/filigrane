@@ -1,6 +1,6 @@
 // fili-panel AI agent: the sessions (terminal sessions of fili-ai-session and the chat) with a click to reach each one,
 // the pending request of a session that is asking, and the agent actions (chat, new session, choose the agent).
-// State, context, cost and plan limits stay in the fili-tooltip (BarState.aiFor), not repeated here.
+// State, context, cost and plan limits stay in the fili-tooltip (AgentState.aiFor), not repeated here.
 import QtQuick
 import QtQuick.Layouts
 import qs.bar
@@ -11,7 +11,9 @@ ColumnLayout {
     id: view
     spacing: FiliTheme.space1
 
-    readonly property var sessions: BarState.aiData.sessions ?? []
+    readonly property alias agent: ag
+    AgentState { id: ag }
+    readonly property var sessions: ag.aiData.sessions ?? []
     readonly property string chatState: AiState.attention === "waiting" ? "waiting" : AiState.attention === "done" ? "done" : AiState.busy ? "working" : ""
     function stateText(s) {
         return { working: FiliI18n.tr("working"), waiting: FiliI18n.tr("waiting for you"), done: FiliI18n.tr("finished") }[s] ?? FiliI18n.tr("ready");
@@ -41,7 +43,7 @@ ColumnLayout {
             required property var modelData
             objectName: "agent-session"
             glyph: view.glyph(modelData.state)
-            label: BarState.aiName(modelData, Niri.windows)
+            label: ag.aiName(modelData, Niri.windows)
             detail: view.stateText(modelData.state)
             sel: modelData.state === "waiting"
             dim: modelData.window === undefined
