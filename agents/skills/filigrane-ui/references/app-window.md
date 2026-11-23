@@ -61,17 +61,19 @@ Reference: Facteur (`fili-mail/qml/Sidebar.qml`). Every section header of a side
 
 ## Tabs
 
-Reference: Facteur's category tabs (`fili-mail/qml/ListBar.qml`). Every tab row (view filters, categories, Casier's folder tabs) looks the same.
+Every tab row (view filters, categories, Casier's folder tabs, Facteur's pinned folders, Conversations' open chats, Aéroport's terminals) is the `fili-ui` component `FiliTabBar` (`~/Projects/fili-ui`, `qml/Fili/UI/FiliTabBar.qml`), so that they all look and behave the same. An application does not draw its own.
 
 - A band 40 high, full width of the content it filters (never above the sidebar), background `background`, 1 px `border` line below, shown only when there are tabs (Casier: from two open tabs).
-- Tabs in a row from `margin`, `space3` apart, each 28 high, padding `space4` on both sides of its label, radius `radiusControl`.
-- Label `sizeList`; current tab `surfaceActive` background, `text` colour, `weightAccent`; other tabs transparent, `textSecondary`, Normal; hover `surfaceHover`.
-- No underline, no border around a tab, no icon unless the tab is a document (a folder tab may show its `×` close on hover, middle click closes, drag-and-drop target outlined in `accentColor`: these behaviours of Casier stay on top of this look).
-- A document tab keeps a readable width: label elided, width between 80 and 180.
-- **Tabs are always reorderable**: drag a tab onto another one to move it (the dragged tab follows the pointer, the others shift; the new order is saved when released). This holds for every tab row of every application (Casier, Aéroport, Facteur…). Reference: `fili-mail/qml/TabStrip.qml` (`reordered(keys)`).
-- Tabs the user can choose (Facteur: pinned folders) end with a `+` button that opens a modal (folder, then icon); right click: change icon, remove; middle click removes. The icon of a tab is then shown (this overrides "no icon" above for user tabs).
-- Keyboard: next/previous tab in the bar menu with their shortcuts (Casier: Ctrl+Tab / Ctrl+Shift+Tab).
-- Sizes become tokens: `tab_bar_height = 40`, `tab_height = 28` (to add to `theme.toml` of each application with tabs).
+- Tabs in a row from `margin`, `space3` apart, equal widths between 80 and 180 (they shrink to 80 before the row overflows), each 28 high, label `sizeList` elided with `space4` of padding, radius `radiusControl`; an optional muted `count` after the label (unread messages).
+- Current tab `surfaceActive` background, `text` colour, `weightAccent`; other tabs transparent, `textSecondary`, Normal; hover `surfaceHover`. No underline, no border around a tab, no icon unless the tab is a document.
+- **A tab can always be moved, closed and detached, the same way in every application** (an application may only switch a behaviour off with `closable: false` / `detachable: false` when it makes no sense there):
+  - **Move**: drag the tab sideways; it follows the pointer and the others make room; the new order is given on release (`reordered(from, to)`, the application reorders its model and keeps the order). Keyboard: Ctrl+Shift+Left / Right on a tab.
+  - **Close**: the `×` that shows on hover and on the current tab, a middle click, or Delete on a focused tab (`closeRequested`).
+  - **Detach**: drag the tab far from the bar (above it, well below it, or out of the window): it turns half transparent and becomes a window on release (`detachRequested`). The menu of the bar also has "Move Tab to New Window".
+- Right click `contextRequested(index, x, y)` (the application shows its menu: change icon, remove…). The `+` button (`addable`, `addRequested`) ends a row of tabs the user can choose.
+- Files dragged over a tab can be dropped on it (`tabDropped`); resting on a tab for 700 ms selects it, so the target can be chosen in the view (Casier).
+- Keyboard: Tab, Left / Right and Return / Space choose a tab; next / previous tab are in the bar menu with their shortcuts (Casier: Ctrl+Tab / Ctrl+Shift+Tab).
+- Sizes are tokens: `tab_bar_height = 40`, `tab_height = 28` (`theme.toml` of each application with tabs).
 
 ## Footer
 
