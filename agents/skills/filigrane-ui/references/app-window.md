@@ -30,7 +30,7 @@ An application uses only the parts it needs (no empty header, sidebar or footer 
 | Sidebar section header | `side_row_height` + `space_4` | 44 | Facteur |
 | Tab row / tab | `tab_bar_height` / `tab_height` | 40 / 28 | Facteur |
 
-Other values of the header, taken from Casier: back/forward capsule 30 high, radius 8, `surface` with a 1 px `border`; icon buttons 28 × 24, glyph 16; search field 180 × 26, radius `radiusControl`, `Search` placeholder in `muted`, accent border on focus, and a × on the right as soon as it holds text (it clears the search, like Esc; every search or filter field of an application has it); `space3` between the groups of tools; title in `size` + `weightAccent`, elided; with a second line (`textSecondary`) the pair is `sizeList` + `weightAccent` over `sizeSmall`, and lined up with the back/forward capsule: the tallest letters of the title on its top edge, the baseline of the second line on its bottom edge (`fili-ui`, `FiliHeader`).
+Other values of the header, taken from Casier: back/forward capsule 30 high, radius 8, `surface` with a 1 px `border`; icon buttons 28 × 24, glyph 16; search field 180 × 26, radius `radiusControl`, `Search` placeholder in `muted`, accent border on focus, and a × on the right as soon as it holds text (it clears the search, like Esc; every search or filter field of an application has it); `space3` between the groups of tools; title in `size` + `weightAccent`, elided; with a second line (`textSecondary`) the pair is `sizeList` + `weightAccent` over `sizeSmall`, as one block centred vertically in the header (baselines `sizeList + 2` apart; centred on the same line as the back/forward capsule; `fili-ui`, `FiliHeader`).
 
 ## Header
 
