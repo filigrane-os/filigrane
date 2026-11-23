@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Newer releases of the applications pinned in apps/*/upstream (url= and ref=, a tag).
+# Newer releases of the applications pinned in apps/*/upstream and of the libraries pinned in libs/*/upstream (url= and ref=, a tag).
 #
 #   scripts/bump-app-pins.sh [--apply] [NAME...]
 #
@@ -11,6 +11,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APPS_DIR="${FILI_APPS_DIR:-$ROOT/apps}"
+LIBS_DIR="${FILI_LIBS_DIR:-$ROOT/libs}"
 apply=0
 names=()
 for arg in "$@"; do
@@ -20,13 +21,14 @@ for arg in "$@"; do
     esac
 done
 if [ ${#names[@]} -eq 0 ]; then
-    for pin in "$APPS_DIR"/*/upstream; do
+    for pin in "$APPS_DIR"/*/upstream "$LIBS_DIR"/*/upstream; do
         [ -f "$pin" ] && names+=("$(basename "$(dirname "$pin")")")
     done
 fi
 
 for name in "${names[@]}"; do
     pin="$APPS_DIR/$name/upstream"
+    [ -f "$pin" ] || pin="$LIBS_DIR/$name/upstream"
     [ -f "$pin" ] || continue
     url="$(sed -n 's/^url=//p' "$pin")"
     ref="$(sed -n 's/^ref=//p' "$pin")"

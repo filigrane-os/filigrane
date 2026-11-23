@@ -86,14 +86,16 @@ SHELL_RE='^dotfiles/config/quickshell/|^tests/fili-shell/check-app-window.py|^te
 app_src() { # app_src APP: the pinned sources (or FILI_SRC_<APP>), else the bench stops
     "$ROOT/scripts/upstream-dir" "$1" || { echo "not ok - source of $1 not available" >&2; exit 1; }
 }
-app_parity() { # app_parity APP NAME: the app follows the shell (theme.toml defaults, KineticScroll.qml)
+app_parity() { # app_parity APP NAME: the app follows the shell (theme.toml defaults, KineticScroll.qml, the kit's when it has none)
     src="$(app_src "$1")" || exit 1
-    python3 -I "$ROOT/tests/fili-shell/check-app-shell-parity.py" "$src" "$2" || exit 1
+    kit="$(app_src fili-ui)" || exit 1
+    python3 -I "$ROOT/tests/fili-shell/check-app-shell-parity.py" "$src" "$2" --kit "$kit" || exit 1
 }
-app_anatomy() { # app_anatomy APP: the window follows the anatomy of Casier
+app_anatomy() { # app_anatomy APP: the window follows the anatomy of Casier (and the shared controls of the fili-ui kit)
     src="$(app_src "$1")" || exit 1
     ref="$(app_src fili-file)" || exit 1
-    python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$ref" "$src" || exit 1
+    kit="$(app_src fili-ui)" || exit 1
+    python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$ref" --kit "$kit" "$src" || exit 1
 }
 app_suite() { # app_suite APP NAME TARGET: its own suite, when its pin changed
     { [ "${FILI_APP_TESTS:-0}" = 1 ] || { [ "$CHANGED" = 1 ] && printf '%s\n' "$CHG" | grep -Eq "^apps/$1/upstream"; }; } || return 0
@@ -101,7 +103,9 @@ app_suite() { # app_suite APP NAME TARGET: its own suite, when its pin changed
     (cd "$src" && QMAKE="${QMAKE:-/usr/lib/qt6/bin/qmake6}" make "$3" >/dev/null 2>&1) \
         && echo "ok - $2 passes its own suite (make $3)" || { echo "not ok - $2: cd $src && make $3"; exit 1; }
 }
-if want "$SHELL_RE|^apps/fili-file/upstream"; then app_parity fili-file Casier; fi
+# The kit itself follows the shell: its default theme and its kinetic scroll
+if want "$SHELL_RE|^libs/fili-ui/upstream"; then python3 -I "$ROOT/tests/fili-shell/check-app-shell-parity.py" "$(app_src fili-ui)" "fili-ui (kit)" || exit 1; fi
+if want "$SHELL_RE|^apps/fili-file/upstream|^libs/fili-ui/upstream"; then app_parity fili-file Casier; fi
 if want "$SHELL_RE|^apps/fili-recorder/upstream|^apps/fili-file/upstream"; then app_parity fili-recorder Cassette; app_anatomy fili-recorder; fi
 if want "$SHELL_RE|^apps/fili-music/upstream|^apps/fili-file/upstream"; then app_parity fili-music Baladeur; app_anatomy fili-music; fi
 if want "$SHELL_RE|^apps/fili-term/upstream|^apps/fili-file/upstream"; then app_anatomy fili-term; fi

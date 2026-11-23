@@ -3,7 +3,7 @@
 #
 #   scripts/upstream-dir NAME      e.g. scripts/upstream-dir fili-file
 #
-# The version the distribution builds is pinned in apps/NAME/upstream (url= and ref=, a tag). The pinned ref is cloned
+# The version the distribution builds is pinned in apps/NAME/upstream (a library: libs/NAME/upstream) (url= and ref=, a tag). The pinned ref is cloned
 # once into the cache ($FILI_UPSTREAM_CACHE, default ~/.cache/filigrane-upstream) and the directory is printed.
 # FILI_SRC_<NAME> (upper case, dashes as underscores: FILI_SRC_FILI_FILE) points to a local checkout instead, to work on
 # the application without tagging: FILI_SRC_FILI_FILE=~/Projects/fili-file tests/fili-shell/run.sh
@@ -18,7 +18,9 @@ if [ -n "${!override:-}" ]; then
 fi
 
 pin="$ROOT/apps/$name/upstream"
-[ -f "$pin" ] || { echo "upstream-dir: $pin does not exist" >&2; exit 1; }
+# A library (the fili-ui kit) is pinned in libs/NAME/upstream, an application in apps/NAME/upstream
+[ -f "$pin" ] || pin="$ROOT/libs/$name/upstream"
+[ -f "$pin" ] || { echo "upstream-dir: no pin for $name (apps/$name/upstream, libs/$name/upstream)" >&2; exit 1; }
 url="$(sed -n 's/^url=//p' "$pin" | head -1)"
 ref="$(sed -n 's/^ref=//p' "$pin" | head -1)"
 [ -n "$url" ] && [ -n "$ref" ] || { echo "upstream-dir: url= and ref= are required in $pin" >&2; exit 1; }
