@@ -481,7 +481,7 @@ Singleton {
         Rectangle {
             id: centerCard
             width: 380
-            height: Math.min((centerWin.screen?.height ?? 800) - FiliTheme.barHeight - 24, col.implicitHeight + 28)
+            height: Math.min((centerWin.screen?.height ?? 800) - FiliTheme.barMargin("top") - FiliTheme.barMargin("bottom") - 24, col.implicitHeight + 28)
             color: FiliTheme.nuit
             radius: FiliTheme.radiusWindow
             border { width: 1; color: FiliTheme.nuit4 }
