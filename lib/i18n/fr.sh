@@ -4,6 +4,29 @@
 # printf format, with the same placeholders in the same order. A missing entry falls back to English.
 _t_lookup() {
     case $1 in
+    'usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]') _t_fmt='usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]' ;;
+    'usage: fili-defaults editor-rm DESKTOP_ID') _t_fmt='usage: fili-defaults editor-rm DESKTOP_ID' ;;
+    'Editor added') _t_fmt='Éditeur ajouté' ;;
+    'Editor not added') _t_fmt='Éditeur non ajouté' ;;
+    'usage: fili-defaults list | get ID | candidates ID | apps | set ID DESKTOP_ID [--any] | add ID COMMAND [NAME] | ask ID | editors | editor-add | editor-rm | editor-ask | edit FILE...') _t_fmt='usage: fili-defaults list | get ID | candidates ID | apps | set ID DESKTOP_ID [--any] | add ID COMMAND [NAME] | ask ID | editors | editor-add | editor-rm | editor-ask | edit FILE...' ;;
+    'usage: fili-defaults set ID DESKTOP_ID [--any]') _t_fmt='usage: fili-defaults set ID DESKTOP_ID [--any]' ;;
+    'usage: fili-defaults add ID COMMAND [NAME]') _t_fmt='usage: fili-defaults add ID COMMAND [NAME]' ;;
+    'usage: fili-defaults ask ID') _t_fmt='usage: fili-defaults ask ID' ;;
+    'usage: fili-defaults edit FILE...') _t_fmt='usage: fili-defaults edit FILE...' ;;
+    'application not found: %s') _t_fmt='application introuvable: %s' ;;
+    'a command and a name stay on one line') _t_fmt='la commande et le nom tiennent sur une ligne' ;;
+    'the command is empty') _t_fmt='la commande est vide' ;;
+    'Program: ') _t_fmt='Programme: ' ;;
+    'Default application set') _t_fmt='Application par défaut choisie' ;;
+    'Default application not set') _t_fmt='Application par défaut non choisie' ;;
+    'usage: fili-region set LOCALE|language') _t_fmt='usage: fili-region set LOCALE|language' ;;
+    'usage: fili-region [get|list|set LOCALE|zone]') _t_fmt='usage: fili-region [get|list|set LOCALE|zone]' ;;
+    'region not installed: %s (add it to LOCALES in config.env, then ./bootstrap.sh)') _t_fmt='région non installée: %s (l'\''ajouter à LOCALES dans config.env, puis ./bootstrap.sh)' ;;
+    'Region: %s') _t_fmt='Région: %s' ;;
+    'same as the language') _t_fmt='comme la langue' ;;
+    'Event: ') _t_fmt='Événement: ' ;;
+    'Event added') _t_fmt='Événement ajouté' ;;
+    'Event not added') _t_fmt='Événement non ajouté' ;;
     'Web browser') _t_fmt='Navigateur web' ;;
     'Mail') _t_fmt='Courrier' ;;
     'Folders') _t_fmt='Dossiers' ;;

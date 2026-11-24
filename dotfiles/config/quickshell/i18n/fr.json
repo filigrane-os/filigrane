@@ -322,5 +322,21 @@
  "On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.": "Activé: l'en-tête et la barre d'état d'une application Filigrane prennent la couleur d'accent quand elle vous attend (un nouveau message, un nouveau courrier, une question de l'assistant) jusqu'à votre retour. Désactivé: aucun changement de couleur.",
  "Default applications": "Applications par défaut",
  "The program that opens each kind of file or link, for every application that follows the system rules.": "Le programme qui ouvre chaque type de fichier ou de lien, pour toutes les applications qui suivent les règles du système.",
- "OPEN WITH": "OUVRIR AVEC"
+ "OPEN WITH": "OUVRIR AVEC",
+ "New event or reminder": "Nouvel événement ou rappel",
+ "Region": "Région",
+ "How dates, numbers, money, units and paper are written. It is independent of the language of the interface and of the keyboard.": "La façon d'écrire les dates, les nombres, l'argent, les unités et le papier. Indépendante de la langue de l'interface et du clavier.",
+ "FORMATS": "FORMATS",
+ "Same as the language": "Comme la langue",
+ "Example: %1 · %2": "Exemple: %1 · %2",
+ "TIME ZONE": "FUSEAU HORAIRE",
+ "The time zone belongs to the system: set TIMEZONE in config.env, then run ./bootstrap.sh.": "Le fuseau horaire est un réglage du système: fixer TIMEZONE dans config.env, puis lancer ./bootstrap.sh.",
+ "Other…": "Autre…",
+ "Command…": "Commande…",
+ "EDIT WITH": "MODIFIER AVEC",
+ "Other… lists every application of the system. Command… adds a program that has no entry in the menu: type its command.": "Autre… liste toutes les applications du système. Commande… ajoute un programme absent du menu: saisir sa commande.",
+ "Choose an application": "Choisir une application",
+ "Your editors, added once. The file manager offers “Edit with” and starts the first one that handles the kind of file (images, text, video, audio).": "Vos éditeurs, ajoutés une seule fois. Le gestionnaire de fichiers propose « Modifier avec » et lance le premier qui sait traiter le type de fichier (images, texte, vidéo, son).",
+ "No editor yet": "Aucun éditeur",
+ "Add a command…": "Ajouter une commande…"
 }

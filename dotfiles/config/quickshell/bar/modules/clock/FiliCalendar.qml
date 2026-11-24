@@ -42,7 +42,7 @@ PopupWindow {
     anchor.margins.left: FiliTheme.barGap("left", 4)
     anchor.margins.right: FiliTheme.barGap("right", 4)
     implicitWidth: 260
-    implicitHeight: 276
+    implicitHeight: 276 + 30 + FiliTheme.space1
     color: "transparent"
 
     Rectangle {
@@ -122,6 +122,18 @@ PopupWindow {
                 Layout.bottomMargin: 2
                 implicitHeight: 1
                 color: FiliTheme.nuit3
+            }
+            // New event or reminder: one line in the launcher ("tomorrow 14:30 Dentist", "+30m Take the bread out")
+            PanelButton {
+                objectName: "new-event"
+                glyph: "\uf271"
+                label: FiliI18n.tr("New event or reminder")
+                onClicked: {
+                    // The line is typed in the fili-launcher: close the calendar first
+                    cal.pinned = false;
+                    cal.visible = false;
+                    FiliTheme.run(FiliTheme.bin + "/bar-event add");
+                }
             }
             // Timer / stopwatch: click = choose, stop or acknowledge, right click = +5 min on the timer
             PanelButton {
