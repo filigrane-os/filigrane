@@ -157,6 +157,9 @@ merged on their go; here: pin bump merged, `tests/fili-shell/run.sh` passes, REA
 
 ## 8. After the last application
 
+**Done on 2026-11-24** (kit v0.4.0, the seven applications pinned): the per-file `SHARED` comparison and `normalize` are gone from `check-app-window.py` (it now fails on a local copy of a kit component); `app-window.md`, `SKILL.md` and `AGENTS.md` say that the kit is the only copy. Left: the panels of the fili-bar (a separate work, one panel at a time with `fili-compare-ui`) and one release-tag convention for every application (see the memory note `uniform-release-tags`).
+
+
 - Delete from `check-app-window.py` the per-file `SHARED` comparison and the `normalize` calls: the kit is the only copy (keep the
   anatomy checks: sizes, header, window buttons, menu).
 - Update `agents/skills/filigrane-ui/SKILL.md` and `references/app-window.md`: "an application never writes its own button, menu, tab

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Check that fili-* application windows follow the common anatomy (agents/skills/filigrane-ui/references/app-window.md).
 
-    check-app-window.py --ref CASIER_SRC [--kit KIT_SRC] APP_SRC [APP_SRC...]
+    check-app-window.py APP_SRC [APP_SRC...]
 
-CASIER_SRC is the reference application (fili-file): the shared QML files of every APP_SRC must be identical to its
-copies, except for the `import Fili.<Module>` line and the name of the application singleton. Prints TAP-like lines,
-exits 1 on the first failing application (all its problems are listed).
+Every APP_SRC takes its shared controls (theme, scroll, window glyph, window and debug panels, Lia button, buttons) from the
+fili-ui kit: it has no local copy of them (the kit is the only copy) and uses the kit's components where the anatomy needs
+them. Sizes, header, window buttons, footer, sidebar, tabs and bar menu are checked here. Prints TAP-like lines, exits 1 on the
+first failing application (all its problems are listed).
 """
 import re
 import sys
@@ -15,7 +16,9 @@ from pathlib import Path
 SIZES = {"toolbar_height": 44, "sidebar_width": 200, "side_row_height": 28, "row_height": 24, "status_height": 28, "border_width": 1}
 # Tabs (Facteur): only for applications that have a tab row
 TABS = {"tab_bar_height": 40, "tab_height": 28}
-SHARED = ["FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml"]
+# Files an application used to carry its own copy of: they live in the kit now (a local copy would drift)
+KIT_ONLY = ["FiliTheme.qml", "FiliScrollBar.qml", "KineticScroll.qml", "WindowGlyph.qml", "WindowPanel.qml", "DebugPanel.qml",
+            "LiaButton.qml", "RobButton.qml", "IconButton.qml", "TextButton.qml", "FocusRing.qml", "Icon.qml"]
 # Applications that have the Debug panel and the incident pipeline (app-window.md, "Debug panel and incidents"), with the
 # chord that opens the panel. An application joins this list when it gets the panel; it can never leave it.
 DEBUG_PANEL = {"fili-music": "Ctrl+Shift+L", "fili-recorder": "Ctrl+Shift+L", "fili-im": "Ctrl+Shift+L",
@@ -67,14 +70,7 @@ def uses_kit(src):
     return cargo.is_file() and re.search(r"^fili-ui\s*=", cargo.read_text(), re.M) is not None
 
 
-def normalize(text):
-    """Drops the module import and the singleton name, the only allowed differences between copies."""
-    text = re.sub(r"^import Fili\.\w+\s*$", "", text, flags=re.M)
-    calls = r"tr|askLia|robAvailable|window[A-Za-z]*|logs|logFile|clearLogs|reportProblem|copyText|openPath|uiState|setUiState"
-    return re.sub(rf"\b[A-Z][A-Za-z]*\.(?=({calls})\b)", "APP.", text)
-
-
-def check(ref, src, name, kit=None):
+def check(src, name):
     problems = []
     theme = src / "theme.toml"
     if not theme.is_file():
@@ -85,18 +81,11 @@ def check(ref, src, name, kit=None):
             if values.get(key) != want:
                 problems.append(f"theme.toml: {key} = {values.get(key)}, expected {want}")
     qml = src / "qml"
-    for f in SHARED:
-        mine, theirs = qml / f, ref / "qml" / f
-        if not theirs.is_file() and kit is not None:
-            # Casier takes it from the kit: that is the reference now (the kit names the window panel differently)
-            theirs = kit / "qml/Fili/UI" / f
-        if not mine.is_file():
-            if not uses_kit(src):
-                problems.append(f"qml/{f} missing")
-        elif not theirs.is_file():
-            continue
-        elif normalize(mine.read_text()) != normalize(theirs.read_text()):
-            problems.append(f"qml/{f} differs from {'the kit' if not (ref / 'qml' / f).is_file() else 'Casier'}'s copy")
+    if not uses_kit(src):
+        problems.append("Cargo.toml: no fili-ui dependency (the shared controls come from the kit)")
+    for f in KIT_ONLY:
+        if (qml / f).is_file():
+            problems.append(f"qml/{f}: local copy of a kit component (use the kit's)")
     main = (qml / "Main.qml").read_text() if (qml / "Main.qml").is_file() else ""
     every = "\n".join(p.read_text() for p in sorted(qml.glob("*.qml")))
     if "FiliTheme.toolbarHeight" not in main:
@@ -104,8 +93,8 @@ def check(ref, src, name, kit=None):
     for wid in ("closeButton", "windowButton"):
         if f"id: {wid}" not in main:
             problems.append(f"Main.qml: no {wid} in the header")
-    if "WindowPanel" not in main:
-        problems.append("Main.qml: no WindowPanel")
+    if "FiliWindowPanel" not in main:
+        problems.append("Main.qml: no FiliWindowPanel (fili-ui)")
     if re.search(r"^\s*(ScrollBar|ScrollView)\s*\{", every, re.M) or "ScrollBar.vertical:" in every:
         problems.append("Qt ScrollBar/ScrollView used: use KineticScroll + FiliScrollBar")
     for f in sorted(qml.glob("*.qml")):
@@ -140,9 +129,9 @@ def check(ref, src, name, kit=None):
     elif "action about" not in menu.read_text():
         problems.append(f"{menu.name}: no About entry")
     if name in DEBUG_PANEL:
-        problems += check_debug(ref, src, name, menu)
+        problems += check_debug(src, name, menu)
     if name in ROB_BUTTON and version_of(src) >= ROB_BUTTON[name]:
-        problems += check_rob(ref, src)
+        problems += check_rob(src)
     return problems
 
 
@@ -153,38 +142,19 @@ def version_of(src):
     return tuple(int(x) for x in m.groups()) if m else (999,)
 
 
-def check_rob(ref, src):
-    """The "Ask Lia" header button: shared file, listed in build.rs, instantiated, `askLia` exposed. The versions before the
-    rename of the assistant (Rob -> Lia) have RobButton.qml and `ask_rob`: accepted until the applications are released again."""
+def check_rob(src):
+    """The "Ask Lia" header button: the kit's FiliLiaButton in Main.qml and the `askLia` invokable."""
     problems = []
-    if uses_kit(src):
-        main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
-        rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
-        if not re.search(r"^\s*FiliLiaButton\s*\{", main, re.M):
-            problems.append("Main.qml: no FiliLiaButton (fili-ui)")
-        if not re.search(r"\bfn ask_lia\b", rust):
-            problems.append("no `askLia` invokable for the Ask Lia button")
-        return problems
-    name = "Lia" if (src / "qml" / "LiaButton.qml").is_file() or not (src / "qml" / "RobButton.qml").is_file() else "Rob"
-    rname = name if (ref / "qml" / f"{name}Button.qml").is_file() else ("Lia" if name == "Rob" else "Rob")
-    button, theirs = src / "qml" / f"{name}Button.qml", ref / "qml" / f"{rname}Button.qml"
-    if not button.is_file():
-        return [f"qml/{name}Button.qml missing"]
-    if theirs.is_file() and normalize(button.read_text().replace("Rob", "Lia").replace("rob", "lia")) != normalize(theirs.read_text().replace("Rob", "Lia").replace("rob", "lia")):
-        problems.append(f"qml/{name}Button.qml differs from Casier's copy")
-    build = src / "build.rs"
-    if build.is_file() and f"qml/{name}Button.qml" not in build.read_text():
-        problems.append(f"build.rs: qml/{name}Button.qml is not in qml_files")
     main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
-    if not re.search(rf"^\s*{name}Button\s*\{{", main, re.M):
-        problems.append(f"Main.qml: no {name}Button")
     rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
-    if not re.search(r"\bfn ask_(lia|rob)\b", rust):
+    if not re.search(r"^\s*FiliLiaButton\s*\{", main, re.M):
+        problems.append("Main.qml: no FiliLiaButton (fili-ui)")
+    if not re.search(r"\bfn ask_lia\b", rust):
         problems.append("no `askLia` invokable for the Ask Lia button")
     return problems
 
 
-def check_debug(ref, src, name, menu):
+def check_debug(src, name, menu):
     """The log, the Debug panel and its menu entry (app-window.md, "Debug panel and incidents")."""
     problems = []
     rust = "\n".join(p.read_text() for p in sorted((src / "src").rglob("*.rs"))) if (src / "src").is_dir() else ""
@@ -197,17 +167,10 @@ def check_debug(ref, src, name, menu):
     for inv in ("logs", "logFile", "clearLogs", "reportProblem"):
         if not re.search(rf"\bfn {re.sub(r'([A-Z])', lambda m: '_' + m.group(1).lower(), inv)}\b", rust):
             problems.append(f"no `{inv}` invokable for the Debug panel")
-    panel, theirs = src / "qml" / "DebugPanel.qml", ref / "qml" / "DebugPanel.qml"
-    if not panel.is_file() and uses_kit(src):
-        pass  # FiliDebugPanel of the kit (checked below in Main.qml)
-    elif not panel.is_file():
-        problems.append("qml/DebugPanel.qml missing")
-    elif theirs.is_file() and normalize(panel.read_text()) != normalize(theirs.read_text()):
-        problems.append("qml/DebugPanel.qml differs from Casier's copy")
     main = (src / "qml" / "Main.qml").read_text() if (src / "qml" / "Main.qml").is_file() else ""
     keys = DEBUG_PANEL[name]
-    if not re.search(r"^\s*(Fili)?DebugPanel\s*\{", main, re.M):
-        problems.append("Main.qml: no DebugPanel")
+    if not re.search(r"^\s*FiliDebugPanel\s*\{", main, re.M):
+        problems.append("Main.qml: no FiliDebugPanel (fili-ui)")
     # The chord is in Main.qml, or in the Rust keymap of an application whose shortcuts are configurable (Aéroport)
     if f'"{keys}"' not in main and f'"{keys}"' not in rust:
         problems.append(f"no {keys} shortcut for the Debug panel (Main.qml, or the keymap)")
@@ -221,15 +184,10 @@ def check_debug(ref, src, name, menu):
 
 
 def main(argv):
-    if len(argv) < 3 or argv[0] != "--ref":
+    if not argv:
         print(__doc__.strip(), file=sys.stderr)
         return 2
-    ref = Path(argv[1]).expanduser().resolve()
-    rest = argv[2:]
-    kit = None
-    if rest and rest[0] == "--kit":
-        kit = Path(rest[1]).expanduser().resolve()
-        rest = rest[2:]
+    rest = argv
     failed = False
     for arg in rest:
         src = Path(arg).expanduser().resolve()
@@ -237,7 +195,7 @@ def main(argv):
         cargo = src / "Cargo.toml"
         m = re.search(r'^name\s*=\s*"([^"]+)"', cargo.read_text(), re.M) if cargo.is_file() else None
         label = m.group(1) if m else src.name
-        problems = check(ref, src, label, kit)
+        problems = check(src, label)
         if problems:
             failed = True
             print(f"not ok - {label}: window anatomy")

@@ -91,11 +91,9 @@ app_parity() { # app_parity APP NAME: the app follows the shell (theme.toml defa
     kit="$(app_src fili-ui)" || exit 1
     python3 -I "$ROOT/tests/fili-shell/check-app-shell-parity.py" "$src" "$2" --kit "$kit" || exit 1
 }
-app_anatomy() { # app_anatomy APP: the window follows the anatomy of Casier (and the shared controls of the fili-ui kit)
+app_anatomy() { # app_anatomy APP: the window follows the anatomy of app-window.md and takes its shared controls from the fili-ui kit
     src="$(app_src "$1")" || exit 1
-    ref="$(app_src fili-file)" || exit 1
-    kit="$(app_src fili-ui)" || exit 1
-    python3 -I "$ROOT/tests/fili-shell/check-app-window.py" --ref "$ref" --kit "$kit" "$src" || exit 1
+    python3 -I "$ROOT/tests/fili-shell/check-app-window.py" "$src" || exit 1
 }
 app_suite() { # app_suite APP NAME TARGET: its own suite, when its pin changed
     { [ "${FILI_APP_TESTS:-0}" = 1 ] || { [ "$CHANGED" = 1 ] && printf '%s\n' "$CHG" | grep -Eq "^apps/$1/upstream"; }; } || return 0
