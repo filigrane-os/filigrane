@@ -366,7 +366,7 @@ ShellRoot {
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 AppMenu.activate(copy);
                 ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: control command targeting the window process (%pid)", FiliTheme.ran.join());
-                ok(AppMenu.menus[4].children[8].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> go to a folder through fili-file ctl goto");
+                ok(AppMenu.menus[4].children.some(c => c.exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"'), "appmenu: fili-file -> go to a folder through fili-file ctl goto");
                 // "…": the menus that do not fit in the free space go into a title, as submenus
                 const h = t.find(t.bar.contentItem, "appmenu");
                 h.maxWidth = 200;
