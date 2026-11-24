@@ -962,6 +962,17 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings default applications: a choice runs fili-defaults set and the page shows it at once
+            () => {
+                FiliSettings.show("defaults");
+                const d = FiliSettings.loaded;
+                d.categories = [{ id: "mail", name: "Mail", current: "a.desktop" }, { id: "files", name: "Folders", current: "" }];
+                FiliTheme.ran = [];
+                d.pick("mail", "facteur.desktop");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults set mail facteur.desktop", "fili-settings defaults: fili-defaults set", JSON.stringify(FiliTheme.ran));
+                ok(d.categories[0].current === "facteur.desktop" && d.categories[1].current === "", "fili-settings defaults: the page follows the choice");
+                FiliSettings.close();
+            },
             // fili-settings wallpaper: a click on an image runs `wallpaper IMAGE`
             () => {
                 FiliSettings.show("wallpaper");

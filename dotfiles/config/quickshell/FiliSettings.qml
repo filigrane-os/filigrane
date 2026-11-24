@@ -27,6 +27,7 @@ Singleton {
         { id: "appearance", label: FiliI18n.tr("Appearance"), source: "SettingsAppearance.qml" },
         { id: "wallpaper", label: FiliI18n.tr("Wallpaper"), source: "SettingsWallpaper.qml" },
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
+        { id: "defaults", label: FiliI18n.tr("Default applications"), source: "SettingsDefaults.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
         { id: "login", label: FiliI18n.tr("Login"), source: "SettingsLogin.qml" },
         { id: "firewall", label: FiliI18n.tr("Firewall"), source: "SettingsFirewall.qml" },

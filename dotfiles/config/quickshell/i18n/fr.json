@@ -319,5 +319,8 @@
  "Edit the keys one by one…": "Modifier les touches une par une…",
  "In the [keys] section of fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Alternatives are separated by |, a chord by a comma, an empty value removes the shortcut.": "Dans la section [keys] de fili-term.toml: new-tab = \"Ctrl+Shift+T | Meta+T\". Les alternatives sont séparées par |, un enchaînement par une virgule, une valeur vide retire le raccourci.",
  "Highlight apps that need me": "Signaler les applications qui ont besoin de moi",
- "On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.": "Activé: l'en-tête et la barre d'état d'une application Filigrane prennent la couleur d'accent quand elle vous attend (un nouveau message, un nouveau courrier, une question de l'assistant) jusqu'à votre retour. Désactivé: aucun changement de couleur."
+ "On: the header and the status bar of a Filigrane app take the accent colour when it waits for you (a new message, a new mail, a question from the assistant) until you come back to it. Off: no colour change.": "Activé: l'en-tête et la barre d'état d'une application Filigrane prennent la couleur d'accent quand elle vous attend (un nouveau message, un nouveau courrier, une question de l'assistant) jusqu'à votre retour. Désactivé: aucun changement de couleur.",
+ "Default applications": "Applications par défaut",
+ "The program that opens each kind of file or link, for every application that follows the system rules.": "Le programme qui ouvre chaque type de fichier ou de lien, pour toutes les applications qui suivent les règles du système.",
+ "OPEN WITH": "OUVRIR AVEC"
 }

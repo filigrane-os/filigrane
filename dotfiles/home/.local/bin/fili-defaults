@@ -1,0 +1,102 @@
+#!/bin/sh
+# Default applications (the "Default applications" page of Settings): which program opens which kind of thing. Usage:
+# fili-defaults list                 the categories: id, name, current application (desktop id, empty if none)
+# fili-defaults get ID               desktop id of the current application of a category
+# fili-defaults candidates ID        the applications that can take the category: desktop id, name (one per line)
+# fili-defaults set ID DESKTOP_ID    make an application the default of every type of the category
+# Categories: browser, mail, files, music, video, image, pdf, text. Each one is a list of MIME types; the first is the one
+# that is read back. Choices are written to ~/.config/mimeapps.list, so every program that follows the
+# freedesktop rules (portals, GTK, Qt, Chrome, `xdg-open`) agrees. The browser also goes through xdg-settings.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+
+# id|name|MIME types (space separated)
+categories() {
+    cat <<LIST
+browser|$(t 'Web browser')|x-scheme-handler/https x-scheme-handler/http text/html application/xhtml+xml
+mail|$(t 'Mail')|x-scheme-handler/mailto
+files|$(t 'Folders')|inode/directory
+music|$(t 'Music')|audio/mpeg audio/flac audio/x-wav audio/ogg audio/mp4 audio/x-vorbis+ogg
+video|$(t 'Video')|video/mp4 video/x-matroska video/webm video/quicktime video/x-msvideo
+image|$(t 'Images')|image/png image/jpeg image/webp image/gif image/svg+xml
+pdf|PDF|application/pdf
+text|$(t 'Text')|text/plain text/markdown
+LIST
+}
+mimes() { categories | awk -F'|' -v id="$1" '$1 == id { print $3 }'; }
+die() { printf 'fili-defaults: %s\n' "$*" >&2; exit 1; }
+
+apps_dirs() {
+    printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    old="$IFS"; IFS=:
+    # shellcheck disable=SC2086
+    for d in ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}; do printf '%s\n' "$d/applications"; done
+    IFS="$old"
+}
+mimeapps="${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list"
+# Current application of a MIME type: the first of the [Default Applications] line of mimeapps.list, else what xdg-mime
+# finds (the system defaults)
+current() {
+    m="${1%% *}"
+    v="$(awk -F= -v m="$m" '/^\[/ { d = ($0 == "[Default Applications]"); next } d && $1 == m { split($2, a, ";"); print a[1]; exit }' "$mimeapps" 2> /dev/null)"
+    [ -n "$v" ] || v="$(xdg-mime query default "$m" 2> /dev/null)"
+    printf '%s\n' "$v"
+}
+# Make an application the default of a MIME type in ~/.config/mimeapps.list (the file xdg-open, GTK, Qt and the portals read)
+write_default() {
+    mkdir -p "$(dirname "$mimeapps")"
+    [ -f "$mimeapps" ] || printf '[Default Applications]\n' > "$mimeapps"
+    awk -F= -v m="$1" -v app="$2" '
+        /^\[/ { if (d && !done) { print m "=" app; done = 1 } d = ($0 == "[Default Applications]") }
+        d && $1 == m { if (!done) print m "=" app; done = 1; next }
+        { print }
+        END { if (!done) { if (!seen) print "[Default Applications]"; print m "=" app } }
+        /^\[Default Applications\]$/ { seen = 1 }
+    ' "$mimeapps" > "$mimeapps.new" && mv "$mimeapps.new" "$mimeapps"
+}
+
+candidates() {
+    types="$(mimes "$1")"
+    [ -n "$types" ] || die "$(t 'unknown category: %s' "$1")"
+    apps_dirs | while read -r dir; do
+        [ -d "$dir" ] || continue
+        for f in "$dir"/*.desktop; do
+            [ -f "$f" ] || continue
+            awk -v types="$types" -v id="$(basename "$f")" '
+                BEGIN { n = split(types, want, " "); for (i = 1; i <= n; i++) w[want[i]] = 1 }
+                /^\[/ { inentry = ($0 == "[Desktop Entry]"); next }
+                !inentry { next }
+                /^Name=/ && name == "" { name = substr($0, 6) }
+                /^NoDisplay=true/ { hidden = 1 }
+                /^Hidden=true/ { hidden = 1 }
+                /^MimeType=/ { m = split(substr($0, 10), have, ";"); for (i = 1; i <= m; i++) if (have[i] in w) ok = 1 }
+                END { if (ok && !hidden && name != "") printf "%s\t%s\n", id, name }
+            ' "$f"
+        done
+    done | awk -F'\t' '!seen[$1]++' | sort -t "$(printf '\t')" -k2,2f
+}
+
+case "${1:-list}" in
+list)
+    categories | while IFS='|' read -r id name types; do
+        printf '%s\t%s\t%s\n' "$id" "$name" "$(current "$types")"
+    done ;;
+get)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults get ID')"
+    t1="$(mimes "$2")"; [ -n "$t1" ] || die "$(t 'unknown category: %s' "$2")"
+    current "$t1" ;;
+candidates)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults candidates ID')"
+    candidates "$2" ;;
+set)
+    [ $# -ge 3 ] || die "$(t 'usage: fili-defaults set ID DESKTOP_ID')"
+    types="$(mimes "$2")"; [ -n "$types" ] || die "$(t 'unknown category: %s' "$2")"
+    case "$3" in *.desktop) ;; *) die "$(t 'not a desktop id: %s' "$3")" ;; esac
+    candidates "$2" | cut -f1 | grep -qx "$3" || die "$(t '%s cannot open this category' "$3")"
+    [ "$2" != browser ] || xdg-settings set default-web-browser "$3" 2> /dev/null || true
+    for m in $types; do write_default "$m" "$3"; done ;;
+*) die "$(t 'usage: fili-defaults list | get ID | candidates ID | set ID DESKTOP_ID')" ;;
+esac
