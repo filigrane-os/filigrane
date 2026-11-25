@@ -15,12 +15,12 @@ BarModule {
 
     BarRow {
         BarScript { id: cpu; objectName: "cpu"; tag: "CPU"; stat: "cpu"; color: FiliTheme.barText2; hover.onLeftClicked: res.togglePanel(hover); hover.onRightClicked: res.openMonitor(); hint: FiliI18n.tr("click: monitor") }
-        BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.barWarn, critical: FiliTheme.cendre }); hover.onLeftClicked: res.togglePanel(hover); hover.onRightClicked: res.openMonitor(); hint: FiliI18n.tr("click: monitor") }
+        BarScript { objectName: "temp"; stat: "temp"; colors: ({ "": FiliTheme.barAccent, critical: FiliTheme.cendre }); hover.onLeftClicked: res.togglePanel(hover); hover.onRightClicked: res.openMonitor(); hint: FiliI18n.tr("click: monitor") }
         BarScript { objectName: "mem"; tag: "RAM"; stat: "mem"; color: FiliTheme.barText2; hover.onLeftClicked: res.togglePanel(hover); hover.onRightClicked: res.openMonitor(); hint: FiliI18n.tr("click: monitor") }
         BarScript {
             objectName: "disk"
             stat: "disk"; hint: FiliI18n.tr("click: monitor")
-            colors: ({ "": FiliTheme.barWarn, critical: FiliTheme.cendre })
+            colors: ({ "": FiliTheme.barAccent, critical: FiliTheme.cendre })
             hover.onLeftClicked: res.togglePanel(hover); hover.onRightClicked: res.openMonitor()
         }
     }
