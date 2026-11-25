@@ -5,7 +5,7 @@ pragma Singleton
 //   drawer    $XDG_RUNTIME_DIR/bar-tray-open          present = open (bar-tray toggle)
 //   timer     $XDG_RUNTIME_DIR/bar-timer              "T <end>" | "S <start>" | "done" (bar-timer click/add/expire)
 //   backup                                             bar-stats backup stat, kept visible 10 s after the end
-//   agenda    ~/.local/state/agenda, ~/.local/state/filigrane/agenda   next events (clock card; the second is fili-cal's)
+//   agenda    ~/.local/state/filigrane/agenda   next events (clock card, written by fili-cal)
 // The alerts (~/.local/state/alerts/<kind>) are read by AlertModule, one module per kind.
 import QtQuick
 import Quickshell
@@ -20,13 +20,11 @@ Singleton {
     readonly property var empty: ({ text: "" })
 
     // ───── agenda ─────
-    // Next events of the agenda, from two files of the same format (epoch, title, place per line): the one of fili-cal
-    // (the calendar of Filigrane, rewritten by `fili-cal tick`) and the one of an outside source such as cal-notify (user
-    // layer). null without either file.
-    BarWatched { id: agendaF; path: Quickshell.env("HOME") + "/.local/state/agenda" }
+    // Next events of the agenda: the file of fili-cal (the calendar of Filigrane, rewritten by `fili-cal tick`; one line per event:
+    // epoch, title, place). null without the file.
     BarWatched { id: calF; path: Quickshell.env("HOME") + "/.local/state/filigrane/agenda" }
-    readonly property var agenda: agendaF.exists || calF.exists
-        ? rows(agendaF.content + "\n" + calF.content).filter(r => Number(r[0]) > minute - 60).sort((a, b) => Number(a[0]) - Number(b[0])).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" }))
+    readonly property var agenda: calF.exists
+        ? rows(calF.content).filter(r => Number(r[0]) > minute - 60).sort((a, b) => Number(a[0]) - Number(b[0])).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" }))
         : null
 
     // Instant (s) that expires the agenda events, advanced every minute; the same beat runs `fili-cal tick`, which shows

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Bar alerts: one file per kind in ~/.local/state/alerts/<kind> (new mails, imminent events, messages of the web apps
 # followed by webapp-notify...), read by the bar (AlertModule).
-# `bar-alert push <kind> ...` (mail-notify, cal-notify, webapp-notify) adds a line; `bar-alert open <kind> [URL]` clears the
+# `bar-alert push <kind> ...` (mail-notify, webapp-notify) adds a line; `bar-alert open <kind> [URL]` clears the
 # alert and opens the web app: the URL given by the AlertModule of the kind, else the web app of the list named like the kind.
 # Adding a web app: its name in ~/.config/webapps/notify, then an AlertModule in the user layer
 # (users/<login>/dotfiles/config/quickshell/bar/modules/<name>/, with a module.toml, or a bar plugin: docs/bar.md).
