@@ -1,6 +1,7 @@
 // Settings page "Region" (fili-settings): how dates, numbers, money, units and paper are written, apart from the language
 // (page Language) and from the keyboard (fili-keymap, the keyboard panel). `fili-region list` gives the regions that are
-// installed, `fili-region set` changes it (the shell follows at once, applications opened afterwards too).
+// installed, `fili-region set` changes it (the shell follows at once, applications opened afterwards too). The time zone is
+// chosen in a searchable list (`fili-region zones`); `fili-region zone-set` changes the system file through polkit.
 import QtQuick
 import QtQuick.Layouts
 import Quickshell.Io
@@ -12,6 +13,9 @@ ColumnLayout {
     // [{locale, code, current}] from `fili-region list`, and the time zone from `fili-region zone`
     property var regions: []
     property string zone: ""
+    // [{id, name, detail}] from `fili-region zones`, for the picker
+    property var zones: []
+    property bool choosingZone: false
     // "" = the formats follow the language
     readonly property string region: FiliI18n.region
     // Example of a date, a number and an amount in the region shown now
@@ -19,6 +23,11 @@ ColumnLayout {
 
     function pick(value) {
         FiliTheme.run(FiliTheme.bin + "/fili-region set " + value);
+    }
+    function setZone(zone) {
+        view.zone = zone;
+        choosingZone = false;
+        FiliTheme.run(FiliTheme.bin + "/fili-region zone-set " + zone);
     }
     function nameOf(code) {
         const l = Qt.locale(code);
@@ -45,6 +54,16 @@ ColumnLayout {
         }
     }
 
+    Process {
+        running: !FiliTheme.testing
+        command: [FiliTheme.bin + "/fili-region", "zones"]
+        stdout: StdioCollector {
+            onStreamFinished: view.zones = text.split("\n").filter(l => l !== "").map(l => {
+                const f = l.split("\t");
+                return { id: f[0], name: f[0].replace(/_/g, " "), detail: [f[1], f[2]].filter(x => x).join(" · ") };
+            })
+        }
+    }
     Text {
         text: FiliI18n.tr("Region")
         color: FiliTheme.voile
@@ -75,18 +94,36 @@ ColumnLayout {
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
     }
     PanelSection { text: FiliI18n.tr("TIME ZONE") }
-    Text {
+    RowLayout {
         Layout.fillWidth: true
-        text: view.zone
-        elide: Text.ElideRight
-        color: FiliTheme.brume
-        font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        Text {
+            objectName: "zone"
+            Layout.fillWidth: true
+            text: view.zone.replace(/_/g, " ")
+            elide: Text.ElideRight
+            color: FiliTheme.brume
+            font { family: FiliTheme.font; pixelSize: FiliTheme.size }
+        }
+        PanelButton {
+            objectName: "zone-change"
+            label: FiliI18n.tr("Change…")
+            onClicked: view.choosingZone = true
+        }
     }
     Text {
         Layout.fillWidth: true
         wrapMode: Text.WordWrap
-        text: FiliI18n.tr("The time zone belongs to the system: set TIMEZONE in config.env, then run ./bootstrap.sh.")
+        text: FiliI18n.tr("The time zone belongs to the system: changing it asks for your password, and it is kept in your configuration so that ./bootstrap.sh does not undo it.")
         color: FiliTheme.brume2
         font { family: FiliTheme.font; pixelSize: FiliTheme.sizeSmall }
+    }
+    AppPicker {
+        open: view.choosingZone
+        title: FiliI18n.tr("Choose a time zone")
+        placeholder: FiliI18n.tr("Search a city or a country code")
+        emptyText: FiliI18n.tr("No time zone found")
+        entries: view.zones
+        onPicked: e => view.setZone(e.id)
+        onClosed: view.choosingZone = false
     }
 }

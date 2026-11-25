@@ -330,7 +330,6 @@
  "Same as the language": "Comme la langue",
  "Example: %1 · %2": "Exemple: %1 · %2",
  "TIME ZONE": "FUSEAU HORAIRE",
- "The time zone belongs to the system: set TIMEZONE in config.env, then run ./bootstrap.sh.": "Le fuseau horaire est un réglage du système: fixer TIMEZONE dans config.env, puis lancer ./bootstrap.sh.",
  "Other…": "Autre…",
  "Command…": "Commande…",
  "EDIT WITH": "MODIFIER AVEC",
@@ -338,5 +337,10 @@
  "Choose an application": "Choisir une application",
  "Your editors, added once. The file manager offers “Edit with” and starts the first one that handles the kind of file (images, text, video, audio).": "Vos éditeurs, ajoutés une seule fois. Le gestionnaire de fichiers propose « Modifier avec » et lance le premier qui sait traiter le type de fichier (images, texte, vidéo, son).",
  "No editor yet": "Aucun éditeur",
- "Add a command…": "Ajouter une commande…"
+ "Add a command…": "Ajouter une commande…",
+ "Change…": "Modifier…",
+ "The time zone belongs to the system: changing it asks for your password, and it is kept in your configuration so that ./bootstrap.sh does not undo it.": "Le fuseau horaire appartient au système: le changer demande votre mot de passe, et il est gardé dans votre configuration pour que ./bootstrap.sh ne le défasse pas.",
+ "Choose a time zone": "Choisir un fuseau horaire",
+ "Search a city or a country code": "Chercher une ville ou un code de pays",
+ "No time zone found": "Aucun fuseau trouvé"
 }

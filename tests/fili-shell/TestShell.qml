@@ -974,6 +974,10 @@ ShellRoot {
                 d.pick("fr_CH");
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-region set fr_CH", "fili-settings region: fili-region set", JSON.stringify(FiliTheme.ran));
                 ok(t.find(d, "region-sample").text.indexOf("Example") === 0, "fili-settings region: example line", t.find(d, "region-sample").text);
+                FiliTheme.ran = [];
+                d.choosingZone = true;
+                d.setZone("Asia/Tokyo");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-region zone-set Asia/Tokyo" && d.zone === "Asia/Tokyo" && !d.choosingZone, "fili-settings region: the time zone is changed", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
             // fili-settings default applications: a choice runs fili-defaults set and the page shows it at once

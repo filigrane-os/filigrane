@@ -26,4 +26,15 @@ check "changing the language keeps the region" 'grep -q "LC_TIME \"$reg.UTF-8\""
 check "set language gives the formats back to the language" '[ -z "$("$BIN/fili-region" get)" ] && ! grep -q "LC_TIME" "$KDL"'
 check "set refuses a region that is not installed" '! "$BIN/fili-region" set xx_XX 2> /dev/null'
 check "zone prints a time zone name" '[ -n "$("$BIN/fili-region" zone)" ]'
+# time zone
+mkdir -p "$T/zi/Europe" "$T/zi/Asia"
+: > "$T/zi/Europe/Paris"; : > "$T/zi/Asia/Tokyo"
+printf '#c\ncode\tcoord\tTZ\tcomment\nFR,MC\t+4852+00220\tEurope/Paris\tMost of France\nJP\t+353916+1394441\tAsia/Tokyo\tJapan\n' > "$T/zi/zone1970.tab"
+export FILI_ZONEINFO="$T/zi" FILI_LOCALTIME="$T/localtime" FILI_REGION_SUDO=env
+ln -s "$T/zi/Europe/Paris" "$T/localtime"
+check "zone reads the current time zone" '[ "$("$BIN/fili-region" zone)" = Europe/Paris ]'
+check "zones lists the zones of the table with their country and place" '"$BIN/fili-region" zones | grep -q "^Asia/Tokyo	JP	Japan$" && "$BIN/fili-region" zones | grep -q "^Europe/Paris	FR	Most of France$" && "$BIN/fili-region" zones | grep -q "^UTC"'
+"$BIN/fili-region" zone-set Asia/Tokyo
+check "zone-set changes /etc/localtime (through the privileged command)" '[ "$("$BIN/fili-region" zone)" = Asia/Tokyo ]'
+check "zone-set refuses a zone that does not exist, and a path that leaves the folder" '! "$BIN/fili-region" zone-set Mars/Base 2> /dev/null && ! "$BIN/fili-region" zone-set ../../etc/passwd 2> /dev/null && ! "$BIN/fili-region" zone-set /etc/passwd 2> /dev/null && [ "$("$BIN/fili-region" zone)" = Asia/Tokyo ]'
 exit $fail

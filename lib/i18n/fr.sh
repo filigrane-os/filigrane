@@ -4,6 +4,12 @@
 # printf format, with the same placeholders in the same order. A missing entry falls back to English.
 _t_lookup() {
     case $1 in
+    'usage: fili-region zone-set ZONE') _t_fmt='usage: fili-region zone-set ZONE' ;;
+    'not a time zone: %s') _t_fmt='fuseau horaire inconnu: %s' ;;
+    'the time zone was not changed') _t_fmt='le fuseau horaire n'\''a pas été changé' ;;
+    'Time zone: %s') _t_fmt='Fuseau horaire: %s' ;;
+    'Open applications may need a restart to show the new time.') _t_fmt='Les applications ouvertes demandent peut-être un redémarrage pour afficher la nouvelle heure.' ;;
+    'usage: fili-region [get|list|set LOCALE|zone|zones|zone-set ZONE]') _t_fmt='usage: fili-region [get|list|set LOCALE|zone|zones|zone-set ZONE]' ;;
     'usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]') _t_fmt='usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]' ;;
     'usage: fili-defaults editor-rm DESKTOP_ID') _t_fmt='usage: fili-defaults editor-rm DESKTOP_ID' ;;
     'Editor added') _t_fmt='Éditeur ajouté' ;;
@@ -20,7 +26,6 @@ _t_lookup() {
     'Default application set') _t_fmt='Application par défaut choisie' ;;
     'Default application not set') _t_fmt='Application par défaut non choisie' ;;
     'usage: fili-region set LOCALE|language') _t_fmt='usage: fili-region set LOCALE|language' ;;
-    'usage: fili-region [get|list|set LOCALE|zone]') _t_fmt='usage: fili-region [get|list|set LOCALE|zone]' ;;
     'region not installed: %s (add it to LOCALES in config.env, then ./bootstrap.sh)') _t_fmt='région non installée: %s (l'\''ajouter à LOCALES dans config.env, puis ./bootstrap.sh)' ;;
     'Region: %s') _t_fmt='Région: %s' ;;
     'same as the language') _t_fmt='comme la langue' ;;
