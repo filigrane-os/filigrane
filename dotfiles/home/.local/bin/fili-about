@@ -12,7 +12,8 @@ repo="$(cd "$(dirname "$(readlink -f "$0")")/../../../.." 2>/dev/null && pwd)"
 dec="$(t '.')"
 gb() { awk -v b="$1" -v u="$(t 'GB')" 'BEGIN { g = b / 1073741824; printf (g < 10 ? "%.1f %s" : "%.0f %s"), g, u }' | tr . "$dec"; }
 
-version="$(git -C "$repo" describe --tags --always --dirty 2>/dev/null)"
+# Only the tags of the distribution (v1.2.3): the repository also carries tags of the applications it pins
+version="$(git -C "$repo" describe --tags --match 'v[0-9]*' --always --dirty 2>/dev/null)"
 [ -n "$version" ] && version="$version ($(git -C "$repo" branch --show-current 2>/dev/null), $(git -C "$repo" log -1 --format=%cs 2>/dev/null))"
 ai="$(sed -n 's/^FILI_AI=//p' "${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/ai.env" 2>/dev/null)"
 layer="$(cat "$repo/.user-layer" 2>/dev/null)"

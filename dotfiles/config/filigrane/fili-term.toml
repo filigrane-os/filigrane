@@ -108,3 +108,4 @@
 # mono = "JetBrains Mono"
 # [theme.dark]
 # palette = ["#2d3744", "#c98f93", "#a3bfa8", "#d2bf92", "#9dbbd6", "#b3a8c9", "#95c0c6", "#a9b8c8", "#5f7894", "#d9a5a9", "#b8d0bc", "#e0d0a8", "#b9d0e4", "#c6bdd8", "#add2d7", "#dbe7f4"]
+keymap = "default"
