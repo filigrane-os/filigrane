@@ -42,7 +42,7 @@ PopupWindow {
     anchor.margins.left: FiliTheme.barGap("left", 4)
     anchor.margins.right: FiliTheme.barGap("right", 4)
     implicitWidth: 260
-    implicitHeight: 276 + 30 + FiliTheme.space1
+    implicitHeight: 276 + 60 + 2 * FiliTheme.space1
     color: "transparent"
 
     Rectangle {
@@ -133,6 +133,17 @@ PopupWindow {
                     cal.pinned = false;
                     cal.visible = false;
                     FiliTheme.run(FiliTheme.bin + "/bar-event add");
+                }
+            }
+            // Open Agenda (fili-cal) on its window; a second launch brings the open one to the front
+            PanelButton {
+                objectName: "open-agenda"
+                glyph: "\uf073"
+                label: FiliI18n.tr("Open Agenda")
+                onClicked: {
+                    cal.pinned = false;
+                    cal.visible = false;
+                    FiliTheme.run(FiliTheme.bin + "/fili-cal");
                 }
             }
             // Timer / stopwatch: click = choose, stop or acknowledge, right click = +5 min on the timer
