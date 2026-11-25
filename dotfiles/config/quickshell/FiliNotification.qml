@@ -524,7 +524,7 @@ Singleton {
                     }
                     Text {
                         text: notifs.dnd ? "" : ""
-                        color: notifs.dnd ? FiliTheme.voile : FiliTheme.ardoise
+                        color: notifs.dnd ? FiliTheme.sable : FiliTheme.ardoise
                         font { family: FiliTheme.font; pixelSize: FiliTheme.size }
                         MouseArea { anchors.fill: parent; onClicked: notifs.dnd = !notifs.dnd }
                         objectName: "center-dnd"

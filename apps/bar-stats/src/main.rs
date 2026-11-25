@@ -193,7 +193,11 @@ fn temp_path() -> Option<String> {
     None
 }
 
-// Shown only when the temperature is high: from 50 °C, hidden again below 45 °C (hysteresis)
+// Shown only when the temperature is high: from 70 °C, hidden again below 65 °C (hysteresis)
+// °C: the CPU temperature appears in the bar from TEMP_SHOW and goes away below TEMP_HIDE
+const TEMP_SHOW: i64 = 70;
+const TEMP_HIDE: i64 = 65;
+
 struct Temp {
     path: Option<String>,
     shown: bool,
@@ -202,7 +206,7 @@ struct Temp {
 impl Temp {
     fn step(&mut self) {
         match self.path.as_ref().and_then(|p| fs::read_to_string(p).ok()).and_then(|s| s.trim().parse::<i64>().ok()) {
-            Some(t) if (self.shown && t / 1000 >= 45) || t / 1000 >= 50 => {
+            Some(t) if (self.shown && t / 1000 >= TEMP_HIDE) || t / 1000 >= TEMP_SHOW => {
                 self.shown = true;
                 let c = t / 1000;
                 let class = if c >= 90 { "critical" } else { "" };
