@@ -1,0 +1,93 @@
+#!/bin/sh
+# Settings of the assistant (the "Assistant" page of Settings): which agent answers Lia, with which model, and whether it is
+# installed and signed in. The assistant itself is `fili-ai` (its own repository); this only edits the settings it reads.
+# Usage:
+# fili-assistant status              JSON: {agent, model, agent_model, workdir, agents: [{id, name, desc, installed, signed_in}], models: [...]}
+# fili-assistant set KEY VALUE       KEY: agent | model | agent-model (VALUE "" = the default of the agent)
+# fili-assistant install AGENT       install or update an agent, in a terminal (fili-ai install)
+# fili-assistant login AGENT         sign in to an agent, in a terminal (the agent's own login: nothing is read or stored here)
+# Settings are in ~/.config/filigrane/ai.env (FILI_AI, FILI_AI_MODEL, FILI_AGENT_MODEL), written by bootstrap.sh from config.env;
+# a value that the personal layer (users/<login>/config.env) sets is changed there too, so that ./bootstrap.sh keeps the choice.
+# The credentials of the agents are never opened: "signed in" only means that the agent's login file exists.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+conf="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/ai.env"
+agents="claude codex ollama opencode none"
+die() { printf 'fili-assistant: %s\n' "$*" >&2; exit 1; }
+
+desc() {
+    case "$1" in
+    claude) echo "Claude Code (Anthropic)" ;;
+    codex) echo "Codex CLI (OpenAI)" ;;
+    ollama) echo "Ollama ($(t 'local models'))" ;;
+    opencode) echo "opencode (Mistral, Gemini, OpenRouter…)" ;;
+    none) echo "$(t 'No assistant')" ;;
+    esac
+}
+installed() {
+    case "$1" in
+    none) echo true ;;
+    ollama) { command -v ollama > /dev/null && command -v codex > /dev/null; } && echo true || echo false ;;
+    *) { command -v "$1" > /dev/null || [ -x "$HOME/.local/bin/$1" ]; } && echo true || echo false ;;
+    esac
+}
+# The login file of the agent exists (never read)
+signed_in() {
+    case "$1" in
+    claude) [ -s "$HOME/.claude/.credentials.json" ] && echo true || echo false ;;
+    codex) [ -s "$HOME/.codex/auth.json" ] && echo true || echo false ;;
+    opencode) [ -s "$HOME/.local/share/opencode/auth.json" ] && echo true || echo false ;;
+    *) echo true ;;
+    esac
+}
+value() { sed -n "s/^$1=//p" "$conf" 2> /dev/null | tail -1 | sed "s/^'//; s/'$//"; }
+models() { command -v ollama > /dev/null && ollama list 2> /dev/null | awk 'NR > 1 { print $1 }'; }
+
+case "${1:-status}" in
+status)
+    for a in $agents; do
+        jq -nc --arg id "$a" --arg d "$(desc "$a")" --argjson i "$(installed "$a")" --argjson s "$(signed_in "$a")" '{id: $id, desc: $d, installed: $i, signed_in: $s}'
+    done | jq -sc --arg agent "$(value FILI_AI)" --arg model "$(value FILI_AI_MODEL)" --arg am "$(value FILI_AGENT_MODEL)" --arg wd "$(value FILI_AI_WORKDIR)" \
+        --argjson models "$(models | jq -Rsc 'split("\n") | map(select(. != ""))')" \
+        '{v: 1, agent: $agent, model: $model, agent_model: $am, workdir: $wd, agents: ., models: $models}'
+    ;;
+set)
+    [ $# -ge 3 ] || die "$(t 'usage: fili-assistant set agent|model|agent-model VALUE')"
+    key="$2"; val="$3"
+    case "$key" in
+    agent) var=FILI_AI; case " $agents " in *" $val "*) ;; *) die "$(t 'unknown agent: %s' "$val")" ;; esac ;;
+    model) var=FILI_AI_MODEL ;;
+    agent-model) var=FILI_AGENT_MODEL ;;
+    *) die "$(t 'usage: fili-assistant set agent|model|agent-model VALUE')" ;;
+    esac
+    # A model name is a word: letters, digits and . _ : / -
+    case "$val" in *[!A-Za-z0-9._:/-]*) die "$(t 'not a valid value: %s' "$val")" ;; esac
+    mkdir -p "$(dirname "$conf")"
+    if grep -q "^$var=" "$conf" 2> /dev/null; then sed -i "s|^$var=.*|$var='$val'|" "$conf"; else printf "%s='%s'\n" "$var" "$val" >> "$conf"; fi
+    # The personal layer wins at the next bootstrap: change it there too when it sets the variable
+    root="${FILI_ASSISTANT_ROOT:-$(value FILIGRANE_DIR)}"
+    layer="$(cat "$root/.user-layer" 2> /dev/null)"
+    env="$root/users/$layer/config.env"
+    if [ -n "$layer" ] && [ "$layer" != none ] && [ -w "$env" ] && grep -q "^$var=" "$env"; then
+        sed -i "s|^$var=.*|$var=\"$val\"|" "$env"
+    fi
+    # The agent was changed: the sessions of the drawer start the new one (the daemon reads ai.env when a session starts)
+    ;;
+install)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-assistant install AGENT')"
+    case " $agents " in *" $2 "*) ;; *) die "$(t 'unknown agent: %s' "$2")" ;; esac
+    exec "${0%/*}/fili-terminal" -T "fili-ai install $2" -e sh -c "fili-ai install $2; printf '\\nPress Enter. '; read -r _" ;;
+login)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-assistant login AGENT')"
+    case "$2" in
+    claude) cmd="claude" ;;
+    codex) cmd="codex login" ;;
+    opencode) cmd="opencode auth login" ;;
+    *) die "$(t 'nothing to sign in to for %s' "$2")" ;;
+    esac
+    exec "${0%/*}/fili-terminal" -T "$2" -e sh -c "$cmd" ;;
+*) die "$(t 'usage: fili-assistant status | set KEY VALUE | install AGENT | login AGENT')" ;;
+esac

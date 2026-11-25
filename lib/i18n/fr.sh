@@ -4,6 +4,15 @@
 # printf format, with the same placeholders in the same order. A missing entry falls back to English.
 _t_lookup() {
     case $1 in
+    'local models') _t_fmt='modèles locaux' ;;
+    'No assistant') _t_fmt='Aucun assistant' ;;
+    'usage: fili-assistant set agent|model|agent-model VALUE') _t_fmt='usage: fili-assistant set agent|model|agent-model VALEUR' ;;
+    'unknown agent: %s') _t_fmt='agent inconnu: %s' ;;
+    'not a valid value: %s') _t_fmt='valeur invalide: %s' ;;
+    'usage: fili-assistant install AGENT') _t_fmt='usage: fili-assistant install AGENT' ;;
+    'usage: fili-assistant login AGENT') _t_fmt='usage: fili-assistant login AGENT' ;;
+    'nothing to sign in to for %s') _t_fmt='rien à connecter pour %s' ;;
+    'usage: fili-assistant status | set KEY VALUE | install AGENT | login AGENT') _t_fmt='usage: fili-assistant status | set CLÉ VALEUR | install AGENT | login AGENT' ;;
     'usage: fili-region zone-set ZONE') _t_fmt='usage: fili-region zone-set ZONE' ;;
     'not a time zone: %s') _t_fmt='fuseau horaire inconnu: %s' ;;
     'the time zone was not changed') _t_fmt='le fuseau horaire n'\''a pas été changé' ;;

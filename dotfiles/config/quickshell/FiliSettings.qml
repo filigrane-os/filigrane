@@ -29,6 +29,7 @@ Singleton {
         { id: "language", label: FiliI18n.tr("Language"), source: "SettingsLanguage.qml" },
         { id: "region", label: FiliI18n.tr("Region"), source: "SettingsRegion.qml" },
         { id: "defaults", label: FiliI18n.tr("Default applications"), source: "SettingsDefaults.qml" },
+        { id: "assistant", label: FiliI18n.tr("Assistant"), source: "SettingsAssistant.qml" },
         { id: "power", label: FiliI18n.tr("Power"), source: "SettingsPower.qml" },
         { id: "login", label: FiliI18n.tr("Login"), source: "SettingsLogin.qml" },
         { id: "firewall", label: FiliI18n.tr("Firewall"), source: "SettingsFirewall.qml" },

@@ -962,6 +962,27 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings assistant: the agents, a choice runs fili-assistant set, install and sign in open a terminal
+            () => {
+                FiliSettings.show("assistant");
+                const d = FiliSettings.loaded;
+                d.status = { agent: "claude", model: "", agent_model: "sonnet", models: [], agents: [
+                    { id: "claude", desc: "Claude Code (Anthropic)", installed: true, signed_in: false },
+                    { id: "ollama", desc: "Ollama", installed: false, signed_in: true },
+                    { id: "none", desc: "No assistant", installed: true, signed_in: true }] };
+                ok(t.find(d, "agent").model.length === 3 && t.find(d, "agent").model[0].label === "Claude", "fili-settings assistant: the agents", JSON.stringify(t.find(d, "agent").model));
+                ok(t.find(d, "agent-state").text === "Installed · Not signed in", "fili-settings assistant: the state is said in words", t.find(d, "agent-state").text);
+                ok(t.find(d, "agent-login").visible && !t.find(d, "agent-install").visible, "fili-settings assistant: Sign in is offered, not Install");
+                ok(d.modelChoices.length === 4 && d.modelChoices[1].value === "sonnet", "fili-settings assistant: the models of claude");
+                FiliTheme.ran = [];
+                d.set("agent", "ollama");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-assistant set agent ollama" && d.status.agent === "ollama", "fili-settings assistant: set agent", JSON.stringify(FiliTheme.ran));
+                ok(t.find(d, "agent-install").visible && !t.find(d, "agent-login").visible, "fili-settings assistant: Install is offered for an agent that is not installed");
+                FiliTheme.ran = [];
+                d.set("model", "");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-assistant set model ''", "fili-settings assistant: an empty model is quoted", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings region: the choices (the language first), a choice runs fili-region set, the example follows the region
             () => {
                 FiliSettings.show("region");
