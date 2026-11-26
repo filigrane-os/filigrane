@@ -28,13 +28,28 @@ Singleton {
         onLoaded: i18n.choice = text().trim()
         onLoadFailed: i18n.choice = ""
     }
+    // Region of the formats (fili-region): a locale such as fr_CH.UTF-8, "" = the formats follow the language
+    readonly property string regionFile: (Quickshell.env("XDG_STATE_HOME") || Quickshell.env("HOME") + "/.local/state") + "/filigrane/region"
+    property string region: ""
+    FileView {
+        id: regionView
+        path: i18n.regionFile
+        blockLoading: true
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: i18n.region = text().trim().split(/[.@]/)[0]
+        onLoadFailed: i18n.region = ""
+    }
     // fili-lang also warns through the shell channel (`fili-shell lang`): inotify does not see a file appear in a folder
     // created after the watching began
     Connections {
         target: FiliShell
         function onCommand(target, action, args) {
-            if (target === "lang")
+            if (target === "lang") {
                 stateView.reload();
+                regionView.reload();
+            }
         }
     }
     // FileView does not see a file appear in a missing folder
@@ -48,9 +63,9 @@ Singleton {
         const l = posix.split("_")[0];
         return /^[a-z]+$/.test(l) ? l : "en";
     }
-    // Qt locale of the dates (names of days and months, first day of the week): en_GB for English without a region
-    // (week starting on Monday, 24 h)
-    readonly property var locale: Qt.locale(/^[a-z]+_[A-Z]+$/.test(posix) ? posix : lang === "en" ? "en_GB" : lang)
+    // Qt locale of the dates (names of days and months, first day of the week): the region when one is chosen
+    // (fili-region), else en_GB for English without a region (week starting on Monday, 24 h)
+    readonly property var locale: Qt.locale(/^[a-z]+_[A-Z]+$/.test(region) ? region : /^[a-z]+_[A-Z]+$/.test(posix) ? posix : lang === "en" ? "en_GB" : lang)
     property var catalog: ({})
 
     FileView {

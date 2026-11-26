@@ -1,0 +1,19 @@
+#!/bin/bash
+# New event or reminder from the calendar of the bar: one line in the launcher, "tomorrow 14:30 Dentist" or
+# "+30m Take the bread out" (a reminder), added by `fili-cal quick`. Usage: bar-event add
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+case "$1" in
+    add)
+        line="$("$HOME/.local/bin/fili-shell" launcher --prompt-only "$(t 'Event: ')" \
+            --placeholder "$(t 'tomorrow 14:30 Dentist · +30m Bread = reminder in 30 min')" < /dev/null)" || exit 0
+        [ -n "$line" ] || exit 0
+        # shellcheck disable=SC2086
+        if err="$(fili-cal quick $line 2>&1 >/dev/null)"; then
+            notify-send -a Agenda "$(t 'Event added')" "$line"
+        else
+            notify-send -a Agenda -u critical "$(t 'Event not added')" "${err#fili-cal: }"
+        fi ;;
+esac

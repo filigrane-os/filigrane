@@ -12,5 +12,8 @@ dotfiles/config/htop/htop_history
 /brand/bar/
 /brand/index/
 
+# The calendar of Agenda (fili-cal) lives in ~/.local/share/filigrane/calendar, which is brand/calendar: personal data, never part of the repository
+/brand/calendar/
+
 # What the packages install into ~/.local/share/filigrane/shell (that folder is brand/): not part of the repository
 /brand/shell/

@@ -1,0 +1,261 @@
+#!/bin/sh
+# Default applications (the "Default applications" page of Settings): which program opens which kind of thing. Usage:
+# fili-defaults list                 the categories: id, name, current application (desktop id, empty if none)
+# fili-defaults get ID               desktop id of the current application of a category
+# fili-defaults candidates ID        the applications that can take the category: desktop id, name (one per line)
+# fili-defaults apps                 every application that can be started: desktop id, name
+# fili-defaults set ID DESKTOP_ID [--any]   make an application the default of every type of the category; --any also takes
+#                                    one that does not list the category's types (it is then declared for them)
+# fili-defaults add ID COMMAND [NAME]   a program that has no desktop entry: creates one (~/.local/share/applications) for the
+#                                    category and makes it the default; prints its desktop id
+# fili-defaults ask ID               the same, the command typed in the launcher (the Settings button)
+# fili-defaults editors              the "Edit with" programs, in order: desktop id, name
+# fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]   register an editor once (an application of the system, or a
+#                                    program that has no desktop entry: one is created for it)
+# fili-defaults editor-rm DESKTOP_ID forget an editor
+# fili-defaults editor-ask           the same with a command typed in the launcher (the Settings button)
+# fili-defaults edit FILE...         open files with the first editor that handles their kind (the default program when none)
+# Categories: browser, mail, files, music, video, image, pdf, text. Each one is a list of MIME types; the first is the one
+# that is read back. "Edit with" is not a category: xdg has no such role, so the editors are one ordered list
+# (~/.config/filigrane/edit-with.list, a desktop id per line), registered once and used for every kind of file the editor
+# declares (images, text, video, audio); the file manager asks `fili-defaults edit`.
+# Messages in English, translated by lib/i18n/<language>.sh (see lib/i18n.sh)
+FILI_LIB="$(dirname "$(readlink -f "$0")")/../../../../lib"
+# shellcheck source=/dev/null disable=SC2059
+if [ -r "$FILI_LIB/i18n.sh" ]; then . "$FILI_LIB/i18n.sh"; else t() { _t=$1; shift; printf -- "$_t" "$@"; }; fi
+set -u
+
+# id|name|MIME types (space separated)
+categories() {
+    cat <<LIST
+browser|$(t 'Web browser')|x-scheme-handler/https x-scheme-handler/http text/html application/xhtml+xml
+mail|$(t 'Mail')|x-scheme-handler/mailto
+files|$(t 'Folders')|inode/directory
+music|$(t 'Music')|audio/mpeg audio/flac audio/x-wav audio/ogg audio/mp4 audio/x-vorbis+ogg
+video|$(t 'Video')|video/mp4 video/x-matroska video/webm video/quicktime video/x-msvideo
+image|$(t 'Images')|image/png image/jpeg image/webp image/gif image/svg+xml
+pdf|PDF|application/pdf
+text|$(t 'Text')|text/plain text/markdown
+LIST
+}
+editfile="${XDG_CONFIG_HOME:-$HOME/.config}/filigrane/edit-with.list"
+mimes() { categories | awk -F'|' -v id="$1" '$1 == id { print $3 }'; }
+die() { printf 'fili-defaults: %s\n' "$*" >&2; exit 1; }
+
+apps_dirs() {
+    printf '%s\n' "${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    old="$IFS"; IFS=:
+    # shellcheck disable=SC2086
+    for d in ${XDG_DATA_DIRS:-/usr/local/share:/usr/share}; do printf '%s\n' "$d/applications"; done
+    IFS="$old"
+}
+mimeapps="${XDG_CONFIG_HOME:-$HOME/.config}/mimeapps.list"
+# Current application of a MIME type: the first of the [Default Applications] line of mimeapps.list, else what xdg-mime
+# finds (the system defaults)
+current() {
+    m="${1%% *}"
+    v="$(awk -F= -v m="$m" '/^\[/ { d = ($0 == "[Default Applications]"); next } d && $1 == m { split($2, a, ";"); print a[1]; exit }' "$mimeapps" 2> /dev/null)"
+    [ -n "$v" ] || v="$(xdg-mime query default "$m" 2> /dev/null)"
+    printf '%s\n' "$v"
+}
+# Current application of a category
+get_cat() { current "$(mimes "$1")"; }
+set_cat() { for m in $(mimes "$1"); do write_default "$m" "$2"; done; }
+# Declare an application for a MIME type in [Added Associations] (what GLib needs to offer an application that does not list it)
+write_added() {
+    [ -f "$mimeapps" ] || printf '[Default Applications]\n' > "$mimeapps"
+    grep -q '^\[Added Associations\]' "$mimeapps" || printf '\n[Added Associations]\n' >> "$mimeapps"
+    awk -F= -v m="$1" -v app="$2" '
+        /^\[/ { if (a && !done) { print m "=" app ";"; done = 1 } a = ($0 == "[Added Associations]") }
+        a && $1 == m { n = split($2, v, ";"); for (i = 1; i <= n; i++) if (v[i] == app) have = 1; if (!have) $0 = $0 (substr($0, length($0)) == ";" ? "" : ";") app ";"; done = 1 }
+        { print }
+        END { if (!done) print m "=" app ";" }
+    ' "$mimeapps" > "$mimeapps.new" && mv "$mimeapps.new" "$mimeapps"
+}
+# Make an application the default of a MIME type in ~/.config/mimeapps.list (the file xdg-open, GTK, Qt and the portals read)
+write_default() {
+    mkdir -p "$(dirname "$mimeapps")"
+    [ -f "$mimeapps" ] || printf '[Default Applications]\n' > "$mimeapps"
+    awk -F= -v m="$1" -v app="$2" '
+        /^\[/ { if (d && !done) { print m "=" app; done = 1 } d = ($0 == "[Default Applications]") }
+        d && $1 == m { if (!done) print m "=" app; done = 1; next }
+        { print }
+        END { if (!done) { if (!seen) print "[Default Applications]"; print m "=" app } }
+        /^\[Default Applications\]$/ { seen = 1 }
+    ' "$mimeapps" > "$mimeapps.new" && mv "$mimeapps.new" "$mimeapps"
+}
+
+candidates() {
+    types="$(mimes "$1")"
+    [ -n "$types" ] || die "$(t 'unknown category: %s' "$1")"
+    apps_dirs | while read -r dir; do
+        [ -d "$dir" ] || continue
+        for f in "$dir"/*.desktop; do
+            [ -f "$f" ] || continue
+            awk -v types="$types" -v id="$(basename "$f")" '
+                BEGIN { n = split(types, want, " "); for (i = 1; i <= n; i++) w[want[i]] = 1 }
+                /^\[/ { inentry = ($0 == "[Desktop Entry]"); next }
+                !inentry { next }
+                /^Name=/ && name == "" { name = substr($0, 6) }
+                /^NoDisplay=true/ { hidden = 1 }
+                /^Hidden=true/ { hidden = 1 }
+                /^MimeType=/ { m = split(substr($0, 10), have, ";"); for (i = 1; i <= m; i++) if (have[i] in w) ok = 1 }
+                END { if (ok && !hidden && name != "") printf "%s\t%s\n", id, name }
+            ' "$f"
+        done
+    done | awk -F'\t' '!seen[$1]++' | sort -t "$(printf '\t')" -k2,2f
+}
+
+# Every application that can be started (no MIME filter): desktop id, name
+all_apps() {
+    apps_dirs | while read -r dir; do
+        [ -d "$dir" ] || continue
+        for f in "$dir"/*.desktop; do
+            [ -f "$f" ] || continue
+            awk -v id="$(basename "$f")" '
+                /^\[/ { inentry = ($0 == "[Desktop Entry]"); next }
+                !inentry { next }
+                /^Name=/ && name == "" { name = substr($0, 6) }
+                /^Type=/ { type = substr($0, 6) }
+                /^NoDisplay=true/ { hidden = 1 }
+                /^Hidden=true/ { hidden = 1 }
+                /^Exec=/ { exec = 1 }
+                END { if (exec && !hidden && name != "" && (type == "" || type == "Application")) printf "%s\t%s\n", id, name }
+            ' "$f"
+        done
+    done | awk -F'\t' '!seen[$1]++' | sort -t "$(printf '\t')" -k2,2f
+}
+
+# Start a desktop entry on files: its Exec line with the field codes replaced (%f %u the first file, %F %U all of them, the
+# others dropped), in a terminal when the entry asks for one
+launch() {
+    id="$1"; shift
+    f=""
+    for dir in $(apps_dirs); do [ -f "$dir/$id" ] && { f="$dir/$id"; break; }; done
+    [ -n "$f" ] || die "$(t 'application not found: %s' "$id")"
+    line="$(awk '/^\[/ { e = ($0 == "[Desktop Entry]"); next } e && /^Exec=/ { print substr($0, 6); exit }' "$f" \
+        | sed -e 's/%[fu]/"$1"/g' -e 's/%[FU]/"$@"/g' -e 's/%%/%/g' -e 's/%[a-zA-Z]//g')"
+    case "$line" in *'"$1"'* | *'"$@"'*) ;; *) line="$line \"\$@\"" ;; esac
+    if grep -q '^Terminal=true' "$f"; then
+        setsid fili-terminal -e sh -c "$line" sh "$@" > /dev/null 2>&1 &
+    else
+        setsid sh -c "exec $line" sh "$@" > /dev/null 2>&1 &
+    fi
+}
+
+# The editors, in order of priority
+editor_register() {
+    grep -qx "$1" "$editfile" 2> /dev/null && return 0
+    mkdir -p "$(dirname "$editfile")"
+    printf '%s\n' "$1" >> "$editfile"
+}
+editors() {
+    [ -f "$editfile" ] || return 0
+    apps="$(all_apps)"
+    while read -r id; do
+        [ -n "$id" ] || continue
+        name="$(printf '%s\n' "$apps" | awk -F'\t' -v id="$id" '$1 == id { print $2; exit }')"
+        [ -n "$name" ] || continue
+        printf '%s\t%s\n' "$id" "$name"
+    done < "$editfile"
+}
+# Does a desktop entry declare a MIME type?
+handles() {
+    for dir in $(apps_dirs); do
+        [ -f "$dir/$1" ] && { grep '^MimeType=' "$dir/$1" | head -1 | tr ';=' '\n\n' | grep -qx "$2"; return; }
+    done
+    return 1
+}
+
+# A program without a desktop entry: ~/.local/share/applications/fili-custom-NAME.desktop for the category's types
+# $1 is a category, or "editor" (the types of images, text, video and audio)
+add_program() {
+    cat="$1"; cmd="$2"; name="${3:-}"
+    if [ "$cat" = editor ]; then all="$(mimes image) $(mimes text) $(mimes video) $(mimes music)"; else all="$(mimes "$cat")"; fi
+    [ -n "$all" ] || die "$(t 'unknown category: %s' "$cat")"
+    nl="$(printf '\nx')"; nl="${nl%x}"
+    case "$cmd$name" in *"$nl"*) die "$(t 'a command and a name stay on one line')" ;; esac
+    [ -n "$cmd" ] || die "$(t 'the command is empty')"
+    [ -n "$name" ] || name="$(basename "${cmd%% *}")"
+    slug="$(printf '%s' "$name" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-' | sed 's/--*/-/g; s/^-//; s/-$//')"
+    [ -n "$slug" ] || slug=app
+    id="fili-custom-$slug.desktop"
+    d="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
+    mkdir -p "$d"
+    types="$(for m in $all; do printf '%s;' "$m"; done)"
+    printf '[Desktop Entry]\nType=Application\nName=%s\nExec=%s %%F\nMimeType=%s\nTerminal=false\nCategories=Utility;\n' "$name" "$cmd" "$types" > "$d/$id"
+    for m in $all; do write_added "$m" "$id"; done
+    if [ "$cat" = editor ]; then editor_register "$id"; else set_cat "$cat" "$id"; fi
+    printf '%s\n' "$id"
+}
+
+case "${1:-list}" in
+list)
+    categories | while IFS='|' read -r id name types; do
+        printf '%s\t%s\t%s\n' "$id" "$name" "$(get_cat "$id")"
+    done ;;
+get)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults get ID')"
+    t1="$(mimes "$2")"; [ -n "$t1" ] || die "$(t 'unknown category: %s' "$2")"
+    get_cat "$2" ;;
+candidates)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults candidates ID')"
+    candidates "$2" ;;
+set)
+    [ $# -ge 3 ] || die "$(t 'usage: fili-defaults set ID DESKTOP_ID [--any]')"
+    types="$(mimes "$2")"; [ -n "$types" ] || die "$(t 'unknown category: %s' "$2")"
+    case "$3" in *.desktop) ;; *) die "$(t 'not a desktop id: %s' "$3")" ;; esac
+    if [ "${4:-}" = --any ]; then
+        all_apps | cut -f1 | grep -qx "$3" || die "$(t 'application not found: %s' "$3")"
+        for m in $types; do write_added "$m" "$3"; done
+    else
+        candidates "$2" | cut -f1 | grep -qx "$3" || die "$(t '%s cannot open this category' "$3")"
+    fi
+    [ "$2" != browser ] || xdg-settings set default-web-browser "$3" 2> /dev/null || true
+    set_cat "$2" "$3" ;;
+apps) all_apps ;;
+add)
+    [ $# -ge 3 ] || die "$(t 'usage: fili-defaults add ID COMMAND [NAME]')"
+    add_program "$2" "$3" "${4:-}" ;;
+ask)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults ask ID')"
+    cmd="$("${0%/*}/fili-shell" launcher --prompt-only "$(t 'Program: ')" < /dev/null)" || exit 0
+    [ -n "$cmd" ] || exit 0
+    if out="$(add_program "$2" "$cmd" 2>&1)"; then
+        notify-send -a fili-defaults "$(t 'Default application set')" "$cmd" 2> /dev/null
+    else
+        notify-send -a fili-defaults -u critical "$(t 'Default application not set')" "${out#fili-defaults: }" 2> /dev/null
+    fi ;;
+editors) editors ;;
+editor-add)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]')"
+    if [ "$2" = --command ]; then
+        [ $# -ge 3 ] || die "$(t 'usage: fili-defaults editor-add DESKTOP_ID | --command COMMAND [NAME]')"
+        add_program editor "$3" "${4:-}"
+    else
+        case "$2" in *.desktop) ;; *) die "$(t 'not a desktop id: %s' "$2")" ;; esac
+        all_apps | cut -f1 | grep -qx "$2" || die "$(t 'application not found: %s' "$2")"
+        editor_register "$2"
+    fi ;;
+editor-rm)
+    [ $# -ge 2 ] || die "$(t 'usage: fili-defaults editor-rm DESKTOP_ID')"
+    [ -f "$editfile" ] && { grep -vx "$2" "$editfile" > "$editfile.new"; mv "$editfile.new" "$editfile"; } ;;
+editor-ask)
+    cmd="$("${0%/*}/fili-shell" launcher --prompt-only "$(t 'Program: ')" < /dev/null)" || exit 0
+    [ -n "$cmd" ] || exit 0
+    if out="$(add_program editor "$cmd" 2>&1)"; then
+        notify-send -a fili-defaults "$(t 'Editor added')" "$cmd" 2> /dev/null
+    else
+        notify-send -a fili-defaults -u critical "$(t 'Editor not added')" "${out#fili-defaults: }" 2> /dev/null
+    fi ;;
+edit)
+    shift
+    [ $# -ge 1 ] || die "$(t 'usage: fili-defaults edit FILE...')"
+    mime="$(xdg-mime query filetype "$1" 2> /dev/null)"
+    app=""
+    for id in $(editors | cut -f1); do
+        if handles "$id" "$mime"; then app="$id"; break; fi
+    done
+    if [ -n "$app" ]; then launch "$app" "$@"; else xdg-open "$1"; fi ;;
+*) die "$(t 'usage: fili-defaults list | get ID | candidates ID | apps | set ID DESKTOP_ID [--any] | add ID COMMAND [NAME] | ask ID | editors | editor-add | editor-rm | editor-ask | edit FILE...')" ;;
+esac

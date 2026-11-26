@@ -1,0 +1,87 @@
+#!/bin/bash
+# Compares two builds of a fili-* application window by window, pixel by pixel, in the same states.
+#
+#   scripts/fili-compare-ui [--args "ARGS"] [--fuzz 1%] BEFORE_BIN AFTER_BIN STEPS_FILE
+#
+# Each build is started in isolation (its own XDG_STATE_HOME, a short private XDG_RUNTIME_DIR, no D-Bus session: the resident
+# instance and the files of the user are not touched), driven by the steps, and the window is captured by niri. STEPS_FILE, one
+# step per line (# comments):
+#   sleep SECONDS            wait
+#   focus                    give the keyboard focus to the window
+#   ctl WORDS...             run `BIN ctl --pid PID WORDS...` (the control commands of the application, `BIN ctl actions`)
+#   shot NAME                capture the window as NAME
+# The output lists, per NAME, the number of pixels that differ between the two builds (0 = identical). Pictures are kept in
+# $FILI_COMPARE_OUT (default: a temporary directory, printed at the end), with a diff image per shot.
+# Notes learned the hard way:
+#  - The socket of `ctl` lives in the runtime directory: its path must stay under 108 bytes (hence /run/user/UID/).
+#  - The state of the window (focus, keyboard cursor) can change what is drawn: a pixel here and there on the first row of a
+#    list is that, not your change. Run the same build twice (BEFORE_BIN BEFORE_BIN) to know your noise.
+#  - Two builds sharing one CARGO_TARGET_DIR share qml_modules/: `cargo clean -p <app>` between building them.
+#  - Never inject keystrokes: use ctl.
+set -uo pipefail
+
+args=""; fuzz="0%"
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --args) args="$2"; shift 2 ;;
+        --fuzz) fuzz="$2"; shift 2 ;;
+        --) shift; break ;;
+        -*) echo "fili-compare-ui: unknown option $1" >&2; exit 2 ;;
+        *) break ;;
+    esac
+done
+[ $# -eq 3 ] || { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+before="$1"; after="$2"; steps="$3"
+for f in "$before" "$after" "$steps"; do [ -f "$f" ] || { echo "fili-compare-ui: $f not found" >&2; exit 2; }; done
+command -v niri >/dev/null && command -v magick >/dev/null || { echo "fili-compare-ui: niri and ImageMagick are required" >&2; exit 2; }
+
+out="${FILI_COMPARE_OUT:-$(mktemp -d)}"; mkdir -p "$out"
+real_runtime="$XDG_RUNTIME_DIR"; wayland="$real_runtime/${WAYLAND_DISPLAY:-wayland-1}"
+shots_dir="$(mktemp -d)"
+run_one() { # run_one TAG BIN
+    local tag="$1" bin="$2" rt="/run/user/$(id -u)/fili-cmp-$$-$1" pid id
+    rm -rf "$rt" "$out/state-$tag"; mkdir -p "$rt" "$out/state-$tag"; chmod 700 "$rt"
+    (
+        export XDG_STATE_HOME="$out/state-$tag" XDG_RUNTIME_DIR="$rt" WAYLAND_DISPLAY="$wayland" DBUS_SESSION_BUS_ADDRESS="unix:path=$out/no-bus"
+        # shellcheck disable=SC2086
+        "$bin" $args >"$out/run-$tag.log" 2>&1 &
+        pid=$!
+        for _ in $(seq 60); do
+            id=$(niri msg --json windows | python3 -c "import json,sys; print(next((w['id'] for w in json.load(sys.stdin) if w['pid']==$pid),''))")
+            [ -n "$id" ] && break; sleep 0.5
+        done
+        [ -n "$id" ] || { echo "fili-compare-ui: no window for $bin" >&2; kill $pid 2>/dev/null; exit 1; }
+        sleep 3
+        while read -r verb rest; do
+            case "$verb" in
+                ""|"#"*) ;;
+                sleep) sleep "$rest" ;;
+                focus) niri msg action focus-window --id "$id"; sleep 1 ;;
+                ctl) "$bin" ctl --pid $pid $rest >/dev/null 2>&1; sleep 1.2 ;;
+                shot)
+                    niri msg action screenshot-window --id "$id" --write-to-disk true --show-pointer false; sleep 1.5
+                    f=$(find ~/Screenshots -name '*.png' -mmin -1 -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+                    cp "$f" "$out/$tag-$rest.png"; echo "$rest" >> "$shots_dir/names" ;;
+                *) echo "fili-compare-ui: unknown step '$verb'" >&2 ;;
+            esac
+        done < "$steps"
+        kill $pid 2>/dev/null
+    )
+    rm -rf "$rt"
+}
+run_one before "$before"; : > /dev/null
+mv "$shots_dir/names" "$shots_dir/names.before" 2>/dev/null
+run_one after "$after"
+status=0
+printf '%-24s %s\n' "shot" "pixels that differ (fuzz $fuzz)"
+sort -u "$shots_dir/names.before" 2>/dev/null | while read -r n; do
+    if [ -f "$out/before-$n.png" ] && [ -f "$out/after-$n.png" ]; then
+        d=$(magick compare -metric AE -fuzz "$fuzz" "$out/before-$n.png" "$out/after-$n.png" "$out/diff-$n.png" 2>&1 | awk '{print $1}')
+        printf '%-24s %s\n' "$n" "$d"
+    else
+        printf '%-24s %s\n' "$n" "missing picture"
+    fi
+done
+rm -rf "$shots_dir"
+echo "pictures: $out"
+exit $status

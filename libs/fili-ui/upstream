@@ -1,0 +1,5 @@
+# The shared Qt Quick controls of the Filigrane applications (QML module Fili.UI) live in their own repository. This pin is the
+# version the checks of tests/fili-shell/run.sh compare the applications with (see scripts/upstream-dir); the applications pin
+# their own version of it in their Cargo.toml. To update: .github/workflows/bump-app-pins.yml opens the pull request when a tag exists.
+url=https://github.com/filigrane-os/fili-ui
+ref=v0.7.1

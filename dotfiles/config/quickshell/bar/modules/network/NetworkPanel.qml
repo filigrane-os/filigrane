@@ -125,9 +125,9 @@ ColumnLayout {
                 TextInput {
                     id: pass
                     objectName: "passphrase"
-                    anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: 30 }
+                    anchors { left: parent.left; right: passEye.left; top: parent.top; bottom: parent.bottom; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space1 }
                     verticalAlignment: TextInput.AlignVCenter
-                    echoMode: TextInput.Password
+                    echoMode: passEye.revealed ? TextInput.Normal : TextInput.Password
                     passwordCharacter: "⦁"
                     activeFocusOnTab: true
                     clip: true
@@ -146,7 +146,15 @@ ColumnLayout {
                         font: pass.font
                     }
                 }
+                // Show / hide the password (as FiliTextField of the kit)
+                PasswordEye {
+                    id: passEye
+                    objectName: "passphrase-eye"
+                    field: pass
+                    anchors { right: enterGlyph.left; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
+                }
                 Text {
+                    id: enterGlyph
                     anchors { right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                     text: "↵"
                     color: pass.text ? FiliTheme.voile : FiliTheme.nuit4

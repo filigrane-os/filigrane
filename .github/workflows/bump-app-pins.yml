@@ -45,6 +45,6 @@ jobs:
             git commit -q -am "Pin $name to $new"
             git push -q origin "$branch"
             gh pr create --base develop --head "$branch" --title "Pin $name to $new" \
-              --body "Moves \`apps/$name/upstream\` from \`$old\` to \`$new\`. Before merging: run \`tests/fili-shell/run.sh\` (it builds the pinned version) and note the version, CPU and RAM in the README."
+              --body "Moves the pin of \`$name\` (\`apps/$name/upstream\` or \`libs/$name/upstream\`) from \`$old\` to \`$new\`. Before merging: run \`tests/fili-shell/run.sh\` (it builds the pinned version) and note the version, CPU and RAM in the README."
             git switch -q --detach origin/develop
           done

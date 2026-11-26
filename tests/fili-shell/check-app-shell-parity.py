@@ -2,15 +2,26 @@
 """A Filigrane application follows the fili-shell: the defaults of its theme.toml are the tokens of FiliTheme.qml (colours per mode,
 fonts, sizes, radii, spacing, accent tones), and its qml/KineticScroll.qml is the shell's file. These checks live here, not in the
 application: the shell is the reference, and the applications (Casier, Cassette, Baladeur) keep only tests about themselves.
-Usage: check-app-shell-parity.py APP_SOURCE_DIR [NAME]   (exit 0 if everything agrees, 1 otherwise; each difference on one line)."""
+An application that takes its shared controls from the fili-ui kit has no qml/KineticScroll.qml of its own: with `--kit KIT_DIR` the
+kit's file is the one compared with the shell's. The kit itself can be checked (APP_SOURCE_DIR = the kit): its demo/theme.toml
+carries the defaults.
+Usage: check-app-shell-parity.py APP_SOURCE_DIR [NAME] [--kit KIT_DIR]   (exit 0 if everything agrees, 1 otherwise; each difference on one line)."""
 import pathlib, re, sys
 
 root = pathlib.Path(__file__).resolve().parents[2]
 shell = root / "dotfiles/config/quickshell"
 if len(sys.argv) < 2:
     sys.exit(__doc__)
-app = pathlib.Path(sys.argv[1])
-name = sys.argv[2] if len(sys.argv) > 2 else app.name
+args = sys.argv[1:]
+kit = None
+if "--kit" in args:
+    i = args.index("--kit")
+    kit = pathlib.Path(args[i + 1])
+    del args[i:i + 2]
+app = pathlib.Path(args[0])
+name = args[1] if len(args) > 1 else app.name
+# The kit itself: no theme.toml at its root, its defaults are the demo's
+is_kit = (app / "qml/Fili/UI").is_dir()
 
 # (shell token, theme.toml key): colours per mode ("ov(key, light, dark)"), the rest shared by both modes
 COLORS = [
@@ -64,7 +75,7 @@ def defaults(toml):
 
 
 tok = tokens((shell / "FiliTheme.qml").read_text())
-toml = at("theme.toml").read_text()
+toml = (app / "demo/theme.toml" if is_kit else at("theme.toml")).read_text()
 d = defaults(toml)
 common = 0
 for token, key in COLORS:
@@ -107,8 +118,13 @@ if n < 7:
 if common < 25:
     errors.append(f"only {common} shared tokens")
 # The scroll file is the shell's, byte for byte
-if at("qml/KineticScroll.qml").read_text() != (shell / "KineticScroll.qml").read_text():
-    errors.append("qml/KineticScroll.qml differs from the shell's")
+own = app / "qml/Fili/UI/KineticScroll.qml" if is_kit else at("qml/KineticScroll.qml")
+if not own.is_file() and kit is not None:
+    own = kit / "qml/Fili/UI/KineticScroll.qml"
+if not own.is_file():
+    errors.append("no KineticScroll.qml: neither in the application nor (--kit) in the fili-ui kit")
+elif own.read_text() != (shell / "KineticScroll.qml").read_text():
+    errors.append(f"{'the kit' if own.is_relative_to(kit or app / 'x') and kit else 'qml'}/KineticScroll.qml differs from the shell's")
 
 if errors:
     print(f"not ok - {name} no longer matches the shell:")

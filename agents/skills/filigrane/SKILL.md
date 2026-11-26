@@ -40,6 +40,7 @@ After a durable install: `budget save avant` before, `budget diff avant` after, 
 - `references/niri.md`: niri config, keybinds, menu, Quickshell shell (bar, notifications), wallpaper.
 - `references/files.md`: `fili-tx`, transactions on files with undo/redo; how to revert quickly.
 - `references/resources.md`: measuring, chosen light tools, home-made Rust tools in `apps/`.
+- `references/calendar.md`: calendar and reminders (`fili-cal`): add, list and change events, alarms, WHEN syntax.
 - `references/brand.md`: logo files, colours, typography, icon and greyscale rules. Read before any visual change.
 - Interface design (fili-shell modules, panels, cards, controls, sizes, spacing, colour tokens, states, keyboard): the `filigrane-ui` skill.
 - `hardware/<machine>/README.md` when the machine has one (`./bootstrap.sh --plan` prints `hardware/<machine>`). Mac T2: `hardware/mac-t2/README.md` (audio, keyboard, Touch Bar, dual boot, Limine, kernels).

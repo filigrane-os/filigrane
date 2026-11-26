@@ -322,7 +322,10 @@ Singleton {
                             onTextChanged: launcher.filter()
                             Text {
                                 visible: !input.text
-                                text: box.listMode ? FiliI18n.tr("Search…") : FiliI18n.tr("Type…")
+                                // The caller's example of what to type (--placeholder), else Search… / Type…
+                                width: input.width
+                                elide: Text.ElideRight
+                                text: launcher.req?.placeholder || (box.listMode ? FiliI18n.tr("Search…") : FiliI18n.tr("Type…"))
                                 color: FiliTheme.ardoise
                                 font: input.font
                             }

@@ -32,7 +32,7 @@ ColumnLayout {
         spacing: FiliTheme.space2
         Text {
             text: ""
-            color: view.caffeine ? FiliTheme.sable : FiliTheme.brume
+            color: view.caffeine ? FiliTheme.voile : FiliTheme.brume
             Layout.preferredWidth: 18
             horizontalAlignment: Text.AlignHCenter
             font { family: FiliTheme.font; pixelSize: FiliTheme.size }

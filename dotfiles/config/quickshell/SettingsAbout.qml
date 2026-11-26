@@ -18,7 +18,7 @@ ColumnLayout {
     readonly property var rows: [
         [FiliI18n.tr("Also known as"), aka + " (Settings)"],
         [FiliI18n.tr("Part of"), "Filigrane"],
-        [FiliI18n.tr("Opens with"), "fili-shell settings [PAGE]"]
+        [FiliI18n.tr("Opens with"), "fili-shell settings"]
     ].concat(sys)
 
     Process {

@@ -5,7 +5,7 @@ pragma Singleton
 //   drawer    $XDG_RUNTIME_DIR/bar-tray-open          present = open (bar-tray toggle)
 //   timer     $XDG_RUNTIME_DIR/bar-timer              "T <end>" | "S <start>" | "done" (bar-timer click/add/expire)
 //   backup                                             bar-stats backup stat, kept visible 10 s after the end
-//   agenda    ~/.local/state/agenda                    next events (clock card)
+//   agenda    ~/.local/state/filigrane/agenda   next events (clock card, written by fili-cal)
 // The alerts (~/.local/state/alerts/<kind>) are read by AlertModule, one module per kind.
 import QtQuick
 import Quickshell
@@ -20,17 +20,30 @@ Singleton {
     readonly property var empty: ({ text: "" })
 
     // ───── agenda ─────
-    // Next events of the agenda (cal-notify, user layer): null without the file
-    BarWatched { id: agendaF; path: Quickshell.env("HOME") + "/.local/state/agenda" }
-    readonly property var agenda: agendaF.exists ? rows(agendaF.content).filter(r => Number(r[0]) > minute - 60).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" })) : null
+    // Next events of the agenda: the file of fili-cal (the calendar of Filigrane, rewritten by `fili-cal tick`; one line per event:
+    // epoch, title, place). null without the file.
+    BarWatched { id: calF; path: Quickshell.env("HOME") + "/.local/state/filigrane/agenda" }
+    readonly property var agenda: calF.exists
+        ? rows(calF.content).filter(r => Number(r[0]) > minute - 60).sort((a, b) => Number(a[0]) - Number(b[0])).slice(0, 5).map(r => ({ start: Number(r[0]), title: r[1] ?? "", place: r[2] ?? "" }))
+        : null
 
-    // Instant (s) that expires the agenda events, advanced every minute while there are some
+    // Instant (s) that expires the agenda events, advanced every minute; the same beat runs `fili-cal tick`, which shows
+    // the alarms that are due (no daemon: the shell is the clock) and rewrites the agenda file
     property real minute: Date.now() / 1000
     Timer {
         interval: 60000
         repeat: true
-        running: agendaF.content !== ""
-        onTriggered: st.minute = Date.now() / 1000
+        running: true
+        triggeredOnStart: true
+        onTriggered: {
+            st.minute = Date.now() / 1000;
+            if (!FiliTheme.testing)
+                calTick.running = true;
+        }
+    }
+    Process {
+        id: calTick
+        command: [FiliTheme.tool("fili-cal"), "tick"]
     }
 
     // Lines "field<TAB>field..." of an alert or agenda file

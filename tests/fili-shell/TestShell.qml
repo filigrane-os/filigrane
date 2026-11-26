@@ -11,6 +11,7 @@ import Quickshell.Bluetooth
 import Quickshell.Io
 import qs
 import qs.bar
+import qs.controls
 import qs.bar.modules.alert
 import qs.bar.modules.agent
 import qs.bar.modules.appmenu
@@ -47,6 +48,16 @@ ShellRoot {
         }
     }
     Component { id: mailComp; MailModule {} }
+    // A password field with its eye (Wi-Fi of the network panel, fili-polkit)
+    Component {
+        id: passwordEyeComp
+        Item {
+            property alias input: pwInput
+            property alias eye: pwEye
+            TextInput { id: pwInput; text: "hunter2"; echoMode: pwEye.revealed ? TextInput.Normal : TextInput.Password }
+            PasswordEye { id: pwEye; field: pwInput }
+        }
+    }
     readonly property string bin: FiliTheme.bin
 
     function ok(cond, name, detail) {
@@ -366,7 +377,7 @@ ShellRoot {
                 AppMenu.openAt(2, t.find(t.bar.contentItem, "appmenu-2"), t.bar);
                 AppMenu.activate(copy);
                 ok(FiliTheme.ran.join() === "fili-file ctl --pid 4242 action copy", "appmenu: control command targeting the window process (%pid)", FiliTheme.ran.join());
-                ok(AppMenu.menus[4].children[8].exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"', "appmenu: fili-file -> go to a folder through fili-file ctl goto");
+                ok(AppMenu.menus[4].children.some(c => c.exec === 'fili-file ctl --pid %pid goto "$HOME/Documents"'), "appmenu: fili-file -> go to a folder through fili-file ctl goto");
                 // "…": the menus that do not fit in the free space go into a title, as submenus
                 const h = t.find(t.bar.contentItem, "appmenu");
                 h.maxWidth = 200;
@@ -552,6 +563,14 @@ ShellRoot {
             wait(() => t.shell("printf 'X\\n' | " + t.bin + "/fili-shell launcher --prompt 'T › ' & sleep 0.5; " + t.bin + "/fili-shell launcher close; echo \"close=$?\"; wait"),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.indexOf("close=0") >= 0 && !FiliLauncher.open, "fili-shell launcher close closes the fili-launcher", JSON.stringify(t.shellOut.out)),
+            // The caller's example of what to type shows in the empty field (bar-event: how to write a reminder)
+            wait(() => t.shell(t.bin + "/fili-shell launcher --prompt-only 'Event: ' --placeholder '+30m Bread'; echo \"rc=$?\""), () => FiliLauncher.open),
+            () => {
+                ok(FiliLauncher.req?.placeholder === "+30m Bread" && FiliLauncher.req?.promptOnly === true, "fili-launcher --placeholder reaches the field", JSON.stringify(FiliLauncher.req));
+                FiliLauncher.query = "+30m Bread";
+                FiliLauncher.accept();
+            },
+            wait(() => {}, () => t.shellOut !== null),
 
             // ───── fili-notification ─────
             wait(() => t.shell("notify-send -a test 'Résumé test' 'Corps du test'"), () => FiliNotification.popups.length === 1),
@@ -962,6 +981,75 @@ ShellRoot {
                 ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-lang set fr", "fili-settings language: fili-lang set", JSON.stringify(FiliTheme.ran));
                 FiliSettings.close();
             },
+            // fili-settings assistant: the agents, a choice runs fili-assistant set, install and sign in open a terminal
+            () => {
+                FiliSettings.show("assistant");
+                const d = FiliSettings.loaded;
+                d.status = { agent: "claude", model: "", agent_model: "sonnet", models: [], agents: [
+                    { id: "claude", desc: "Claude Code (Anthropic)", installed: true, signed_in: false },
+                    { id: "ollama", desc: "Ollama", installed: false, signed_in: true },
+                    { id: "none", desc: "No assistant", installed: true, signed_in: true }] };
+                ok(t.find(d, "agent").model.length === 3 && t.find(d, "agent").model[0].label === "Claude", "fili-settings assistant: the agents", JSON.stringify(t.find(d, "agent").model));
+                ok(t.find(d, "agent-state").text === "Installed · Not signed in", "fili-settings assistant: the state is said in words", t.find(d, "agent-state").text);
+                ok(t.find(d, "agent-login").visible && !t.find(d, "agent-install").visible, "fili-settings assistant: Sign in is offered, not Install");
+                ok(d.modelChoices.length === 4 && d.modelChoices[1].value === "sonnet", "fili-settings assistant: the models of claude");
+                FiliTheme.ran = [];
+                d.set("agent", "ollama");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-assistant set agent ollama" && d.status.agent === "ollama", "fili-settings assistant: set agent", JSON.stringify(FiliTheme.ran));
+                ok(t.find(d, "agent-install").visible && !t.find(d, "agent-login").visible, "fili-settings assistant: Install is offered for an agent that is not installed");
+                FiliTheme.ran = [];
+                d.set("model", "");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-assistant set model ''", "fili-settings assistant: an empty model is quoted", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
+            // fili-settings region: the choices (the language first), a choice runs fili-region set, the example follows the region
+            () => {
+                FiliSettings.show("region");
+                const d = FiliSettings.loaded;
+                d.regions = [{ locale: "fr_CH.UTF-8", code: "fr_CH", current: false }, { locale: "en_GB.UTF-8", code: "en_GB", current: false }];
+                const sel = t.find(d, "region");
+                ok(sel.model.length === 3 && sel.model[0].value === "language" && sel.model[1].value === "fr_CH", "fili-settings region: choices", JSON.stringify(sel.model));
+                ok(sel.current === "language", "fili-settings region: follows the language by default", String(sel.current));
+                FiliTheme.ran = [];
+                d.pick("fr_CH");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-region set fr_CH", "fili-settings region: fili-region set", JSON.stringify(FiliTheme.ran));
+                ok(t.find(d, "region-sample").text.indexOf("Example") === 0, "fili-settings region: example line", t.find(d, "region-sample").text);
+                FiliTheme.ran = [];
+                d.choosingZone = true;
+                d.setZone("Asia/Tokyo");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-region zone-set Asia/Tokyo" && d.zone === "Asia/Tokyo" && !d.choosingZone, "fili-settings region: the time zone is changed", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
+            // fili-settings default applications: a choice runs fili-defaults set and the page shows it at once
+            () => {
+                FiliSettings.show("defaults");
+                const d = FiliSettings.loaded;
+                d.categories = [{ id: "mail", name: "Mail", current: "a.desktop" }, { id: "files", name: "Folders", current: "" }];
+                FiliTheme.ran = [];
+                d.pick("mail", "facteur.desktop");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults set mail facteur.desktop", "fili-settings defaults: fili-defaults set", JSON.stringify(FiliTheme.ran));
+                ok(d.categories[0].current === "facteur.desktop" && d.categories[1].current === "", "fili-settings defaults: the page follows the choice");
+                FiliTheme.ran = [];
+                d.pick("files", "__command__");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults ask files", "fili-settings defaults: Command… asks for a program", JSON.stringify(FiliTheme.ran));
+                d.pick("files", "__other__");
+                ok(d.pickerFor === "files", "fili-settings defaults: Other… opens the picker of every application");
+                FiliTheme.ran = [];
+                d.pickAny("files", "gimp.desktop");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults set files gimp.desktop --any" && d.pickerFor === "" && d.categories[1].current === "gimp.desktop", "fili-settings defaults: an application picked among all is set with --any", JSON.stringify(FiliTheme.ran));
+                // Edit with: editors are registered once, from the picker of every application or from a command
+                d.editors = [];
+                FiliTheme.ran = [];
+                d.pickerFor = d.editorKey;
+                d.addEditor("gimp.desktop");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults editor-add gimp.desktop" && d.editors.length === 1 && d.pickerFor === "", "fili-settings defaults: an editor is added once", JSON.stringify(FiliTheme.ran));
+                d.addEditor("gimp.desktop");
+                ok(d.editors.length === 1, "fili-settings defaults: the same editor is not listed twice");
+                FiliTheme.ran = [];
+                d.removeEditor("gimp.desktop");
+                ok(FiliTheme.ran[0] === FiliTheme.bin + "/fili-defaults editor-rm gimp.desktop" && d.editors.length === 0, "fili-settings defaults: an editor is removed", JSON.stringify(FiliTheme.ran));
+                FiliSettings.close();
+            },
             // fili-settings wallpaper: a click on an image runs `wallpaper IMAGE`
             () => {
                 FiliSettings.show("wallpaper");
@@ -1174,6 +1262,19 @@ ShellRoot {
                 FiliPolkit.testFlow = null;
                 ok(!FiliPolkit.open, "fili-polkit: the window closes with the request");
                 f.destroy();
+            },
+            // Password fields of the bar (Wi-Fi, fili-polkit): the eye shows and hides what was typed, hidden again when it goes away
+            () => {
+                const p = passwordEyeComp.createObject(null, {});
+                ok(p.input.echoMode === TextInput.Password && !p.eye.revealed, "password eye: hidden at first");
+                p.eye.toggle();
+                ok(p.eye.revealed && p.input.echoMode === TextInput.Normal, "password eye: a click shows the password");
+                p.eye.toggle();
+                ok(p.input.echoMode === TextInput.Password, "password eye: a second click hides it");
+                p.eye.toggle();
+                p.eye.visible = false;
+                ok(!p.eye.revealed && p.input.echoMode === TextInput.Password, "password eye: hidden again when the field closes");
+                p.destroy();
             },
             // fili-settings login: items read from login.toml, switch, remove and add go through fili-login
             () => {
@@ -1572,7 +1673,7 @@ ShellRoot {
             },
             // fili-lang: live language change (state in $XDG_STATE_HOME, niri locale.kdl in a test folder)
             wait(() => t.shell('XDG_CONFIG_HOME="$XDG_STATE_HOME/cfg" "$0" set fr && cat "$XDG_STATE_HOME/filigrane/locale" "$XDG_STATE_HOME/cfg/niri/locale.kdl"'.replace('"$0"', t.bin + "/fili-lang")), () => t.shellOut !== null),
-            () => ok(t.shellOut.code === 0 && t.shellOut.out.indexOf("fr_") >= 0 && t.shellOut.out.indexOf("Généré par fili-lang") >= 0, "fili-lang set fr: choice saved, niri's locale.kdl written", t.shellOut.out),
+            () => ok(t.shellOut.code === 0 && t.shellOut.out.indexOf("fr_") >= 0 && t.shellOut.out.indexOf("Generated by fili-lang") >= 0, "fili-lang set fr: choice saved, niri's locale.kdl written", t.shellOut.out),
             wait(() => {}, () => FiliI18n.lang === "fr", 5000),
             () => ok(FiliI18n.lang === "fr" && FiliI18n.tr("Workspace %1", 3) === "Espace 3", "FiliI18n: suit fili-lang en direct (fr)", FiliI18n.lang),
             wait(() => t.shell(t.bin + "/fili-lang list"), () => t.shellOut !== null),
