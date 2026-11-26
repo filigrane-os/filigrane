@@ -112,12 +112,12 @@ Singleton {
                         border { color: input.activeFocus ? FiliTheme.voile : FiliTheme.nuit4; width: FiliTheme.borderWidth }
                         TextInput {
                             id: input
-                            anchors { fill: parent; leftMargin: FiliTheme.space2; rightMargin: FiliTheme.space2 }
+                            anchors { left: parent.left; right: inputEye.visible ? inputEye.left : parent.right; top: parent.top; bottom: parent.bottom; leftMargin: FiliTheme.space2; rightMargin: inputEye.visible ? FiliTheme.space1 : FiliTheme.space2 }
                             verticalAlignment: TextInput.AlignVCenter
                             clip: true
                             focus: true
-                            // The password stays hidden unless PAM says the answer may be shown
-                            echoMode: (root.flow?.responseVisible ?? false) ? TextInput.Normal : TextInput.Password
+                            // The password stays hidden unless PAM says the answer may be shown, or the eye shows it
+                            echoMode: (root.flow?.responseVisible ?? false) || inputEye.revealed ? TextInput.Normal : TextInput.Password
                             color: FiliTheme.brume
                             selectionColor: FiliTheme.voile
                             selectedTextColor: FiliTheme.nuit
@@ -130,12 +130,20 @@ Singleton {
                             // A new question (a wrong password, a second factor) starts with an empty field and the focus
                             Connections {
                                 target: root
-                                function onFlowChanged() { input.text = ""; input.forceActiveFocus(); }
+                                function onFlowChanged() { input.text = ""; inputEye.revealed = false; input.forceActiveFocus(); }
                             }
                             Connections {
                                 target: root.flow
-                                function onIsResponseRequiredChanged() { input.text = ""; input.forceActiveFocus(); }
+                                function onIsResponseRequiredChanged() { input.text = ""; inputEye.revealed = false; input.forceActiveFocus(); }
                             }
+                        }
+                        // Show / hide the password (as FiliTextField of the kit); useless when PAM already shows the answer
+                        PasswordEye {
+                            id: inputEye
+                            objectName: "polkit-eye"
+                            visible: !(root.flow?.responseVisible ?? false)
+                            field: input
+                            anchors { right: parent.right; rightMargin: FiliTheme.space2; verticalCenter: parent.verticalCenter }
                         }
                     }
                     // Nothing to type: the means is not a password (fingerprint, key); PAM's message tells what to do

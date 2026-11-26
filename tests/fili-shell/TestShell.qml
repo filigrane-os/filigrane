@@ -11,6 +11,7 @@ import Quickshell.Bluetooth
 import Quickshell.Io
 import qs
 import qs.bar
+import qs.controls
 import qs.bar.modules.alert
 import qs.bar.modules.agent
 import qs.bar.modules.appmenu
@@ -47,6 +48,16 @@ ShellRoot {
         }
     }
     Component { id: mailComp; MailModule {} }
+    // A password field with its eye (Wi-Fi of the network panel, fili-polkit)
+    Component {
+        id: passwordEyeComp
+        Item {
+            property alias input: pwInput
+            property alias eye: pwEye
+            TextInput { id: pwInput; text: "hunter2"; echoMode: pwEye.revealed ? TextInput.Normal : TextInput.Password }
+            PasswordEye { id: pwEye; field: pwInput }
+        }
+    }
     readonly property string bin: FiliTheme.bin
 
     function ok(cond, name, detail) {
@@ -1251,6 +1262,19 @@ ShellRoot {
                 FiliPolkit.testFlow = null;
                 ok(!FiliPolkit.open, "fili-polkit: the window closes with the request");
                 f.destroy();
+            },
+            // Password fields of the bar (Wi-Fi, fili-polkit): the eye shows and hides what was typed, hidden again when it goes away
+            () => {
+                const p = passwordEyeComp.createObject(null, {});
+                ok(p.input.echoMode === TextInput.Password && !p.eye.revealed, "password eye: hidden at first");
+                p.eye.toggle();
+                ok(p.eye.revealed && p.input.echoMode === TextInput.Normal, "password eye: a click shows the password");
+                p.eye.toggle();
+                ok(p.input.echoMode === TextInput.Password, "password eye: a second click hides it");
+                p.eye.toggle();
+                p.eye.visible = false;
+                ok(!p.eye.revealed && p.input.echoMode === TextInput.Password, "password eye: hidden again when the field closes");
+                p.destroy();
             },
             // fili-settings login: items read from login.toml, switch, remove and add go through fili-login
             () => {

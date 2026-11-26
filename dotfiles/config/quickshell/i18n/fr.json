@@ -360,5 +360,7 @@
  "Quick requests": "Demandes rapides",
  "Quick requests are the short questions asked from an application (“Ask Lia…”): a lighter model answers faster.": "Les demandes rapides sont les questions courtes posées depuis une application (« Demander à Lia… ») : un modèle plus léger répond plus vite.",
  "No local model yet: run `ollama pull gpt-oss:20b` in a terminal (about 16 GB of memory).": "Aucun modèle local: lancer `ollama pull gpt-oss:20b` dans un terminal (environ 16 Go de mémoire).",
- "The change applies to the next conversation. Your sign-in files are never read by this page.": "Le changement vaut pour la prochaine conversation. Cette page ne lit jamais vos fichiers de connexion."
+ "The change applies to the next conversation. Your sign-in files are never read by this page.": "Le changement vaut pour la prochaine conversation. Cette page ne lit jamais vos fichiers de connexion.",
+ "Show password": "Afficher le mot de passe",
+ "Hide password": "Masquer le mot de passe"
 }
