@@ -327,8 +327,9 @@ shell_dirs() { printf '%s\n' "${FILI_SHELL_DIRS:-/usr/share/filigrane/shell:${XD
 ours() {
     [ -L "$1" ] || return 1
     tgt="$(readlink "$1")"
-    for d in $(shell_dirs); do
-        case "$tgt" in "$d"/*) return 0 ;; esac
+    # Not `d`: sh has no local variables, and cmd_link_system is in the middle of its own loop over $d when it calls this
+    for ours_dir in $(shell_dirs); do
+        case "$tgt" in "$ours_dir"/*) return 0 ;; esac
     done
     return 1
 }

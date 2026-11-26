@@ -119,6 +119,14 @@ mkdir -p "$SH/fili-bar/shipped3" "$XDG_CONFIG_HOME/quickshell/bar/modules/shippe
 printf 'title = "Shipped 3"\n' > "$SH/fili-bar/shipped3/module.toml"; : > "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3/Mine.qml"
 "$FB" link-system
 check "link-system leaves a folder that holds files" '[ -d "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3" ] && [ ! -L "$XDG_CONFIG_HOME/quickshell/bar/modules/shipped3" ]'
+# Two shell folders (/usr/share and ~/.local/share) that ship the same module, as a package and a build from source do: the
+# fallback menus of the second are linked too (checking the link of that module once left the loop on the first folder, so
+# the menu of an application built from source never reached the bar)
+SH2="$T/shell2"; export FILI_SHELL_DIRS="$SH:$SH2"
+mkdir -p "$SH2/appmenu" "$SH2/fili-bar/shipped2"; printf '{"menus":[]}\n' > "$SH2/appmenu/second.json"
+printf 'title = "Shipped 2"\napi = 1\nside = "right"\n' > "$SH2/fili-bar/shipped2/module.toml"
+"$FB" link-system
+check "link-system links the fallback menus of every shell folder" '[ "$(readlink "$XDG_CONFIG_HOME/filigrane/appmenu/second.json")" = "$SH2/appmenu/second.json" ]'
 unset FILI_SHELL_DIRS
 rm -f "$XDG_CONFIG_HOME/filigrane/fili-bar.toml"
 exit "$fail"
