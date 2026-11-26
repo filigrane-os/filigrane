@@ -552,6 +552,14 @@ ShellRoot {
             wait(() => t.shell("printf 'X\\n' | " + t.bin + "/fili-shell launcher --prompt 'T › ' & sleep 0.5; " + t.bin + "/fili-shell launcher close; echo \"close=$?\"; wait"),
                  () => t.shellOut !== null),
             () => ok(t.shellOut.out.indexOf("close=0") >= 0 && !FiliLauncher.open, "fili-shell launcher close closes the fili-launcher", JSON.stringify(t.shellOut.out)),
+            // The caller's example of what to type shows in the empty field (bar-event: how to write a reminder)
+            wait(() => t.shell(t.bin + "/fili-shell launcher --prompt-only 'Event: ' --placeholder '+30m Bread'; echo \"rc=$?\""), () => FiliLauncher.open),
+            () => {
+                ok(FiliLauncher.req?.placeholder === "+30m Bread" && FiliLauncher.req?.promptOnly === true, "fili-launcher --placeholder reaches the field", JSON.stringify(FiliLauncher.req));
+                FiliLauncher.query = "+30m Bread";
+                FiliLauncher.accept();
+            },
+            wait(() => {}, () => t.shellOut !== null),
 
             // ───── fili-notification ─────
             wait(() => t.shell("notify-send -a test 'Résumé test' 'Corps du test'"), () => FiliNotification.popups.length === 1),

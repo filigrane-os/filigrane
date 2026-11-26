@@ -65,7 +65,7 @@ case "$1 $2" in
 esac
 
 # fili-launcher: options as JSON and entries in files read by the shell
-prompt=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''; search=''
+prompt=''; placeholder=''; only=0; lines=12; width=''; font=''; nosort=0; with=''; accept=''; search=''
 while [ $# -gt 0 ]; do
     case "$1" in
         --dmenu|--minimal-lines) ;;
@@ -79,16 +79,17 @@ while [ $# -gt 0 ]; do
         --with-nth) with="$2"; shift ;;
         --accept-nth) accept="$2"; shift ;;
         --search-nth) search="$2"; shift ;;
-        --placeholder|--nth-delimiter) shift ;;
+        --placeholder) placeholder="$2"; shift ;;
+        --nth-delimiter) shift ;;
     esac
     shift
 done
 in="$(mktemp "$D/fili-launcher.XXXXXX")"
 trap 'rm -f "$in" "$in.json"' EXIT
 [ "$only" = 1 ] || cat > "$in"
-jq -nc --arg p "$prompt" --argjson o "$only" --arg l "$lines" --arg w "$width" --arg f "$font" --argjson s "$nosort" \
+jq -nc --arg p "$prompt" --arg ph "$placeholder" --argjson o "$only" --arg l "$lines" --arg w "$width" --arg f "$font" --argjson s "$nosort" \
     --arg wn "$with" --arg an "$accept" --arg sn "$search" --arg in "$in" \
-    '{prompt: $p, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
+    '{prompt: $p, placeholder: $ph, promptOnly: ($o == 1), lines: ($l | tonumber? // 12), width: ($w | tonumber? // 0), font: $f,
       noSort: ($s == 1), withNth: ($wn | tonumber? // 0), acceptNth: ($an | tonumber? // 0), searchNth: ($sn | tonumber? // 0), input: $in}' > "$in.json"
 out="$(request "launcher open $in.json")" || exit 1
 # Reply: exit code on the first line, selection after

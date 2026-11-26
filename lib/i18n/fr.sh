@@ -40,6 +40,7 @@ _t_lookup() {
     'same as the language') _t_fmt='comme la langue' ;;
     'Event: ') _t_fmt='Événement: ' ;;
     'Event added') _t_fmt='Événement ajouté' ;;
+    'tomorrow 14:30 Dentist · +30m Bread = reminder in 30 min') _t_fmt='demain 14:30 Dentiste · +30m Pain = rappel dans 30 min' ;;
     'Event not added') _t_fmt='Événement non ajouté' ;;
     'Web browser') _t_fmt='Navigateur web' ;;
     'Mail') _t_fmt='Courrier' ;;
