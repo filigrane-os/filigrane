@@ -34,6 +34,8 @@ for name in "${names[@]}"; do
     ref="$(sed -n 's/^ref=//p' "$pin")"
     [ -n "$url" ] && [ -n "$ref" ] || { echo "bump-app-pins: $pin needs url= and ref=" >&2; exit 1; }
     prefix="${ref%%[0-9]*}"
+    # Facteur tagged facteur-vX.Y.Z up to 1.8.0, vX.Y.Z since: an old family moves to the plain one
+    [ "$prefix" = "facteur-v" ] && prefix="v"
     latest="$({ git ls-remote --tags --refs "$url" | sed 's|.*refs/tags/||' | grep -E "^${prefix}[0-9]+\.[0-9]+\.[0-9]+\$" | sort -V | tail -1; } || true)"
     [ -n "$latest" ] && [ "$latest" != "$ref" ] || continue
     # Only forwards: a pin on a tag newer than the newest one (a tag not pushed yet) stays
