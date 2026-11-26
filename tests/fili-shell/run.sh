@@ -115,12 +115,9 @@ app_suite fili-recorder Cassette test
 app_suite fili-music Baladeur test
 app_suite fili-im Conversations test
 app_suite fili-mail Facteur test
-if want '^apps/fili-cal/|check-fili-cal'; then
-# fili-cal (calendar and reminders, in this repository): unit tests (dates, iCalendar, recurrence) then the command line
-(cd "$ROOT/apps/fili-cal" && cargo test --release -q --locked >/dev/null 2>&1) \
-    && echo "ok - fili-cal passes its unit tests" || { echo "not ok - fili-cal: cd apps/fili-cal && cargo test"; exit 1; }
-"$ROOT/tests/fili-shell/check-fili-cal.sh" || exit 1
-fi
+app_suite fili-cal Agenda test
+# Agenda (fili-cal), pinned in apps/fili-cal/upstream: the command line the fili-bar and Lia use (tick, list, add...)
+if want '^apps/fili-cal/|check-fili-cal'; then "$ROOT/tests/fili-shell/check-fili-cal.sh" || exit 1; fi
 if want '^apps/fili-incident/'; then
 # fili-incident (problems reported by the apps, in this repository): the private details removed from what leaves the machine,
 # the signature in the issue, the GitHub search reply, incident ids that cannot leave their folder
