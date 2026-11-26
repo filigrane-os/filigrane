@@ -52,10 +52,8 @@ _t_lookup() {
     'unknown category: %s') _t_fmt='catégorie inconnue: %s' ;;
     'usage: fili-defaults get ID') _t_fmt='usage: fili-defaults get ID' ;;
     'usage: fili-defaults candidates ID') _t_fmt='usage: fili-defaults candidates ID' ;;
-    'usage: fili-defaults set ID DESKTOP_ID') _t_fmt='usage: fili-defaults set ID DESKTOP_ID' ;;
     'not a desktop id: %s') _t_fmt='pas un identifiant .desktop: %s' ;;
     '%s cannot open this category') _t_fmt='%s ne peut pas ouvrir cette catégorie' ;;
-    'usage: fili-defaults list | get ID | candidates ID | set ID DESKTOP_ID') _t_fmt='usage: fili-defaults list | get ID | candidates ID | set ID DESKTOP_ID' ;;
     'WARNING') _t_fmt='AVERTISSEMENT' ;;
     'Unknown option: %s') _t_fmt='Option inconnue: %s' ;;
     'User not found: %s') _t_fmt='Utilisateur introuvable: %s' ;;
@@ -429,6 +427,7 @@ _t_lookup() {
     'Notifications: close all') _t_fmt='Notifications: fermer toutes' ;;
     'Shortcuts help') _t_fmt='Aide des raccourcis' ;;
     'Open a Terminal: Aéroport') _t_fmt='Ouvrir un terminal: Aéroport' ;;
+    'Join the video meeting (fili-cal join)') _t_fmt='Rejoindre la visio (fili-cal join)' ;;
     'Run an Application') _t_fmt='Lancer une application' ;;
     'Audio (wiremix)') _t_fmt='Audio (wiremix)' ;;
     'Bluetooth (bluetui)') _t_fmt='Bluetooth (bluetui)' ;;
